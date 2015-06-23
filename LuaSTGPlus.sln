@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuaSTGPlus", "LuaSTGPlus\LuaSTGPlus.vcxproj", "{C58FA3BD-E480-4271-B99F-A616EDE360DB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0968B6EF-F49F-4ABC-9449-905D181B3B78} = {0968B6EF-F49F-4ABC-9449-905D181B3B78}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZLib", "ZLib\ZLib.vcxproj", "{0968B6EF-F49F-4ABC-9449-905D181B3B78}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C58FA3BD-E480-4271-B99F-A616EDE360DB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C58FA3BD-E480-4271-B99F-A616EDE360DB}.Debug|Win32.Build.0 = Debug|Win32
+		{C58FA3BD-E480-4271-B99F-A616EDE360DB}.Release|Win32.ActiveCfg = Release|Win32
+		{C58FA3BD-E480-4271-B99F-A616EDE360DB}.Release|Win32.Build.0 = Release|Win32
+		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Debug|Win32.Build.0 = Debug|Win32
+		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Release|Win32.ActiveCfg = Release|Win32
+		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
