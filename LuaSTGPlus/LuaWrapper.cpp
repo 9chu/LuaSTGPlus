@@ -273,8 +273,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetResolution(lua_State* L)LNOEXCEPT
 		{
-			LAPP.SetResolution(static_cast<fuInt>(::min(luaL_checkinteger(L, 1), 0)),
-				static_cast<fuInt>(::min(luaL_checkinteger(L, 2), 0)));
+			LAPP.SetResolution(static_cast<fuInt>(::max(luaL_checkinteger(L, 1), 0)),
+				static_cast<fuInt>(::max(luaL_checkinteger(L, 2), 0)));
 			return 0;
 		}
 		static int SetSplash(lua_State* L)LNOEXCEPT
@@ -340,7 +340,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int DoFile(lua_State* L)LNOEXCEPT
 		{
-			LAPP.UnsafeCallScript(luaL_checkstring(L, 1));
+			LAPP.LoadScript(luaL_checkstring(L, 1));
 			return 0;
 		}
 		static int SetResourceStatus(lua_State* L)LNOEXCEPT
@@ -349,7 +349,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int GetnObj(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			lua_pushinteger(L, 0);
+			return 1;
 		}
 
 		// 对象控制函数

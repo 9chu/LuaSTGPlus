@@ -123,7 +123,7 @@ LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
 	return false;
 }
 
-LNOINLINE void AppFrame::UnsafeCallScript(const char* path)LNOEXCEPT
+LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 {
 	LINFO("装载脚本'%m'", path);
 	if (!m_ResourceMgr.LoadFile(path, m_TempBuffer))
@@ -194,7 +194,37 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 
 	//////////////////////////////////////// 初始化fancy2d引擎
-	// ! TODO
+	LINFO("初始化fancy2d (分辨率: %dx%d 垂直同步: %b 窗口化: %b)", 
+		(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
+	struct : public f2dInitialErrListener
+	{
+		void OnErr(fuInt TimeTick, fcStr Src, fcStr Desc)
+		{
+			LERROR("初始化fancy2d失败 (异常信息'%m' 源'%m')", Desc, Src);
+		}
+	} tErrListener;
+
+	if (FCYFAILED(CreateF2DEngineAndInit(
+		F2DVERSION,
+		fcyRect(0.f, 0.f, m_OptionResolution.x, m_OptionResolution.y),
+		m_OptionTitle.c_str(),
+		m_OptionWindowed,
+		m_OptionVsync,
+		F2DAALEVEL_NONE,
+		this,
+		&m_pEngine,
+		&tErrListener
+		)))
+	{
+		return false;
+	}
+	m_OptionVsyncOrg = m_OptionVsync;
+
+	// 获取组件
+	m_pMainWindow = m_pEngine->GetMainWindow();
+	m_pRenderer = m_pEngine->GetRenderer();
+	m_pRenderDev = m_pRenderer->GetDevice();
+	m_pSoundSys = m_pEngine->GetSoundSys();
 
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
@@ -212,6 +242,13 @@ bool AppFrame::Init()LNOEXCEPT
 
 void AppFrame::Shutdown()LNOEXCEPT
 {
+	m_pEngine = nullptr;
+	m_pMainWindow = nullptr;
+	m_pRenderer = nullptr;
+	m_pRenderDev = nullptr;
+	m_pSoundSys = nullptr;
+	LINFO("已卸载fancy2d");
+
 	if (L)
 	{
 		lua_close(L);
@@ -229,6 +266,10 @@ void AppFrame::Run()LNOEXCEPT
 {
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
+
+	m_pMainWindow->MoveToCenter();
+	m_pMainWindow->SetVisiable(true);
+	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
 
 	LINFO("退出游戏循环");
 }
@@ -324,5 +365,45 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEX
 
 	return true;
 }
+#pragma endregion
 
+#pragma region 游戏循环
+fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump)
+{
+	m_fFPS = (float)pFPSController->GetFPS();
+
+	// 处理消息
+	f2dMsg tMsg;
+	while (FCYOK(pMsgPump->GetMsg(&tMsg)))
+	{
+		switch (tMsg.Type)
+		{
+		case F2DMSG_WINDOW_ONCLOSE:
+			return false;  // 关闭窗口时结束循环
+		case F2DMSG_WINDOW_ONGETFOCUS:
+			if (!SafeCallGlobalFunction("FocusGainFunc"))
+				return false;
+		case F2DMSG_WINDOW_ONLOSTFOCUS:
+			if (!SafeCallGlobalFunction("FocusLoseFunc"))
+				return false;
+		default:
+			break;
+		}
+	}
+
+	// 执行帧函数
+	int xx = lua_gettop(L);
+	if (!SafeCallGlobalFunction("FrameFunc", 0, 1))
+		return false;
+	bool x = lua_toboolean(L, -1);
+	lua_pop(L, 1);
+	LASSERT(lua_gettop(L) == xx);
+
+	return !x;
+}
+
+fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
+{
+	return true;
+}
 #pragma endregion

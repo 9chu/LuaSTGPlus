@@ -18,7 +18,8 @@ namespace LuaSTGPlus
 	};
 
 	/// @brief 应用程序框架
-	class AppFrame
+	class AppFrame :
+		public f2dEngineEventListener
 	{
 	public:
 		static LNOINLINE AppFrame& GetInstance();
@@ -47,6 +48,7 @@ namespace LuaSTGPlus
 		f2dWindow* m_pMainWindow = nullptr;
 		f2dRenderer* m_pRenderer = nullptr;
 		f2dRenderDevice* m_pRenderDev = nullptr;
+		f2dSoundSys* m_pSoundSys = nullptr;
 	public: // 脚本调用接口，含义参见API文档
 		void SetWindowed(bool v)LNOEXCEPT;
 		void SetFPS(fuInt v)LNOEXCEPT;
@@ -64,7 +66,7 @@ namespace LuaSTGPlus
 
 		/// @brief 执行资源包中的文件
 		/// @note 该函数为脚本系统使用
-		LNOINLINE void UnsafeCallScript(const char* path)LNOEXCEPT;
+		LNOINLINE void LoadScript(const char* path)LNOEXCEPT;
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
 
@@ -86,6 +88,9 @@ namespace LuaSTGPlus
 		/// @brief 保护模式调用全局函数
 		/// @note 该函数仅限框架调用，为主逻辑最外层调用。若脚本运行时发生错误，该函数负责截获错误发出错误消息。
 		bool SafeCallGlobalFunction(const char* name, int argc = 0, int retc = 0)LNOEXCEPT;
+	protected:  // fancy2d逻辑循环回调
+		fBool OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump);
+		fBool OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController);
 	public:
 		AppFrame()LNOEXCEPT;
 		~AppFrame()LNOEXCEPT;
