@@ -2,6 +2,7 @@
 /// @brief 定义应用程序框架
 #pragma once
 #include "Global.h"
+#include "ResourceMgr.h"
 
 namespace LuaSTGPlus
 {
@@ -24,8 +25,12 @@ namespace LuaSTGPlus
 	private:
 		AppStatus m_iStatus = AppStatus::NotInitialized;
 
+		// 资源管理器
+		ResourceMgr m_ResourceMgr;
+
 		// Lua虚拟机
 		lua_State* L = nullptr;
+		std::vector<char> m_TempBuffer;  // 临时缓冲区
 
 		// 选项与值
 		bool m_OptionWindowed = true;
@@ -42,15 +47,13 @@ namespace LuaSTGPlus
 		f2dWindow* m_pMainWindow = nullptr;
 		f2dRenderer* m_pRenderer = nullptr;
 		f2dRenderDevice* m_pRenderDev = nullptr;
-	private:
-		std::string loadFileAsString(fcStrW path);
 	public: // 脚本调用接口，含义参见API文档
 		void SetWindowed(bool v)LNOEXCEPT;
 		void SetFPS(fuInt v)LNOEXCEPT;
 		void SetVsync(bool v)LNOEXCEPT;
 		void SetResolution(fuInt width, fuInt height)LNOEXCEPT;
 		void SetSplash(bool v)LNOEXCEPT;
-		LNOINLINE void SetTitle(const char* v)LNOEXCEPT;
+		LNOINLINE void SetTitle(const char* v)LNOEXCEPT;  // UTF8编码
 
 		/// @brief 使用新的视频参数更新显示模式
 		/// @note 若切换失败则进行回滚
@@ -58,7 +61,13 @@ namespace LuaSTGPlus
 
 		/// @brief 获取当前的FPS
 		double GetFPS()LNOEXCEPT { return m_fFPS; }
+
+		/// @brief 执行资源包中的文件
+		/// @note 该函数为脚本系统使用
+		LNOINLINE void UnsafeCallScript(const char* path)LNOEXCEPT;
 	public:
+		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
+
 		/// @brief 初始化框架
 		/// @note 该函数必须在一开始被调用，且仅能调用一次
 		/// @return 失败返回false
@@ -73,6 +82,10 @@ namespace LuaSTGPlus
 		/// @brief 保护模式执行脚本
 		/// @note 该函数仅限框架调用，为主逻辑最外层调用。若脚本运行时发生错误，该函数负责截获错误发出错误消息。
 		bool SafeCallScript(const char* source, size_t len, const char* desc)LNOEXCEPT;
+
+		/// @brief 保护模式调用全局函数
+		/// @note 该函数仅限框架调用，为主逻辑最外层调用。若脚本运行时发生错误，该函数负责截获错误发出错误消息。
+		bool SafeCallGlobalFunction(const char* name, int argc = 0, int retc = 0)LNOEXCEPT;
 	public:
 		AppFrame()LNOEXCEPT;
 		~AppFrame()LNOEXCEPT;

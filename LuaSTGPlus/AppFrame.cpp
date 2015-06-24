@@ -27,47 +27,37 @@ AppFrame::~AppFrame()
 	}
 }
 
-std::string AppFrame::loadFileAsString(fcStrW path)
-{
-	fcyRefPointer<fcyFileStream> pFile;
-	pFile.DirectSet(new fcyFileStream(path, false));
-
-	fLen tBytesReaded;
-	std::string tRet;
-	if (pFile->GetLength() > 0)
-	{
-		tRet.resize((fuInt)pFile->GetLength());
-		pFile->ReadBytes((fData)tRet.data(), tRet.size(), &tBytesReaded);
-		if (tBytesReaded != pFile->GetLength())
-			throw fcyException("AppFrame::readFileToString", "fcyFileStream::ReadBytes failed.");
-	}
-
-	return std::move(tRet);
-}
-
 #pragma region 脚本接口
 void AppFrame::SetWindowed(bool v)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionWindowed = v;
+	else if (m_iStatus == AppStatus::Running)
+		LWARNING("试图在运行时更改窗口化模式");
 }
 
 void AppFrame::SetFPS(fuInt v)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionFPSLimit = v;
+	else if (m_iStatus == AppStatus::Running)
+		LWARNING("试图在运行时更改FPS限制");
 }
 
 void AppFrame::SetVsync(bool v)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionVsync = v;
+	else if (m_iStatus == AppStatus::Running)
+		LWARNING("试图在运行时更改垂直同步模式");
 }
 
 void AppFrame::SetResolution(fuInt width, fuInt height)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
-		m_OptionResolution.Set(width, height);
+		m_OptionResolution.Set((float)width, (float)height);
+	else if (m_iStatus == AppStatus::Running)
+		LWARNING("试图在运行时更改分辨率");
 }
 
 void AppFrame::SetSplash(bool v)LNOEXCEPT
@@ -81,7 +71,7 @@ LNOINLINE void AppFrame::SetTitle(const char* v)LNOEXCEPT
 {
 	try
 	{
-		m_OptionTitle = std::move(fcyStringHelper::MultiByteToWideChar(v));
+		m_OptionTitle = std::move(fcyStringHelper::MultiByteToWideChar(v, CP_UTF8));
 		if (m_pMainWindow)
 			m_pMainWindow->SetCaption(m_OptionTitle.c_str());
 	}
@@ -98,7 +88,7 @@ LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
 		// 获取原始视频选项
 		bool tOrgOptionWindowed = m_pRenderDev->IsWindowed();
 		fcyVec2 tOrgOptionResolution = fcyVec2((float)m_pRenderDev->GetBufferWidth(),
-			m_pRenderDev->GetBufferHeight());
+			(float)m_pRenderDev->GetBufferHeight());
 
 		// 切换到新的视频选项
 		if (FCYOK(m_pRenderDev->SetBufferSize(
@@ -133,6 +123,29 @@ LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
 	return false;
 }
 
+LNOINLINE void AppFrame::UnsafeCallScript(const char* path)LNOEXCEPT
+{
+	LINFO("装载脚本'%m'", path);
+	if (!m_ResourceMgr.LoadFile(path, m_TempBuffer))
+	{
+		luaL_error(L, "can't load script '%s'", path);
+		return;
+	}
+	if (luaL_loadbuffer(L, m_TempBuffer.data(), m_TempBuffer.size(), luaL_checkstring(L, 1)))
+	{
+		const char* tDetail = lua_tostring(L, -1);
+		LERROR("编译脚本'%m'失败: %m", path, tDetail);
+		luaL_error(L, "failed to compile '%s': %s", path, tDetail);
+		return;
+	}
+	if (lua_pcall(L, 0, 0, 0))
+	{
+		const char* tDetail = lua_tostring(L, -1);
+		LERROR("执行脚本'%m'失败", path);
+		luaL_error(L, "failed to execute '%s':\n\t%s", path, tDetail);
+		return;
+	}
+}
 #pragma endregion
 
 #pragma region 框架函数
@@ -175,25 +188,22 @@ bool AppFrame::Init()LNOEXCEPT
 
 	//////////////////////////////////////// 装载初始化脚本
 	LINFO("装载初始化脚本'%s'", LLAUNCH_SCRIPT);
-	try
-	{
-		string tLaunchScript = loadFileAsString(LLAUNCH_SCRIPT);
-		if (!SafeCallScript(tLaunchScript.c_str(), tLaunchScript.size(), "launch"))
-			return false;
-	}
-	catch (const fcyException& e)
-	{
-		LERROR("装载初始化脚本失败 (异常信息'%m' 源'%m')", e.GetDesc(), e.GetSrc());
+	if (!m_ResourceMgr.LoadFile(LLAUNCH_SCRIPT, m_TempBuffer))
 		return false;
-	}
+	if (!SafeCallScript(m_TempBuffer.data(), m_TempBuffer.size(), "launch"))
+		return false;
 
 	//////////////////////////////////////// 初始化fancy2d引擎
 	// ! TODO
 
-	//////////////////////////////////////// 装载核心脚本
-	// ! TODO
-
-	// 调用GameInit
+	//////////////////////////////////////// 装载核心脚本并执行GameInit
+	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
+	if (!m_ResourceMgr.LoadFile(LCORE_SCRIPT, m_TempBuffer))
+		return false;
+	if (!SafeCallScript(m_TempBuffer.data(), m_TempBuffer.size(), "core.lua"))
+		return false;
+	if (!SafeCallGlobalFunction(LFUNC_GAMEINIT))
+		return false;
 
 	m_iStatus = AppStatus::Initialized;
 	LINFO("初始化成功完成");
@@ -208,6 +218,8 @@ void AppFrame::Shutdown()LNOEXCEPT
 		L = nullptr;
 		LINFO("已卸载Lua虚拟机");
 	}
+	m_ResourceMgr.UnloadAllPack();
+	LINFO("已卸载所有资源包");
 
 	m_iStatus = AppStatus::Destroyed;
 	LINFO("框架销毁");
@@ -255,10 +267,10 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 		try
 		{
 			wstring tErrorInfo = StringFormat(
-				L"脚本'%m'中产生未处理的运行时错误: %m",
+				L"脚本'%m'中产生未处理的运行时错误:\n\t%m",
 				desc,
 				lua_tostring(L, -1)
-				);
+			);
 
 			LERROR("脚本错误：%s", tErrorInfo.c_str());
 			MessageBox(
@@ -279,4 +291,38 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 
 	return true;
 }
+
+bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEXCEPT
+{
+	lua_getglobal(L, name);
+	if (0 != lua_pcall(L, argc, retc, 0))
+	{
+		try
+		{
+			wstring tErrorInfo = StringFormat(
+				L"执行函数'%m'时产生未处理的运行时错误:\n\t%m",
+				name,
+				lua_tostring(L, -1)
+			);
+
+			LERROR("脚本错误：%s", tErrorInfo.c_str());
+			MessageBox(
+				m_pMainWindow ? (HWND)m_pMainWindow->GetHandle() : 0,
+				tErrorInfo.c_str(),
+				L"LuaSTGPlus脚本错误",
+				MB_ICONERROR | MB_OK
+			);
+		}
+		catch (const bad_alloc&)
+		{
+			LERROR("尝试写出脚本错误时发生内存不足错误");
+		}
+
+		lua_pop(L, 1);
+		return false;
+	}
+
+	return true;
+}
+
 #pragma endregion

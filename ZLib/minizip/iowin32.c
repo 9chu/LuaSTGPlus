@@ -25,12 +25,13 @@
 #define INVALID_SET_FILE_POINTER ((DWORD)-1)
 #endif
 
-
+/*
 #if defined(WINAPI_FAMILY_PARTITION) && (!(defined(IOWIN32_USING_WINRT_API)))
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define IOWIN32_USING_WINRT_API 1
 #endif
 #endif
+*/
 
 voidpf  ZCALLBACK win32_open_file_func  OF((voidpf opaque, const char* filename, int mode));
 uLong   ZCALLBACK win32_read_file_func  OF((voidpf opaque, voidpf stream, void* buf, uLong size));
@@ -243,7 +244,7 @@ static BOOL MySetFilePointerEx(HANDLE hFile, LARGE_INTEGER pos, LARGE_INTEGER *n
     return SetFilePointerEx(hFile, pos, newPos, dwMoveMethod);
 #else
     LONG lHigh = pos.HighPart;
-    DWORD dwNewPos = SetFilePointer(hFile, pos.LowPart, &lHigh, FILE_CURRENT);
+	DWORD dwNewPos = SetFilePointer(hFile, pos.LowPart, &lHigh, /* FILE_CURRENT */ dwMoveMethod); // !BUG FIXED
     BOOL fOk = TRUE;
     if (dwNewPos == 0xFFFFFFFF)
         if (GetLastError() != NO_ERROR)

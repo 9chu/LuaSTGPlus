@@ -75,7 +75,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_CRT_NO_SECURE_WARNINGS;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\fancy2d\fancy2d\;$(SolutionDir)\..\fancy2d\fancylib\;$(SolutionDir)\3rdParty\luajit\src\;$(SolutionDir)\3rdParty\luajit\_build\;$(SolutionDir)\ZLib\;$(SolutionDir)\ZLib\minizip\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -95,6 +95,7 @@
     <ClInclude Include="LogSystem.h" />
     <ClInclude Include="LuaExtensions\lfs\lfs.h" />
     <ClInclude Include="LuaWrapper.h" />
+    <ClInclude Include="ResourceMgr.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
@@ -103,6 +104,7 @@
     <ClCompile Include="LuaExtensions\lfs\lfs.c" />
     <ClCompile Include="LuaWrapper.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="ResourceMgr.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

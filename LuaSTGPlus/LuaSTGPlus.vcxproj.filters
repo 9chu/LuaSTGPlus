@@ -42,6 +42,9 @@
     <ClInclude Include="LuaExtensions\lfs\lfs.h">
       <Filter>LuaExtensions\头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ResourceMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -61,6 +64,9 @@
     </ClCompile>
     <ClCompile Include="LuaExtensions\lfs\lfs.c">
       <Filter>LuaExtensions\源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceMgr.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

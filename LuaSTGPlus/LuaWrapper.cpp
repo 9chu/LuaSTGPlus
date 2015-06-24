@@ -316,25 +316,34 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int LoadPack(lua_State* L)LNOEXCEPT
 		{
+			const char* p = luaL_checkstring(L, 1);
+			const char* pwd = nullptr;
+			if (lua_isstring(L, 2))
+				pwd = luaL_checkstring(L, 2);
+			if (!LAPP.GetResourceMgr().LoadPack(p, pwd))
+				return luaL_error(L, "failed to load resource pack '%s'.", p);
 			return 0;
 		}
 		static int UnloadPack(lua_State* L)LNOEXCEPT
 		{
+			const char* p = luaL_checkstring(L, 1);
+			LAPP.GetResourceMgr().UnloadPack(p);
+			return 0;
+		}
+		static int ExtractRes(lua_State* L)LNOEXCEPT
+		{
+			const char* pArgPath = luaL_checkstring(L, 1);
+			const char* pArgTarget = luaL_checkstring(L, 2);
+			if (!LAPP.GetResourceMgr().ExtractRes(pArgPath, pArgTarget))
+				return luaL_error(L, "failed to extract resource '%s' to '%s'.", pArgPath, pArgTarget);
 			return 0;
 		}
 		static int DoFile(lua_State* L)LNOEXCEPT
 		{
+			LAPP.UnsafeCallScript(luaL_checkstring(L, 1));
 			return 0;
 		}
 		static int SetResourceStatus(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ObjMetaIndex(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ObjMetaNewIndex(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -357,6 +366,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		static int BoundCheck(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int SetBound(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -405,6 +418,14 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		static int ResetPool(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int ObjMetaIndex(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int ObjMetaNewIndex(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -505,6 +526,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		static int RenderTTF(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int RegTTF(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -644,6 +669,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
+		static int BentLaserData(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
 
 		// 对象构造函数
 		static int NewColor(lua_State* L)LNOEXCEPT
@@ -672,16 +701,16 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "Print", &WrapperImplement::Print },
 		{ "LoadPack", &WrapperImplement::LoadPack },
 		{ "UnloadPack", &WrapperImplement::UnloadPack },
+		{ "ExtractRes", &WrapperImplement::ExtractRes },
 		{ "DoFile", &WrapperImplement::DoFile },
 		{ "SetResourceStatus", &WrapperImplement::SetResourceStatus },
-		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
-		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
 		{ "GetnObj", &WrapperImplement::GetnObj },
 		// 对象控制函数
 		{ "UpdateObjList", &WrapperImplement::UpdateObjList },
 		{ "ObjFrame", &WrapperImplement::ObjFrame },
 		{ "ObjRender", &WrapperImplement::ObjRender },
 		{ "BoundCheck", &WrapperImplement::BoundCheck },
+		{ "SetBound", &WrapperImplement::SetBound },
 		{ "BoxCheck", &WrapperImplement::BoxCheck },
 		{ "CollisionCheck", &WrapperImplement::CollisionCheck },
 		{ "UpdateXY", &WrapperImplement::UpdateXY },
@@ -694,6 +723,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "Dist", &WrapperImplement::Dist },
 		{ "SetV", &WrapperImplement::SetV },
 		{ "ResetPool", &WrapperImplement::ResetPool },
+		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
+		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
 		{ "DefaultRenderFunc", &WrapperImplement::DefaultRenderFunc },
 		{ "NextObject", &WrapperImplement::NextObject },
 		{ "ObjList", &WrapperImplement::ObjList },
@@ -706,6 +737,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "LoadMusic", &WrapperImplement::LoadMusic },
 		{ "LoadFont", &WrapperImplement::LoadFont },
 		{ "LoadTTF", &WrapperImplement::LoadTTF },
+		{ "RegTTF", &WrapperImplement::RegTTF },
 		{ "RemoveResource", &WrapperImplement::RemoveResource },
 		{ "CheckRes", &WrapperImplement::CheckRes },
 		{ "EnumRes", &WrapperImplement::EnumRes },
@@ -756,6 +788,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		// 调试函数
 		{ "ObjTable", &WrapperImplement::ObjTable },
 		{ "Registry", &WrapperImplement::Registry },
+		{ "BentLaserData", &WrapperImplement::BentLaserData },
 		// 对象构造函数
 		{ "Color", &WrapperImplement::NewColor },
 		{ "Rand", &WrapperImplement::NewRand },

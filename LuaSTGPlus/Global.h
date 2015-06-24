@@ -44,11 +44,16 @@
 
 #define LLOGFILE L"log.txt"
 #define LLAUNCH_SCRIPT L"launch"
+#define LCORE_SCRIPT L"core.lua"
+
+#define LFUNC_GAMEINIT "GameInit"
 
 #define LNOEXCEPT throw()
 #define LNOINLINE __declspec(noinline)
 #define LNOUSE(x) static_cast<void>(x)
-#define LDEBUG _DEBUG
+#ifdef _DEBUG
+#define LDEBUG
+#endif
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())

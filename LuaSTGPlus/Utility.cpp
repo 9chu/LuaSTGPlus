@@ -183,7 +183,7 @@ std::wstring LuaSTGPlus::StringFormatV(const wchar_t* Format, va_list vaptr)LNOE
 					{
 						const char* p = va_arg(vaptr, char*);
 						if (p)
-							tRet.append(std::move(fcyStringHelper::MultiByteToWideChar(p)));
+							tRet.append(std::move(fcyStringHelper::MultiByteToWideChar(p, CP_UTF8)));
 						else
 							tRet.append(L"<null>");
 					}
