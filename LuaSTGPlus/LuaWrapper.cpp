@@ -349,58 +349,73 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int GetnObj(lua_State* L)LNOEXCEPT
 		{
-			lua_pushinteger(L, 0);
+			lua_pushinteger(L, (lua_Integer)LPOOL.GetObjectCount());
 			return 1;
 		}
 
-		// 对象控制函数
+		// 对象控制函数（这些方法将被转发到对象池）
 		static int UpdateObjList(lua_State* L)LNOEXCEPT
 		{
+			// ! 该函数已被否决
 			return 0;
 		}
 		static int ObjFrame(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.DoFrame();
 			return 0;
 		}
 		static int ObjRender(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.DoRender();
 			return 0;
 		}
 		static int BoundCheck(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.BoundCheck();
 			return 0;
 		}
 		static int SetBound(lua_State* L)LNOEXCEPT
 		{
-			return 0;
-		}
-		static int BoxCheck(lua_State* L)LNOEXCEPT
-		{
+			LPOOL.SetBound(
+				luaL_checkinteger(L, 1),
+				luaL_checkinteger(L, 2),
+				luaL_checkinteger(L, 3),
+				luaL_checkinteger(L, 4)
+			);
 			return 0;
 		}
 		static int CollisionCheck(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.CollisionCheck(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
 			return 0;
 		}
 		static int UpdateXY(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.UpdateXY();
 			return 0;
 		}
 		static int AfterFrame(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.CheckIsMainThread(L);
+			LPOOL.AfterFrame();
 			return 0;
 		}
 		static int New(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LPOOL.New(L);
 		}
 		static int Del(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LPOOL.Del(L);
 		}
 		static int Kill(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LPOOL.Kill(L);
 		}
 		static int IsValid(lua_State* L)LNOEXCEPT
 		{
@@ -414,19 +429,15 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
+		static int BoxCheck(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
 		static int SetV(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
 		static int ResetPool(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ObjMetaIndex(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ObjMetaNewIndex(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -440,6 +451,17 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int ObjList(lua_State* L)LNOEXCEPT
 		{
+			lua_pushcfunction(L, NextObject);
+			return 1;
+		}
+		static int ObjMetaIndex(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnil(L);
+			return 1;
+		}
+		static int ObjMetaNewIndex(lua_State* L)LNOEXCEPT
+		{
+			lua_rawset(L, 1);
 			return 0;
 		}
 
@@ -724,11 +746,11 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "Dist", &WrapperImplement::Dist },
 		{ "SetV", &WrapperImplement::SetV },
 		{ "ResetPool", &WrapperImplement::ResetPool },
-		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
-		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
 		{ "DefaultRenderFunc", &WrapperImplement::DefaultRenderFunc },
 		{ "NextObject", &WrapperImplement::NextObject },
 		{ "ObjList", &WrapperImplement::ObjList },
+		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
+		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
 		// 资源控制函数
 		{ "LoadTexture", &WrapperImplement::LoadTexture },
 		{ "LoadImage", &WrapperImplement::LoadImage },

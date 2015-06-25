@@ -12,8 +12,11 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <memory>
 #include <map>
 #include <set>
+#include <array>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -42,11 +45,29 @@
 #define LVERSION L"luaSTGPlus-0.1"
 #define LVERSION_LUA LUAJIT_VERSION
 
+// 全局文件
 #define LLOGFILE L"log.txt"
 #define LLAUNCH_SCRIPT L"launch"
 #define LCORE_SCRIPT L"core.lua"
 
+// 全局回调函数名称
 #define LFUNC_GAMEINIT "GameInit"
+#define LFUNC_FRAME "FrameFunc"
+#define LFUNC_LOSEFOCUS "FocusLoseFunc"
+#define LFUNC_GAINFOCUS "FocusGainFunc"
+
+// 对象池信息
+#define LGOBJ_MAXCNT 32768
+#define LGOBJ_DEFAULTGROUP 0
+#define LGOBJ_GROUPCNT 16
+
+// CLASS中存放的回调函数的下标
+#define LGOBJ_CC_INIT 1
+#define LGOBJ_CC_DEL 2
+#define LGOBJ_CC_FRAME 3
+#define LGOBJ_CC_RENDER 4
+#define LGOBJ_CC_COLLI 5
+#define LGOBJ_CC_KILL 6
 
 #define LNOEXCEPT throw()
 #define LNOINLINE __declspec(noinline)
@@ -57,6 +78,7 @@
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())
+#define LPOOL (LAPP.GetGameObjectPool())
 
 #define LWIDE_(x) L ## x
 #define LWIDE(x) LWIDE_(x)

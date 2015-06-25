@@ -3,6 +3,7 @@
 #pragma once
 #include "Global.h"
 #include "ResourceMgr.h"
+#include "GameObjectPool.h"
 
 namespace LuaSTGPlus
 {
@@ -28,6 +29,9 @@ namespace LuaSTGPlus
 
 		// 资源管理器
 		ResourceMgr m_ResourceMgr;
+
+		// 对象池
+		std::unique_ptr<GameObjectPool> m_GameObjectPool;
 
 		// Lua虚拟机
 		lua_State* L = nullptr;
@@ -69,6 +73,7 @@ namespace LuaSTGPlus
 		LNOINLINE void LoadScript(const char* path)LNOEXCEPT;
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
+		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }
 
 		/// @brief 初始化框架
 		/// @note 该函数必须在一开始被调用，且仅能调用一次

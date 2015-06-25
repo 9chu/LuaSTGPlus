@@ -174,7 +174,16 @@ bool AppFrame::Init()LNOEXCEPT
 	BuiltInFunctionWrapper::Register(L);  // 内建函数库
 	
 	// 为对象池分配空间
-	// ! TODO
+	LINFO("初始化对象池 上限=%u", LGOBJ_MAXCNT);
+	try
+	{
+		m_GameObjectPool = make_unique<GameObjectPool>(L);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("无法为对象池分配足够内存");
+		return false;
+	}
 
 	// 设置命令行参数
 	lua_newtable(L);
@@ -381,10 +390,10 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 		case F2DMSG_WINDOW_ONCLOSE:
 			return false;  // 关闭窗口时结束循环
 		case F2DMSG_WINDOW_ONGETFOCUS:
-			if (!SafeCallGlobalFunction("FocusGainFunc"))
+			if (!SafeCallGlobalFunction(LFUNC_GAINFOCUS))
 				return false;
 		case F2DMSG_WINDOW_ONLOSTFOCUS:
-			if (!SafeCallGlobalFunction("FocusLoseFunc"))
+			if (!SafeCallGlobalFunction(LFUNC_LOSEFOCUS))
 				return false;
 		default:
 			break;
@@ -393,9 +402,9 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 
 	// 执行帧函数
 	int xx = lua_gettop(L);
-	if (!SafeCallGlobalFunction("FrameFunc", 0, 1))
+	if (!SafeCallGlobalFunction(LFUNC_FRAME, 0, 1))
 		return false;
-	bool x = lua_toboolean(L, -1);
+	bool x = lua_toboolean(L, -1) == 1 ? true : false;
 	lua_pop(L, 1);
 	LASSERT(lua_gettop(L) == xx);
 

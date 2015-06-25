@@ -45,6 +45,12 @@
     <ClInclude Include="ResourceMgr.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ObjectPool.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObjectPool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -66,6 +72,9 @@
       <Filter>LuaExtensions\源文件</Filter>
     </ClCompile>
     <ClCompile Include="ResourceMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObjectPool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
