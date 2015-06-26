@@ -157,21 +157,22 @@ namespace LuaSTGPlus
 		/// @brief 执行默认渲染
 		bool DoDefauleRender(size_t id)LNOEXCEPT;
 
-		/*
-			static int ResetPool(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int DefaultRenderFunc(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int NextObject(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int ObjList(
-			*/
+		/// @brief 获取下一个元素的ID
+		/// @return 返回-1表示无元素
+		int NextObject(int groupId, int id)LNOEXCEPT;
+
+		int NextObject(lua_State* L)LNOEXCEPT;
+
+		/// @brief 获取列表中的第一个元素ID
+		/// @note 为迭代器使用
+		/// @return 返回-1表示无元素
+		int FirstObject(int groupId)LNOEXCEPT;
+
+		/// @brief 属性读方法
+		int GetAttr(lua_State* L)LNOEXCEPT;
+
+		/// @brief 属性写方法
+		int SetAttr(lua_State* L)LNOEXCEPT;
 	private:
 		GameObjectPool& operator=(const GameObjectPool&);
 		GameObjectPool(const GameObjectPool&);

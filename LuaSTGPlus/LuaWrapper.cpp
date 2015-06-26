@@ -507,22 +507,23 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int NextObject(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LPOOL.NextObject(L);
 		}
 		static int ObjList(lua_State* L)LNOEXCEPT
 		{
-			lua_pushcfunction(L, NextObject);
-			return 1;
+			int g = luaL_checkinteger(L, 1);  // i(groupId)
+			lua_pushcfunction(L, WrapperImplement::NextObject);
+			lua_pushinteger(L, g);
+			lua_pushinteger(L, LPOOL.FirstObject(g));
+			return 3;
 		}
 		static int ObjMetaIndex(lua_State* L)LNOEXCEPT
 		{
-			lua_pushnil(L);
-			return 1;
+			return LPOOL.GetAttr(L);
 		}
 		static int ObjMetaNewIndex(lua_State* L)LNOEXCEPT
 		{
-			lua_rawset(L, 1);
-			return 0;
+			return LPOOL.SetAttr(L);
 		}
 
 		// 资源控制函数

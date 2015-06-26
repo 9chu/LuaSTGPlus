@@ -1,4 +1,5 @@
 #include "GameObjectPool.h"
+#include "GameObjectPropertyHash.inl"
 #include "AppFrame.h"
 
 #define METATABLE_OBJ "mt"
@@ -289,8 +290,6 @@ void GameObjectPool::CollisionCheck(size_t groupA, size_t groupB)LNOEXCEPT
 
 void GameObjectPool::UpdateXY()LNOEXCEPT
 {
-	GETOBJTABLE;  // ot
-
 	GameObject* p = m_pObjectListHeader.pObjectNext;
 	while (p && p != &m_pObjectListTail)
 	{
@@ -303,14 +302,10 @@ void GameObjectPool::UpdateXY()LNOEXCEPT
 
 		p = p->pObjectNext;
 	}
-
-	lua_pop(L, 1);
 }
 
 void GameObjectPool::AfterFrame()LNOEXCEPT
 {
-	GETOBJTABLE;  // ot
-
 	GameObject* p = m_pObjectListHeader.pObjectNext;
 	while (p && p != &m_pObjectListTail)
 	{
@@ -321,8 +316,6 @@ void GameObjectPool::AfterFrame()LNOEXCEPT
 		else
 			p = p->pObjectNext;
 	}
-
-	lua_pop(L, 1);
 }
 
 int GameObjectPool::New(lua_State* L)LNOEXCEPT
@@ -522,4 +515,314 @@ bool GameObjectPool::DoDefauleRender(size_t id)LNOEXCEPT
 	// 实现默认渲染
 
 	return true;
+}
+
+int GameObjectPool::NextObject(int groupId, int id)LNOEXCEPT
+{
+	if (id < 0)
+		return -1;
+
+	GameObject* p = m_ObjectPool.Data(static_cast<size_t>(id));
+	if (!p)
+		return -1;
+
+	// 如果不是一个有效的分组，则在整个对象表中遍历
+	if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
+	{
+		p = p->pObjectNext;
+		if (p == &m_pObjectListTail)
+			return -1;
+		else
+			return static_cast<int>(p->id);
+	}
+	else
+	{
+		if (p->group != groupId)
+			return -1;
+		p = p->pCollisionNext;
+		if (p == &m_pCollisionListTail[groupId])
+			return -1;
+		else
+			return static_cast<int>(p->id);
+	}
+}
+
+int GameObjectPool::NextObject(lua_State* L)LNOEXCEPT
+{
+	int g = luaL_checkinteger(L, 1);  // i(groupId)
+	int id = luaL_checkinteger(L, 2);  // id
+	if (id < 0)
+		return 0;
+
+	lua_pushinteger(L, NextObject(g, id));  // ??? i(next)
+	GETOBJTABLE;  // ??? i(next) ot
+	lua_rawgeti(L, -1, id + 1);  // ??? i(next) ot t(object)
+	lua_remove(L, -2);  // ??? i(next) t(object)
+	return 2;
+}
+
+int GameObjectPool::FirstObject(int groupId)LNOEXCEPT
+{
+	GameObject* p;
+
+	// 如果不是一个有效的分组，则在整个对象表中遍历
+	if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
+	{
+		p = m_pObjectListHeader.pObjectNext;
+		if (p == &m_pObjectListTail)
+			return -1;
+		else
+			return static_cast<int>(p->id);
+	}
+	else
+	{
+		p = m_pCollisionListHeader[groupId].pCollisionNext;
+		if (p == &m_pCollisionListTail[groupId])
+			return -1;
+		else
+			return static_cast<int>(p->id);
+	}
+}
+
+int GameObjectPool::GetAttr(lua_State* L)LNOEXCEPT
+{
+	lua_rawgeti(L, 1, 2);  // t(object) s(key) ??? i(id)
+	size_t id = static_cast<size_t>(lua_tonumber(L, -1));
+	lua_pop(L, 1);  // t(object) s(key)
+
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return luaL_error(L, "invalid lstg object for '__index' meta operation.");
+	
+	// 查询属性
+	const char* key = luaL_checkstring(L, 2);
+	
+	// 对x,y作特化处理
+	if (key[0] == 'x' && key[1] == '\0')
+	{
+		lua_pushnumber(L, p->x);
+		return 1;
+	}
+	else if (key[0] == 'y' && key[1] == '\0')
+	{
+		lua_pushnumber(L, p->y);
+		return 1;
+	}
+
+	// 一般属性
+	switch (GameObjectPropertyHash(key))
+	{
+	case GameObjectProperty::DX:
+		lua_pushnumber(L, p->dx);
+		break;
+	case GameObjectProperty::DY:
+		lua_pushnumber(L, p->dy);
+		break;
+	case GameObjectProperty::ROT:
+		lua_pushnumber(L, p->rot * LRAD2DEGREE);
+		break;
+	case GameObjectProperty::OMIGA:
+		lua_pushnumber(L, p->omiga * LRAD2DEGREE);
+		break;
+	case GameObjectProperty::TIMER:
+		lua_pushinteger(L, p->timer);
+		break;
+	case GameObjectProperty::VX:
+		lua_pushnumber(L, p->vx);
+		break;
+	case GameObjectProperty::VY:
+		lua_pushnumber(L, p->vy);
+		break;
+	case GameObjectProperty::LAYER:
+		lua_pushnumber(L, p->layer);
+		break;
+	case GameObjectProperty::GROUP:
+		lua_pushinteger(L, p->group);
+		break;
+	case GameObjectProperty::HIDE:
+		lua_pushboolean(L, p->hide);
+		break;
+	case GameObjectProperty::BOUND:
+		lua_pushboolean(L, p->bound);
+		break;
+	case GameObjectProperty::NAVI:
+		lua_pushboolean(L, p->navi);
+		break;
+	case GameObjectProperty::COLLI:
+		lua_pushboolean(L, p->colli);
+		break;
+	case GameObjectProperty::STATUS:
+		switch (p->status)
+		{
+		case STATUS_DEFAULT:
+			lua_pushstring(L, "normal");
+			break;
+		case STATUS_KILL:
+			lua_pushstring(L, "kill");
+			break;
+		case STATUS_DEL:
+			lua_pushstring(L, "del");
+			break;
+		default:
+			LASSERT(false);
+			break;
+		}
+		break;
+	case GameObjectProperty::HSCALE:
+		lua_pushnumber(L, p->hscale);
+		break;
+	case GameObjectProperty::VSCALE:
+		lua_pushnumber(L, p->vscale);
+		break;
+	case GameObjectProperty::CLASS:
+		lua_rawgeti(L, 1, 1);
+		break;
+	case GameObjectProperty::A:
+		lua_pushnumber(L, p->a);  // ! TODO
+		break;
+	case GameObjectProperty::B:
+		lua_pushnumber(L, p->b);  // ! TODO
+		break;
+	case GameObjectProperty::RECT:
+		lua_pushboolean(L, p->rect);
+		break;
+	case GameObjectProperty::IMG:
+		lua_pushnil(L);  // !TODO
+		break;
+	case GameObjectProperty::ANI:
+		lua_pushnil(L);  // !TODO
+		break;
+	case GameObjectProperty::X:
+	case GameObjectProperty::Y:
+	default:
+		lua_pushnil(L);
+		break;
+	}
+
+	return 1;
+}
+
+int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
+{
+	lua_rawgeti(L, 1, 2);  // t(object) s(key) any(v) i(id)
+	size_t id = static_cast<size_t>(lua_tonumber(L, -1));
+	lua_pop(L, 1);  // t(object) s(key) any(v)
+
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return luaL_error(L, "invalid lstg object for '__newindex' meta operation.");
+
+	// 查询属性
+	const char* key = luaL_checkstring(L, 2);
+
+	// 对x,y作特化处理
+	if (key[0] == 'x' && key[1] == '\0')
+	{
+		p->x = luaL_checknumber(L, 3);
+		return 0;
+	}
+	else if (key[0] == 'y' && key[1] == '\0')
+	{
+		p->y = luaL_checknumber(L, 3);
+		return 0;
+	}	
+
+	// 一般属性
+	switch (GameObjectPropertyHash(key))
+	{
+	case GameObjectProperty::DX:
+		return luaL_error(L, "property 'dx' is readonly.");
+	case GameObjectProperty::DY:
+		return luaL_error(L, "property 'dy' is readonly.");
+	case GameObjectProperty::ROT:
+		p->rot = luaL_checknumber(L, 3) * LDEGREE2RAD;
+		break;
+	case GameObjectProperty::OMIGA:
+		p->omiga = luaL_checknumber(L, 3) * LDEGREE2RAD;
+		break;
+	case GameObjectProperty::TIMER:
+		p->timer = luaL_checkinteger(L, 3);
+		break;
+	case GameObjectProperty::VX:
+		p->vx = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::VY:
+		p->vy = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::LAYER:
+		p->layer = luaL_checkinteger(L, 3);
+		LIST_INSERT_SORT(p, Render, RenderListSortFunc); // 刷新p的渲染层级
+		break;
+	case GameObjectProperty::GROUP:
+		do
+		{
+			int group = luaL_checkinteger(L, 3);
+			if (group != p->group)
+			{
+				if (0 <= p->group && p->group < LGOBJ_GROUPCNT)
+					LIST_REMOVE(p, Collision);
+				p->group = group;
+				if (0 <= group && group < LGOBJ_GROUPCNT)
+				{
+					LIST_INSERT_BEFORE(&m_pCollisionListTail[group], p, Collision);
+					LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);  // 刷新p的碰撞次序
+				}
+			}
+		} while (false);
+		break;
+	case GameObjectProperty::HIDE:
+		p->hide = lua_toboolean(L, 3) == 0 ? false : true;
+		break;
+	case GameObjectProperty::BOUND:
+		p->bound = lua_toboolean(L, 3) == 0 ? false : true;
+		break;
+	case GameObjectProperty::NAVI:
+		p->navi = lua_toboolean(L, 3) == 0 ? false : true;
+		break;
+	case GameObjectProperty::COLLI:
+		p->colli = lua_toboolean(L, 3) == 0 ? false : true;
+		break;
+	case GameObjectProperty::STATUS:
+		do {
+			const char* val = luaL_checkstring(L, 3);
+			if (strcmp(val, "normal") == 0)
+				p->status = STATUS_DEFAULT;
+			else if (strcmp(val, "del") == 0)
+				p->status = STATUS_DEL;
+			else if (strcmp(val, "kill") == 0)
+				p->status = STATUS_KILL;
+			else
+				return luaL_error(L, "invalid argument for property 'status'.");
+		} while (false);
+		break;
+	case GameObjectProperty::HSCALE:
+		p->hscale = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::VSCALE:
+		p->vscale = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::CLASS:
+		lua_rawseti(L, 1, 1);
+		break;
+	case GameObjectProperty::A:
+		p->a = luaL_checknumber(L, 3);  // ! TODO
+		break;
+	case GameObjectProperty::B:
+		p->b = luaL_checknumber(L, 3);  // ! TODO
+		break;
+	case GameObjectProperty::RECT:
+		p->rect = lua_toboolean(L, 3) == 0 ? false : true;
+		break;
+	case GameObjectProperty::IMG:  // ! TODO
+		break;
+	case GameObjectProperty::ANI:  // ! TODO
+		break;
+	case GameObjectProperty::X:
+	case GameObjectProperty::Y:
+		break;
+	default:
+		lua_rawset(L, 1);
+		break;
+	}
+	return 0;
 }

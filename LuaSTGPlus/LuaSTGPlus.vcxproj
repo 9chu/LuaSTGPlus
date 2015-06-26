@@ -110,6 +110,11 @@
     <ClCompile Include="ResourceMgr.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="GameObjectPropertyHash.inl" />
+    <None Include="GameObjectPropertyHash.json" />
+    <None Include="string2enum.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

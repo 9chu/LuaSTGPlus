@@ -332,8 +332,6 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	清空并回收所有对象。
 
-	该方法必须在UpdateObjList后调用。
-
 - DefaultRenderFunc(object)
 
 	在对象上调用默认渲染方法。
@@ -341,6 +339,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - NextObject(groupid:number, id:number):number, object **[不兼容]**
 
 	获取组中的下一个元素。若groupid为无效的碰撞组则返回所有对象。
+
+	返回的第一个参数为id（luastg中为idx），第二个参数为对象
 
 		细节
 			luastg中NextObject接受的第二个参数为组中的元素索引而非id。

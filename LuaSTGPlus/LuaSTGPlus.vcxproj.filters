@@ -22,6 +22,9 @@
     <Filter Include="LuaExtensions\源文件">
       <UniqueIdentifier>{fa70a749-5129-4803-a933-85cd5928601a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="工具">
+      <UniqueIdentifier>{7c577cad-a0da-4586-b32f-773536d02dd2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Global.h">
@@ -77,5 +80,16 @@
     <ClCompile Include="GameObjectPool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="string2enum.py">
+      <Filter>工具</Filter>
+    </None>
+    <None Include="GameObjectPropertyHash.json">
+      <Filter>工具</Filter>
+    </None>
+    <None Include="GameObjectPropertyHash.inl">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
