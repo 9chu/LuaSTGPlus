@@ -135,28 +135,29 @@ namespace LuaSTGPlus
 		
 		/// @brief 通知对象消亡
 		int Kill(lua_State* L)LNOEXCEPT;
+
+		/// @brief 检查对象是否有效
+		int IsValid(lua_State* L)LNOEXCEPT;
 		
+		/// @brief 求夹角
+		bool Angle(size_t idA, size_t idB, double& out)LNOEXCEPT;
+
+		/// @brief 求距离
+		bool Dist(size_t idA, size_t idB, double& out)LNOEXCEPT;
+
+		/// @brief 设置速度方向和大小
+		bool SetV(size_t id, double v, double a, bool updateRot)LNOEXCEPT;
+
+		/// @brief 范围检查
+		bool BoxCheck(size_t id, double left, double right, double top, double bottom, bool& ret)LNOEXCEPT;
+		
+		/// @brief 清空对象池
+		void ResetPool()LNOEXCEPT;
+
+		/// @brief 执行默认渲染
+		bool DoDefauleRender(size_t id)LNOEXCEPT;
+
 		/*
-		int IsValid(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int Angle(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int Dist(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int BoxCheck(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-			static int SetV(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
 			static int ResetPool(lua_State* L)LNOEXCEPT
 		{
 			return 0;

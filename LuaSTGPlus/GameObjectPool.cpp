@@ -3,14 +3,75 @@
 
 #define METATABLE_OBJ "mt"
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 #define GETOBJTABLE \
 	do { \
 		lua_pushlightuserdata(L, (void*)&LAPP); \
 		lua_gettable(L, LUA_REGISTRYINDEX); \
 	} while (false)
 
+#define LIST_INSERT_BEFORE(target, p, field) \
+	do { \
+		p->p##field##Prev = (target)->p##field##Prev; \
+		p->p##field##Next = (target); \
+		p->p##field##Prev->p##field##Next = p; \
+		p->p##field##Next->p##field##Prev = p; \
+	} while(false)
+
+#define LIST_INSERT_AFTER(target, p, field) \
+	do { \
+		p->p##field##Prev = (target); \
+		p->p##field##Next = (target)->p##field##Next; \
+		p->p##field##Prev->p##field##Next = p; \
+		p->p##field##Next->p##field##Prev = p; \
+	} while(false)
+
+#define LIST_REMOVE(p, field) \
+	do { \
+		p->p##field##Prev->p##field##Next = p->p##field##Next; \
+		p->p##field##Next->p##field##Prev = p->p##field##Prev; \
+	} while(false)
+
+#define LIST_INSERT_SORT(p, field, func) \
+	do { \
+		if (p->p##field##Next->p##field##Next && func(p->p##field##Next, p)) \
+		{ \
+			GameObject* pInsertBefore = p->p##field##Next->p##field##Next; \
+			while (pInsertBefore->p##field##Next && func(pInsertBefore, p)) \
+				pInsertBefore = pInsertBefore->p##field##Next; \
+			LIST_REMOVE(p, field); \
+			LIST_INSERT_BEFORE(pInsertBefore, p, field); \
+		} \
+		else if (p->p##field##Prev->p##field##Prev && func(p, p->p##field##Prev)) \
+		{ \
+			GameObject* pInsertAfter = p->p##field##Prev->p##field##Prev; \
+			while (pInsertAfter->p##field##Prev && func(p, pInsertAfter)) \
+				pInsertAfter = pInsertAfter->p##field##Prev; \
+			LIST_REMOVE(p, field); \
+			LIST_INSERT_AFTER(pInsertAfter, p, field); \
+		} \
+	} while (false)
+
 using namespace std;
 using namespace LuaSTGPlus;
+
+inline bool ObjectListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
+{
+	// 总是以uid为参照
+	return p1->uid < p2->uid;
+}
+
+inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
+{
+	// layer小的靠前。若layer相同则参照uid。
+	return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
+}
 
 GameObjectPool::GameObjectPool(lua_State* pL)
 	: L(pL)
@@ -23,9 +84,15 @@ GameObjectPool::GameObjectPool(lua_State* pL)
 	memset(&m_pRenderListTail, 0, sizeof(GameObject));
 	memset(m_pCollisionListTail, 0, sizeof(m_pCollisionListTail));
 	m_pObjectListHeader.pObjectNext = &m_pObjectListTail;
+	m_pObjectListHeader.uid = numeric_limits<uint64_t>::min();
 	m_pObjectListTail.pObjectPrev = &m_pObjectListHeader;
+	m_pObjectListTail.uid = numeric_limits<uint64_t>::max();
 	m_pRenderListHeader.pRenderNext = &m_pRenderListTail;
+	m_pRenderListHeader.uid = numeric_limits<uint64_t>::min();
+	m_pRenderListHeader.layer = numeric_limits<lua_Number>::min();
 	m_pRenderListTail.pRenderPrev = &m_pRenderListHeader;
+	m_pRenderListTail.uid = numeric_limits<uint64_t>::max();
+	m_pRenderListTail.layer = numeric_limits<lua_Number>::max();
 	for (size_t i = 0; i < LGOBJ_GROUPCNT; ++i)
 	{
 		m_pCollisionListHeader[i].pCollisionNext = &m_pCollisionListTail[i];
@@ -84,22 +151,22 @@ GameObject* GameObjectPool::freeObject(GameObject* p)LNOEXCEPT
 	GameObject* pRet = p->pObjectNext;
 
 	// 从对象链表移除
-	p->pObjectPrev->pObjectNext = p->pObjectNext;
-	p->pObjectNext->pObjectPrev = p->pObjectPrev;
+	LIST_REMOVE(p, Object);
 
 	// 从渲染链表移除
-	p->pRenderPrev->pRenderNext = p->pRenderNext;
-	p->pRenderNext->pRenderPrev = p->pRenderPrev;
+	LIST_REMOVE(p, Render);
 
 	// 从碰撞链表移除
-	p->pCollisionPrev->pCollisionNext = p->pCollisionNext;
-	p->pCollisionNext->pCollisionPrev = p->pCollisionPrev;
+	LIST_REMOVE(p, Collision);
 
 	// 删除lua对象表中元素
 	GETOBJTABLE;  // ot
 	lua_pushnil(L);  // ot nil
 	lua_rawseti(L, -2, p->id + 1);  // ot
 	lua_pop(L, 1);
+
+	// 释放引用的资源
+	// ! TODO
 
 	// 回收到对象池
 	m_ObjectPool.Free(p->id);
@@ -280,22 +347,14 @@ int GameObjectPool::New(lua_State* L)LNOEXCEPT
 	p->status = STATUS_DEFAULT;
 	p->id = id;
 	p->uid = m_iUid++;
-	
+
 	// 插入链表域
-	// ! TODO
-	p->pObjectPrev = m_pObjectListTail.pObjectPrev;
-	p->pObjectPrev->pObjectNext = p;
-	p->pObjectNext = &m_pObjectListTail;
-	m_pObjectListTail.pObjectPrev = p;
-	p->pRenderPrev = m_pRenderListTail.pRenderPrev;
-	p->pRenderPrev->pRenderNext = p;
-	p->pRenderNext = &m_pRenderListTail;
-	m_pRenderListTail.pRenderPrev = p;
-	p->pCollisionPrev = m_pCollisionListTail[p->group].pCollisionPrev;
-	p->pCollisionPrev->pCollisionNext = p;
-	p->pCollisionNext = &m_pCollisionListTail[p->group];
-	m_pCollisionListTail[p->group].pCollisionPrev = p;
-	
+	LIST_INSERT_BEFORE(&m_pObjectListTail, p, Object);  // Object链表只与uid有关，因此总在末尾插入
+	LIST_INSERT_BEFORE(&m_pRenderListTail, p, Render);  // Render链表在插入后还需要进行排序
+	LIST_INSERT_BEFORE(&m_pCollisionListTail[p->group], p, Collision);  // 为保证兼容性，对Collision也做排序
+	LIST_INSERT_SORT(p, Render, RenderListSortFunc);
+	LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);
+
 	GETOBJTABLE;  // t(class) ... ot
 	lua_createtable(L, 2, 0);  // t(class) ... ot t(object)
 	lua_pushvalue(L, 1);  // t(class) ... ot t(object) class
@@ -366,4 +425,101 @@ int GameObjectPool::Kill(lua_State* L)LNOEXCEPT
 		lua_call(L, lua_gettop(L) - 1, 0);
 	}
 	return 0;
+}
+
+int GameObjectPool::IsValid(lua_State* L)LNOEXCEPT
+{
+	if (lua_gettop(L) != 1)
+		return luaL_error(L, "invalid argument count, 1 argument required for 'IsValid'.");
+	if (!lua_istable(L, -1))
+	{
+		lua_pushboolean(L, 0);
+		return 1;
+	}
+	lua_rawgeti(L, -1, 2);  // t(object) id
+	if (!lua_isnumber(L, -1))
+	{
+		lua_pushboolean(L, 0);
+		return 1;
+	}
+
+	// 在对象池中检查
+	size_t id = (size_t)lua_tonumber(L, -1);
+	lua_pop(L, 1);  // t(object)
+	if (!m_ObjectPool.Data(id))
+	{
+		lua_pushboolean(L, 0);
+		return 1;
+	}
+
+	GETOBJTABLE;  // t(object) ot
+	lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
+	if (lua_rawequal(L, -1, -3))
+		lua_pushboolean(L, 1);
+	else
+		lua_pushboolean(L, 0);
+	return 1;
+}
+
+bool GameObjectPool::Angle(size_t idA, size_t idB, double& out)LNOEXCEPT
+{
+	GameObject* pA = m_ObjectPool.Data(idA);
+	GameObject* pB = m_ObjectPool.Data(idB);
+	if (!pA || !pB)
+		return false;
+	out = LRAD2DEGREE * atan2(pB->y - pA->y, pB->x - pA->x);
+	return true;
+}
+
+bool GameObjectPool::Dist(size_t idA, size_t idB, double& out)LNOEXCEPT
+{
+	GameObject* pA = m_ObjectPool.Data(idA);
+	GameObject* pB = m_ObjectPool.Data(idB);
+	if (!pA || !pB)
+		return false;
+	lua_Number dx = pB->x - pA->x;
+	lua_Number dy = pB->y - pA->y;
+	out = sqrt(dx*dx + dy*dy);
+	return true;
+}
+
+bool GameObjectPool::SetV(size_t id, double v, double a, bool updateRot)LNOEXCEPT
+{
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return false;
+	a *= LDEGREE2RAD;
+	p->vx = v*cos(a);
+	p->vy = v*sin(a);
+	if (updateRot)
+		p->rot = a;
+	return true;
+}
+
+bool GameObjectPool::BoxCheck(size_t id, double left, double right, double top, double bottom, bool& ret)LNOEXCEPT
+{
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return false;
+	ret = (p->x > left) && (p->x < right) && (p->y > top) && (p->y < bottom);
+	return true;
+}
+
+void GameObjectPool::ResetPool()LNOEXCEPT
+{
+	GameObject* p = m_pObjectListHeader.pObjectNext;
+	while (p != &m_pObjectListTail)
+		p = freeObject(p);	
+}
+
+bool GameObjectPool::DoDefauleRender(size_t id)LNOEXCEPT
+{
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return false;
+
+	// ! TODO
+	// 实现默认渲染
+
+	return true;
 }

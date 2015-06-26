@@ -419,30 +419,90 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int IsValid(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LPOOL.IsValid(L);
 		}
 		static int Angle(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			if (!lua_istable(L, 1) || !lua_istable(L, 2))
+				return luaL_error(L, "invalid lstg object for 'Angle'.");
+			lua_rawgeti(L, 1, 2);  // t(object) t(object) ??? id
+			lua_rawgeti(L, 2, 2);  // t(object) t(object) ??? id id
+			double tRet;
+			if (!LPOOL.Angle((size_t)luaL_checkint(L, -2), (size_t)luaL_checkint(L, -1), tRet))
+				return luaL_error(L, "invalid lstg object for 'Angle'.");
+			lua_pushnumber(L, tRet);
+			return 1;
 		}
 		static int Dist(lua_State* L)LNOEXCEPT
 		{
+			if (lua_gettop(L) == 2)
+			{
+				if (!lua_istable(L, 1) || !lua_istable(L, 2))
+					return luaL_error(L, "invalid lstg object for 'Dist'.");
+				lua_rawgeti(L, 1, 2);  // t(object) t(object) id
+				lua_rawgeti(L, 2, 2);  // t(object) t(object) id id
+				double tRet;
+				if (!LPOOL.Dist((size_t)luaL_checkint(L, -2), (size_t)luaL_checkint(L, -1), tRet))
+					return luaL_error(L, "invalid lstg object for 'Dist'.");
+				lua_pushnumber(L, tRet);
+			}
+			else
+			{
+				lua_Number dx = luaL_checknumber(L, 3) - luaL_checknumber(L, 1);
+				lua_Number dy = luaL_checknumber(L, 4) - luaL_checknumber(L, 2);
+				lua_pushnumber(L, sqrt(dx*dx + dy*dy));
+			}
+			return 1;
+		}
+		static int SetV(lua_State* L)LNOEXCEPT
+		{
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'SetV'.");
+			if (lua_gettop(L) == 3)
+			{
+				lua_rawgeti(L, 1, 2);  // t(object) 'v' 'a' ??? id
+				LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), false);
+			}
+			else if (lua_gettop(L) == 4)
+			{
+				lua_rawgeti(L, 1, 2);  // t(object) 'v' 'a' 'rot' ??? id
+				LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), lua_toboolean(L, 4) == 0 ? false : true);
+			}
+			else
+				return luaL_error(L, "invalid argument count for 'SetV'.");
 			return 0;
 		}
 		static int BoxCheck(lua_State* L)LNOEXCEPT
 		{
-			return 0;
-		}
-		static int SetV(lua_State* L)LNOEXCEPT
-		{
-			return 0;
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'BoxCheck'.");
+			lua_rawgeti(L, 1, 2);  // t(object) 'l' 'r' 't' 'b' ??? id
+			bool tRet;
+			if (!LPOOL.BoxCheck(
+				(size_t)luaL_checkinteger(L, -1),
+				luaL_checknumber(L, 2),
+				luaL_checknumber(L, 3),
+				luaL_checknumber(L, 4),
+				luaL_checknumber(L, 5),
+				tRet))
+			{
+				return luaL_error(L, "invalid lstg object for 'BoxCheck'.");
+			}	
+			lua_pushboolean(L, tRet);
+			return 1;
 		}
 		static int ResetPool(lua_State* L)LNOEXCEPT
 		{
+			LPOOL.ResetPool();
 			return 0;
 		}
 		static int DefaultRenderFunc(lua_State* L)LNOEXCEPT
 		{
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'DefaultRenderFunc'.");
+			lua_rawgeti(L, 1, 2);  // t(object) ??? id
+			if (!LPOOL.DoDefauleRender(luaL_checkinteger(L, -1)))
+				return luaL_error(L, "invalid lstg object for 'DefaultRenderFunc'.");
 			return 0;
 		}
 		static int NextObject(lua_State* L)LNOEXCEPT

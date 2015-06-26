@@ -16,6 +16,7 @@
 #include <map>
 #include <set>
 #include <array>
+#include <limits>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -68,6 +69,10 @@
 #define LGOBJ_CC_RENDER 4
 #define LGOBJ_CC_COLLI 5
 #define LGOBJ_CC_KILL 6
+
+// 数学常量
+#define LRAD2DEGREE (180.0/3.141592653589793) // 弧度到角度
+#define LDEGREE2RAD (1.0/LRAD2DEGREE) // 角度到弧度
 
 #define LNOEXCEPT throw()
 #define LNOINLINE __declspec(noinline)
