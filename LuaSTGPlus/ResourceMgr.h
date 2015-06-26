@@ -1,8 +1,108 @@
 #pragma once
 #include "Global.h"
 
+#ifdef LoadImage
+#undef LoadImage
+#endif
+
 namespace LuaSTGPlus
 {
+	class ResourceMgr;
+
+	/// @brief 资源类型
+	enum class ResourceType
+	{
+		Texture = 1,
+		Sprite,
+		Animation,
+		Music,
+		SoundEffect,
+		Particle,
+		SpriteFont,
+		TrueType
+	};
+
+	/// @brief 资源池类型
+	enum class ResourcePoolType
+	{
+		None,
+		Global,
+		Stage
+	};
+
+	/// @brief 混合模式
+	enum class BlendMode
+	{
+		AddAdd = 1,
+		AddAlpha,
+		MulAdd,
+		MulAlpha
+	};
+
+	/// @brief 资源池
+	class ResourcePool
+	{
+	public:
+		template <typename T>
+		using PoolType = std::unordered_map<std::string, typename T>;
+
+		struct SpriteEx
+		{
+			fcyRefPointer<f2dSprite> sprite;  // 精灵对象
+			BlendMode blend = BlendMode::AddAlpha;  // 混合
+			double a = 0., b = 0.;  // 碰撞半轴长
+			bool rect = false;  // 是否为矩形碰撞盒
+
+			SpriteEx() {}
+			SpriteEx(const SpriteEx& org)
+				: sprite(org.sprite), blend(org.blend), a(org.a), b(org.b), rect(org.rect) {}
+		};
+	private:
+		ResourceMgr* m_pMgr;
+
+		PoolType<fcyRefPointer<f2dTexture2D>> m_TexturePool;
+		PoolType<SpriteEx> m_SpritePool;
+	public:
+		/// @brief 清空对象池
+		void Clear()LNOEXCEPT;
+
+		/// @brief 检查资源是否存在
+		/// @warning 注意t可以是非法枚举量
+		bool CheckResourceExists(ResourceType t, const std::string& name)const LNOEXCEPT;
+
+		/// @brief 导出资源表
+		/// @note 在L的堆栈上放置一个table用以存放ResourceType中的资源名称
+		/// @warning 注意t可以是非法枚举量
+		void ExportResourceList(lua_State* L, ResourceType t)const LNOEXCEPT;
+
+		/// @brief 装载纹理
+		/// @param name 名称
+		/// @param path 路径
+		/// @param mipmaps 纹理链
+		bool LoadTexture(const std::string& name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
+
+		/// @brief 装载纹理（UTF-8）
+		LNOINLINE bool LoadTexture(const char* name, const char* path, bool mipmaps = true)LNOEXCEPT;
+		
+		/// @brief 装载图像
+		LNOINLINE bool LoadImage(const char* name, const char* texname,
+			double x, double y, double w, double h, double a, double b, bool rect = false)LNOEXCEPT;
+
+		/// @brief 获取纹理
+		fcyRefPointer<f2dTexture2D> GetTexture(const char* name)LNOEXCEPT
+		{
+			if (m_TexturePool.find(name) == m_TexturePool.end())
+				return nullptr;
+			else
+				return m_TexturePool[name];
+		}
+	private:
+		ResourcePool& operator=(const ResourcePool&);
+		ResourcePool(const ResourcePool&);
+	public:
+		ResourcePool(ResourceMgr* mgr);
+	};
+
 	/// @brief 资源包
 	class ResourcePack
 	{
@@ -37,7 +137,43 @@ namespace LuaSTGPlus
 	{
 	private:
 		std::list<ResourcePack> m_ResPackList;
+
+		ResourcePoolType m_ActivedPool = ResourcePoolType::Global;
+		ResourcePool m_GlobalResourcePool;
+		ResourcePool m_StageResourcePool;
 	public:
+		/// @brief 获得当前激活的资源池类型
+		ResourcePoolType GetActivedPoolType()LNOEXCEPT
+		{
+			return m_ActivedPool;
+		}
+
+		/// @brief 设置当前激活的资源池类型
+		void SetActivedPoolType(ResourcePoolType t)LNOEXCEPT
+		{
+			m_ActivedPool = t;
+		}
+
+		/// @brief 获得当前激活的资源池
+		ResourcePool* GetActivedPool()LNOEXCEPT
+		{
+			return GetResourcePool(m_ActivedPool);
+		}
+
+		/// @brief 获得资源池
+		ResourcePool* GetResourcePool(ResourcePoolType t)LNOEXCEPT
+		{
+			switch (t)
+			{
+			case ResourcePoolType::Global:
+				return &m_GlobalResourcePool;
+			case ResourcePoolType::Stage:
+				return &m_StageResourcePool;
+			default:
+				return nullptr;
+			}
+		}
+
 		/// @brief 加载资源包
 		/// @param[in] path 路径
 		/// @param[in] passwd 密码
@@ -49,6 +185,14 @@ namespace LuaSTGPlus
 
 		/// @brief 卸载所有资源包
 		void UnloadAllPack()LNOEXCEPT { m_ResPackList.clear(); }
+
+		/// @brief 卸载所有资源
+		void ClearAllResource()LNOEXCEPT
+		{
+			m_GlobalResourcePool.Clear();
+			m_StageResourcePool.Clear();
+			m_ActivedPool = ResourcePoolType::Global;
+		}
 
 		/// @brief 加载资源包（UTF8）
 		/// @param[in] path 路径
@@ -78,5 +222,26 @@ namespace LuaSTGPlus
 		/// @param[in] path 路径
 		/// @param[in] target 目的地
 		LNOINLINE bool ExtractRes(const char* path, const char* target)LNOEXCEPT;
+
+		/// @brief 寻找纹理
+		fcyRefPointer<f2dTexture2D> FindTexture(const char* texname)LNOEXCEPT
+		{
+			fcyRefPointer<f2dTexture2D> tRet;
+			if (!(tRet = m_StageResourcePool.GetTexture(texname)))
+				tRet = m_GlobalResourcePool.GetTexture(texname);
+			return tRet;
+		}
+
+		LNOINLINE bool GetTextureSize(const char* texname, fcyVec2& out)LNOEXCEPT
+		{
+			fcyRefPointer<f2dTexture2D> tRet = FindTexture(texname);
+			if (!tRet)
+				return false;
+			out.x = static_cast<float>(tRet->GetWidth());
+			out.y = static_cast<float>(tRet->GetHeight());
+			return true;
+		}
+	public:
+		ResourceMgr();
 	};
 }

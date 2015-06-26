@@ -1,6 +1,28 @@
 /// @file Global.h
 /// @brief 全局定义文件
 #pragma once
+/*
+                           _ooOoo_
+                          o8888888o
+                          88" . "88
+                          (| -_- |)
+                          O\  =  /O
+                       ____/`---'\____
+                     .'  \\|     |//  `.
+                    /  \\|||  :  |||//  \
+                   /  _||||| -:- |||||-  \
+                   |   | \\\  -  /// |   |
+                   | \_|  ''\---/''  |   |
+                   \  .-\__  `-`  ___/-. /
+                 ___`. .'  /--.--\  `. . __
+              ."" '<  `.___\_<|>_/___.'  >'"".
+             | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+             \  \ `-.   \_ __\ /__ _/   .-` /  /
+        ======`-.____`-.___\_____/___.-`____.-'======
+                           `=---='
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 佛祖保佑   永无BUG   永不修改
+*/
 
 // C
 #include <cassert>
@@ -84,6 +106,7 @@
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())
 #define LPOOL (LAPP.GetGameObjectPool())
+#define LRES (LAPP.GetResourceMgr())
 
 #define LWIDE_(x) L ## x
 #define LWIDE(x) LWIDE_(x)

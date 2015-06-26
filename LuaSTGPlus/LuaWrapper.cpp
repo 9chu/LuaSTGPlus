@@ -320,21 +320,21 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			const char* pwd = nullptr;
 			if (lua_isstring(L, 2))
 				pwd = luaL_checkstring(L, 2);
-			if (!LAPP.GetResourceMgr().LoadPack(p, pwd))
+			if (!LRES.LoadPack(p, pwd))
 				return luaL_error(L, "failed to load resource pack '%s'.", p);
 			return 0;
 		}
 		static int UnloadPack(lua_State* L)LNOEXCEPT
 		{
 			const char* p = luaL_checkstring(L, 1);
-			LAPP.GetResourceMgr().UnloadPack(p);
+			LRES.UnloadPack(p);
 			return 0;
 		}
 		static int ExtractRes(lua_State* L)LNOEXCEPT
 		{
 			const char* pArgPath = luaL_checkstring(L, 1);
 			const char* pArgTarget = luaL_checkstring(L, 2);
-			if (!LAPP.GetResourceMgr().ExtractRes(pArgPath, pArgTarget))
+			if (!LRES.ExtractRes(pArgPath, pArgTarget))
 				return luaL_error(L, "failed to extract resource '%s' to '%s'.", pArgPath, pArgTarget);
 			return 0;
 		}
@@ -343,17 +343,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			LAPP.LoadScript(luaL_checkstring(L, 1));
 			return 0;
 		}
-		static int SetResourceStatus(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
+
+		// 对象控制函数（这些方法将被转发到对象池）
 		static int GetnObj(lua_State* L)LNOEXCEPT
 		{
 			lua_pushinteger(L, (lua_Integer)LPOOL.GetObjectCount());
 			return 1;
 		}
-
-		// 对象控制函数（这些方法将被转发到对象池）
 		static int UpdateObjList(lua_State* L)LNOEXCEPT
 		{
 			// ! 该函数已被否决
@@ -527,12 +523,66 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 
 		// 资源控制函数
+		static int SetResourceStatus(lua_State* L)LNOEXCEPT
+		{
+			const char* s = luaL_checkstring(L, 1);
+			if (strcmp(s, "global") == 0)
+				LRES.SetActivedPoolType(ResourcePoolType::Global);
+			else if (strcmp(s, "stage") == 0)
+				LRES.SetActivedPoolType(ResourcePoolType::Stage);
+			else if (strcmp(s, "none") == 0)
+				LRES.SetActivedPoolType(ResourcePoolType::None);
+			else
+				return luaL_error(L, "invalid argument #1 for 'SetResourceStatus', requires 'stage', 'global' or 'none'.");
+			return 0;
+		}
 		static int LoadTexture(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+			switch (lua_gettop(L))
+			{
+			case 2:
+				if (!LRES.GetActivedPool()->LoadTexture(name, path))
+					return luaL_error(L, "can't load texture from file '%s'.", path);
+				break;
+			case 3:
+				if (!LRES.GetActivedPool()->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
+					return luaL_error(L, "can't load texture from file '%s'.", path);
+				break;
+			default:
+				return luaL_error(L, "invalid argument count for 'LoadTexture'.");
+				break;
+			}
 			return 0;
 		}
 		static int LoadImage(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* texname = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (!pActivedPool->LoadImage(
+				name,
+				texname,
+				luaL_checknumber(L, 3),
+				luaL_checknumber(L, 4),
+				luaL_checknumber(L, 5),
+				luaL_checknumber(L, 6),
+				luaL_optnumber(L, 7, 0.),
+				luaL_optnumber(L, 8, 0.),
+				lua_toboolean(L, 9) == 0 ? false : true
+				))
+			{
+				return luaL_error(L, "load image failed (name='%s', tex='%s'", name, texname);
+			}
 			return 0;
 		}
 		static int LoadAnimation(lua_State* L)LNOEXCEPT
@@ -559,17 +609,52 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
+		static int GetTextureSize(lua_State* L)LNOEXCEPT
+		{
+			const char* name = luaL_checkstring(L, 1);
+			fcyVec2 size;
+			if (!LRES.GetTextureSize(name, size))
+				return luaL_error(L, "texture '%s' not found.", name);
+			lua_pushnumber(L, size.x);
+			lua_pushnumber(L, size.y);
+			return 2;
+		}
 		static int RemoveResource(lua_State* L)LNOEXCEPT
 		{
+			ResourcePoolType t;
+			const char* s = luaL_checkstring(L, 1);
+			if (strcmp(s, "global") == 0)
+				t = ResourcePoolType::Global;
+			else if (strcmp(s, "stage") == 0)
+				t = ResourcePoolType::Stage;
+			else if (strcmp(s, "none") != 0)
+				t = ResourcePoolType::None;
+			else
+				return luaL_error(L, "invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
+
+			if (t == ResourcePoolType::Global || t == ResourcePoolType::Stage)
+				LRES.GetResourcePool(t)->Clear();
 			return 0;
 		}
 		static int CheckRes(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 1));
+			const char* tResourceName = luaL_checkstring(L, 2);
+			// 先在全局池中寻找再到关卡池中找
+			if (LRES.GetResourcePool(ResourcePoolType::Global)->CheckResourceExists(tResourceType, tResourceName))
+				lua_pushstring(L, "global");
+			else if (LRES.GetResourcePool(ResourcePoolType::Stage)->CheckResourceExists(tResourceType, tResourceName))
+				lua_pushstring(L, "stage");
+			else
+				lua_pushnil(L);
+			return 1;
 		}
 		static int EnumRes(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 1));
+			LRES.GetResourcePool(ResourcePoolType::Global)->ExportResourceList(L, tResourceType);
+			LRES.GetResourcePool(ResourcePoolType::Stage)->ExportResourceList(L, tResourceType);
+			return 2;
 		}
 
 		// 绘图函数
@@ -578,10 +663,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		static int EndScene(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int GetTextureSize(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -787,9 +868,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "UnloadPack", &WrapperImplement::UnloadPack },
 		{ "ExtractRes", &WrapperImplement::ExtractRes },
 		{ "DoFile", &WrapperImplement::DoFile },
-		{ "SetResourceStatus", &WrapperImplement::SetResourceStatus },
-		{ "GetnObj", &WrapperImplement::GetnObj },
 		// 对象控制函数
+		{ "GetnObj", &WrapperImplement::GetnObj },
 		{ "UpdateObjList", &WrapperImplement::UpdateObjList },
 		{ "ObjFrame", &WrapperImplement::ObjFrame },
 		{ "ObjRender", &WrapperImplement::ObjRender },
@@ -813,6 +893,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
 		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
 		// 资源控制函数
+		{ "SetResourceStatus", &WrapperImplement::SetResourceStatus },
 		{ "LoadTexture", &WrapperImplement::LoadTexture },
 		{ "LoadImage", &WrapperImplement::LoadImage },
 		{ "LoadAnimation", &WrapperImplement::LoadAnimation },
@@ -822,13 +903,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "LoadFont", &WrapperImplement::LoadFont },
 		{ "LoadTTF", &WrapperImplement::LoadTTF },
 		{ "RegTTF", &WrapperImplement::RegTTF },
+		{ "GetTextureSize", &WrapperImplement::GetTextureSize },
 		{ "RemoveResource", &WrapperImplement::RemoveResource },
 		{ "CheckRes", &WrapperImplement::CheckRes },
 		{ "EnumRes", &WrapperImplement::EnumRes },
 		// 绘图函数
 		{ "BeginScene", &WrapperImplement::BeginScene },
 		{ "EndScene", &WrapperImplement::EndScene },
-		{ "GetTextureSize", &WrapperImplement::GetTextureSize },
 		{ "Render", &WrapperImplement::Render },
 		{ "RenderRect", &WrapperImplement::RenderRect },
 		{ "Render4V", &WrapperImplement::Render4V },

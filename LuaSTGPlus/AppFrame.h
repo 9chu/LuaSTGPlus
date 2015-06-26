@@ -74,6 +74,8 @@ namespace LuaSTGPlus
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
 		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }
+		f2dRenderer* GetRenderer()LNOEXCEPT { return m_pRenderer; }
+		f2dRenderDevice* GetRenderDev()LNOEXCEPT { return m_pRenderDev; }
 
 		/// @brief 初始化框架
 		/// @note 该函数必须在一开始被调用，且仅能调用一次

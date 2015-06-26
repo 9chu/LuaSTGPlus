@@ -25,8 +25,8 @@
 
 ## 编码
 
-- 程序将使用**UTF-8**作为lua代码的编码，如果lua端使用非UTF-8编码将在运行时导致乱码
-- 程序将使用**UTF-8**作为资源包的编码，这意味着如果资源包中出现非UTF-8编码的字符将导致无法定位文件
+- 程序将使用**UTF-8**作为lua代码的编码，如果lua端使用非UTF-8编码将在运行时导致乱码 **[不兼容]**
+- 程序将使用**UTF-8**作为资源包的编码，这意味着如果资源包中出现非UTF-8编码的字符将导致无法定位文件 **[不兼容]**
 
 ## 内建变量
 
@@ -157,7 +157,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	将若干值写到日志。
 
-- LoadPack(path:string, password:string) **[新]**
+- LoadPack(path:string, [password:string]) **[新]**
 
 	加载指定位置的ZIP资源包，可选填密码。
 
@@ -296,13 +296,13 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 				
 			luastg+提供了至多32768个空间共object使用。超过这个大小后将报错。
 
-- Del(object, ...) **[新]**
+- Del(object, [...]) **[新]**
 
 	通知删除一个对象。将设置标志并调用回调函数。
 
 	**若在object后传递多个参数，将被传递给回调函数。**
 
-- Kill(object, ...) **[新]**
+- Kill(object, [...]) **[新]**
 
 	通知杀死一个对象。将设置标志并调用回调函数。
 
@@ -320,7 +320,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	求向量(对象b.中心 - 对象a.中心)相对x轴正方向的夹角。
 
-- Dist(a:object|number, b:object|number, c:number, d:number):number
+- Dist(a:object|number, b:object|number, [c:number, d:number]):number
 
 	求距离。若a与b为对象则计算a与b之间的距离。否则计算向量(c,d)与(a,b)之间的距离。
 
@@ -352,6 +352,50 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 		细节
 			由于NextObject行为发生变更，ObjList只在for循环中使用时可以获得兼容性。
+
+### 资源管理系统
+
+	luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用于存放不同用途的资源。
+	资源池使用字符串哈希表进行管理，一个池中的同种资源其名称不能重复。
+
+- RemoveResource(pool:string)
+
+	删除一个池中的所有资源。参数可选global或stage。
+
+- CheckRes(type:integer, name:string):string|nil
+
+	获得一个资源的类别，通常用于检测资源是否存在。
+
+		细节
+			方法会根据名称先在全局资源池中寻找，若有则返回global。
+			若全局资源表中没有找到资源，则在关卡资源池中找，若有则返回stage。
+			若不存在资源，则返回nil。
+
+- EnumRes(type:integer):table, table
+
+	枚举资源池中某种类型的资源，依次返回全局资源池、关卡资源池中该类型的所有资源的名称。
+
+- GetTextureSize(name:string):number, number
+
+	获取纹理的宽度和高度。
+
+- LoadTexture(name:string, path:string, [mipmap:boolean])
+
+	装载纹理，支持多种格式但是首推png。其中mipmap为纹理链。
+
+		细节
+			纹理会根据当前的资源池加载到目的资源池。
+			但是当构造其他资源时，其纹理寻找规则为先在关卡资源池中寻找，若没找到再到全局资源池寻找。
+
+		潜在不兼容性
+			luastg中若不提供mipmap参数默认将不创建mipmap，在luastg+中其行为相反。
+
+- LoadImage(name:string, tex_name:string, x:number, y:number, w:number, h:number, [a:number, [b:number, [rect:boolean]]])
+
+	在纹理中创建图像。x、y指定图像在纹理上左上角的坐标（纹理左上角为（0,0），向下向右为正方向），w、h指定图像的大小，a、b、rect指定横向、纵向碰撞判定和判定形状。
+
+		细节
+			当把一个图像赋予对象的img字段时，它的a、b、rect属性会自动被赋值到对象上。
 
 ## 全局回调函数
 

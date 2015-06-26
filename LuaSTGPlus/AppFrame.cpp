@@ -99,8 +99,8 @@ LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
 			F2DAALEVEL_NONE)))
 		{
 			LINFO("视频模式切换成功 (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
-				tOrgOptionResolution.x, tOrgOptionResolution.y, m_OptionVsyncOrg, tOrgOptionWindowed,
-				m_OptionResolution.x, m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
+				(int)tOrgOptionResolution.x, (int)tOrgOptionResolution.y, m_OptionVsyncOrg, tOrgOptionWindowed,
+				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
 
 			// 切换窗口大小
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
@@ -203,7 +203,8 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 
 	//////////////////////////////////////// 初始化fancy2d引擎
-	LINFO("初始化fancy2d (分辨率: %dx%d 垂直同步: %b 窗口化: %b)", 
+	LINFO("初始化fancy2d 版本 %d.%d (分辨率: %dx%d 垂直同步: %b 窗口化: %b)",
+		(F2DVERSION & 0xFFFF0000) >> 16, F2DVERSION & 0x0000FFFF,
 		(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
 	struct : public f2dInitialErrListener
 	{
@@ -235,6 +236,10 @@ bool AppFrame::Init()LNOEXCEPT
 	m_pRenderDev = m_pRenderer->GetDevice();
 	m_pSoundSys = m_pEngine->GetSoundSys();
 
+	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
+	m_pMainWindow->MoveToCenter();
+	m_pMainWindow->SetVisiable(true);
+
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
 	if (!m_ResourceMgr.LoadFile(LCORE_SCRIPT, m_TempBuffer))
@@ -264,6 +269,8 @@ void AppFrame::Shutdown()LNOEXCEPT
 		L = nullptr;
 		LINFO("已卸载Lua虚拟机");
 	}
+	m_ResourceMgr.ClearAllResource();
+	LINFO("已清空所有资源");
 	m_ResourceMgr.UnloadAllPack();
 	LINFO("已卸载所有资源包");
 
@@ -276,8 +283,6 @@ void AppFrame::Run()LNOEXCEPT
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
 
-	m_pMainWindow->MoveToCenter();
-	m_pMainWindow->SetVisiable(true);
 	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
 
 	LINFO("退出游戏循环");
