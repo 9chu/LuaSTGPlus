@@ -76,6 +76,7 @@
 // 全局回调函数名称
 #define LFUNC_GAMEINIT "GameInit"
 #define LFUNC_FRAME "FrameFunc"
+#define LFUNC_RENDER "RenderFunc"
 #define LFUNC_LOSEFOCUS "FocusLoseFunc"
 #define LFUNC_GAINFOCUS "FocusGainFunc"
 
@@ -102,6 +103,8 @@
 #ifdef _DEBUG
 #define LDEBUG
 #endif
+
+#define LSHOWRESLOADINFO
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())

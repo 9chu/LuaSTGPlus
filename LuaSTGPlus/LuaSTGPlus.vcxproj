@@ -91,6 +91,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AppFrame.h" />
+    <ClInclude Include="Dictionary.hpp" />
     <ClInclude Include="GameObjectPool.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="LogSystem.h" />

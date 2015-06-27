@@ -1,5 +1,6 @@
 #pragma once
 #include "Global.h"
+#include "Dictionary.hpp"
 
 #ifdef LoadImage
 #undef LoadImage
@@ -38,37 +39,107 @@ namespace LuaSTGPlus
 		MulAdd,
 		MulAlpha
 	};
+	
+	/// @brief 资源接口
+	class Resource :
+		public fcyRefObjImpl<fcyRefObj>
+	{
+	private:
+		ResourceType m_Type;
+		std::string m_ResName;
+	public:
+		ResourceType GetType()const LNOEXCEPT { return m_Type; }
+		const std::string& GetResName()const LNOEXCEPT { return m_ResName; }
+	private:
+		Resource& operator=(const Resource&);
+		Resource(const Resource&);
+	public:
+		Resource(ResourceType t, const char* name)
+			: m_Type(t), m_ResName(name) {}
+	};
+
+	/// @brief 纹理资源
+	class ResTexture :
+		public Resource
+	{
+	private:
+		fcyRefPointer<f2dTexture2D> m_Texture;
+	public:
+		f2dTexture2D* GetTexture() { return m_Texture; }
+	public:
+		ResTexture(const char* name, fcyRefPointer<f2dTexture2D> tex)
+			: Resource(ResourceType::Texture, name), m_Texture(tex) {}
+	};
+
+	/// @brief 图像资源
+	class ResSprite :
+		public Resource
+	{
+	private:
+		fcyRefPointer<f2dSprite> m_Sprite;
+		BlendMode m_BlendMode = BlendMode::MulAlpha;
+		double m_HalfSizeX = 0.;
+		double m_HalfSizeY = 0.;
+		bool m_bRectangle = false;
+	public:
+		f2dSprite* GetSprite()LNOEXCEPT { return m_Sprite; }
+		BlendMode GetBlendMode()const LNOEXCEPT { return m_BlendMode; }
+		void SetBlendMode(BlendMode m)LNOEXCEPT { m_BlendMode = m; }
+		double GetHalfSizeX()const LNOEXCEPT { return m_HalfSizeX; }
+		double GetHalfSizeY()const LNOEXCEPT { return m_HalfSizeY; }
+		bool IsRectangle()const LNOEXCEPT { return m_bRectangle; }
+	public:
+		ResSprite(const char* name, fcyRefPointer<f2dSprite> sprite, double hx, double hy, bool rect)
+			: Resource(ResourceType::Sprite, name), m_Sprite(sprite), m_HalfSizeX(hx), m_HalfSizeY(hy), m_bRectangle(rect)
+		{
+			m_Sprite->SetColor(0xFFFFFFFF);  // 适应乘法
+		}
+	};
 
 	/// @brief 资源池
 	class ResourcePool
 	{
-	public:
-		template <typename T>
-		using PoolType = std::unordered_map<std::string, typename T>;
-
-		struct SpriteEx
-		{
-			fcyRefPointer<f2dSprite> sprite;  // 精灵对象
-			BlendMode blend = BlendMode::AddAlpha;  // 混合
-			double a = 0., b = 0.;  // 碰撞半轴长
-			bool rect = false;  // 是否为矩形碰撞盒
-
-			SpriteEx() {}
-			SpriteEx(const SpriteEx& org)
-				: sprite(org.sprite), blend(org.blend), a(org.a), b(org.b), rect(org.rect) {}
-		};
 	private:
 		ResourceMgr* m_pMgr;
 
-		PoolType<fcyRefPointer<f2dTexture2D>> m_TexturePool;
-		PoolType<SpriteEx> m_SpritePool;
+		Dictionary<fcyRefPointer<ResTexture>> m_TexturePool;
+		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
 	public:
 		/// @brief 清空对象池
-		void Clear()LNOEXCEPT;
+		void Clear()LNOEXCEPT
+		{
+			m_TexturePool.clear();
+			m_SpritePool.clear();
+		}
 
 		/// @brief 检查资源是否存在
 		/// @warning 注意t可以是非法枚举量
-		bool CheckResourceExists(ResourceType t, const std::string& name)const LNOEXCEPT;
+		bool CheckResourceExists(ResourceType t, const std::string& name)const LNOEXCEPT
+		{
+			switch (t)
+			{
+			case ResourceType::Texture:
+				return m_TexturePool.find(name.c_str()) != m_TexturePool.end();
+			case ResourceType::Sprite:
+				return m_SpritePool.find(name.c_str()) != m_SpritePool.end();
+			case ResourceType::Animation:
+				break;
+			case ResourceType::Music:
+				break;
+			case ResourceType::SoundEffect:
+				break;
+			case ResourceType::Particle:
+				break;
+			case ResourceType::SpriteFont:
+				break;
+			case ResourceType::TrueType:
+				break;
+			default:
+				break;
+			}
+
+			return false;
+		}
 
 		/// @brief 导出资源表
 		/// @note 在L的堆栈上放置一个table用以存放ResourceType中的资源名称
@@ -79,7 +150,7 @@ namespace LuaSTGPlus
 		/// @param name 名称
 		/// @param path 路径
 		/// @param mipmaps 纹理链
-		bool LoadTexture(const std::string& name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
+		bool LoadTexture(const char* name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
 
 		/// @brief 装载纹理（UTF-8）
 		LNOINLINE bool LoadTexture(const char* name, const char* path, bool mipmaps = true)LNOEXCEPT;
@@ -89,18 +160,28 @@ namespace LuaSTGPlus
 			double x, double y, double w, double h, double a, double b, bool rect = false)LNOEXCEPT;
 
 		/// @brief 获取纹理
-		fcyRefPointer<f2dTexture2D> GetTexture(const char* name)LNOEXCEPT
+		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT
 		{
 			if (m_TexturePool.find(name) == m_TexturePool.end())
 				return nullptr;
 			else
 				return m_TexturePool[name];
 		}
+
+		/// @brief 获取精灵
+		fcyRefPointer<ResSprite> GetSprite(const char* name)LNOEXCEPT
+		{
+			if (m_SpritePool.find(name) == m_SpritePool.end())
+				return nullptr;
+			else
+				return m_SpritePool[name];
+		}
 	private:
 		ResourcePool& operator=(const ResourcePool&);
 		ResourcePool(const ResourcePool&);
 	public:
-		ResourcePool(ResourceMgr* mgr);
+		ResourcePool(ResourceMgr* mgr)
+			: m_pMgr(mgr) {}
 	};
 
 	/// @brief 资源包
@@ -138,10 +219,14 @@ namespace LuaSTGPlus
 	private:
 		std::list<ResourcePack> m_ResPackList;
 
+		float m_GlobalImageScaleFactor = 1.0f;
 		ResourcePoolType m_ActivedPool = ResourcePoolType::Global;
 		ResourcePool m_GlobalResourcePool;
 		ResourcePool m_StageResourcePool;
 	public:
+		float GetGlobalImageScaleFactor()const LNOEXCEPT{ return m_GlobalImageScaleFactor; }
+		void SetGlobalImageScaleFactor(float s)LNOEXCEPT{ m_GlobalImageScaleFactor = s; }
+
 		/// @brief 获得当前激活的资源池类型
 		ResourcePoolType GetActivedPoolType()LNOEXCEPT
 		{
@@ -186,12 +271,13 @@ namespace LuaSTGPlus
 		/// @brief 卸载所有资源包
 		void UnloadAllPack()LNOEXCEPT { m_ResPackList.clear(); }
 
-		/// @brief 卸载所有资源
+		/// @brief 卸载所有资源并重置状态
 		void ClearAllResource()LNOEXCEPT
 		{
 			m_GlobalResourcePool.Clear();
 			m_StageResourcePool.Clear();
 			m_ActivedPool = ResourcePoolType::Global;
+			m_GlobalImageScaleFactor = 1.;
 		}
 
 		/// @brief 加载资源包（UTF8）
@@ -224,22 +310,32 @@ namespace LuaSTGPlus
 		LNOINLINE bool ExtractRes(const char* path, const char* target)LNOEXCEPT;
 
 		/// @brief 寻找纹理
-		fcyRefPointer<f2dTexture2D> FindTexture(const char* texname)LNOEXCEPT
+		fcyRefPointer<ResTexture> FindTexture(const char* texname)LNOEXCEPT
 		{
-			fcyRefPointer<f2dTexture2D> tRet;
+			fcyRefPointer<ResTexture> tRet;
 			if (!(tRet = m_StageResourcePool.GetTexture(texname)))
 				tRet = m_GlobalResourcePool.GetTexture(texname);
 			return tRet;
 		}
 
-		LNOINLINE bool GetTextureSize(const char* texname, fcyVec2& out)LNOEXCEPT
+		/// @brief 获取纹理大小
+		bool GetTextureSize(const char* texname, fcyVec2& out)LNOEXCEPT
 		{
-			fcyRefPointer<f2dTexture2D> tRet = FindTexture(texname);
+			fcyRefPointer<ResTexture> tRet = FindTexture(texname);
 			if (!tRet)
 				return false;
-			out.x = static_cast<float>(tRet->GetWidth());
-			out.y = static_cast<float>(tRet->GetHeight());
+			out.x = static_cast<float>(tRet->GetTexture()->GetWidth());
+			out.y = static_cast<float>(tRet->GetTexture()->GetHeight());
 			return true;
+		}
+
+		/// @brief 寻找精灵
+		fcyRefPointer<ResSprite> FindSprite(const char* texname)LNOEXCEPT
+		{
+			fcyRefPointer<ResSprite> tRet;
+			if (!(tRet = m_StageResourcePool.GetSprite(texname)))
+				tRet = m_GlobalResourcePool.GetSprite(texname);
+			return tRet;
 		}
 	public:
 		ResourceMgr();

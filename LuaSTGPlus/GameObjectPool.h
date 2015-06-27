@@ -1,6 +1,7 @@
 #pragma once
 #include "Global.h"
 #include "ObjectPool.hpp"
+#include "ResourceMgr.h"
 
 namespace LuaSTGPlus
 {
@@ -12,7 +13,7 @@ namespace LuaSTGPlus
 		STATUS_KILL,  // 被kill事件触发
 		STATUS_DEL  // 被del事件触发
 	};
-
+	
 	/// @brief 游戏对象
 	struct GameObject
 	{
@@ -37,6 +38,8 @@ namespace LuaSTGPlus
 		
 		lua_Integer group;  // 对象所在的碰撞组
 		lua_Integer timer, ani_timer;  // 计数器
+
+		Resource* res;  // 渲染资源
 
 		// 链表域
 		GameObject *pObjectPrev, *pObjectNext;
@@ -64,10 +67,23 @@ namespace LuaSTGPlus
 			group = LGOBJ_DEFAULTGROUP;
 			timer = ani_timer = 0;
 
+			res = nullptr;
+
 			pObjectPrev = pObjectNext = nullptr;
 			pRenderPrev = pRenderNext = nullptr;
 			pCollisionPrev = pCollisionNext = nullptr;
 		}
+
+		void ReleaseResource()
+		{
+			if (res)
+			{
+				res->Release();
+				res = nullptr;
+			}
+		}
+
+		bool ChangeResource(const char* res_name);
 	};
 
 	/// @brief 游戏对象池
@@ -155,7 +171,7 @@ namespace LuaSTGPlus
 		void ResetPool()LNOEXCEPT;
 
 		/// @brief 执行默认渲染
-		bool DoDefauleRender(size_t id)LNOEXCEPT;
+		bool DoDefaultRender(size_t id)LNOEXCEPT;
 
 		/// @brief 获取下一个元素的ID
 		/// @return 返回-1表示无元素
@@ -173,10 +189,14 @@ namespace LuaSTGPlus
 
 		/// @brief 属性写方法
 		int SetAttr(lua_State* L)LNOEXCEPT;
+
+		/// @brief 调试目的，获取对象列表
+		int GetObjectTable(lua_State* L)LNOEXCEPT;
 	private:
 		GameObjectPool& operator=(const GameObjectPool&);
 		GameObjectPool(const GameObjectPool&);
 	public:
 		GameObjectPool(lua_State* pL);
+		~GameObjectPool();
 	};
 }

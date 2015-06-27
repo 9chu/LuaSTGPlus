@@ -280,8 +280,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 				class            对象的父类
 				a, b             碰撞盒大小
 				rect             是否为矩形碰撞盒
-				img
-				ani
+				img              
+				ani              (只读)动画计数器
 			被创建对象的索引1和2被用于存放类和id【请勿修改】
 
 			其中父类class需满足如下形式：
@@ -357,6 +357,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用于存放不同用途的资源。
 	资源池使用字符串哈希表进行管理，一个池中的同种资源其名称不能重复。
+	所有的加载函数会根据当前的资源池类别加载到对应的池中。寻找资源时优先到关卡资源池中寻找，若没有再到全局资源池中寻找。
 
 - RemoveResource(pool:string)
 
@@ -383,19 +384,90 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	装载纹理，支持多种格式但是首推png。其中mipmap为纹理链。
 
-		细节
-			纹理会根据当前的资源池加载到目的资源池。
-			但是当构造其他资源时，其纹理寻找规则为先在关卡资源池中寻找，若没找到再到全局资源池寻找。
-
 		潜在不兼容性
 			luastg中若不提供mipmap参数默认将不创建mipmap，在luastg+中其行为相反。
 
-- LoadImage(name:string, tex_name:string, x:number, y:number, w:number, h:number, [a:number, [b:number, [rect:boolean]]])
+- LoadImage(name:string, tex\_name:string, x:number, y:number, w:number, h:number, [a:number, [b:number, [rect:boolean]]])
 
 	在纹理中创建图像。x、y指定图像在纹理上左上角的坐标（纹理左上角为（0,0），向下向右为正方向），w、h指定图像的大小，a、b、rect指定横向、纵向碰撞判定和判定形状。
 
 		细节
 			当把一个图像赋予对象的img字段时，它的a、b、rect属性会自动被赋值到对象上。
+
+- SetImageState(name:string, blend\_mode:string, \[vertex\_color1:lstgColor, vertex\_color2:lstgColor, vertex\_color3:lstgColor, vertex\_color4:lstgColor\])
+
+	设置图像状态，可选一个颜色参数用于设置所有顶点或者给出4个颜色设置所有顶点。
+
+		混合选项可选
+			""          默认值，=mul+alpha
+			"mul+add"   顶点颜色使用乘法，目标混合使用加法
+			"mul+alpha" (默认)顶点颜色使用乘法，目标混合使用alpha混合
+			"add+add"   顶点颜色使用加法，目标混合使用加法
+			"add+alpha" 顶点颜色使用加法，目标混合使用alpha混合
+	  
+
+### 渲染方法
+
+	luastg/luastg+使用笛卡尔坐标系（右正上正）作为窗口坐标系，且以屏幕左下角作为原点，Viewport、鼠标消息将以此作为基准。
+	luastg/luastg+中存在一个全局图像缩放系数，用于在不同模式下进行渲染，该系数将会影响对象的渲染大小、与图像绑定的碰撞大小和部分渲染函数。
+	另外，从luastg+开始，渲染和更新将被独立在两个函数中进行。所有的渲染操作必须在RenderFunc中执行。
+
+- BeginScene()
+
+	通知渲染开始。该方法必须在RenderFunc中调用。所有渲染动作必须在BeginScene/EndScene中进行。
+
+		不兼容性
+			从luastg+开始，渲染操作将被移动到RenderFunc中进行。
+
+- EndScene()
+
+	通知渲染结束。该方法必须在RenderFunc中调用。
+
+- RenderClear(lstgColor)
+
+	使用指定颜色清空屏幕。
+
+- SetViewport(left:number, right:number, bottom:number, top:number)
+
+	设置视口，将影响裁剪和渲染。
+
+- SetOrtho(left:number, right:number, bottom:number, top:number)
+
+	设置正投影矩阵。left表示x轴最小值，right表示x轴最大值，bottom表示y轴最小值，top表示y轴最大值。
+
+		细节
+			创建的正投影矩阵将把z轴限制在[0,1]区间内。
+
+- SetPerspective(eyeX:number, eyeY:number, eyeZ:number, atX:number, atY:number, atZ:number, upX:number, upY:number, upZ:number, fovy:number, aspect:number, zn:number, zf:number)
+
+	设置透视投影矩阵和观察矩阵。(eyeX,eyeY,eyeZ)表示观察者位置，(atX,atY,atZ)表示观察目标，(upX,upY,upZ)用于表示观察者向上的正方向。fovy描述视角范围（弧度制），aspect描述宽高比，zn和zf描述z轴裁剪距离。
+
+- Render(image_name:string, x:number, y:number, [rot:number=0, [hscale:number=1, [vscale:number=1, [z:number=0.5]]]])
+
+	渲染图像。(x,y)指定中心点，rot指定旋转（弧度制），(hscale,vscale)XY轴缩放，z指定Z坐标。
+
+	该函数受全局图像缩放系数影响。
+
+- RenderRect(image_name:string, left:number, right:number, bottom:number, top:number)
+
+	在一个矩阵范围渲染图像。此时z=0.5。
+
+- Render4V(image_name:string, x1:number, y1:number, z1:number, x2:number, y2:number, z2:number, x3:number, y3:number, z3:number, x4:number, y4:number, z4:number)
+
+	给出四个顶点渲染图像。此时z=0.5。
+
+### 调试方法
+
+- ObjTable():table
+
+	该方法可以获得对象池所在的table。慎用。
+
+- Registry():table  **[移除]**
+
+	返回注册表。
+
+		细节
+			由于该方法过于不安全，已被移除。
 
 ## 全局回调函数
 
@@ -418,3 +490,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 	帧处理函数，每帧被调用来处理逻辑。
 
 	若返回true将终止游戏循环，退出游戏。
+
+- RenderFunc() **[新增]**
+
+	渲染处理函数，每帧被调用时用来渲染场景。

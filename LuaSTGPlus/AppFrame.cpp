@@ -146,6 +146,40 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 		return;
 	}
 }
+
+bool AppFrame::BeginScene()LNOEXCEPT
+{
+	if (!m_bRenderStarted)
+	{
+		LERROR("不能在RenderFunc以外的地方执行渲染");
+		return false;
+	}
+
+	if (m_GraphType == GraphicsType::Graph2D)
+	{
+		if (FCYFAILED(m_Graph2D->Begin()))
+		{
+			LERROR("执行f2dGraphics2D::Begin失败");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool AppFrame::EndScene()LNOEXCEPT
+{
+	if (m_GraphType == GraphicsType::Graph2D)
+	{
+		if (FCYFAILED(m_Graph2D->End()))
+		{
+			LERROR("执行f2dGraphics2D::End失败");
+			return false;
+		}
+	}
+
+	return true;
+}
 #pragma endregion
 
 #pragma region 框架函数
@@ -236,6 +270,17 @@ bool AppFrame::Init()LNOEXCEPT
 	m_pRenderDev = m_pRenderer->GetDevice();
 	m_pSoundSys = m_pEngine->GetSoundSys();
 
+	// 创建渲染器
+	if (FCYFAILED(m_pRenderDev->CreateGraphics2D(1024, 2048, &m_Graph2D)))
+	{
+		LERROR("无法创建渲染器 (fcyRenderDevice::CreateGraphics2D failed)");
+		return false;
+	}
+	m_Graph2DLastBlendMode = BlendMode::AddAlpha;
+	m_Graph2DBlendState = m_Graph2D->GetBlendState();
+	m_Graph2DColorBlendState = m_Graph2D->GetColorBlendType();
+	m_bRenderStarted = false;
+
 	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
 	m_pMainWindow->MoveToCenter();
 	m_pMainWindow->SetVisiable(true);
@@ -256,6 +301,13 @@ bool AppFrame::Init()LNOEXCEPT
 
 void AppFrame::Shutdown()LNOEXCEPT
 {
+	m_GameObjectPool = nullptr;
+	LINFO("已清空对象池");
+
+	m_ResourceMgr.ClearAllResource();
+	LINFO("已清空所有资源");
+
+	m_Graph2D = nullptr;
 	m_pEngine = nullptr;
 	m_pMainWindow = nullptr;
 	m_pRenderer = nullptr;
@@ -269,8 +321,6 @@ void AppFrame::Shutdown()LNOEXCEPT
 		L = nullptr;
 		LINFO("已卸载Lua虚拟机");
 	}
-	m_ResourceMgr.ClearAllResource();
-	LINFO("已清空所有资源");
 	m_ResourceMgr.UnloadAllPack();
 	LINFO("已卸载所有资源包");
 
@@ -406,18 +456,24 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 	}
 
 	// 执行帧函数
-	int xx = lua_gettop(L);
 	if (!SafeCallGlobalFunction(LFUNC_FRAME, 0, 1))
 		return false;
-	bool x = lua_toboolean(L, -1) == 1 ? true : false;
+	bool tAbort = lua_toboolean(L, -1) == 0 ? false : true;
 	lua_pop(L, 1);
-	LASSERT(lua_gettop(L) == xx);
 
-	return !x;
+	return !tAbort;
 }
 
 fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 {
+	m_pRenderDev->Clear();
+
+	// 执行渲染函数
+	m_bRenderStarted = true;
+	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0, 0))
+		m_pEngine->Abort();
+	m_bRenderStarted = false;
+
 	return true;
 }
 #pragma endregion

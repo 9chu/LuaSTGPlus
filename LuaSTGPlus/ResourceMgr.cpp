@@ -9,43 +9,6 @@ using namespace LuaSTGPlus;
 ////////////////////////////////////////////////////////////////////////////////
 /// ResourcePool
 ////////////////////////////////////////////////////////////////////////////////
-ResourcePool::ResourcePool(ResourceMgr* mgr)
-	: m_pMgr(mgr)
-{
-}
-
-void ResourcePool::Clear()LNOEXCEPT
-{
-	m_TexturePool.clear();
-	m_SpritePool.clear();
-}
-
-bool ResourcePool::CheckResourceExists(ResourceType t, const std::string& name)const LNOEXCEPT
-{
-	switch (t)
-	{
-	case ResourceType::Texture:
-		return m_TexturePool.find(name) != m_TexturePool.end();
-	case ResourceType::Sprite:
-		return m_SpritePool.find(name) != m_SpritePool.end();
-	case ResourceType::Animation:
-		break;
-	case ResourceType::Music:
-		break;
-	case ResourceType::SoundEffect:
-		break;
-	case ResourceType::Particle:
-		break;
-	case ResourceType::SpriteFont:
-		break;
-	case ResourceType::TrueType:
-		break;
-	default:
-		break;
-	}
-	return false;
-}
-
 void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCEPT
 {
 	int cnt = 1;
@@ -55,7 +18,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		lua_newtable(L);  // t
 		for (auto i : m_TexturePool)
 		{
-			lua_pushstring(L, i.first.c_str());  // t s
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
 		}
 		break;
@@ -63,7 +26,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		lua_newtable(L);  // t
 		for (auto i : m_SpritePool)
 		{
-			lua_pushstring(L, i.first.c_str());  // t s
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
 		}
 		break;
@@ -91,13 +54,13 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 	}
 }
 
-bool ResourcePool::LoadTexture(const std::string& name, const std::wstring& path, bool mipmaps)LNOEXCEPT
+bool ResourcePool::LoadTexture(const char* name, const std::wstring& path, bool mipmaps)LNOEXCEPT
 {
 	LASSERT(LAPP.GetRenderDev());
 
 	if (m_TexturePool.find(name) != m_TexturePool.end())
 	{
-		LWARNING("LoadTexture: 纹理'%m'已存在，试图使用'%s'加载的操作已被取消", name.c_str(), path.c_str());
+		LWARNING("LoadTexture: 纹理'%m'已存在，试图使用'%s'加载的操作已被取消", name, path.c_str());
 		return true;
 	}
 	
@@ -111,20 +74,25 @@ bool ResourcePool::LoadTexture(const std::string& name, const std::wstring& path
 	fcyRefPointer<f2dTexture2D> tTexture;
 	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
 	{
-		LERROR("LoadTexture: 从文件'%s'创建纹理'%m'失败", path.c_str(), name.c_str());
+		LERROR("LoadTexture: 从文件'%s'创建纹理'%m'失败", path.c_str(), name);
 		return false;
 	}
 
 	try
 	{
-		m_TexturePool.emplace(name, tTexture);
+		fcyRefPointer<ResTexture> tRes;
+		tRes.DirectSet(new ResTexture(name, tTexture));
+		m_TexturePool.emplace(name, tRes);
 	}
 	catch (const bad_alloc&)
 	{
 		LERROR("LoadTexture: 内存不足");
 		return false;
 	}
-	LINFO("LoadTexture: 纹理'%s'已装载 -> '%m'", path.c_str(), name.c_str());
+
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadTexture: 纹理'%s'已装载 -> '%m'", path.c_str(), name);
+#endif
 	return true;
 }
 
@@ -152,36 +120,36 @@ bool ResourcePool::LoadImage(const char* name, const char* texname,
 		return true;
 	}
 
-	// 获得纹理
-	fcyRefPointer<f2dTexture2D> pTex = m_pMgr->FindTexture(texname);
+	fcyRefPointer<ResTexture> pTex = m_pMgr->FindTexture(texname);
 	if (!pTex)
 	{
 		LWARNING("LoadImage: 加载图像'%m'失败, 无法找到纹理'%m'", name, texname);
 		return false;
 	}
 
-	// 创建精灵对象
-	SpriteEx tSpriteEx;
+	fcyRefPointer<f2dSprite> pSprite;
 	fcyRect tRect((float)x, (float)y, (float)(x + w), (float)(y + h));
-	if (FCYFAILED(LAPP.GetRenderer()->CreateSprite2D(pTex, tRect, &tSpriteEx.sprite)))
+	if (FCYFAILED(LAPP.GetRenderer()->CreateSprite2D(pTex->GetTexture(), tRect, &pSprite)))
 	{
 		LERROR("LoadImage: 无法从纹理'%m'加载图像'%m' (CreateSprite2D failed)", texname, name);
 		return false;
 	}
-	tSpriteEx.a = a;
-	tSpriteEx.b = b;
-	tSpriteEx.rect = rect;
 
 	try
 	{
-		m_SpritePool.emplace(name, tSpriteEx);
+		fcyRefPointer<ResSprite> tRes;
+		tRes.DirectSet(new ResSprite(name, pSprite, a, b, rect));
+		m_SpritePool.emplace(name, tRes);
 	}
 	catch (const bad_alloc&)
 	{
 		LERROR("LoadImage: 内存不足");
 		return false;
 	}
+
+#ifdef LSHOWRESLOADINFO
 	LINFO("LoadImage: 图像'%m'已装载", name);
+#endif
 	return true;
 }
 
@@ -253,7 +221,9 @@ bool ResourcePack::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEX
 			// 检查路径是否命中
 			if (strcmp(tPathInUtf8.c_str(), tZipName) == 0)
 			{
+#ifdef LSHOWRESLOADINFO
 				LINFO("ResourcePack: 资源包'%s'命中文件'%s'", m_Path.c_str(), path);
+#endif
 				if (unzOpenCurrentFilePassword(m_zipFile, m_Password.length() > 0 ? m_Password.c_str() : nullptr) != UNZ_OK)
 				{
 					LERROR("ResourcePack: 尝试打开资源包'%s'中的文件'%s'失败(密码错误?)", m_Path.c_str(), path);
@@ -387,7 +357,9 @@ LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& out
 	}
 
 	// 尝试从本地加载
+#ifdef LSHOWRESLOADINFO
 	LINFO("ResourceMgr: 尝试从本地加载文件'%s'", path);
+#endif
 	fcyRefPointer<fcyFileStream> pFile;
 	try
 	{

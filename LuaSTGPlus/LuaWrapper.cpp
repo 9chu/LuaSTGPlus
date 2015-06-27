@@ -247,6 +247,24 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 {
 	struct WrapperImplement
 	{
+		static inline BlendMode TranslateBlendMode(lua_State* L, int argnum)
+		{
+			const char* s = luaL_checkstring(L, argnum);
+			if (strcmp(s, "mul+add") == 0)
+				return BlendMode::MulAdd;
+			else if (strcmp(s, "") == 0)
+				return BlendMode::MulAlpha;
+			else if (strcmp(s, "mul+alpha") == 0)
+				return BlendMode::MulAlpha;
+			else if (strcmp(s, "add+add") == 0)
+				return BlendMode::AddAdd;
+			else if (strcmp(s, "add+alpha") == 0)
+				return BlendMode::AddAlpha;
+			else
+				luaL_error(L, "invalid blend mode '%s'.", s);
+			return BlendMode::MulAlpha;
+		}
+
 		// 框架函数
 		static int SetWindowed(lua_State* L)LNOEXCEPT
 		{
@@ -497,7 +515,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			if (!lua_istable(L, 1))
 				return luaL_error(L, "invalid lstg object for 'DefaultRenderFunc'.");
 			lua_rawgeti(L, 1, 2);  // t(object) ??? id
-			if (!LPOOL.DoDefauleRender(luaL_checkinteger(L, -1)))
+			if (!LPOOL.DoDefaultRender(luaL_checkinteger(L, -1)))
 				return luaL_error(L, "invalid lstg object for 'DefaultRenderFunc'.");
 			return 0;
 		}
@@ -656,66 +674,30 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			LRES.GetResourcePool(ResourcePoolType::Stage)->ExportResourceList(L, tResourceType);
 			return 2;
 		}
-
-		// 绘图函数
-		static int BeginScene(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int EndScene(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int Render(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RenderRect(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int Render4V(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RenderText(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RenderTexture(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RenderClear(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RenderTTF(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int RegTTF(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int SetViewport(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int SetOrtho(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int SetPerspective(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
 		static int SetImageScale(lua_State* L)LNOEXCEPT
 		{
+			LRES.SetGlobalImageScaleFactor(luaL_checknumber(L, 1));
 			return 0;
 		}
 		static int SetImageState(lua_State* L)LNOEXCEPT
 		{
+			ResSprite* p = LRES.FindSprite(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "image '%s' not found.", luaL_checkstring(L, 1));
+
+			p->SetBlendMode(TranslateBlendMode(L, 2));
+			if (lua_gettop(L) == 3)
+				p->GetSprite()->SetColor(*static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)));
+			else if (lua_gettop(L) == 6)
+			{
+				fcyColor tColors[] = {
+					*static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 5, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 6, TYPENAME_COLOR))
+				};
+				p->GetSprite()->SetColor(tColors);
+			}
 			return 0;
 		}
 		static int SetFontState(lua_State* L)LNOEXCEPT
@@ -732,9 +714,145 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetImageCenter(lua_State* L)LNOEXCEPT
 		{
+			ResSprite* p = LRES.FindSprite(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "image '%s' not found.", luaL_checkstring(L, 1));
+			p->GetSprite()->SetHotSpot(fcyVec2(
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 3))));
 			return 0;
 		}
 		static int SetAnimationCenter(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+
+		// 绘图函数
+		static int BeginScene(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.BeginScene())
+				return luaL_error(L, "can't invoke 'BeginScene'.");
+			return 0;
+		}
+		static int EndScene(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.EndScene())
+				return luaL_error(L, "can't invoke 'EndScene'.");
+			return 0;
+		}
+		static int RenderClear(lua_State* L)LNOEXCEPT
+		{
+			fcyColor* c = static_cast<fcyColor*>(luaL_checkudata(L, 1, TYPENAME_COLOR));
+			LAPP.ClearScreen(*c);
+			return 0;
+		}
+		static int SetViewport(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.SetViewport(
+				luaL_checknumber(L, 1),
+				luaL_checknumber(L, 2),
+				luaL_checknumber(L, 3),
+				luaL_checknumber(L, 4)
+			))
+			{
+				return luaL_error(L, "invalid arguments for 'SetViewport'.");
+			}
+			return 0;
+		}
+		static int SetOrtho(lua_State* L)LNOEXCEPT
+		{
+			LAPP.SetOrtho(
+				static_cast<float>(luaL_checknumber(L, 1)),
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 3)),
+				static_cast<float>(luaL_checknumber(L, 4))
+			);
+			return 0;
+		}
+		static int SetPerspective(lua_State* L)LNOEXCEPT
+		{
+			LAPP.SetPerspective(
+				static_cast<float>(luaL_checknumber(L, 1)),
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 3)),
+				static_cast<float>(luaL_checknumber(L, 4)),
+				static_cast<float>(luaL_checknumber(L, 5)),
+				static_cast<float>(luaL_checknumber(L, 6)),
+				static_cast<float>(luaL_checknumber(L, 7)),
+				static_cast<float>(luaL_checknumber(L, 8)),
+				static_cast<float>(luaL_checknumber(L, 9)),
+				static_cast<float>(luaL_checknumber(L, 10)),
+				static_cast<float>(luaL_checknumber(L, 11)),
+				static_cast<float>(luaL_checknumber(L, 12)),
+				static_cast<float>(luaL_checknumber(L, 13))
+			);
+			return 0;
+		}
+		static int Render(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.Render(
+				luaL_checkstring(L, 1),
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 3)),
+				static_cast<float>(luaL_optnumber(L, 4, 0.) * LDEGREE2RAD),
+				static_cast<float>(luaL_optnumber(L, 5, 1.)),  // !TODO
+				static_cast<float>(luaL_optnumber(L, 6, 1.)),  // !TODO
+				static_cast<float>(luaL_optnumber(L, 7, 0.5))
+			))
+			{
+				return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
+			}
+			return 0;
+		}
+		static int RenderRect(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.RenderRect(
+				luaL_checkstring(L, 1),
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 5)),
+				static_cast<float>(luaL_checknumber(L, 3)),
+				static_cast<float>(luaL_checknumber(L, 4))
+			))
+			{
+				return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
+			}
+			return 0;
+		}
+		static int Render4V(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.Render4V(
+				luaL_checkstring(L, 1),
+				static_cast<float>(luaL_checknumber(L, 2)),
+				static_cast<float>(luaL_checknumber(L, 3)),
+				static_cast<float>(luaL_checknumber(L, 4)),
+				static_cast<float>(luaL_checknumber(L, 5)),
+				static_cast<float>(luaL_checknumber(L, 6)),
+				static_cast<float>(luaL_checknumber(L, 7)),
+				static_cast<float>(luaL_checknumber(L, 8)),
+				static_cast<float>(luaL_checknumber(L, 9)),
+				static_cast<float>(luaL_checknumber(L, 10)),
+				static_cast<float>(luaL_checknumber(L, 11)),
+				static_cast<float>(luaL_checknumber(L, 12)),
+				static_cast<float>(luaL_checknumber(L, 13))
+			))
+			{
+				return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
+			}
+			return 0;
+		}
+		static int RenderText(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int RenderTexture(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int RenderTTF(lua_State* L)LNOEXCEPT
+		{
+			return 0;
+		}
+		static int RegTTF(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -828,11 +946,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		// 调试函数
 		static int ObjTable(lua_State* L)LNOEXCEPT
 		{
-			return 0;
-		}
-		static int Registry(lua_State* L)LNOEXCEPT
-		{
-			return 0;
+			return LPOOL.GetObjectTable(L);
 		}
 		static int BentLaserData(lua_State* L)LNOEXCEPT
 		{
@@ -907,19 +1021,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "RemoveResource", &WrapperImplement::RemoveResource },
 		{ "CheckRes", &WrapperImplement::CheckRes },
 		{ "EnumRes", &WrapperImplement::EnumRes },
-		// 绘图函数
-		{ "BeginScene", &WrapperImplement::BeginScene },
-		{ "EndScene", &WrapperImplement::EndScene },
-		{ "Render", &WrapperImplement::Render },
-		{ "RenderRect", &WrapperImplement::RenderRect },
-		{ "Render4V", &WrapperImplement::Render4V },
-		{ "RenderText", &WrapperImplement::RenderText },
-		{ "RenderTexture", &WrapperImplement::RenderTexture },
-		{ "RenderClear", &WrapperImplement::RenderClear },
-		{ "RenderTTF", &WrapperImplement::RenderTTF },
-		{ "SetViewport", &WrapperImplement::SetViewport },
-		{ "SetOrtho", &WrapperImplement::SetOrtho },
-		{ "SetPerspective", &WrapperImplement::SetPerspective },
 		{ "SetImageScale", &WrapperImplement::SetImageScale },
 		{ "SetImageState", &WrapperImplement::SetImageState },
 		{ "SetFontState", &WrapperImplement::SetFontState },
@@ -927,6 +1028,19 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "SetAnimationState", &WrapperImplement::SetAnimationState },
 		{ "SetImageCenter", &WrapperImplement::SetImageCenter },
 		{ "SetAnimationCenter", &WrapperImplement::SetAnimationCenter },
+		// 绘图函数
+		{ "BeginScene", &WrapperImplement::BeginScene },
+		{ "EndScene", &WrapperImplement::EndScene },
+		{ "RenderClear", &WrapperImplement::RenderClear },
+		{ "SetViewport", &WrapperImplement::SetViewport },
+		{ "SetOrtho", &WrapperImplement::SetOrtho },
+		{ "SetPerspective", &WrapperImplement::SetPerspective },
+		{ "Render", &WrapperImplement::Render },
+		{ "RenderRect", &WrapperImplement::RenderRect },
+		{ "Render4V", &WrapperImplement::Render4V },
+		{ "RenderText", &WrapperImplement::RenderText },
+		{ "RenderTexture", &WrapperImplement::RenderTexture },
+		{ "RenderTTF", &WrapperImplement::RenderTTF },
 		{ "SetFog", &WrapperImplement::SetFog },
 		{ "ParticleStop", &WrapperImplement::ParticleStop },
 		{ "ParticleFire", &WrapperImplement::ParticleFire },
@@ -952,7 +1066,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "GetLastChar", &WrapperImplement::GetLastChar },
 		// 调试函数
 		{ "ObjTable", &WrapperImplement::ObjTable },
-		{ "Registry", &WrapperImplement::Registry },
 		{ "BentLaserData", &WrapperImplement::BentLaserData },
 		// 对象构造函数
 		{ "Color", &WrapperImplement::NewColor },

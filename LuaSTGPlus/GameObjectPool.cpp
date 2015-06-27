@@ -74,6 +74,24 @@ inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 	return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
 }
 
+bool GameObject::ChangeResource(const char* res_name)
+{
+	LASSERT(!res);
+
+	fcyRefPointer<ResSprite> tSprite = LRES.FindSprite(res_name);
+	if (tSprite)
+	{
+		res = tSprite;
+		res->AddRef();
+		a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+		b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+		rect = tSprite->IsRectangle();
+		return true;
+	}
+
+	return false;
+}
+
 GameObjectPool::GameObjectPool(lua_State* pL)
 	: L(pL)
 {
@@ -119,6 +137,11 @@ GameObjectPool::GameObjectPool(lua_State* pL)
 	// 保存元表到 register[app][mt]
 	lua_setfield(L, -2, METATABLE_OBJ);  // p t
 	lua_settable(L, LUA_REGISTRYINDEX);
+}
+
+GameObjectPool::~GameObjectPool()
+{
+	ResetPool();
 }
 
 bool GameObjectPool::collisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
@@ -167,7 +190,7 @@ GameObject* GameObjectPool::freeObject(GameObject* p)LNOEXCEPT
 	lua_pop(L, 1);
 
 	// 释放引用的资源
-	// ! TODO
+	p->ReleaseResource();
 
 	// 回收到对象池
 	m_ObjectPool.Free(p->id);
@@ -505,15 +528,32 @@ void GameObjectPool::ResetPool()LNOEXCEPT
 		p = freeObject(p);	
 }
 
-bool GameObjectPool::DoDefauleRender(size_t id)LNOEXCEPT
+bool GameObjectPool::DoDefaultRender(size_t id)LNOEXCEPT
 {
 	GameObject* p = m_ObjectPool.Data(id);
 	if (!p)
 		return false;
 
-	// ! TODO
-	// 实现默认渲染
-
+	if (p->res)
+	{
+		// ! TODO: 实现默认渲染
+		switch (p->res->GetType())
+		{
+		case ResourceType::Sprite:
+			LAPP.Render(
+				static_cast<ResSprite*>(p->res),
+				static_cast<float>(p->x),
+				static_cast<float>(p->y),
+				static_cast<float>(p->rot),
+				static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
+				static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
+			);
+			break;
+		default:
+			break;
+		}
+	}
+	
 	return true;
 }
 
@@ -678,19 +718,22 @@ int GameObjectPool::GetAttr(lua_State* L)LNOEXCEPT
 		lua_rawgeti(L, 1, 1);
 		break;
 	case GameObjectProperty::A:
-		lua_pushnumber(L, p->a);  // ! TODO
+		lua_pushnumber(L, p->a / LRES.GetGlobalImageScaleFactor());
 		break;
 	case GameObjectProperty::B:
-		lua_pushnumber(L, p->b);  // ! TODO
+		lua_pushnumber(L, p->b / LRES.GetGlobalImageScaleFactor());
 		break;
 	case GameObjectProperty::RECT:
 		lua_pushboolean(L, p->rect);
 		break;
 	case GameObjectProperty::IMG:
-		lua_pushnil(L);  // !TODO
+		if (p->res)
+			lua_pushstring(L, p->res->GetResName().c_str());
+		else
+			lua_pushnil(L);
 		break;
 	case GameObjectProperty::ANI:
-		lua_pushnil(L);  // !TODO
+		lua_pushinteger(L, p->ani_timer);
 		break;
 	case GameObjectProperty::X:
 	case GameObjectProperty::Y:
@@ -805,18 +848,21 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 		lua_rawseti(L, 1, 1);
 		break;
 	case GameObjectProperty::A:
-		p->a = luaL_checknumber(L, 3);  // ! TODO
+		p->a = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
 		break;
 	case GameObjectProperty::B:
-		p->b = luaL_checknumber(L, 3);  // ! TODO
+		p->b = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
 		break;
 	case GameObjectProperty::RECT:
 		p->rect = lua_toboolean(L, 3) == 0 ? false : true;
 		break;
-	case GameObjectProperty::IMG:  // ! TODO
+	case GameObjectProperty::IMG:
+		p->ReleaseResource();
+		if (!p->ChangeResource(luaL_checkstring(L, 3)))
+			return luaL_error(L, "can't find resource '%s' in image/animation/particle pool.", luaL_checkstring(L, 3));
 		break;
-	case GameObjectProperty::ANI:  // ! TODO
-		break;
+	case GameObjectProperty::ANI:
+		return luaL_error(L, "property 'ani' is readonly.");
 	case GameObjectProperty::X:
 	case GameObjectProperty::Y:
 		break;
@@ -825,4 +871,10 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 		break;
 	}
 	return 0;
+}
+
+int GameObjectPool::GetObjectTable(lua_State* L)LNOEXCEPT
+{
+	GETOBJTABLE;
+	return 1;
 }
