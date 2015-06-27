@@ -96,6 +96,36 @@ namespace LuaSTGPlus
 		}
 	};
 
+	/// @brief 动画资源
+	class ResAnimation :
+		public Resource
+	{
+	private:
+		std::vector<fcyRefPointer<f2dSprite>> m_ImageSequences;
+		fuInt m_Interval = 1;
+		BlendMode m_BlendMode = BlendMode::MulAlpha;
+		double m_HalfSizeX = 0.;
+		double m_HalfSizeY = 0.;
+		bool m_bRectangle = false;
+	public:
+		size_t GetCount()const LNOEXCEPT { return m_ImageSequences.size(); }
+		f2dSprite* GetSprite(fuInt index)LNOEXCEPT
+		{
+			if (index >= GetCount())
+				return nullptr;
+			return m_ImageSequences[index];
+		}
+		fuInt GetInterval()const LNOEXCEPT { return m_Interval; }
+		BlendMode GetBlendMode()const LNOEXCEPT { return m_BlendMode; }
+		void SetBlendMode(BlendMode m)LNOEXCEPT { m_BlendMode = m; }
+		double GetHalfSizeX()const LNOEXCEPT { return m_HalfSizeX; }
+		double GetHalfSizeY()const LNOEXCEPT { return m_HalfSizeY; }
+		bool IsRectangle()const LNOEXCEPT { return m_bRectangle; }
+	public:
+		ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, float x, float y, float w, float h,
+			int n, int m, int intv, double a, double b, bool rect = false);
+	};
+
 	/// @brief 资源池
 	class ResourcePool
 	{
@@ -104,12 +134,14 @@ namespace LuaSTGPlus
 
 		Dictionary<fcyRefPointer<ResTexture>> m_TexturePool;
 		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
+		Dictionary<fcyRefPointer<ResAnimation>> m_AnimationPool;
 	public:
 		/// @brief 清空对象池
 		void Clear()LNOEXCEPT
 		{
 			m_TexturePool.clear();
 			m_SpritePool.clear();
+			m_AnimationPool.clear();
 		}
 
 		/// @brief 检查资源是否存在
@@ -123,7 +155,7 @@ namespace LuaSTGPlus
 			case ResourceType::Sprite:
 				return m_SpritePool.find(name.c_str()) != m_SpritePool.end();
 			case ResourceType::Animation:
-				break;
+				return m_AnimationPool.find(name.c_str()) != m_AnimationPool.end();
 			case ResourceType::Music:
 				break;
 			case ResourceType::SoundEffect:
@@ -159,22 +191,37 @@ namespace LuaSTGPlus
 		LNOINLINE bool LoadImage(const char* name, const char* texname,
 			double x, double y, double w, double h, double a, double b, bool rect = false)LNOEXCEPT;
 
+		LNOINLINE bool LoadAnimation(const char* name, const char* texname,
+			double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false)LNOEXCEPT;
+
 		/// @brief 获取纹理
 		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT
 		{
-			if (m_TexturePool.find(name) == m_TexturePool.end())
+			auto i = m_TexturePool.find(name);
+			if (i == m_TexturePool.end())
 				return nullptr;
 			else
-				return m_TexturePool[name];
+				return i->second;
 		}
 
 		/// @brief 获取精灵
 		fcyRefPointer<ResSprite> GetSprite(const char* name)LNOEXCEPT
 		{
-			if (m_SpritePool.find(name) == m_SpritePool.end())
+			auto i = m_SpritePool.find(name);
+			if (i == m_SpritePool.end())
 				return nullptr;
 			else
-				return m_SpritePool[name];
+				return i->second;
+		}
+
+		/// @brief 获取精灵
+		fcyRefPointer<ResAnimation> GetAnimation(const char* name)LNOEXCEPT
+		{
+			auto i = m_AnimationPool.find(name);
+			if (i == m_AnimationPool.end())
+				return nullptr;
+			else
+				return i->second;
 		}
 	private:
 		ResourcePool& operator=(const ResourcePool&);
@@ -330,11 +377,20 @@ namespace LuaSTGPlus
 		}
 
 		/// @brief 寻找精灵
-		fcyRefPointer<ResSprite> FindSprite(const char* texname)LNOEXCEPT
+		fcyRefPointer<ResSprite> FindSprite(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResSprite> tRet;
-			if (!(tRet = m_StageResourcePool.GetSprite(texname)))
-				tRet = m_GlobalResourcePool.GetSprite(texname);
+			if (!(tRet = m_StageResourcePool.GetSprite(name)))
+				tRet = m_GlobalResourcePool.GetSprite(name);
+			return tRet;
+		}
+
+		/// @brief 寻找动画
+		fcyRefPointer<ResAnimation> FindAnimation(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResAnimation> tRet;
+			if (!(tRet = m_StageResourcePool.GetAnimation(name)))
+				tRet = m_GlobalResourcePool.GetAnimation(name);
 			return tRet;
 		}
 	public:

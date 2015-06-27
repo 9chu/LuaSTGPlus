@@ -89,6 +89,17 @@ bool GameObject::ChangeResource(const char* res_name)
 		return true;
 	}
 
+	fcyRefPointer<ResAnimation> tAnimation = LRES.FindAnimation(res_name);
+	if (tAnimation)
+	{
+		res = tAnimation;
+		res->AddRef();
+		a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+		b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+		rect = tSprite->IsRectangle();
+		return true;
+	}
+
 	return false;
 }
 
@@ -462,19 +473,19 @@ int GameObjectPool::IsValid(lua_State* L)LNOEXCEPT
 	// 在对象池中检查
 	size_t id = (size_t)lua_tonumber(L, -1);
 	lua_pop(L, 1);  // t(object)
-	if (!m_ObjectPool.Data(id))
-	{
-		lua_pushboolean(L, 0);
-		return 1;
-	}
-
-	GETOBJTABLE;  // t(object) ot
-	lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
-	if (lua_rawequal(L, -1, -3))
-		lua_pushboolean(L, 1);
-	else
-		lua_pushboolean(L, 0);
+if (!m_ObjectPool.Data(id))
+{
+	lua_pushboolean(L, 0);
 	return 1;
+}
+
+GETOBJTABLE;  // t(object) ot
+lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
+if (lua_rawequal(L, -1, -3))
+lua_pushboolean(L, 1);
+else
+lua_pushboolean(L, 0);
+return 1;
 }
 
 bool GameObjectPool::Angle(size_t idA, size_t idB, double& out)LNOEXCEPT
@@ -512,6 +523,34 @@ bool GameObjectPool::SetV(size_t id, double v, double a, bool updateRot)LNOEXCEP
 	return true;
 }
 
+bool GameObjectPool::SetImgState(size_t id, BlendMode m, fcyColor c)LNOEXCEPT
+{
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return false;
+	if (p->res)
+	{
+		switch (p->res->GetType())
+		{
+		case ResourceType::Sprite:
+			static_cast<ResSprite*>(p->res)->SetBlendMode(m);
+			static_cast<ResSprite*>(p->res)->GetSprite()->SetColor(c);
+			break;
+		case ResourceType::Animation:
+			do {
+				ResAnimation* ani = static_cast<ResAnimation*>(p->res);
+				ani->SetBlendMode(m);
+				for (size_t i = 0; i < ani->GetCount(); ++i)
+					ani->GetSprite(i)->SetColor(c);
+			} while (false);
+			break;
+		default:
+			break;
+		}
+	}
+	return true;
+}
+
 bool GameObjectPool::BoxCheck(size_t id, double left, double right, double top, double bottom, bool& ret)LNOEXCEPT
 {
 	GameObject* p = m_ObjectPool.Data(id);
@@ -525,7 +564,7 @@ void GameObjectPool::ResetPool()LNOEXCEPT
 {
 	GameObject* p = m_pObjectListHeader.pObjectNext;
 	while (p != &m_pObjectListTail)
-		p = freeObject(p);	
+		p = freeObject(p);
 }
 
 bool GameObjectPool::DoDefaultRender(size_t id)LNOEXCEPT
@@ -542,6 +581,17 @@ bool GameObjectPool::DoDefaultRender(size_t id)LNOEXCEPT
 		case ResourceType::Sprite:
 			LAPP.Render(
 				static_cast<ResSprite*>(p->res),
+				static_cast<float>(p->x),
+				static_cast<float>(p->y),
+				static_cast<float>(p->rot),
+				static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
+				static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
+			);
+			break;
+		case ResourceType::Animation:
+			LAPP.Render(
+				static_cast<ResAnimation*>(p->res),
+				p->ani_timer,
 				static_cast<float>(p->x),
 				static_cast<float>(p->y),
 				static_cast<float>(p->rot),

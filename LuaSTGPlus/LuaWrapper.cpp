@@ -475,15 +475,31 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			if (lua_gettop(L) == 3)
 			{
 				lua_rawgeti(L, 1, 2);  // t(object) 'v' 'a' ??? id
-				LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), false);
+				if (!LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), false))
+					return luaL_error(L, "invalid lstg object for 'SetV'.");
 			}
 			else if (lua_gettop(L) == 4)
 			{
 				lua_rawgeti(L, 1, 2);  // t(object) 'v' 'a' 'rot' ??? id
-				LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), lua_toboolean(L, 4) == 0 ? false : true);
+				if (!LPOOL.SetV((size_t)luaL_checkinteger(L, -1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), lua_toboolean(L, 4) == 0 ? false : true))
+					return luaL_error(L, "invalid lstg object for 'SetV'.");
 			}
 			else
 				return luaL_error(L, "invalid argument count for 'SetV'.");
+			return 0;
+		}
+		static int SetImgState(lua_State* L)LNOEXCEPT
+		{
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'SetImgState'.");
+			lua_rawgeti(L, 1, 2);  // t(object) ??? id
+			size_t id = (size_t)luaL_checkinteger(L, -1);
+			lua_pop(L, 1);
+
+			BlendMode m = TranslateBlendMode(L, 2);
+			fcyColor c(luaL_checkinteger(L, 3), luaL_checkinteger(L, 4), luaL_checkinteger(L, 5), luaL_checkinteger(L, 6));
+			if (!LPOOL.SetImgState(id, m, c))
+				return luaL_error(L, "invalid lstg object for 'SetImgState'.");
 			return 0;
 		}
 		static int BoxCheck(lua_State* L)LNOEXCEPT
@@ -597,14 +613,39 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				luaL_optnumber(L, 7, 0.),
 				luaL_optnumber(L, 8, 0.),
 				lua_toboolean(L, 9) == 0 ? false : true
-				))
+			))
 			{
-				return luaL_error(L, "load image failed (name='%s', tex='%s'", name, texname);
+				return luaL_error(L, "load image failed (name='%s', tex='%s').", name, texname);
 			}
 			return 0;
 		}
 		static int LoadAnimation(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* texname = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+			
+			if (!pActivedPool->LoadAnimation(
+				name,
+				texname,
+				luaL_checknumber(L, 3),
+				luaL_checknumber(L, 4),
+				luaL_checknumber(L, 5),
+				luaL_checknumber(L, 6),
+				luaL_checkinteger(L, 7),
+				luaL_checkinteger(L, 8),
+				luaL_checkinteger(L, 9),
+				luaL_optnumber(L, 10, 0.0f),
+				luaL_optnumber(L, 11, 0.0f),
+				lua_toboolean(L, 12) == 0 ? false : true
+			))
+			{
+				return luaL_error(L, "load animation failed (name='%s', tex='%s').", name, texname);
+			}
+
 			return 0;
 		}
 		static int LoadPS(lua_State* L)LNOEXCEPT
@@ -676,7 +717,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetImageScale(lua_State* L)LNOEXCEPT
 		{
-			LRES.SetGlobalImageScaleFactor(luaL_checknumber(L, 1));
+			float x = static_cast<float>(luaL_checknumber(L, 1));
+			if (x == 0.f)
+				return luaL_error(L, "invalid argument #1 for 'SetImageScale'.");
+			LRES.SetGlobalImageScaleFactor(x);
 			return 0;
 		}
 		static int SetImageState(lua_State* L)LNOEXCEPT
@@ -710,6 +754,28 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetAnimationState(lua_State* L)LNOEXCEPT
 		{
+			ResAnimation* p = LRES.FindAnimation(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "animation '%s' not found.", luaL_checkstring(L, 1));
+
+			p->SetBlendMode(TranslateBlendMode(L, 2));
+			if (lua_gettop(L) == 3)
+			{
+				fcyColor c = *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR));
+				for (size_t i = 0; i < p->GetCount(); ++i)
+					p->GetSprite(i)->SetColor(c);
+			}
+			else if (lua_gettop(L) == 6)
+			{
+				fcyColor tColors[] = {
+					*static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 5, TYPENAME_COLOR)),
+					*static_cast<fcyColor*>(luaL_checkudata(L, 6, TYPENAME_COLOR))
+				};
+				for (size_t i = 0; i < p->GetCount(); ++i)
+					p->GetSprite(i)->SetColor(tColors);
+			}
 			return 0;
 		}
 		static int SetImageCenter(lua_State* L)LNOEXCEPT
@@ -718,12 +784,21 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			if (!p)
 				return luaL_error(L, "image '%s' not found.", luaL_checkstring(L, 1));
 			p->GetSprite()->SetHotSpot(fcyVec2(
-				static_cast<float>(luaL_checknumber(L, 2)),
-				static_cast<float>(luaL_checknumber(L, 3))));
+				static_cast<float>(luaL_checknumber(L, 2) + p->GetSprite()->GetTexRect().a.x),
+				static_cast<float>(luaL_checknumber(L, 3) + p->GetSprite()->GetTexRect().a.y)));
 			return 0;
 		}
 		static int SetAnimationCenter(lua_State* L)LNOEXCEPT
 		{
+			ResAnimation* p = LRES.FindAnimation(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "animation '%s' not found.", luaL_checkstring(L, 1));
+			for (size_t i = 0; i < p->GetCount(); ++i)
+			{
+				p->GetSprite(i)->SetHotSpot(fcyVec2(
+					static_cast<float>(luaL_checknumber(L, 2) + p->GetSprite(i)->GetTexRect().a.x),
+					static_cast<float>(luaL_checknumber(L, 3) + p->GetSprite(i)->GetTexRect().a.y)));
+			}
 			return 0;
 		}
 
@@ -795,8 +870,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				static_cast<float>(luaL_checknumber(L, 2)),
 				static_cast<float>(luaL_checknumber(L, 3)),
 				static_cast<float>(luaL_optnumber(L, 4, 0.) * LDEGREE2RAD),
-				static_cast<float>(luaL_optnumber(L, 5, 1.)),  // !TODO
-				static_cast<float>(luaL_optnumber(L, 6, 1.)),  // !TODO
+				static_cast<float>(luaL_optnumber(L, 5, 1.) * LRES.GetGlobalImageScaleFactor()),
+				static_cast<float>(luaL_optnumber(L, 6, 1.) * LRES.GetGlobalImageScaleFactor()),
 				static_cast<float>(luaL_optnumber(L, 7, 0.5))
 			))
 			{
@@ -877,10 +952,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		static int ParticleSetEmission(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int SetImgState(lua_State* L)LNOEXCEPT
 		{
 			return 0;
 		}
@@ -1000,6 +1071,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "Angle", &WrapperImplement::Angle },
 		{ "Dist", &WrapperImplement::Dist },
 		{ "SetV", &WrapperImplement::SetV },
+		{ "SetImgState", &WrapperImplement::SetImgState },
 		{ "ResetPool", &WrapperImplement::ResetPool },
 		{ "DefaultRenderFunc", &WrapperImplement::DefaultRenderFunc },
 		{ "NextObject", &WrapperImplement::NextObject },
@@ -1047,7 +1119,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "ParticleGetn", &WrapperImplement::ParticleGetn },
 		{ "ParticleGetEmission", &WrapperImplement::ParticleGetEmission },
 		{ "ParticleSetEmission", &WrapperImplement::ParticleSetEmission },
-		{ "SetImgState", &WrapperImplement::SetImgState },
 		// ½ØÍ¼º¯Êý
 		{ "Snapshot", &WrapperImplement::Snapshot },
 		// ÉùÒô¿ØÖÆº¯Êý

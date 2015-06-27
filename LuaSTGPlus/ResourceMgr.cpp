@@ -6,6 +6,33 @@
 using namespace std;
 using namespace LuaSTGPlus;
 
+ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, float x, float y, float w, float h,
+	int n, int m, int intv, double a, double b, bool rect)
+	: Resource(ResourceType::Animation, name), m_Interval(intv), m_HalfSizeX(a), m_HalfSizeY(b), m_bRectangle(rect)
+{
+	LASSERT(LAPP.GetRenderer());
+
+	// 分割纹理
+	float sw = w / n;
+	float sh = w / m;
+	for (int j = 0; j < m; ++j)  // 行
+	{
+		for (int i = 0; i < n; ++i)  // 列
+		{
+			fcyRefPointer<f2dSprite> t;
+			if (FCYFAILED(LAPP.GetRenderer()->CreateSprite2D(tex->GetTexture(), fcyRect(
+				x + sw * i, y + sh * j, x + sw * (i + 1), y + sh * (j + 1)
+				), &t)))
+			{
+				throw fcyException("ResAnimation::ResAnimation", "CreateSprite2D failed.");
+			}
+			t->SetZ(0.5f);
+			t->SetColor(0xFFFFFFFF);
+			m_ImageSequences.push_back(t);
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// ResourcePool
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,6 +59,11 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Animation:
 		lua_newtable(L);  // t
+		for (auto i : m_AnimationPool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
 	case ResourceType::Music:
 		lua_newtable(L);  // t
@@ -149,6 +181,45 @@ bool ResourcePool::LoadImage(const char* name, const char* texname,
 
 #ifdef LSHOWRESLOADINFO
 	LINFO("LoadImage: 图像'%m'已装载", name);
+#endif
+	return true;
+}
+
+bool ResourcePool::LoadAnimation(const char* name, const char* texname,
+	double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect)
+{
+	if (m_AnimationPool.find(name) != m_AnimationPool.end())
+	{
+		LWARNING("LoadAnimation: 动画'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	fcyRefPointer<ResTexture> pTex = m_pMgr->FindTexture(texname);
+	if (!pTex)
+	{
+		LWARNING("LoadAnimation: 加载动画'%m'失败, 无法找到纹理'%m'", name, texname);
+		return false;
+	}
+
+	try
+	{
+		fcyRefPointer<ResAnimation> tRes;
+		tRes.DirectSet(new ResAnimation(name, pTex, (float)x, (float)y, (float)w, (float)h, n, m, intv, a, b, rect));
+		m_AnimationPool.emplace(name, tRes);
+	}
+	catch(const fcyException&)
+	{
+		LERROR("LoadAnimation: 构造动画'%m'时失败", name);
+		return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadAnimation: 内存不足");
+		return false;
+	}
+
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadAnimation: 动画'%m'已装载", name);
 #endif
 	return true;
 }

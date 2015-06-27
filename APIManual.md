@@ -404,7 +404,24 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 			"mul+alpha" (默认)顶点颜色使用乘法，目标混合使用alpha混合
 			"add+add"   顶点颜色使用加法，目标混合使用加法
 			"add+alpha" 顶点颜色使用加法，目标混合使用alpha混合
-	  
+
+- SetImageCenter(name:string, x:number, y:number)
+
+	设置图像中心。x和y相对图像左上角。
+
+- LoadAnimation(name:string, tex\_name:string, x:number, y:number, w:number, h:number, n:integer, m:integer, intv:integer, [a:number, [b:number, [rect:boolean]]])
+
+	装载动画。x、y、w、h、a、b、rect含义同Image。n和m指定纵向横向的分割数，intv指定帧间隔。
+
+	动画总是循环播放的。
+
+- SetAnimationState(name:string, blend\_mode:string, \[vertex\_color1:lstgColor, vertex\_color2:lstgColor, vertex\_color3:lstgColor, vertex\_color4:lstgColor\])
+
+	含义类似于SetImageState。
+
+- SetAnimationCenter(name:string, x:number, y:number)
+
+	含义类似于SetImageCenter。
 
 ### 渲染方法
 
@@ -485,7 +502,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	在渲染窗口获得焦点时调用。
 
-- FrameFunc()
+- FrameFunc():boolean
 
 	帧处理函数，每帧被调用来处理逻辑。
 

@@ -182,8 +182,26 @@ namespace LuaSTGPlus
 			// 渲染
 			f2dSprite* pSprite = p->GetSprite();
 			pSprite->SetZ(z);
-			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), 
-				fcyVec2(hscale * m_ResourceMgr.GetGlobalImageScaleFactor(), vscale * m_ResourceMgr.GetGlobalImageScaleFactor()), rot);
+			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot);
+			return true;
+		}
+
+		/// @brief 渲染动画
+		bool Render(ResAnimation* p, int ani_timer, float x, float y, float rot = 0, float hscale = 1, float vscale = 1)LNOEXCEPT
+		{
+			LASSERT(p);
+			if (m_GraphType != GraphicsType::Graph2D)
+			{
+				LERROR("Render: 只有2D渲染器可以执行该方法");
+				return false;
+			}
+
+			// 设置混合
+			updateGraph2DBlendMode(p->GetBlendMode());
+
+			// 渲染
+			f2dSprite* pSprite = p->GetSprite(((fuInt)ani_timer / p->GetInterval()) % p->GetCount());
+			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot);
 			return true;
 		}
 
