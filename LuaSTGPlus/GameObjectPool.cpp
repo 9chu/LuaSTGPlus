@@ -100,6 +100,12 @@ bool GameObject::ChangeResource(const char* res_name)
 		return true;
 	}
 
+	// ! FIXME
+	if (strcmp(res_name, "graze") == 0)
+		return true;
+	else if (strcmp(res_name, "player_death_ef") == 0)
+		return true;
+
 	return false;
 }
 
@@ -242,7 +248,8 @@ void GameObjectPool::DoRender()LNOEXCEPT
 {
 	GETOBJTABLE;  // ot
 
-	GameObject* p = m_pRenderListHeader.pObjectNext;
+	GameObject* p = m_pRenderListHeader.pRenderNext;
+	LASSERT(p != nullptr);
 	while (p && p != &m_pRenderListTail)
 	{
 		if (!p->hide)  // 只渲染可见对象
@@ -294,9 +301,9 @@ void GameObjectPool::CollisionCheck(size_t groupA, size_t groupB)LNOEXCEPT
 
 	GETOBJTABLE;  // ot
 
-	GameObject* pA = m_pCollisionListHeader[groupA].pObjectNext;
+	GameObject* pA = m_pCollisionListHeader[groupA].pCollisionNext;
 	GameObject* pATail = &m_pCollisionListTail[groupA];
-	GameObject* pBHeader = m_pCollisionListHeader[groupB].pObjectNext;
+	GameObject* pBHeader = m_pCollisionListHeader[groupB].pCollisionNext;
 	GameObject* pBTail = &m_pCollisionListTail[groupB];
 	while (pA && pA != pATail)
 	{
@@ -309,8 +316,8 @@ void GameObjectPool::CollisionCheck(size_t groupA, size_t groupB)LNOEXCEPT
 				lua_rawgeti(L, -1, pA->id + 1);  // ot t(object)
 				lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
 				lua_rawgeti(L, -1, LGOBJ_CC_COLLI);  // ot t(object) t(class) f(colli)
-				lua_pushvalue(L, -3);  // ot t(object) t(class) f(del) t(object)
-				lua_rawgeti(L, -1, pB->id + 1);  // ot t(object) t(class) f(del) t(object) t(object)
+				lua_pushvalue(L, -3);  // ot t(object) t(class) f(colli) t(object)
+				lua_rawgeti(L, -5, pB->id + 1);  // ot t(object) t(class) f(colli) t(object) t(object)
 				lua_call(L, 2, 0);  // ot t(object) t(class)
 				lua_pop(L, 2);  // ot
 			}
@@ -845,6 +852,8 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 	case GameObjectProperty::LAYER:
 		p->layer = luaL_checkinteger(L, 3);
 		LIST_INSERT_SORT(p, Render, RenderListSortFunc); // 刷新p的渲染层级
+		LASSERT(m_pRenderListHeader.pRenderNext != nullptr);
+		LASSERT(m_pRenderListTail.pRenderPrev != nullptr);
 		break;
 	case GameObjectProperty::GROUP:
 		do
@@ -859,6 +868,8 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 				{
 					LIST_INSERT_BEFORE(&m_pCollisionListTail[group], p, Collision);
 					LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);  // 刷新p的碰撞次序
+					LASSERT(m_pCollisionListHeader[group].pCollisionNext != nullptr);
+					LASSERT(m_pCollisionListTail[group].pCollisionPrev != nullptr);
 				}
 			}
 		} while (false);

@@ -68,6 +68,10 @@ namespace LuaSTGPlus
 		f2dBlendState m_Graph2DBlendState;
 		F2DGRAPH2DBLENDTYPE m_Graph2DColorBlendState;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
+
+		fCharW m_LastChar;
+		fInt m_LastKey;
+		fBool m_KeyStateMap[256];
 	private:
 		void updateGraph2DBlendMode(BlendMode m)
 		{
@@ -77,19 +81,23 @@ namespace LuaSTGPlus
 				{
 				case BlendMode::AddAdd:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
+					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				case BlendMode::MulAdd:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
+					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::MulAlpha:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_INVSRCALPHA;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::AddAlpha:
 				default:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_INVSRCALPHA;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				}
@@ -116,6 +124,15 @@ namespace LuaSTGPlus
 		/// @brief 执行资源包中的文件
 		/// @note 该函数为脚本系统使用
 		LNOINLINE void LoadScript(const char* path)LNOEXCEPT;
+
+		/// @brief 检查按键是否按下
+		fBool GetKeyState(int VKCode)LNOEXCEPT;
+
+		/// @brief 获得最后一次字符输入（UTF-8）
+		LNOINLINE int GetLastChar(lua_State* L)LNOEXCEPT;
+
+		/// @brief 获得最后一次按键输入
+		int GetLastKey()LNOEXCEPT { return m_LastKey; }
 	public:  // 渲染器接口
 		/// @brief 通知开始渲染
 		bool BeginScene()LNOEXCEPT;
@@ -126,17 +143,17 @@ namespace LuaSTGPlus
 		/// @brief 清屏
 		void ClearScreen(const fcyColor& c)LNOEXCEPT
 		{
-			m_pRenderDev->ClearColor(c);
+			m_pRenderDev->Clear(c);
 		}
 
 		/// @brief 设置视口
 		bool SetViewport(double left, double right, double bottom, double top)LNOEXCEPT
 		{
 			if (FCYFAILED(m_pRenderDev->SetViewport(fcyRect(
-				static_cast<float>(left),
-				static_cast<float>(m_pRenderDev->GetBufferHeight() - top),
-				static_cast<float>(right),
-				static_cast<float>(m_pRenderDev->GetBufferHeight() - bottom)
+				static_cast<float>((int)left),
+				static_cast<float>(m_pRenderDev->GetBufferHeight() - (int)top),
+				static_cast<float>((int)right),
+				static_cast<float>(m_pRenderDev->GetBufferHeight() - (int)bottom)
 			))))
 			{
 				LWARNING("设置视口(left: %lf, right: %lf, bottom: %lf, top: %lf)失败", left, right, bottom, top);
@@ -151,7 +168,7 @@ namespace LuaSTGPlus
 			if (m_GraphType == GraphicsType::Graph2D)
 			{
 				m_Graph2D->SetViewTransform(fcyMatrix4::GetIdentity());
-				m_Graph2D->SetProjTransform(fcyMatrix4::GetOrthoOffCenterLH(left, right, bottom, top, 0.f, 1.f));
+				m_Graph2D->SetProjTransform(fcyMatrix4::GetOrthoOffCenterLH(left, right, bottom, top, 0.f, 100.f));
 			}
 		}
 
@@ -165,6 +182,10 @@ namespace LuaSTGPlus
 				m_Graph2D->SetProjTransform(fcyMatrix4::GetPespctiveLH(aspect, fovy, zn, zf));
 			}
 		}
+
+		/// @brief 设置雾值
+		/// @note 扩展方法，视情况移除。
+		void SetFog(float start, float end, fcyColor color);
 
 		/// @brief 渲染图像
 		bool Render(ResSprite* p, float x, float y, float rot = 0, float hscale = 1, float vscale = 1, float z = 0.5)LNOEXCEPT
@@ -214,7 +235,7 @@ namespace LuaSTGPlus
 				LERROR("Render: 找不到图像资源'%m'", name);
 				return false;
 			}
-			return Render(p, x, y, rot, hscale, vscale, z);
+			return Render(p, x, y, rot, hscale * m_ResourceMgr.GetGlobalImageScaleFactor(), vscale * m_ResourceMgr.GetGlobalImageScaleFactor(), z);
 		}
 
 		/// @brief 渲染图像

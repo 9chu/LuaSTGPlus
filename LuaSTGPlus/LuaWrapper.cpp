@@ -233,7 +233,7 @@ fcyRandomWELL512* RandomizerWrapper::CreateAndPush(lua_State* L)
 {
 	fcyRandomWELL512* p = static_cast<fcyRandomWELL512*>(lua_newuserdata(L, sizeof(fcyRandomWELL512)));
 	new(p) fcyRandomWELL512();  // 构造
-	luaL_getmetatable(L, TYPENAME_COLOR);
+	luaL_getmetatable(L, TYPENAME_RANDGEN);
 	lua_setmetatable(L, -2);
 	return p;
 }
@@ -871,7 +871,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				static_cast<float>(luaL_checknumber(L, 3)),
 				static_cast<float>(luaL_optnumber(L, 4, 0.) * LDEGREE2RAD),
 				static_cast<float>(luaL_optnumber(L, 5, 1.) * LRES.GetGlobalImageScaleFactor()),
-				static_cast<float>(luaL_optnumber(L, 6, 1.) * LRES.GetGlobalImageScaleFactor()),
+				static_cast<float>(luaL_optnumber(L, 6, luaL_optnumber(L, 5, 1.)) * LRES.GetGlobalImageScaleFactor()),
 				static_cast<float>(luaL_optnumber(L, 7, 0.5))
 			))
 			{
@@ -933,6 +933,20 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetFog(lua_State* L)LNOEXCEPT
 		{
+			if (lua_gettop(L) == 3)
+				LAPP.SetFog(
+					static_cast<float>(luaL_checknumber(L, 1)),
+					static_cast<float>(luaL_checknumber(L, 2)),
+					*(static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)))
+				);
+			else if (lua_gettop(L) == 2)
+				LAPP.SetFog(
+					static_cast<float>(luaL_checknumber(L, 1)),
+					static_cast<float>(luaL_checknumber(L, 2)),
+					0xFF000000
+				);
+			else
+				LAPP.SetFog(0.0f, 0.0f, 0x00FFFFFF);
 			return 0;
 		}
 		static int ParticleStop(lua_State* L)LNOEXCEPT
@@ -1003,15 +1017,54 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		// 输入控制函数
 		static int GetKeyState(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			lua_pushboolean(L, LAPP.GetKeyState(luaL_checkinteger(L, -1)));
+			return 1;
 		}
 		static int GetLastKey(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			lua_pushinteger(L, LAPP.GetLastKey());
+			return 1;
 		}
 		static int GetLastChar(lua_State* L)LNOEXCEPT
 		{
-			return 0;
+			return LAPP.GetLastChar(L);
+		}
+
+		// 内置数学库
+		static int Sin(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, sin(luaL_checknumber(L, 1) * LDEGREE2RAD));
+			return 1;
+		}
+		static int Cos(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, cos(luaL_checknumber(L, 1) * LDEGREE2RAD));
+			return 1;
+		}
+		static int ASin(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, asin(luaL_checknumber(L, 1)) * LRAD2DEGREE);
+			return 1;
+		}
+		static int ACos(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, acos(luaL_checknumber(L, 1)) * LRAD2DEGREE);
+			return 1;
+		}
+		static int Tan(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, tan(luaL_checknumber(L, 1) * LDEGREE2RAD));
+			return 1;
+		}
+		static int ATan(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, atan(luaL_checknumber(L, 1)) * LRAD2DEGREE);
+			return 1;
+		}
+		static int ATan2(lua_State* L)LNOEXCEPT
+		{
+			lua_pushnumber(L, atan2(luaL_checknumber(L, 1), luaL_checknumber(L, 2)) * LRAD2DEGREE);
+			return 1;
 		}
 
 		// 调试函数
@@ -1027,7 +1080,19 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		// 对象构造函数
 		static int NewColor(lua_State* L)LNOEXCEPT
 		{
-			ColorWrapper::CreateAndPush(L);
+			fcyColor c;
+			if (lua_gettop(L) == 1)
+				c.argb = luaL_checkinteger(L, 1);
+			else
+			{
+				c = fcyColor(
+					luaL_checkinteger(L, 1),
+					luaL_checkinteger(L, 2),
+					luaL_checkinteger(L, 3),
+					luaL_checkinteger(L, 4)
+				);
+			}
+			*ColorWrapper::CreateAndPush(L) = c;
 			return 1;
 		}
 		static int NewRand(lua_State* L)LNOEXCEPT
@@ -1135,6 +1200,14 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "GetKeyState", &WrapperImplement::GetKeyState },
 		{ "GetLastKey", &WrapperImplement::GetLastKey },
 		{ "GetLastChar", &WrapperImplement::GetLastChar },
+		// 内置数学函数
+		{ "sin", &WrapperImplement::Sin },
+		{ "cos", &WrapperImplement::Cos },
+		{ "asin", &WrapperImplement::ASin },
+		{ "acos", &WrapperImplement::ACos },
+		{ "tan", &WrapperImplement::Tan },
+		{ "atan", &WrapperImplement::ATan },
+		{ "atan2", &WrapperImplement::ATan2 },
 		// 调试函数
 		{ "ObjTable", &WrapperImplement::ObjTable },
 		{ "BentLaserData", &WrapperImplement::BentLaserData },

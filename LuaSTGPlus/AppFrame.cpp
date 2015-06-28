@@ -2,6 +2,8 @@
 #include "Utility.h"
 #include "LuaWrapper.h"
 
+#include "D3D9.H"  // for SetFog
+
 // 内置lua扩展
 extern "C" int luaopen_lfs(lua_State *L);
 
@@ -147,6 +149,34 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 	}
 }
 
+fBool AppFrame::GetKeyState(int VKCode)LNOEXCEPT
+{
+	if (VKCode > 0 && VKCode < _countof(m_KeyStateMap))
+		return m_KeyStateMap[VKCode];
+	return false;
+}
+
+LNOINLINE int AppFrame::GetLastChar(lua_State* L)LNOEXCEPT
+{
+	if (m_LastChar)
+	{
+		try
+		{
+			fCharW tBuf[2] = { m_LastChar, 0 };
+			lua_pushstring(L,
+				fcyStringHelper::WideCharToMultiByte(tBuf, CP_UTF8).c_str());
+		}
+		catch (const bad_alloc&)
+		{
+			LERROR("GetLastChar: 内存不足");
+			return 0;
+		}
+	}
+	else
+		lua_pushstring(L, "");
+	return 1;
+}
+
 bool AppFrame::BeginScene()LNOEXCEPT
 {
 	if (!m_bRenderStarted)
@@ -180,6 +210,40 @@ bool AppFrame::EndScene()LNOEXCEPT
 
 	return true;
 }
+
+void AppFrame::SetFog(float start, float end, fcyColor color)
+{
+	if (m_Graph2D->IsInRender())
+		m_Graph2D->Flush();
+
+	// 从f2dRenderDevice中取出D3D设备
+	IDirect3DDevice9* pDev = (IDirect3DDevice9*)m_pRenderDev->GetHandle();
+
+	if (start != end)
+	{
+		pDev->SetRenderState(D3DRS_FOGENABLE, TRUE);
+		pDev->SetRenderState(D3DRS_FOGCOLOR, color.argb);
+		if (start == -1.0f)
+		{
+			pDev->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_EXP);
+			pDev->SetRenderState(D3DRS_FOGDENSITY, *(DWORD *)(&end));
+		}
+		else if (start == -2.0f)
+		{
+			pDev->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_EXP2);
+			pDev->SetRenderState(D3DRS_FOGDENSITY, *(DWORD *)(&end));
+		}
+		else
+		{
+			pDev->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_LINEAR);
+			pDev->SetRenderState(D3DRS_FOGSTART, *(DWORD *)(&start));
+			pDev->SetRenderState(D3DRS_FOGEND, *(DWORD *)(&end));
+		}
+	}
+	else
+		pDev->SetRenderState(D3DRS_FOGENABLE, FALSE);
+}
+
 #pragma endregion
 
 #pragma region 框架函数
@@ -284,6 +348,10 @@ bool AppFrame::Init()LNOEXCEPT
 	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
 	m_pMainWindow->MoveToCenter();
 	m_pMainWindow->SetVisiable(true);
+
+	m_LastChar = 0;
+	m_LastKey = 0;
+	memset(m_KeyStateMap, 0, sizeof(m_KeyStateMap));
 
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
@@ -450,6 +518,20 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 		case F2DMSG_WINDOW_ONLOSTFOCUS:
 			if (!SafeCallGlobalFunction(LFUNC_LOSEFOCUS))
 				return false;
+		case F2DMSG_WINDOW_ONCHARINPUT:
+			m_LastChar = (fCharW)tMsg.Param1;
+			break;
+		case F2DMSG_WINDOW_ONKEYDOWN:
+			m_LastKey = (fInt)tMsg.Param1;
+			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
+				m_KeyStateMap[tMsg.Param1] = true;
+			break;
+		case F2DMSG_WINDOW_ONKEYUP:
+			if (m_LastKey == tMsg.Param1)
+				m_LastKey = 0;
+			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
+				m_KeyStateMap[tMsg.Param1] = false;
+			break;
 		default:
 			break;
 		}

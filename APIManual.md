@@ -316,6 +316,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	以<速度大小,角度>设置对象的速度，若track为true将同时设置r。
 
+- SetImgState(object, blend:string, a:number, r:number, g:number, b:number)
+
+	设置资源状态。blend指示混合模式（含义见后文）a,r,g,b指定颜色。
+
+	该函数将会设置和对象绑定的精灵、动画资源的混合模式，该设置对所有同名资源都有效果。 
+
 - Angle(a:object, b:object):number
 
 	求向量(对象b.中心 - 对象a.中心)相对x轴正方向的夹角。
@@ -442,7 +448,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 - RenderClear(lstgColor)
 
-	使用指定颜色清空屏幕。
+	使用指定颜色清空屏幕。在清除颜色的同时会清除深度缓冲区。
 
 - SetViewport(left:number, right:number, bottom:number, top:number)
 
@@ -453,7 +459,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 	设置正投影矩阵。left表示x轴最小值，right表示x轴最大值，bottom表示y轴最小值，top表示y轴最大值。
 
 		细节
-			创建的正投影矩阵将把z轴限制在[0,1]区间内。
+			创建的正投影矩阵将把z轴限制在[0,100]区间内。
 
 - SetPerspective(eyeX:number, eyeY:number, eyeZ:number, atX:number, atY:number, atZ:number, upX:number, upY:number, upZ:number, fovy:number, aspect:number, zn:number, zf:number)
 
@@ -463,15 +469,66 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	渲染图像。(x,y)指定中心点，rot指定旋转（弧度制），(hscale,vscale)XY轴缩放，z指定Z坐标。
 
+	若指定了hscale而没有指定vscale则vscale=hscale。
+
 	该函数受全局图像缩放系数影响。
+
+	该函数不适用于3D渲染。
 
 - RenderRect(image_name:string, left:number, right:number, bottom:number, top:number)
 
 	在一个矩阵范围渲染图像。此时z=0.5。
 
+	该函数不适用于3D渲染。
+
 - Render4V(image_name:string, x1:number, y1:number, z1:number, x2:number, y2:number, z2:number, x3:number, y3:number, z3:number, x4:number, y4:number, z4:number)
 
 	给出四个顶点渲染图像。此时z=0.5。
+
+	该函数不适用于2D渲染。
+
+- SetFog([near:number, far:number, [color:lstgColor = 0x00FFFFFF]])
+
+	若参数为空，将关闭雾效果。否则设置一个从near到far的雾。
+
+### 输入
+
+- GetKeyState(vk\_code:integer):boolean
+
+	给出虚拟键代码检测是否按下。
+
+		细节
+			VK_CODE的具体含义请查阅MSDN。
+
+- GetLastKey():integer
+
+	返回最后一次输入的按键的虚拟键代码。
+
+- GetLastChar():string
+
+	返回上一次输入的字符。
+
+### 内置数学方法
+
+下述数学函数均以角度制为基准，含义同C语言库函数。
+
+- sin(ang)
+- cos(ang)
+- asin(v)
+- acos(v)
+- tan(ang)
+- atan(v)
+- atan2(y,x)
+
+### 内置对象构造方法
+
+- Rand()
+
+	构造一个随机数生成器。以当前系统tick数做Seed。
+
+- Color(\[argb:integer\] | [a:integer, r:integer, g:integer, b:integer])
+
+	构造一个颜色。
 
 ### 调试方法
 
