@@ -111,7 +111,7 @@ bool GameObject::ChangeResource(const char* res_name)
 			return false;
 		}
 		ps->SetCenter(fcyVec2((float)x, (float)y));
-		ps->SetRotation(rot);
+		ps->SetRotation((float)rot);
 
 		res->AddRef();
 		a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();

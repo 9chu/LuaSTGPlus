@@ -1,6 +1,4 @@
 [submodule "3rdParty/luajit"]
 	path = 3rdParty/luajit
 	url = https://github.com/LuaDist/Luajit.git
-[submodule "3rdParty/zlib"]
-	path = 3rdParty/zlib
-	url = https://github.com/madler/zlib.git
+	
