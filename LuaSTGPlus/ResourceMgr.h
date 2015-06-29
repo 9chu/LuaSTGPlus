@@ -275,11 +275,25 @@ namespace LuaSTGPlus
 	{
 	private:
 		ResourceMgr* m_pMgr;
+		ResourcePoolType m_iType;
 
 		Dictionary<fcyRefPointer<ResTexture>> m_TexturePool;
 		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
 		Dictionary<fcyRefPointer<ResAnimation>> m_AnimationPool;
 		Dictionary<fcyRefPointer<ResParticle>> m_ParticlePool;
+	private:
+		const wchar_t* getResourcePoolTypeName()
+		{
+			switch (m_iType)
+			{
+			case ResourcePoolType::Global:
+				return L"全局资源池";
+			case ResourcePoolType::Stage:
+				return L"关卡资源池";
+			default:
+				return nullptr;
+			}
+		}
 	public:
 		/// @brief 清空对象池
 		void Clear()LNOEXCEPT
@@ -388,8 +402,8 @@ namespace LuaSTGPlus
 		ResourcePool& operator=(const ResourcePool&);
 		ResourcePool(const ResourcePool&);
 	public:
-		ResourcePool(ResourceMgr* mgr)
-			: m_pMgr(mgr) {}
+		ResourcePool(ResourceMgr* mgr, ResourcePoolType t)
+			: m_pMgr(mgr), m_iType(t) {}
 	};
 
 	/// @brief 资源包

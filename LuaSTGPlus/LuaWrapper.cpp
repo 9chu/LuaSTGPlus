@@ -437,14 +437,23 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int Angle(lua_State* L)LNOEXCEPT
 		{
-			if (!lua_istable(L, 1) || !lua_istable(L, 2))
-				return luaL_error(L, "invalid lstg object for 'Angle'.");
-			lua_rawgeti(L, 1, 2);  // t(object) t(object) ??? id
-			lua_rawgeti(L, 2, 2);  // t(object) t(object) ??? id id
-			double tRet;
-			if (!LPOOL.Angle((size_t)luaL_checkint(L, -2), (size_t)luaL_checkint(L, -1), tRet))
-				return luaL_error(L, "invalid lstg object for 'Angle'.");
-			lua_pushnumber(L, tRet);
+			if (lua_gettop(L) == 2)
+			{
+				if (!lua_istable(L, 1) || !lua_istable(L, 2))
+					return luaL_error(L, "invalid lstg object for 'Angle'.");
+				lua_rawgeti(L, 1, 2);  // t(object) t(object) ??? id
+				lua_rawgeti(L, 2, 2);  // t(object) t(object) ??? id id
+				double tRet;
+				if (!LPOOL.Angle((size_t)luaL_checkint(L, -2), (size_t)luaL_checkint(L, -1), tRet))
+					return luaL_error(L, "invalid lstg object for 'Angle'.");
+				lua_pushnumber(L, tRet);
+			}
+			else
+			{
+				lua_pushnumber(L, 
+					atan2(luaL_checknumber(L, 4) - luaL_checknumber(L, 2), luaL_checknumber(L, 3) - luaL_checknumber(L, 1)) * LRAD2DEGREE
+				);
+			}
 			return 1;
 		}
 		static int Dist(lua_State* L)LNOEXCEPT
@@ -731,8 +740,19 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			else
 				return luaL_error(L, "invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
 
-			if (t == ResourcePoolType::Global || t == ResourcePoolType::Stage)
-				LRES.GetResourcePool(t)->Clear();
+			switch (t)
+			{
+			case ResourcePoolType::Stage:
+				LRES.GetResourcePool(ResourcePoolType::Stage)->Clear();
+				LINFO("关卡资源池已清空");
+				break;
+			case ResourcePoolType::Global:
+				LRES.GetResourcePool(ResourcePoolType::Global)->Clear();
+				LINFO("全局资源池已清空");
+				break;
+			default:
+				break;
+			}	
 			return 0;
 		}
 		static int CheckRes(lua_State* L)LNOEXCEPT

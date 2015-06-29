@@ -15,15 +15,13 @@ ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, floa
 	LASSERT(LAPP.GetRenderer());
 
 	// 分割纹理
-	float sw = w / n;
-	float sh = w / m;
 	for (int j = 0; j < m; ++j)  // 行
 	{
 		for (int i = 0; i < n; ++i)  // 列
 		{
 			fcyRefPointer<f2dSprite> t;
 			if (FCYFAILED(LAPP.GetRenderer()->CreateSprite2D(tex->GetTexture(), fcyRect(
-				x + sw * i, y + sh * j, x + sw * (i + 1), y + sh * (j + 1)
+				x + w * i, y + h * j, x + w * (i + 1), y + h * (j + 1)
 				), &t)))
 			{
 				throw fcyException("ResAnimation::ResAnimation", "CreateSprite2D failed.");
@@ -283,7 +281,7 @@ bool ResourcePool::LoadTexture(const char* name, const std::wstring& path, bool 
 	}
 
 #ifdef LSHOWRESLOADINFO
-	LINFO("LoadTexture: 纹理'%s'已装载 -> '%m'", path.c_str(), name);
+	LINFO("LoadTexture: 纹理'%s'已装载 -> '%m' (%s)", path.c_str(), name, getResourcePoolTypeName());
 #endif
 	return true;
 }
@@ -340,7 +338,7 @@ bool ResourcePool::LoadImage(const char* name, const char* texname,
 	}
 
 #ifdef LSHOWRESLOADINFO
-	LINFO("LoadImage: 图像'%m'已装载", name);
+	LINFO("LoadImage: 图像'%m'已装载 (%s)", name, getResourcePoolTypeName());
 #endif
 	return true;
 }
@@ -379,7 +377,7 @@ bool ResourcePool::LoadAnimation(const char* name, const char* texname,
 	}
 
 #ifdef LSHOWRESLOADINFO
-	LINFO("LoadAnimation: 动画'%m'已装载", name);
+	LINFO("LoadAnimation: 动画'%m'已装载 (%s)", name, getResourcePoolTypeName());
 #endif
 	return true;
 }
@@ -457,7 +455,7 @@ bool ResourcePool::LoadParticle(const char* name, const std::wstring& path, cons
 		return false;
 	}
 #ifdef LSHOWRESLOADINFO
-	LINFO("LoadParticle: 粒子'%m'已装载", name);
+	LINFO("LoadParticle: 粒子'%m'已装载 (%s)", name, getResourcePoolTypeName());
 #endif
 	return true;
 }
@@ -587,7 +585,7 @@ bool ResourcePack::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEX
 /// ResourceMgr
 ////////////////////////////////////////////////////////////////////////////////
 ResourceMgr::ResourceMgr()
-	: m_GlobalResourcePool(this), m_StageResourcePool(this)
+	: m_GlobalResourcePool(this, ResourcePoolType::Global), m_StageResourcePool(this, ResourcePoolType::Stage)
 {
 }
 

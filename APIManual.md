@@ -322,9 +322,9 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	该函数将会设置和对象绑定的精灵、动画资源的混合模式，该设置对所有同名资源都有效果。 
 
-- Angle(a:object, b:object):number
+- Angle(a:object | x1:number, b:object | y1:number, [x2:number, y2:number]):number
 
-	求向量(对象b.中心 - 对象a.中心)相对x轴正方向的夹角。
+	若a,b为对象，则求向量(对象b.中心 - 对象a.中心)相对x轴正方向的夹角。否则计算tan2(y2-y1, x2-x1)。
 
 - Dist(a:object|number, b:object|number, [c:number, d:number]):number
 
@@ -440,7 +440,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 - LoadAnimation(name:string, tex\_name:string, x:number, y:number, w:number, h:number, n:integer, m:integer, intv:integer, [a:number, [b:number, [rect:boolean]]])
 
-	装载动画。x、y、w、h、a、b、rect含义同Image。n和m指定纵向横向的分割数，intv指定帧间隔。
+	装载动画。a、b、rect含义同Image。其中x、y指定第一帧的左上角位置，w、h指定一帧的大小。n和m指定纵向横向的分割数，以列优先顺序排列。intv指定帧间隔。
 
 	动画总是循环播放的。
 

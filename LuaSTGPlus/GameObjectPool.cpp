@@ -94,9 +94,9 @@ bool GameObject::ChangeResource(const char* res_name)
 	{
 		res = tAnimation;
 		res->AddRef();
-		a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
-		b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
-		rect = tSprite->IsRectangle();
+		a = tAnimation->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+		b = tAnimation->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+		rect = tAnimation->IsRectangle();
 		return true;
 	}
 
@@ -110,6 +110,8 @@ bool GameObject::ChangeResource(const char* res_name)
 			LERROR("无法构造粒子池，内存不足");
 			return false;
 		}
+		ps->SetCenter(fcyVec2((float)x, (float)y));
+		ps->SetRotation(rot);
 
 		res->AddRef();
 		a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
@@ -976,7 +978,10 @@ int GameObjectPool::ParticleStop(lua_State* L)LNOEXCEPT
 	if (!p)
 		return luaL_error(L, "invalid lstg object for 'ParticleStop'.");
 	if (!p->res || p->res->GetType() != ResourceType::Particle)
-		return luaL_error(L, "object don't have a particle resource.");
+	{
+		LWARNING("ParticleStop: 试图停止一个不带有粒子发射器的对象的粒子发射过程(uid=%d)", m_iUid);
+		return 0;
+	}	
 	p->ps->SetInactive();
 	return 0;
 }
@@ -993,7 +998,10 @@ int GameObjectPool::ParticleFire(lua_State* L)LNOEXCEPT
 	if (!p)
 		return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
 	if (!p->res || p->res->GetType() != ResourceType::Particle)
-		return luaL_error(L, "object don't have a particle resource.");
+	{
+		LWARNING("ParticleFire: 试图启动一个不带有粒子发射器的对象的粒子发射过程(uid=%d)", m_iUid);
+		return 0;
+	}	
 	p->ps->SetActive();
 	return 0;
 }
@@ -1010,7 +1018,10 @@ int GameObjectPool::ParticleGetn(lua_State* L)LNOEXCEPT
 	if (!p)
 		return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
 	if (!p->res || p->res->GetType() != ResourceType::Particle)
-		return luaL_error(L, "object don't have a particle resource.");
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 	lua_pushinteger(L, (int)p->ps->GetAliveCount());
 	return 1;
 }
@@ -1027,7 +1038,11 @@ int GameObjectPool::ParticleGetEmission(lua_State* L)LNOEXCEPT
 	if (!p)
 		return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
 	if (!p->res || p->res->GetType() != ResourceType::Particle)
-		return luaL_error(L, "object don't have a particle resource.");
+	{
+		LWARNING("ParticleGetEmission: 试图获取一个不带有粒子发射器的对象的粒子发射密度(uid=%d)", m_iUid);
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 	lua_pushnumber(L, p->ps->GetEmission());
 	return 1;
 }
@@ -1044,7 +1059,10 @@ int GameObjectPool::ParticleSetEmission(lua_State* L)LNOEXCEPT
 	if (!p)
 		return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
 	if (!p->res || p->res->GetType() != ResourceType::Particle)
-		return luaL_error(L, "object don't have a particle resource.");
+	{
+		LWARNING("ParticleSetEmission: 试图设置一个不带有粒子发射器的对象的粒子发射密度(uid=%d)", m_iUid);
+		return 0;
+	}
 	p->ps->SetEmission((float)::max(0., luaL_checknumber(L, -1)));
 	return 0;
 }

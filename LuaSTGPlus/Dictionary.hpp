@@ -46,7 +46,7 @@ namespace LuaSTGPlus
 		uint32_t ch;
 		while (*key != 0)
 		{
-			ch = *key++;
+			ch = static_cast<unsigned char>(*key++);
 			seed1 = MPQHashCryptTable::GetInstance()[(dwHashType << 8) + ch] ^ (seed1 + seed2);
 			seed2 = ch + seed1 + seed2 + (seed2 << 5) + 3;
 		}
@@ -71,6 +71,7 @@ namespace LuaSTGPlus
 				LASSERT(Key == right.Key);
 				return true;
 			}
+			LASSERT(Key != right.Key);
 			return false;
 #else
 			return (HashKey == right.HashKey && Hash1 == right.Hash1 &&
