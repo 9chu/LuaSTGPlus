@@ -81,23 +81,19 @@ namespace LuaSTGPlus
 				{
 				case BlendMode::AddAdd:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
-					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				case BlendMode::MulAdd:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
-					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::MulAlpha:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
-					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_INVSRCALPHA;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::AddAlpha:
 				default:
 					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
-					m_Graph2DBlendState.AlphaDestBlend = F2DBLENDFACTOR_INVSRCALPHA;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				}
@@ -167,6 +163,7 @@ namespace LuaSTGPlus
 		{
 			if (m_GraphType == GraphicsType::Graph2D)
 			{
+				m_Graph2D->SetWorldTransform(fcyMatrix4::GetTranslateMatrix(fcyVec3(-0.5f, -0.5f, 0.f)));
 				m_Graph2D->SetViewTransform(fcyMatrix4::GetIdentity());
 				m_Graph2D->SetProjTransform(fcyMatrix4::GetOrthoOffCenterLH(left, right, bottom, top, 0.f, 100.f));
 			}
@@ -178,6 +175,7 @@ namespace LuaSTGPlus
 		{
 			if (m_GraphType == GraphicsType::Graph2D)
 			{
+				m_Graph2D->SetWorldTransform(fcyMatrix4::GetIdentity());
 				m_Graph2D->SetViewTransform(fcyMatrix4::GetLookAtLH(fcyVec3(eyeX, eyeY, eyeZ), fcyVec3(atX, atY, atZ), fcyVec3(upX, upY, upZ)));
 				m_Graph2D->SetProjTransform(fcyMatrix4::GetPespctiveLH(aspect, fovy, zn, zf));
 			}
@@ -203,7 +201,7 @@ namespace LuaSTGPlus
 			// äÖÈ¾
 			f2dSprite* pSprite = p->GetSprite();
 			pSprite->SetZ(z);
-			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot);
+			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot, false);
 			return true;
 		}
 
@@ -222,7 +220,25 @@ namespace LuaSTGPlus
 
 			// äÖÈ¾
 			f2dSprite* pSprite = p->GetSprite(((fuInt)ani_timer / p->GetInterval()) % p->GetCount());
-			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot);
+			pSprite->Draw2(m_Graph2D, fcyVec2(x, y), fcyVec2(hscale, vscale), rot, false);
+			return true;
+		}
+
+		/// @brief äÖÈ¾Á£×Ó
+		bool Render(ResParticle::ParticlePool* p, float hscale = 1, float vscale = 1)LNOEXCEPT
+		{
+			LASSERT(p);
+			if (m_GraphType != GraphicsType::Graph2D)
+			{
+				LERROR("Render: Ö»ÓÐ2DäÖÈ¾Æ÷¿ÉÒÔÖ´ÐÐ¸Ã·½·¨");
+				return false;
+			}
+
+			// ÉèÖÃ»ìºÏ
+			updateGraph2DBlendMode(p->GetBlendMode());
+
+			// äÖÈ¾
+			p->Render(m_Graph2D, hscale, vscale);
 			return true;
 		}
 
@@ -235,7 +251,7 @@ namespace LuaSTGPlus
 				LERROR("Render: ÕÒ²»µ½Í¼Ïñ×ÊÔ´'%m'", name);
 				return false;
 			}
-			return Render(p, x, y, rot, hscale * m_ResourceMgr.GetGlobalImageScaleFactor(), vscale * m_ResourceMgr.GetGlobalImageScaleFactor(), z);
+			return Render(p, x, y, rot, hscale, vscale, z);
 		}
 
 		/// @brief äÖÈ¾Í¼Ïñ
@@ -260,7 +276,7 @@ namespace LuaSTGPlus
 			// äÖÈ¾
 			f2dSprite* pSprite = p->GetSprite();
 			pSprite->SetZ(0.5f);
-			pSprite->Draw(m_Graph2D, fcyRect(x1, y1, x2, y2));
+			pSprite->Draw(m_Graph2D, fcyRect(x1, y1, x2, y2), false);
 			return true;
 		}
 
@@ -286,7 +302,7 @@ namespace LuaSTGPlus
 
 			f2dSprite* pSprite = p->GetSprite();
 			pSprite->SetZ(0.5f);
-			pSprite->Draw(m_Graph2D, fcyVec3(x1, y1, z1), fcyVec3(x2, y2, z2), fcyVec3(x3, y3, z3), fcyVec3(x4, y4, z4));
+			pSprite->Draw(m_Graph2D, fcyVec3(x1, y1, z1), fcyVec3(x2, y2, z2), fcyVec3(x3, y3, z3), fcyVec3(x4, y4, z4), false);
 			return true;
 		}
 	public:

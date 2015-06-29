@@ -6,6 +6,8 @@
 using namespace std;
 using namespace LuaSTGPlus;
 
+FixedObjectPool<ResParticle::PARTICLE_POD, LPARTICLESYS_MAX> ResParticle::s_MemoryPool;
+
 ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, float x, float y, float w, float h,
 	int n, int m, int intv, double a, double b, bool rect)
 	: Resource(ResourceType::Animation, name), m_Interval(intv), m_HalfSizeX(a), m_HalfSizeY(b), m_bRectangle(rect)
@@ -31,6 +33,159 @@ ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, floa
 			m_ImageSequences.push_back(t);
 		}
 	}
+}
+
+ResParticle::ResParticle(const char* name, const ParticleInfo& pinfo, fcyRefPointer<f2dSprite> sprite, BlendMode bld, double a, double b, bool rect)
+	: Resource(ResourceType::Particle, name), m_ParticleInfo(pinfo), m_BindedSprite(sprite), m_BlendMode(bld), m_HalfSizeX(a), m_HalfSizeY(b), m_bRectangle(rect)
+{
+}
+
+ResParticle::ParticlePool* ResParticle::AllocInstance()LNOEXCEPT
+{
+	size_t id;
+	if (!s_MemoryPool.Alloc(id))
+		return nullptr;
+	ParticlePool* pRet = new(s_MemoryPool.Data(id)) ParticlePool(id, this);
+	pRet->SetBlendMode(m_BlendMode);
+	return pRet;
+}
+
+void ResParticle::FreeInstance(ResParticle::ParticlePool* p)LNOEXCEPT
+{
+	p->~ParticlePool();
+	s_MemoryPool.Free(p->m_iId);
+}
+
+ResParticle::ParticlePool::ParticlePool(size_t id, fcyRefPointer<ResParticle> ref)
+	: m_iId(id), m_pInstance(ref), m_fEmission((float)ref->GetParticleInfo().nEmission) {}
+
+void ResParticle::ParticlePool::Update(float delta)
+{
+	static fcyRandomWELL512 s_ParticleRandomizer;
+
+	const ParticleInfo& pInfo = m_pInstance->GetParticleInfo();
+
+	if (m_iStatus == Status::Alive)
+	{
+		m_fAge += delta;
+		if (m_fAge >= pInfo.fLifetime && pInfo.fLifetime >= 0.f)
+			m_iStatus = Status::Sleep;
+	}
+
+	// 更新所有粒子
+	size_t i = 0;
+	while (i < m_iAlive)
+	{
+		ParticleInstance& tInst = m_ParticlePool[i];
+		tInst.fAge += delta;
+		if (tInst.fAge >= tInst.fTerminalAge)
+		{
+			--m_iAlive;
+			if (m_iAlive > i + 1)
+				memcpy(&tInst, &m_ParticlePool[m_iAlive], sizeof(ParticleInstance));
+			continue;
+		}
+
+		// 计算线加速度和切向加速度
+		fcyVec2 vecAccel = (tInst.vecLocation - m_vCenter).GetNormalize();
+		fcyVec2 vecAccel2 = vecAccel;
+		vecAccel *= tInst.fRadialAccel;
+		// vecAccel2.Rotate(M_PI_2);
+		std::swap(vecAccel2.x, vecAccel2.y);
+		vecAccel2.x = -vecAccel2.x;
+		vecAccel2 *= tInst.fTangentialAccel;
+
+		// 计算速度
+		tInst.vecVelocity += (vecAccel + vecAccel2) * delta;
+		tInst.vecVelocity.y += tInst.fGravity * delta;
+
+		// 计算位置
+		tInst.vecLocation += tInst.vecVelocity * delta;
+
+		// 计算自旋和大小
+		tInst.fSpin += tInst.fSpinDelta * delta;
+		tInst.fSize += tInst.fSizeDelta * delta;
+		tInst.colColor[0] += tInst.colColorDelta[0] * delta;
+		tInst.colColor[1] += tInst.colColorDelta[1] * delta;
+		tInst.colColor[2] += tInst.colColorDelta[2] * delta;
+		tInst.colColor[3] += tInst.colColorDelta[3] * delta;
+		
+		++i;
+	}
+
+	// 产生新的粒子
+	if (m_iStatus == Status::Alive)
+	{
+		float fParticlesNeeded = m_fEmission * delta + m_fEmissionResidue;
+		fuInt nParticlesCreated = (fuInt)fParticlesNeeded;
+		m_fEmissionResidue = fParticlesNeeded - (float)nParticlesCreated;
+
+		for (fuInt i = 0; i < nParticlesCreated; ++i)
+		{
+			if (m_iAlive >= m_ParticlePool.size())
+				break;
+
+			ParticleInstance& tInst = m_ParticlePool[m_iAlive++];
+			tInst.fAge = 0.0f;
+			tInst.fTerminalAge = s_ParticleRandomizer.GetRandFloat(pInfo.fParticleLifeMin, pInfo.fParticleLifeMax);
+
+			tInst.vecLocation = m_vPrevCenter + (m_vCenter - m_vPrevCenter) * s_ParticleRandomizer.GetRandFloat(0.0f, 1.0f);
+			tInst.vecLocation.x += s_ParticleRandomizer.GetRandFloat(-2.0f, 2.0f);
+			tInst.vecLocation.y += s_ParticleRandomizer.GetRandFloat(-2.0f, 2.0f);
+
+			float ang = /* pInfo.fDirection */ (m_fRotation - (float)LPI_HALF) - (float)LPI_HALF + s_ParticleRandomizer.GetRandFloat(0, pInfo.fSpread) - pInfo.fSpread / 2.0f;
+			tInst.vecVelocity.x = cos(ang);
+			tInst.vecVelocity.y = sin(ang);
+			tInst.vecVelocity *= s_ParticleRandomizer.GetRandFloat(pInfo.fSpeedMin, pInfo.fSpeedMax);
+
+			tInst.fGravity = s_ParticleRandomizer.GetRandFloat(pInfo.fGravityMin, pInfo.fGravityMax);
+			tInst.fRadialAccel = s_ParticleRandomizer.GetRandFloat(pInfo.fRadialAccelMin, pInfo.fRadialAccelMax);
+			tInst.fTangentialAccel = s_ParticleRandomizer.GetRandFloat(pInfo.fTangentialAccelMin, pInfo.fTangentialAccelMax);
+
+			tInst.fSize = s_ParticleRandomizer.GetRandFloat(pInfo.fSizeStart, pInfo.fSizeStart + (pInfo.fSizeEnd - pInfo.fSizeStart) * pInfo.fSizeVar);
+			tInst.fSizeDelta = (pInfo.fSizeEnd - tInst.fSize) / tInst.fTerminalAge;
+
+			tInst.fSpin = /* pInfo.fSpinStart */ m_fRotation + s_ParticleRandomizer.GetRandFloat(0, pInfo.fSpinEnd) - pInfo.fSpinEnd / 2.0f;
+			tInst.fSpinDelta = pInfo.fSpinVar;
+
+			tInst.colColor[0] = s_ParticleRandomizer.GetRandFloat(pInfo.colColorStart[0], pInfo.colColorStart[0] + (pInfo.colColorEnd[0] - pInfo.colColorStart[0])*pInfo.fColorVar);
+			tInst.colColor[1] = s_ParticleRandomizer.GetRandFloat(pInfo.colColorStart[1], pInfo.colColorStart[1] + (pInfo.colColorEnd[1] - pInfo.colColorStart[1])*pInfo.fColorVar);
+			tInst.colColor[2] = s_ParticleRandomizer.GetRandFloat(pInfo.colColorStart[2], pInfo.colColorStart[2] + (pInfo.colColorEnd[2] - pInfo.colColorStart[2])*pInfo.fColorVar);
+			tInst.colColor[3] = s_ParticleRandomizer.GetRandFloat(pInfo.colColorStart[3], pInfo.colColorStart[3] + (pInfo.colColorEnd[3] - pInfo.colColorStart[3])*pInfo.fAlphaVar);
+
+			tInst.colColorDelta[0] = (pInfo.colColorEnd[0] - tInst.colColor[0]) / tInst.fTerminalAge;
+			tInst.colColorDelta[1] = (pInfo.colColorEnd[1] - tInst.colColor[1]) / tInst.fTerminalAge;
+			tInst.colColorDelta[2] = (pInfo.colColorEnd[2] - tInst.colColor[2]) / tInst.fTerminalAge;
+			tInst.colColorDelta[3] = (pInfo.colColorEnd[3] - tInst.colColor[3]) / tInst.fTerminalAge;
+		}
+	}
+
+	m_vPrevCenter = m_vCenter;
+}
+
+void ResParticle::ParticlePool::Render(f2dGraphics2D* graph, float scaleX, float scaleY)
+{
+	f2dSprite* p = m_pInstance->GetBindedSprite();
+	const ParticleInfo& pInfo = m_pInstance->GetParticleInfo();
+	fcyColor tOrgColor = p->GetColor(0U);
+
+	for (size_t i = 0; i < m_iAlive; ++i)
+	{
+		ParticleInstance& pInst = m_ParticlePool[i];
+		
+		if (pInfo.colColorStart[0] < 0)  // r < 0
+			p->SetColor(fcyColor(
+				(int)(pInst.colColor[3] * 255),
+				tOrgColor.r,
+				tOrgColor.g,
+				tOrgColor.b
+			));
+		else
+			p->SetColor(fcyColor(pInst.colColor[3], pInst.colColor[0], pInst.colColor[1], pInst.colColor[2]));
+		p->Draw2(graph, fcyVec2(pInst.vecLocation.x, pInst.vecLocation.y), fcyVec2(scaleX * pInst.fSize, scaleY * pInst.fSize), pInst.fSpin, false);
+	}
+
+	p->SetColor(tOrgColor);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +228,11 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Particle:
 		lua_newtable(L);  // t
+		for (auto i : m_ParticlePool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
 	case ResourceType::SpriteFont:
 		lua_newtable(L);  // t
@@ -136,7 +296,7 @@ bool ResourcePool::LoadTexture(const char* name, const char* path, bool mipmaps)
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("转换编码时无法分配内存");
+		LERROR("LoadTexture: 转换编码时无法分配内存");
 		return false;
 	}
 }
@@ -222,6 +382,97 @@ bool ResourcePool::LoadAnimation(const char* name, const char* texname,
 	LINFO("LoadAnimation: 动画'%m'已装载", name);
 #endif
 	return true;
+}
+
+bool ResourcePool::LoadParticle(const char* name, const std::wstring& path, const char* img_name, double a, double b, bool rect)LNOEXCEPT
+{
+	LASSERT(LAPP.GetRenderer());
+
+	if (m_ParticlePool.find(name) != m_ParticlePool.end())
+	{
+		LWARNING("LoadParticle: 粒子'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	fcyRefPointer<ResSprite> pSprite = m_pMgr->FindSprite(img_name);
+	fcyRefPointer<f2dSprite> pClone;
+	if (!pSprite)
+	{
+		LWARNING("LoadParticle: 加载粒子'%m'失败, 无法找到精灵'%m'", name, img_name);
+		return false;
+	}
+	else
+	{
+		// 克隆一个精灵对象
+		if (FCYFAILED(LAPP.GetRenderer()->CreateSprite2D(pSprite->GetSprite()->GetTexture(), pSprite->GetSprite()->GetTexRect(), pSprite->GetSprite()->GetHotSpot(), &pClone)))
+		{
+			LERROR("LoadParticle: 克隆图片'%m'失败", img_name);
+			return false;
+		}
+		pClone->SetColor(0, pSprite->GetSprite()->GetColor(0U));
+		pClone->SetColor(1, pSprite->GetSprite()->GetColor(1U));
+		pClone->SetColor(2, pSprite->GetSprite()->GetColor(2U));
+		pClone->SetColor(3, pSprite->GetSprite()->GetColor(3U));
+		pClone->SetZ(pSprite->GetSprite()->GetZ());
+	}
+
+	std::vector<char> outBuf;
+	if (!LRES.LoadFile(path.c_str(), outBuf))
+		return false;
+	if (outBuf.size() != sizeof(ResParticle::ParticleInfo))
+	{
+		LERROR("LoadParticle: 粒子定义文件'%s'格式不正确", path.c_str());
+		return false;
+	}
+
+	try
+	{
+		ResParticle::ParticleInfo tInfo;
+		memcpy(&tInfo, outBuf.data(), sizeof(ResParticle::ParticleInfo));
+		tInfo.iBlendInfo = (tInfo.iBlendInfo >> 16) & 0x00000003;
+
+		BlendMode tBlendInfo = BlendMode::AddAlpha;
+		if (tInfo.iBlendInfo & 1)  // ADD
+		{
+			if (tInfo.iBlendInfo & 2)  // ALPHA
+				tBlendInfo = BlendMode::AddAlpha;
+			else
+				tBlendInfo = BlendMode::AddAdd;
+		}
+		else  // MUL
+		{
+			if (tInfo.iBlendInfo & 2)  // ALPHA
+				tBlendInfo = BlendMode::MulAlpha;
+			else
+				tBlendInfo = BlendMode::MulAdd;
+		}
+
+		fcyRefPointer<ResParticle> tRes;
+		tRes.DirectSet(new ResParticle(name, tInfo, pClone, tBlendInfo, a, b, rect));
+		m_ParticlePool.emplace(name, tRes);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadParticle: 内存不足");
+		return false;
+	}
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadParticle: 粒子'%m'已装载", name);
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadParticle(const char* name, const char* path, const char* img_name, double a, double b, bool rect)LNOEXCEPT
+{
+	try
+	{
+		return LoadParticle(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8), img_name, a, b, rect);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadParticle: 转换编码时无法分配内存");
+		return false;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

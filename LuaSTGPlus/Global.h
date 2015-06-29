@@ -96,6 +96,7 @@
 // 数学常量
 #define LRAD2DEGREE (180.0/3.141592653589793) // 弧度到角度
 #define LDEGREE2RAD (1.0/LRAD2DEGREE) // 角度到弧度
+#define LPI_HALF (3.141592653589793 / 2)  // PI*0.5
 
 #define LNOEXCEPT throw()
 #define LNOINLINE __declspec(noinline)
@@ -127,6 +128,9 @@
 #else
 #define LASSERT(cond)
 #endif
+
+#define LPARTICLE_MAXCNT 500  // 单个粒子池最多有500个粒子
+#define LPARTICLESYS_MAX 500  // 最大500个粒子池
 
 namespace LuaSTGPlus
 {

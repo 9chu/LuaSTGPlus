@@ -40,6 +40,7 @@ namespace LuaSTGPlus
 		lua_Integer timer, ani_timer;  // 计数器
 
 		Resource* res;  // 渲染资源
+		ResParticle::ParticlePool* ps;  // 粒子系统
 
 		// 链表域
 		GameObject *pObjectPrev, *pObjectNext;
@@ -68,6 +69,7 @@ namespace LuaSTGPlus
 			timer = ani_timer = 0;
 
 			res = nullptr;
+			ps = nullptr;
 
 			pObjectPrev = pObjectNext = nullptr;
 			pRenderPrev = pRenderNext = nullptr;
@@ -78,6 +80,12 @@ namespace LuaSTGPlus
 		{
 			if (res)
 			{
+				if (res->GetType() == ResourceType::Particle)
+				{
+					LASSERT(ps);
+					static_cast<ResParticle*>(res)->FreeInstance(ps);
+					ps = nullptr;
+				}
 				res->Release();
 				res = nullptr;
 			}
@@ -195,6 +203,13 @@ namespace LuaSTGPlus
 
 		/// @brief 调试目的，获取对象列表
 		int GetObjectTable(lua_State* L)LNOEXCEPT;
+
+		/// @brief 对象粒子池相关操作
+		int ParticleStop(lua_State* L)LNOEXCEPT;
+		int ParticleFire(lua_State* L)LNOEXCEPT;
+		int ParticleGetn(lua_State* L)LNOEXCEPT;
+		int ParticleGetEmission(lua_State* L)LNOEXCEPT;
+		int ParticleSetEmission(lua_State* L)LNOEXCEPT;
 	private:
 		GameObjectPool& operator=(const GameObjectPool&);
 		GameObjectPool(const GameObjectPool&);

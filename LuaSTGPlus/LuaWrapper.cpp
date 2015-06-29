@@ -555,6 +555,26 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return LPOOL.SetAttr(L);
 		}
+		static int ParticleStop(lua_State* L)LNOEXCEPT
+		{
+			return LPOOL.ParticleStop(L);
+		}
+		static int ParticleFire(lua_State* L)LNOEXCEPT
+		{
+			return LPOOL.ParticleFire(L);
+		}
+		static int ParticleGetn(lua_State* L)LNOEXCEPT
+		{
+			return LPOOL.ParticleGetn(L);
+		}
+		static int ParticleGetEmission(lua_State* L)LNOEXCEPT
+		{
+			return LPOOL.ParticleGetEmission(L);
+		}
+		static int ParticleSetEmission(lua_State* L)LNOEXCEPT
+		{
+			return LPOOL.ParticleSetEmission(L);
+		}
 
 		// 资源控制函数
 		static int SetResourceStatus(lua_State* L)LNOEXCEPT
@@ -650,6 +670,26 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int LoadPS(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+			const char* img_name = luaL_checkstring(L, 3);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (!pActivedPool->LoadParticle(
+				name,
+				path,
+				img_name,
+				luaL_optnumber(L, 4, 0.0f),
+				luaL_optnumber(L, 5, 0.0f),
+				lua_toboolean(L, 6) == 0 ? false : true
+			))
+			{
+				return luaL_error(L, "load particle failed (name='%s', file='%s', img='%s').", name, path, img_name);
+			}
+
 			return 0;
 		}
 		static int LoadSound(lua_State* L)LNOEXCEPT
@@ -949,27 +989,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				LAPP.SetFog(0.0f, 0.0f, 0x00FFFFFF);
 			return 0;
 		}
-		static int ParticleStop(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ParticleFire(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ParticleGetn(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ParticleGetEmission(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-		static int ParticleSetEmission(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
-
+		
 		// 截图函数
 		static int Snapshot(lua_State* L)LNOEXCEPT
 		{
@@ -1143,6 +1163,11 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "ObjList", &WrapperImplement::ObjList },
 		{ "GetAttr", &WrapperImplement::ObjMetaIndex },
 		{ "SetAttr", &WrapperImplement::ObjMetaNewIndex },
+		{ "ParticleStop", &WrapperImplement::ParticleStop },
+		{ "ParticleFire", &WrapperImplement::ParticleFire },
+		{ "ParticleGetn", &WrapperImplement::ParticleGetn },
+		{ "ParticleGetEmission", &WrapperImplement::ParticleGetEmission },
+		{ "ParticleSetEmission", &WrapperImplement::ParticleSetEmission },
 		// 资源控制函数
 		{ "SetResourceStatus", &WrapperImplement::SetResourceStatus },
 		{ "LoadTexture", &WrapperImplement::LoadTexture },
@@ -1179,11 +1204,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "RenderTexture", &WrapperImplement::RenderTexture },
 		{ "RenderTTF", &WrapperImplement::RenderTTF },
 		{ "SetFog", &WrapperImplement::SetFog },
-		{ "ParticleStop", &WrapperImplement::ParticleStop },
-		{ "ParticleFire", &WrapperImplement::ParticleFire },
-		{ "ParticleGetn", &WrapperImplement::ParticleGetn },
-		{ "ParticleGetEmission", &WrapperImplement::ParticleGetEmission },
-		{ "ParticleSetEmission", &WrapperImplement::ParticleSetEmission },
 		// 截图函数
 		{ "Snapshot", &WrapperImplement::Snapshot },
 		// 声音控制函数

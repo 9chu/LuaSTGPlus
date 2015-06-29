@@ -359,6 +359,29 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 		细节
 			由于NextObject行为发生变更，ObjList只在for循环中使用时可以获得兼容性。
 
+- ParticleFire(object)
+	
+	启动绑定在对象上的粒子发射器。
+
+- ParticleStop(object)
+
+	停止绑定在对象上的粒子发射器。
+
+- ParticleGetn(object)
+
+	返回绑定在对象上的粒子发射器的存活粒子数。
+
+- ParticleGetEmission(object)
+
+	获取绑定在对象上粒子发射器的发射密度。（个/秒）
+
+		细节
+			luastg/luastg+更新粒子发射器的时钟始终为1/60s。
+
+- ParticleSetEmission(object, count)
+
+	设置绑定在对象上粒子发射器的发射密度。（个/秒）
+
 ### 资源管理系统
 
 	luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用于存放不同用途的资源。
@@ -429,10 +452,17 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	含义类似于SetImageCenter。
 
+- LoadPS(name:string, def\_file:string, img_name:string, [a:number, [b:number, [rect:boolean]]])
+
+	装载粒子系统。def\_file为定义文件，img_name为粒子图片。a、b、rect含义同上。
+
+	使用HGE所用的粒子文件结构。
+
 ### 渲染方法
 
 	luastg/luastg+使用笛卡尔坐标系（右正上正）作为窗口坐标系，且以屏幕左下角作为原点，Viewport、鼠标消息将以此作为基准。
 	luastg/luastg+中存在一个全局图像缩放系数，用于在不同模式下进行渲染，该系数将会影响对象的渲染大小、与图像绑定的碰撞大小和部分渲染函数。
+	luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这一工作。
 	另外，从luastg+开始，渲染和更新将被独立在两个函数中进行。所有的渲染操作必须在RenderFunc中执行。
 
 - BeginScene()
@@ -459,7 +489,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 	设置正投影矩阵。left表示x轴最小值，right表示x轴最大值，bottom表示y轴最小值，top表示y轴最大值。
 
 		细节
-			创建的正投影矩阵将把z轴限制在[0,100]区间内。
+			创建的正投影矩阵将把z轴限制在[0,1]区间内。
 
 - SetPerspective(eyeX:number, eyeY:number, eyeZ:number, atX:number, atY:number, atZ:number, upX:number, upY:number, upZ:number, fovy:number, aspect:number, zn:number, zf:number)
 
@@ -473,19 +503,13 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	该函数受全局图像缩放系数影响。
 
-	该函数不适用于3D渲染。
-
 - RenderRect(image_name:string, left:number, right:number, bottom:number, top:number)
 
 	在一个矩阵范围渲染图像。此时z=0.5。
 
-	该函数不适用于3D渲染。
-
 - Render4V(image_name:string, x1:number, y1:number, z1:number, x2:number, y2:number, z2:number, x3:number, y3:number, z3:number, x4:number, y4:number, z4:number)
 
 	给出四个顶点渲染图像。此时z=0.5。
-
-	该函数不适用于2D渲染。
 
 - SetFog([near:number, far:number, [color:lstgColor = 0x00FFFFFF]])
 

@@ -334,6 +334,9 @@ bool AppFrame::Init()LNOEXCEPT
 	m_pRenderDev = m_pRenderer->GetDevice();
 	m_pSoundSys = m_pEngine->GetSoundSys();
 
+	// luastg不使用ZBuffer，将其关闭。
+	m_pRenderDev->SetZBufferEnable(false);
+
 	// 创建渲染器
 	if (FCYFAILED(m_pRenderDev->CreateGraphics2D(1024, 2048, &m_Graph2D)))
 	{
@@ -344,7 +347,7 @@ bool AppFrame::Init()LNOEXCEPT
 	m_Graph2DBlendState = m_Graph2D->GetBlendState();
 	m_Graph2DColorBlendState = m_Graph2D->GetColorBlendType();
 	m_bRenderStarted = false;
-
+	
 	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
 	m_pMainWindow->MoveToCenter();
 	m_pMainWindow->SetVisiable(true);
