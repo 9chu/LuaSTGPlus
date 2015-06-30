@@ -3,11 +3,92 @@
 
 #include <iowin32.h>
 
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
 using namespace std;
 using namespace LuaSTGPlus;
 
 FixedObjectPool<ResParticle::PARTICLE_POD, LPARTICLESYS_MAX> ResParticle::s_MemoryPool;
 
+class ConstVectorStream :
+	public fcyRefObjImpl<fcyStream>
+{
+private:
+	fLen m_iPosition = 0;
+	const std::vector<char>& m_Org;
+public: // 接口实现
+	fBool CanWrite() { return false; }
+	fBool CanResize() { return false; }
+	fLen GetLength() { return m_Org.size(); }
+	fResult SetLength(fLen Length) { return FCYERR_ILLEGAL; }
+	fLen GetPosition() { return m_iPosition; }
+	fResult SetPosition(FCYSEEKORIGIN Origin, fLong Offset)
+	{
+		switch (Origin)
+		{
+		case FCYSEEKORIGIN_BEG:
+			m_iPosition = Offset < 0 ? 0 : (fLen)Offset;
+			break;
+		case FCYSEEKORIGIN_CUR:
+			m_iPosition = (fLen)::max((fLong)0, ::min((fLong)m_Org.size(), (fLong)m_iPosition + Offset));
+			break;
+		case FCYSEEKORIGIN_END:
+			m_iPosition = (fLen)::max((fLong)0, ::min((fLong)m_Org.size(), (fLong)m_Org.size() + Offset));
+			break;
+		}
+		return FCYERR_OK;
+	}
+	fResult ReadBytes(fData pData, fLen Length, fLen* pBytesRead)
+	{
+		if (pBytesRead)
+			*pBytesRead = 0;
+		if (Length == 0)
+			return FCYERR_OK;
+		if (!pData)
+			return FCYERR_INVAILDPARAM;
+
+		fLen tRestSize = m_Org.size() - m_iPosition;
+
+		if (tRestSize == 0)
+			return FCYERR_OUTOFRANGE;
+
+		if (tRestSize<Length)
+		{
+			memcpy(pData, &m_Org[(vector<char>::size_type)m_iPosition], (size_t)tRestSize);
+			m_iPosition += tRestSize;
+			if (pBytesRead)
+				*pBytesRead = tRestSize;
+			return FCYERR_OUTOFRANGE;
+		}
+		else
+		{
+			memcpy(pData, &m_Org[(vector<char>::size_type)m_iPosition], (size_t)Length);
+			m_iPosition += Length;
+			if (pBytesRead)
+				*pBytesRead = Length;
+			return FCYERR_OK;
+		}
+	}
+	fResult WriteBytes(fcData pSrc, fLen Length, fLen* pBytesWrite)
+	{
+		return FCYERR_ILLEGAL;
+	}
+	void Lock() {}
+	fResult TryLock() { return FCYERR_OK; }
+	void Unlock() {}
+public:
+	ConstVectorStream(const std::vector<char>& org)
+		: m_Org(org) {}
+};
+
+////////////////////////////////////////////////////////////////////////////////
+/// ResAnimation
+////////////////////////////////////////////////////////////////////////////////
 ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, float x, float y, float w, float h,
 	int n, int m, int intv, double a, double b, bool rect)
 	: Resource(ResourceType::Animation, name), m_Interval(intv), m_HalfSizeX(a), m_HalfSizeY(b), m_bRectangle(rect)
@@ -33,6 +114,9 @@ ResAnimation::ResAnimation(const char* name, fcyRefPointer<ResTexture> tex, floa
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// ResParticle
+////////////////////////////////////////////////////////////////////////////////
 ResParticle::ResParticle(const char* name, const ParticleInfo& pinfo, fcyRefPointer<f2dSprite> sprite, BlendMode bld, double a, double b, bool rect)
 	: Resource(ResourceType::Particle, name), m_ParticleInfo(pinfo), m_BindedSprite(sprite), m_BlendMode(bld), m_HalfSizeX(a), m_HalfSizeY(b), m_bRectangle(rect)
 {
@@ -187,6 +271,129 @@ void ResParticle::ParticlePool::Render(f2dGraphics2D* graph, float scaleX, float
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// ResFont
+////////////////////////////////////////////////////////////////////////////////
+void ResFont::HGEFont::ReadDefine(const std::wstring& data, std::unordered_map<wchar_t, f2dGlyphInfo>& out, std::wstring& tex)
+{
+	out.clear();
+	tex.clear();
+
+	std::vector<std::wstring> tLines;
+	fcyStringHelper::StringSplit(data, L"\n", true, tLines);
+	for (auto& i : tLines)
+	{
+		i = fcyStringHelper::Trim(i);
+	}
+
+	// 第一行必须是HGEFONT
+	if (tLines.size() <= 1 || tLines[0] != L"[HGEFONT]")
+		throw fcyException("ResFont::HGEFont::readDefine", "Bad file format.");
+
+	for (size_t i = 1; i < tLines.size(); ++i)
+	{
+		wstring& tLine = tLines[i];
+		if (tLine.size() == 0)
+			continue;
+
+		wstring::size_type tPos;
+		if (string::npos == (tPos = tLine.find_first_of(L"=")))
+			throw fcyException("ResFont::HGEFont::readDefine", "Bad file format.");
+		wstring tKey = tLine.substr(0, tPos);
+		wstring tValue = tLine.substr(tPos + 1, tLine.size() - tPos - 1);
+		if (tKey == L"Bitmap")
+			tex = tValue;
+		else if (tKey == L"Char")
+		{
+			wchar_t c;
+			int c_hex;
+			float x, y, w, h, left_offset, right_offset;
+			if (7 != swscanf(tValue.c_str(), L"\"%c\",%f,%f,%f,%f,%f,%f", &c, &x, &y, &w, &h, &left_offset, &right_offset))
+			{
+				if (7 != swscanf(tValue.c_str(), L"%X,%f,%f,%f,%f,%f,%f", &c_hex, &x, &y, &w, &h, &left_offset, &right_offset))
+					throw fcyException("ResFont::HGEFont::readDefine", "Bad file format.");
+				c = static_cast<wchar_t>(c_hex);
+			}
+
+			// 计算到f2d字体偏移量
+			f2dGlyphInfo tInfo = {
+				fcyRect(x, y, x + w, y + h),
+				fcyVec2(w, h),
+				fcyVec2(-left_offset, h),
+				fcyVec2(w + left_offset + right_offset, 0)
+			};
+			if (out.find(c) != out.end())
+				throw fcyException("ResFont::HGEFont::readDefine", "Duplicated character defination.");
+			out.emplace(c, tInfo);
+		}
+		else
+			throw fcyException("ResFont::HGEFont::readDefine", "Bad file format.");
+	}
+
+	if (tex.empty())
+		throw fcyException("ResFont::HGEFont::readDefine", "Bad file format.");
+}
+
+ResFont::HGEFont::HGEFont(std::unordered_map<wchar_t, f2dGlyphInfo>&& org, fcyRefPointer<f2dTexture2D> pTex)
+	: m_Charset(std::move(org)), m_pTex(pTex)
+{
+	// 计算最高行作为LineHeight
+	m_fLineHeight = 0;
+	for (auto i = m_Charset.begin(); i != m_Charset.end(); ++i)
+		m_fLineHeight = ::max(m_fLineHeight, i->second.GlyphSize.y);
+
+	// 修正纹理坐标
+	for (auto& i : m_Charset)
+	{
+		i.second.GlyphPos.a.x /= pTex->GetWidth();
+		i.second.GlyphPos.b.x /= pTex->GetWidth();
+		i.second.GlyphPos.a.y /= pTex->GetHeight();
+		i.second.GlyphPos.b.y /= pTex->GetHeight();
+	}
+}
+
+fFloat ResFont::HGEFont::GetLineHeight()
+{
+	return m_fLineHeight + 1.f;
+}
+
+fFloat ResFont::HGEFont::GetAscender()
+{
+	return m_fLineHeight;
+}
+
+fFloat ResFont::HGEFont::GetDescender()
+{
+	return 0.f;
+}
+
+f2dTexture2D* ResFont::HGEFont::GetCacheTexture()
+{
+	return m_pTex;
+}
+
+fResult ResFont::HGEFont::CacheString(fcStrW String)
+{
+	return FCYERR_OK;  // 纹理字体不需要实现CacheString
+}
+
+fResult ResFont::HGEFont::QueryGlyph(f2dGraphics* pGraph, fCharW Character, f2dGlyphInfo* InfoOut)
+{
+	unordered_map<wchar_t, f2dGlyphInfo>::iterator i = m_Charset.find(Character);
+
+	if (i == m_Charset.end())
+		return FCYERR_OBJNOTEXSIT;
+
+	*InfoOut = i->second;
+
+	return FCYERR_OK;
+}
+
+ResFont::ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont)
+	: Resource(ResourceType::SpriteFont, name), m_pFontProvider(pFont)
+{
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// ResourcePool
 ////////////////////////////////////////////////////////////////////////////////
 void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCEPT
@@ -196,7 +403,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 	{
 	case ResourceType::Texture:
 		lua_newtable(L);  // t
-		for (auto i : m_TexturePool)
+		for (auto& i : m_TexturePool)
 		{
 			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
@@ -204,7 +411,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Sprite:
 		lua_newtable(L);  // t
-		for (auto i : m_SpritePool)
+		for (auto& i : m_SpritePool)
 		{
 			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
@@ -212,7 +419,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Animation:
 		lua_newtable(L);  // t
-		for (auto i : m_AnimationPool)
+		for (auto& i : m_AnimationPool)
 		{
 			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
@@ -226,7 +433,7 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Particle:
 		lua_newtable(L);  // t
-		for (auto i : m_ParticlePool)
+		for (auto& i : m_ParticlePool)
 		{
 			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
@@ -234,9 +441,19 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::SpriteFont:
 		lua_newtable(L);  // t
+		for (auto& i : m_SpriteFontPool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
-	case ResourceType::TrueType:
+	case ResourceType::TrueTypeFont:
 		lua_newtable(L);  // t
+		for (auto& i : m_TTFFontPool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
 	default:
 		lua_pushnil(L);
@@ -256,11 +473,8 @@ bool ResourcePool::LoadTexture(const char* name, const std::wstring& path, bool 
 	
 	vector<char> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
-	{
-		LERROR("LoadTexture: 无法装载文件'%s'", path.c_str());
 		return false;
-	}
-	
+
 	fcyRefPointer<f2dTexture2D> tTexture;
 	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
 	{
@@ -473,6 +687,269 @@ LNOINLINE bool ResourcePool::LoadParticle(const char* name, const char* path, co
 	}
 }
 
+bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, bool mipmaps)LNOEXCEPT
+{
+	LASSERT(LAPP.GetRenderer());
+
+	if (m_SpriteFontPool.find(name) != m_SpriteFontPool.end())
+	{
+		LWARNING("LoadFont: 字体'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	std::unordered_map<wchar_t, f2dGlyphInfo> tOutputCharset;
+	std::wstring tOutputTextureName;
+
+	// 读取文件
+	std::vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+		return false;
+
+	// 转换编码
+	wstring tFileData;
+	try
+	{
+		if (tDataBuf.size() > 0)
+		{
+			// stupid
+			tFileData = fcyStringHelper::MultiByteToWideChar(string(tDataBuf.data(), tDataBuf.size()), CP_UTF8);
+		}
+		tDataBuf.clear();
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 转换编码时无法分配内存");
+		return false;
+	}
+
+	// 读取HGE字体定义
+	try
+	{
+		ResFont::HGEFont::ReadDefine(tFileData, tOutputCharset, tOutputTextureName);
+	}
+	catch (const fcyException& e)
+	{
+		LERROR("LoadFont: 装载HGE字体定义文件'%s'失败 (异常信息'%m' 源'%m')", path.c_str(), e.GetDesc(), e.GetSrc());
+		return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 内存不足");
+		return false;
+	}
+
+	// 装载纹理
+	try
+	{
+		if (!m_pMgr->LoadFile((fcyPathParser::GetPath(path) + tOutputTextureName).c_str(), tDataBuf))
+			return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 内存不足");
+		return false;
+	}
+
+	fcyRefPointer<f2dTexture2D> tTexture;
+	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
+	{
+		LERROR("LoadFont: 从文件'%s'创建纹理'%m'失败", tOutputTextureName.c_str(), name);
+		return false;
+	}
+
+	// 创建定义
+	try
+	{
+		fcyRefPointer<f2dFontProvider> tFontProvider;
+		tFontProvider.DirectSet(new ResFont::HGEFont(std::move(tOutputCharset), tTexture));
+
+		fcyRefPointer<ResFont> tRes;
+		tRes.DirectSet(new ResFont(name, tFontProvider));
+		m_SpriteFontPool.emplace(name, tRes);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 内存不足");
+		return false;
+	}
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadFont: 纹理字体'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, const std::wstring& tex_path, bool mipmaps)LNOEXCEPT
+{
+	LASSERT(LAPP.GetRenderer());
+
+	if (m_SpriteFontPool.find(name) != m_SpriteFontPool.end())
+	{
+		LWARNING("LoadFont: 字体'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	// 读取文件
+	std::vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+		return false;
+
+	// 转换编码
+	wstring tFileData;
+	try
+	{
+		if (tDataBuf.size() > 0)
+		{
+			// stupid
+			tFileData = fcyStringHelper::MultiByteToWideChar(string(tDataBuf.data(), tDataBuf.size()), CP_UTF8);
+		}
+		tDataBuf.clear();
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 转换编码时无法分配内存");
+		return false;
+	}
+
+	// 装载纹理
+	try
+	{
+		if (!m_pMgr->LoadFile((fcyPathParser::GetPath(path) + tex_path).c_str(), tDataBuf))
+		{
+			if (!m_pMgr->LoadFile(tex_path.c_str(), tDataBuf))
+				return false;
+		}
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 内存不足");
+		return false;
+	}
+
+	fcyRefPointer<f2dTexture2D> tTexture;
+	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
+	{
+		LERROR("LoadFont: 从文件'%s'创建纹理'%m'失败", tex_path.c_str(), name);
+		return false;
+	}
+
+	// 创建定义
+	try
+	{
+		fcyRefPointer<f2dFontProvider> tFontProvider;
+		if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromTex(tFileData.c_str(), tTexture, &tFontProvider)))
+		{
+			LERROR("LoadFont: 从文件'%s'创建纹理字体失败", path.c_str());
+			return false;
+		}
+
+		fcyRefPointer<ResFont> tRes;
+		tRes.DirectSet(new ResFont(name, tFontProvider));
+		m_SpriteFontPool.emplace(name, tRes);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFont: 内存不足");
+		return false;
+	}
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadFont: 纹理字体'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadSpriteFont(const char* name, const char* path, bool mipmaps)LNOEXCEPT
+{
+	try
+	{
+		return LoadSpriteFont(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8), mipmaps);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadSpriteFont: 转换编码时无法分配内存");
+		return false;
+	}
+}
+
+LNOINLINE bool ResourcePool::LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps)LNOEXCEPT
+{
+	try
+	{
+		return LoadSpriteFont(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8), fcyStringHelper::MultiByteToWideChar(tex_path, CP_UTF8), mipmaps);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadSpriteFont: 转换编码时无法分配内存");
+		return false;
+	}
+}
+
+bool ResourcePool::LoadTTFFont(const char* name, const std::wstring& path, float width, float height)LNOEXCEPT
+{
+	LASSERT(LAPP.GetRenderer());
+
+	if (m_TTFFontPool.find(name) != m_TTFFontPool.end())
+	{
+		LWARNING("LoadTTFFont: 字体'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	fcyRefPointer<f2dFontProvider> tFontProvider;
+
+	// 读取文件
+	std::vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+	{
+		LINFO("LoadTTFFont: 无法在路径'%s'上加载字体，尝试以系统字体对待并加载系统字体", path.c_str());
+		if (FCYFAILED(LAPP.GetRenderer()->CreateSystemFont(path.c_str(), 0, fcyVec2(width, height) * 0.5f, F2DFONTFLAG_NONE, &tFontProvider)))  // WHY 0.5??
+		{
+			LERROR("LoadTTFFont: 尝试失败，无法从路径'%s'上加载字体", path.c_str());
+			return false;
+		}
+	}
+
+	ConstVectorStream tVecStream(tDataBuf);
+
+	// 创建定义
+	try
+	{
+		if (!tFontProvider)
+		{
+			if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromFile(&tVecStream, 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
+			{
+				LERROR("LoadTTFFont: 从文件'%s'创建纹理字体失败", path.c_str());
+				return false;
+			}
+		}
+
+		fcyRefPointer<ResFont> tRes;
+		tRes.DirectSet(new ResFont(name, tFontProvider));
+		tRes->SetBlendMode(BlendMode::AddAlpha);
+		m_TTFFontPool.emplace(name, tRes);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadTTFFont: 内存不足");
+		return false;
+	}
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadTTFFont: truetype字体'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadTTFFont(const char* name, const char* path, float width, float height)LNOEXCEPT
+{
+	try
+	{
+		return LoadTTFFont(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8), width, height);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadTTFFont: 转换编码时无法分配内存");
+		return false;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// ResourcePack
 ////////////////////////////////////////////////////////////////////////////////
@@ -623,7 +1100,7 @@ void ResourceMgr::UnloadPack(const wchar_t* path)LNOEXCEPT
 	{
 		wstring tPath = path;
 		pathUniform(tPath.begin(), tPath.end());
-		for (auto i = m_ResPackList.begin(); i != m_ResPackList.end(); ++i)
+		for (auto& i = m_ResPackList.begin(); i != m_ResPackList.end(); ++i)
 		{
 			if (i->GetPathLowerCase() == tPath)
 			{
@@ -693,7 +1170,7 @@ LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& out
 	}
 	catch (const fcyException& e)
 	{
-		LERROR("ResourceMgr: 装载本地文件'%s'失败 (异常信息'%m' 源'%m')", path, e.GetDesc(), e.GetSrc());
+		LERROR("ResourceMgr: 装载本地文件'%s'失败，文件不存在？ (异常信息'%m' 源'%m')", path, e.GetDesc(), e.GetSrc());
 		return false;
 	}
 

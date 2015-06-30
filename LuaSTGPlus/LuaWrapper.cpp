@@ -264,6 +264,40 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				luaL_error(L, "invalid blend mode '%s'.", s);
 			return BlendMode::MulAlpha;
 		}
+		static inline void TranslateAlignMode(lua_State* L, int argnum, ResFont::FontAlignHorizontal& halign, ResFont::FontAlignVertical& valign)
+		{
+			int e = luaL_checkinteger(L, argnum);
+			switch (e & 0x03)  // HGETEXT_HORZMASK
+			{
+			case 0:  // HGETEXT_LEFT
+				halign = ResFont::FontAlignHorizontal::Left;
+				break;
+			case 1:  // HGETEXT_CENTER
+				halign = ResFont::FontAlignHorizontal::Center;
+				break;
+			case 2:  // HGETEXT_RIGHT
+				halign = ResFont::FontAlignHorizontal::Right;
+				break;
+			default:
+				luaL_error(L, "invalid align mode.");
+				return;
+			}
+			switch (e & 0x0C)  // HGETEXT_VERTMASK
+			{
+			case 0:  // HGETEXT_TOP
+				valign = ResFont::FontAlignVertical::Top;
+				break;
+			case 4:  // HGETEXT_MIDDLE
+				valign = ResFont::FontAlignVertical::Middle;
+				break;
+			case 8:  // HGETEXT_BOTTOM
+				valign = ResFont::FontAlignVertical::Bottom;
+				break;
+			default:
+				luaL_error(L, "invalid align mode.");
+				return;
+			}
+		}
 
 		// 框架函数
 		static int SetWindowed(lua_State* L)LNOEXCEPT
@@ -610,11 +644,11 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			switch (lua_gettop(L))
 			{
 			case 2:
-				if (!LRES.GetActivedPool()->LoadTexture(name, path))
+				if (!pActivedPool->LoadTexture(name, path))
 					return luaL_error(L, "can't load texture from file '%s'.", path);
 				break;
 			case 3:
-				if (!LRES.GetActivedPool()->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
+				if (!pActivedPool->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
 					return luaL_error(L, "can't load texture from file '%s'.", path);
 				break;
 			default:
@@ -711,10 +745,52 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int LoadFont(lua_State* L)LNOEXCEPT
 		{
+			bool bSucceed = false;
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (lua_gettop(L) == 2)
+			{
+				// HGE字体 mipmap=true
+				bSucceed = pActivedPool->LoadSpriteFont(name, path);
+			}
+			else
+			{
+				if (lua_isboolean(L, 3))
+				{
+					// HGE字体 mipmap=user_defined
+					bSucceed = pActivedPool->LoadSpriteFont(name, path, lua_toboolean(L, 3) == 0 ? false : true);
+				}
+				else
+				{
+					// fancy2d字体
+					const char* texpath = luaL_checkstring(L, 3);
+					if (lua_gettop(L) == 4)
+						bSucceed = pActivedPool->LoadSpriteFont(name, path, texpath, lua_toboolean(L, 4) == 0 ? false : true);
+					else
+						bSucceed = pActivedPool->LoadSpriteFont(name, path, texpath);
+				}
+			}
+
+			if (!bSucceed)
+				return luaL_error(L, "can't load font from file '%s'.", path);
 			return 0;
 		}
 		static int LoadTTF(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (!pActivedPool->LoadTTFFont(name, path, (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4)))
+				return luaL_error(L, "load ttf font failed (name=%s, path=%s)", name, path);
 			return 0;
 		}
 		static int GetTextureSize(lua_State* L)LNOEXCEPT
@@ -806,10 +882,16 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetFontState(lua_State* L)LNOEXCEPT
 		{
-			return 0;
-		}
-		static int SetFontState2(lua_State* L)LNOEXCEPT
-		{
+			ResFont* p = LRES.FindSpriteFont(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "sprite font '%s' not found.", luaL_checkstring(L, 1));
+
+			p->SetBlendMode(TranslateBlendMode(L, 2));
+			if (lua_gettop(L) == 3)
+			{
+				fcyColor c = *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR));
+				p->SetBlendColor(c);
+			}
 			return 0;
 		}
 		static int SetAnimationState(lua_State* L)LNOEXCEPT
@@ -971,20 +1053,85 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				static_cast<float>(luaL_checknumber(L, 13))
 			))
 			{
-				return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
+				return luaL_error(L, "can't render '%m'.", luaL_checkstring(L, 1));
 			}
 			return 0;
 		}
 		static int RenderText(lua_State* L)LNOEXCEPT
 		{
+			ResFont::FontAlignHorizontal halign = ResFont::FontAlignHorizontal::Center;
+			ResFont::FontAlignVertical valign = ResFont::FontAlignVertical::Middle;
+			if (lua_gettop(L) == 6)
+				TranslateAlignMode(L, 6, halign, valign);
+			if (!LAPP.RenderText(
+				luaL_checkstring(L, 1),
+				luaL_checkstring(L, 2),
+				(float)luaL_checknumber(L, 3),
+				(float)luaL_checknumber(L, 4),
+				(float)(luaL_optnumber(L, 5, 1.0) * LRES.GetGlobalImageScaleFactor()),
+				halign,
+				valign
+				))
+			{
+				return luaL_error(L, "can't draw text '%m'.", luaL_checkstring(L, 1));
+			}	
 			return 0;
 		}
 		static int RenderTexture(lua_State* L)LNOEXCEPT
 		{
+			const char* tex_name = luaL_checkstring(L, 1);
+			BlendMode blend = TranslateBlendMode(L, 2);
+			f2dGraphics2DVertex vertex[4];
+
+			for (int i = 0; i < 4; ++i)
+			{
+				lua_pushinteger(L, 1);
+				lua_gettable(L, 3 + i);
+				vertex[i].x = (float)lua_tonumber(L, -1);
+
+				lua_pushinteger(L, 2);
+				lua_gettable(L, 3 + i);
+				vertex[i].y = (float)lua_tonumber(L, -1);
+				
+				lua_pushinteger(L, 3);
+				lua_gettable(L, 3 + i);
+				vertex[i].z = (float)lua_tonumber(L, -1);
+
+				lua_pushinteger(L, 4);
+				lua_gettable(L, 3 + i);
+				vertex[i].u = (float)lua_tonumber(L, -1);
+
+				lua_pushinteger(L, 5);
+				lua_gettable(L, 3 + i);
+				vertex[i].v = (float)lua_tonumber(L, -1);
+
+				lua_pushinteger(L, 6);
+				lua_gettable(L, 3 + i);
+				vertex[i].color = static_cast<fcyColor*>(luaL_checkudata(L, -1, TYPENAME_COLOR))->argb;
+
+				lua_pop(L, 6);
+			}
+
+			if (!LAPP.RenderTexture(tex_name, blend, vertex))
+				return luaL_error(L, "can't render texture '%s'.", tex_name);
 			return 0;
 		}
 		static int RenderTTF(lua_State* L)LNOEXCEPT
 		{
+			if (!LAPP.RenderTTF(
+				luaL_checkstring(L, 1),
+				luaL_checkstring(L, 2),
+				(float)luaL_checknumber(L, 3),
+				(float)luaL_checknumber(L, 4),
+				(float)luaL_checknumber(L, 5),
+				(float)luaL_checknumber(L, 6),
+				LRES.GetGlobalImageScaleFactor(),
+				luaL_checkinteger(L, 7),
+				*static_cast<fcyColor*>(luaL_checkudata(L, -1, TYPENAME_COLOR))
+			))
+			{
+				return luaL_error(L, "can't render font '%s'.", luaL_checkstring(L, 1));
+			}	
 			return 0;
 		}
 		static int RegTTF(lua_State* L)LNOEXCEPT
@@ -1206,7 +1353,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "SetImageScale", &WrapperImplement::SetImageScale },
 		{ "SetImageState", &WrapperImplement::SetImageState },
 		{ "SetFontState", &WrapperImplement::SetFontState },
-		{ "SetFontState2", &WrapperImplement::SetFontState2 },
 		{ "SetAnimationState", &WrapperImplement::SetAnimationState },
 		{ "SetImageCenter", &WrapperImplement::SetImageCenter },
 		{ "SetAnimationCenter", &WrapperImplement::SetAnimationCenter },

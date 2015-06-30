@@ -10,6 +10,44 @@ extern "C" int luaopen_lfs(lua_State *L);
 using namespace std;
 using namespace LuaSTGPlus;
 
+#ifdef LSHOWFONTBASELINE
+class FontBaseLineDebugHelper :
+	public f2dFontRendererListener
+{
+private:
+	f2dGraphics2D* m_pGraph2D;
+	f2dGeometryRenderer* m_pGRenderer;
+protected:
+	fBool OnGlyphBeginDraw(fuInt Index, fCharW Character, fcyVec2& DrawPos, fcyVec2& Adv)
+	{
+		m_pGRenderer->SetPenColor(0, fcyColor(0xFF00FFFF));
+		m_pGRenderer->SetPenColor(1, fcyColor(0xFF00FFFF));
+		m_pGRenderer->SetPenColor(2, fcyColor(0xFF00FFFF));
+		m_pGRenderer->SetPenColor(3, fcyColor(0xFF00FFFF));
+		m_pGRenderer->SetPenSize(3.f);
+		m_pGRenderer->DrawCircle(m_pGraph2D, DrawPos, 2.f, 12);
+		m_pGRenderer->SetPenColor(0, fcyColor(0xFF00FF00));
+		m_pGRenderer->SetPenColor(1, fcyColor(0xFF00FF00));
+		m_pGRenderer->SetPenColor(2, fcyColor(0xFF00FF00));
+		m_pGRenderer->SetPenColor(3, fcyColor(0xFF00FF00));
+		m_pGRenderer->DrawLine(m_pGraph2D, DrawPos, DrawPos + Adv);
+		return true;
+	}
+	void OnGlyphCalcuCoord(f2dGraphics2DVertex pVerts[]) { }
+public:
+	FontBaseLineDebugHelper(f2dGraphics2D* G, f2dGeometryRenderer* GR, fcyRect BaseRect)
+		: m_pGraph2D(G), m_pGRenderer(GR)
+	{
+		m_pGRenderer->SetPenColor(0, fcyColor(0xFFFF0000));
+		m_pGRenderer->SetPenColor(1, fcyColor(0xFFFF0000));
+		m_pGRenderer->SetPenColor(2, fcyColor(0xFFFF0000));
+		m_pGRenderer->SetPenColor(3, fcyColor(0xFFFF0000));
+		m_pGRenderer->SetPenSize(2.f);
+		m_pGRenderer->DrawRectangle(G, BaseRect);
+	}
+};
+#endif
+
 LNOINLINE AppFrame& AppFrame::GetInstance()
 {
 	static AppFrame s_Instance;
@@ -244,6 +282,176 @@ void AppFrame::SetFog(float start, float end, fcyColor color)
 		pDev->SetRenderState(D3DRS_FOGENABLE, FALSE);
 }
 
+bool AppFrame::RenderText(ResFont* p, wchar_t* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT
+{
+	if (m_GraphType != GraphicsType::Graph2D)
+	{
+		LERROR("RenderText: 只有2D渲染器可以执行该方法");
+		return false;
+	}
+
+	// 准备渲染字体
+	m_FontRenderer->SetFontProvider(p->GetFontProvider());
+	m_FontRenderer->SetScale(fcyVec2(scale, scale));
+	fcyRect tRect = m_FontRenderer->MeasureString(str, false);
+
+	// 根据对齐信息决定渲染位置
+	fcyVec2 tRenderPos(x, y);
+	switch (valign)
+	{
+	case ResFont::FontAlignVertical::Middle:
+		tRenderPos.y += tRect.GetHeight() / 2.f;
+		break;
+	case ResFont::FontAlignVertical::Bottom:
+		tRenderPos.y += tRect.GetHeight();
+		break;
+	case ResFont::FontAlignVertical::Top:
+	default:
+		break;
+	}
+	switch (halign)
+	{
+	case ResFont::FontAlignHorizontal::Center:
+		tRenderPos.x -= tRect.GetWidth() / 2.f;
+		break;
+	case ResFont::FontAlignHorizontal::Right:
+		tRenderPos.x -= tRect.GetWidth();
+		break;
+	case ResFont::FontAlignHorizontal::Left:
+	default:
+		break;
+	}
+
+	// 设置混合
+	updateGraph2DBlendMode(p->GetBlendMode());
+
+	// 设置颜色
+	m_FontRenderer->SetColor(p->GetBlendColor());
+
+	// 基线偏移
+	tRenderPos.y -= (p->GetFontProvider()->GetAscender() * scale);
+
+	// 逐行渲染，以达到对齐效果
+	wchar_t* pText = str;
+	wchar_t* pScanner = pText;
+	int iLineCount = 0;
+	bool bEOS = false;
+	while (!bEOS)
+	{
+		while (*pScanner != L'\0' && *pScanner != '\n')
+			++pScanner;
+		if (*pScanner == L'\0')
+			bEOS = true;
+		else
+			*pScanner = L'\0';
+
+		++iLineCount;
+
+		// 渲染从pText~pScanner的文字
+		float tTextWidth = m_FontRenderer->MeasureStringWidth(pText);
+		switch (halign)
+		{
+		case ResFont::FontAlignHorizontal::Center:
+			m_FontRenderer->DrawTextW2(m_Graph2D, pText,
+				fcyVec2(tRenderPos.x + tRect.GetWidth() / 2.f - tTextWidth / 2.f, tRenderPos.y));
+			break;
+		case ResFont::FontAlignHorizontal::Right:
+			m_FontRenderer->DrawTextW2(m_Graph2D, pText,
+				fcyVec2(tRenderPos.x + tRect.GetWidth() - tTextWidth, tRenderPos.y));
+			break;
+		case ResFont::FontAlignHorizontal::Left:
+		default:
+			m_FontRenderer->DrawTextW2(m_Graph2D, pText, tRenderPos);
+			break;
+		}
+
+		pText = ++pScanner;
+		tRenderPos.y -= p->GetFontProvider()->GetLineHeight() * scale;
+	}
+
+#ifdef LSHOWFONTBASELINE
+	m_FontRenderer->SetListener(nullptr);
+#endif
+
+	return true;
+}
+
+LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT
+{
+	fcyRefPointer<ResFont> p = m_ResourceMgr.FindSpriteFont(name);
+	if (!p)
+	{
+		LERROR("RenderText: 找不到文字资源'%m'", name);
+		return false;
+	}
+
+	// 编码转换
+	static std::wstring s_TempStringBuf;
+	try
+	{
+		Utf8ToUtf16(str, s_TempStringBuf);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("RenderText: 内存不足");
+		return false;
+	}
+
+	return RenderText(p, const_cast<wchar_t*>(s_TempStringBuf.data()), x, y, scale, halign, valign);
+}
+
+LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)
+{
+	fcyRefPointer<ResFont> p = m_ResourceMgr.FindTTFFont(name);
+	if (!p)
+	{
+		LERROR("RenderTTF: 找不到文字资源'%m'", name);
+		return false;
+	}
+
+	// 编码转换
+	static std::wstring s_TempStringBuf;
+	try
+	{
+		Utf8ToUtf16(str, s_TempStringBuf);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("RenderTTF: 内存不足");
+		return false;
+	}
+
+	ResFont::FontAlignHorizontal halign = ResFont::FontAlignHorizontal::Left;
+	ResFont::FontAlignVertical valign = ResFont::FontAlignVertical::Top;
+	float x = left;
+	float y = top;
+
+	if (right < left)
+		std::swap(left, right);
+	if (top < bottom)
+		std::swap(top, bottom);
+	if ((format & DT_CENTER) == DT_CENTER)
+	{
+		halign = ResFont::FontAlignHorizontal::Center;
+		x = (right - left) / 2.f + left;
+	}
+	if ((format & DT_VCENTER) == DT_VCENTER)
+	{
+		valign = ResFont::FontAlignVertical::Middle;
+		y = (top - bottom) / 2.f + bottom;
+	}
+
+	p->SetBlendColor(c);
+
+	return RenderText(p,
+		const_cast<wchar_t*>(s_TempStringBuf.data()),
+		x,
+		y,
+		scale, 
+		halign,
+		valign
+		);
+}
 #pragma endregion
 
 #pragma region 框架函数
@@ -284,14 +492,16 @@ bool AppFrame::Init()LNOEXCEPT
 	}
 
 	// 设置命令行参数
-	lua_newtable(L);
+	lua_getglobal(L, "lstg");  // t
+	lua_newtable(L);  // t t
 	for (int i = 0; i < __argc; ++i)
 	{
-		lua_pushnumber(L, i + 1);
-		lua_pushstring(L, __argv[i]);
-		lua_settable(L, -3);
+		lua_pushnumber(L, i + 1);  // t t i
+		lua_pushstring(L, __argv[i]);  // t t i s
+		lua_settable(L, -3);  // t t
 	}
-	lua_setglobal(L, "arg");
+	lua_setfield(L, -2, "args");  // t
+	lua_pop(L, 1);
 
 	//////////////////////////////////////// 装载初始化脚本
 	LINFO("装载初始化脚本'%s'", LLAUNCH_SCRIPT);
@@ -347,6 +557,21 @@ bool AppFrame::Init()LNOEXCEPT
 	m_Graph2DBlendState = m_Graph2D->GetBlendState();
 	m_Graph2DColorBlendState = m_Graph2D->GetColorBlendType();
 	m_bRenderStarted = false;
+
+	// 创建文字渲染器
+	if (FCYFAILED(m_pRenderer->CreateFontRenderer(nullptr, &m_FontRenderer)))
+	{
+		LERROR("无法创建字体渲染器 (fcyRenderer::CreateFontRenderer failed)");
+		return false;
+	}
+	m_FontRenderer->SetZ(0.5f);
+
+	// 创建图元渲染器
+	if (FCYFAILED(m_pRenderer->CreateGeometryRenderer(&m_GRenderer)))
+	{
+		LERROR("无法创建图元渲染器 (fcyRenderer::CreateGeometryRenderer failed)");
+		return false;
+	}
 	
 	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
 	m_pMainWindow->MoveToCenter();
@@ -378,6 +603,8 @@ void AppFrame::Shutdown()LNOEXCEPT
 	m_ResourceMgr.ClearAllResource();
 	LINFO("已清空所有资源");
 
+	m_GRenderer = nullptr;
+	m_FontRenderer = nullptr;
 	m_Graph2D = nullptr;
 	m_pEngine = nullptr;
 	m_pMainWindow = nullptr;

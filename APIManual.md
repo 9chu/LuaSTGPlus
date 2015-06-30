@@ -30,9 +30,13 @@
 
 ## 内建变量
 
-- arg:table
+- args:table **[不兼容]**
 
 	保存命令行参数
+
+		细节
+			luastg中该变量名称为arg，与老式可变参列表名称arg冲突。由于luajit不再支持使用arg访问可变参列表，为了减少编码错误，故将arg更名为lstg.args。
+			这可能会影响到launch中的代码。
 
 ## 内建类
 
@@ -458,6 +462,38 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	使用HGE所用的粒子文件结构。
 
+- LoadFont(name:string, def\_file:string, \[bind\_tex:string, mipmap:boolean=true\])
+
+	装载纹理字体。name指示名称，def\_file指示定义文件，mipmap指示是否创建纹理链，默认创建。bind\_tex参数为f2d纹理字体所用，指示绑定的纹理的完整路径。
+
+		细节
+			luastg+支持HGE的纹理字体和fancy2d的纹理字体（xml格式）。
+			对于hge字体，将根据定义文件在字体同级目录下寻找纹理文件，对于f2d字体，将使用bind_tex参数寻找纹理。
+
+- SetFontState(name:string, blend_mode:string, [color:lstgColor])
+
+	设置字体的颜色、混合模式。具体混合选项见上文。
+
+- SetFontState2(...)  **[移除]**
+
+	该方法用于设置HGE的纹理字体，luastg+不支持此方法。
+
+		细节
+			大部分现有代码中没有使用该方法，可以无视。
+
+- LoadTTF(name:string, path:string, width:number, height:number) **[不兼容]**
+
+	该方法用于加载TTF字体。name指定资源名称，path指定加载路径，width和height指定字形大小，建议设为相同值。
+
+		细节
+			LoadTTF方法相比luastg有巨大不同。由于使用内置的字体渲染引擎，当前实现下不需要将字体解压并导入系统。
+			但是相对的、无法使用诸如加粗、倾斜等效果。同时参数被缩减到4个。
+			此外，若无法在path所在位置加载字体文件，
+
+- RegTTF(...) **[否决]**
+
+	该函数不再起效。将于日后版本移除。
+
 ### 渲染方法
 
 	luastg/luastg+使用笛卡尔坐标系（右正上正）作为窗口坐标系，且以屏幕左下角作为原点，Viewport、鼠标消息将以此作为基准。
@@ -514,6 +550,49 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - SetFog([near:number, far:number, [color:lstgColor = 0x00FFFFFF]])
 
 	若参数为空，将关闭雾效果。否则设置一个从near到far的雾。
+
+- RenderText(name:string, text:string, x:number, y:number, [scale:number=1, align:integer=5])
+
+	使用纹理字体渲染一段文字。参数name指定纹理名称，text指定字符串，x、y指定坐标，align指定对齐模式。
+
+	该函数受全局图像缩放系数影响。
+
+		细节
+			对齐模式指定渲染中心，对齐模式可取值：
+				左上  0 + 0  0
+				左中  0 + 4  4
+				左下  0 + 8  8
+				中上  1 + 0  1
+				中中  1 + 4  5
+				中下  1 + 8  9
+				右上  2 + 0  2
+				右中  2 + 4  6
+				右下  2 + 8  10
+			由于使用了新的布局机制，在渲染HGE字体时在横向上会有少许误差，请手动调整。
+
+- RenderTexture(tex\_name:string, blend:string, vertex1:table, vertex2:table, vertex3:table, vertex4:table)
+
+	直接渲染纹理。
+
+		细节
+			vertex1~4指定各个顶点坐标，其中必须包含以下项：
+				[1] = X坐标
+				[2] = Y坐标
+				[3] = Z坐标
+				[4] = U坐标（以纹理大小为区间）
+				[5] = V坐标（以纹理大小为区间）
+				[6] = 顶点颜色
+			注意该函数效率较低，若要使用请考虑缓存顶点所用table。
+
+- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor)  **[不兼容]**
+
+	渲染TTF字体。
+
+	该函数受全局图像缩放系数影响。
+
+		细节
+			暂时不支持渲染格式设置。 
+			接口已统一到屏幕坐标系，不需要在代码中进行转换。
 
 ### 输入
 

@@ -50,6 +50,7 @@
 #include <fcyIO/fcyStream.h>
 #include <fcyIO/fcyBinaryHelper.h>
 #include <fcyParser/fcyPathParser.h>
+#include <fcyParser/fcyIni.h>
 #include <fcyMisc/fcyStringHelper.h>
 #include <fcyMisc/fcyRandom.h>
 #include <f2d.h>
@@ -105,7 +106,9 @@
 #define LDEBUG
 #endif
 
-#define LSHOWRESLOADINFO
+// 调试辅助
+#define LSHOWRESLOADINFO  // 显示加载信息
+#define LSHOWFONTBASELINE  // 显示文字基线
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())

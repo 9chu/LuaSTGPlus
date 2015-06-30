@@ -4,6 +4,7 @@
 #include "Global.h"
 #include "ResourceMgr.h"
 #include "GameObjectPool.h"
+#include "UnicodeStringEncoding.h"
 
 namespace LuaSTGPlus
 {
@@ -67,6 +68,8 @@ namespace LuaSTGPlus
 		BlendMode m_Graph2DLastBlendMode;
 		f2dBlendState m_Graph2DBlendState;
 		F2DGRAPH2DBLENDTYPE m_Graph2DColorBlendState;
+		fcyRefPointer<f2dGeometryRenderer> m_GRenderer;
+		fcyRefPointer<f2dFontRenderer> m_FontRenderer;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
 
 		fCharW m_LastChar;
@@ -259,14 +262,14 @@ namespace LuaSTGPlus
 		{
 			if (m_GraphType != GraphicsType::Graph2D)
 			{
-				LERROR("Render: 只有2D渲染器可以执行该方法");
+				LERROR("RenderRect: 只有2D渲染器可以执行该方法");
 				return false;
 			}
 
 			fcyRefPointer<ResSprite> p = m_ResourceMgr.FindSprite(name);
 			if (!p)
 			{
-				LERROR("Render: 找不到图像资源'%m'", name);
+				LERROR("RenderRect: 找不到图像资源'%m'", name);
 				return false;
 			}
 
@@ -286,14 +289,14 @@ namespace LuaSTGPlus
 		{
 			if (m_GraphType != GraphicsType::Graph2D)
 			{
-				LERROR("Render: 只有2D渲染器可以执行该方法");
+				LERROR("Render4V: 只有2D渲染器可以执行该方法");
 				return false;
 			}
 
 			fcyRefPointer<ResSprite> p = m_ResourceMgr.FindSprite(name);
 			if (!p)
 			{
-				LERROR("Render: 找不到图像资源'%m'", name);
+				LERROR("Render4V: 找不到图像资源'%m'", name);
 				return false;
 			}
 			
@@ -305,6 +308,43 @@ namespace LuaSTGPlus
 			pSprite->Draw(m_Graph2D, fcyVec3(x1, y1, z1), fcyVec3(x2, y2, z2), fcyVec3(x3, y3, z3), fcyVec3(x4, y4, z4), false);
 			return true;
 		}
+
+		/// @brief 渲染纹理
+		bool RenderTexture(const char* name, BlendMode blend, f2dGraphics2DVertex vertex[])LNOEXCEPT
+		{
+			if (m_GraphType != GraphicsType::Graph2D)
+			{
+				LERROR("RenderTexture: 只有2D渲染器可以执行该方法");
+				return false;
+			}
+
+			fcyRefPointer<ResTexture> p = m_ResourceMgr.FindTexture(name);
+			if (!p)
+			{
+				LERROR("RenderTexture: 找不到纹理资源'%m'", name);
+				return false;
+			}
+
+			// 设置混合
+			updateGraph2DBlendMode(blend);
+
+			// 修正UV到[0,1]区间
+			for (int i = 0; i < 4; ++i)
+			{
+				vertex[i].u /= (float)p->GetTexture()->GetWidth();
+				vertex[i].v /= (float)p->GetTexture()->GetHeight();
+			}	
+
+			m_Graph2D->DrawQuad(p->GetTexture(), vertex, false);
+			return true;
+		}
+
+		/// @brief 渲染文字
+		bool RenderText(ResFont* p, wchar_t* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT;
+
+		LNOINLINE bool RenderText(const char* name, const char* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT;
+
+		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c);
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
 		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }

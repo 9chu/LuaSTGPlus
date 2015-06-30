@@ -21,7 +21,7 @@ namespace LuaSTGPlus
 		SoundEffect,
 		Particle,
 		SpriteFont,
-		TrueType
+		TrueTypeFont
 	};
 
 	/// @brief 资源池类型
@@ -270,6 +270,57 @@ namespace LuaSTGPlus
 		ResParticle(const char* name, const ParticleInfo& pinfo, fcyRefPointer<f2dSprite> sprite, BlendMode bld, double a, double b, bool rect = false);
 	};
 
+	/// @brief 纹理字体
+	class ResFont :
+		public Resource
+	{
+	public:
+		enum class FontAlignHorizontal  // 水平对齐
+		{
+			Left,
+			Center,
+			Right
+		};
+		enum class FontAlignVertical  // 垂直对齐
+		{
+			Top,
+			Middle,
+			Bottom
+		};
+
+		class HGEFont :
+			public fcyRefObjImpl<f2dFontProvider>
+		{
+		public:
+			static void ReadDefine(const std::wstring& data, std::unordered_map<wchar_t, f2dGlyphInfo>& out, std::wstring& tex);
+		private:
+			fcyRefPointer<f2dTexture2D> m_pTex;
+			std::unordered_map<wchar_t, f2dGlyphInfo> m_Charset;
+			float m_fLineHeight;
+		public:
+			fFloat GetLineHeight();
+			fFloat GetAscender();
+			fFloat GetDescender();
+			f2dTexture2D* GetCacheTexture();
+			fResult CacheString(fcStrW String);
+			fResult QueryGlyph(f2dGraphics* pGraph, fCharW Character, f2dGlyphInfo* InfoOut);
+		public:
+			HGEFont(std::unordered_map<wchar_t, f2dGlyphInfo>&& org, fcyRefPointer<f2dTexture2D> pTex);
+		};
+	private:
+		fcyRefPointer<f2dFontProvider> m_pFontProvider;
+		BlendMode m_BlendMode = BlendMode::MulAlpha;
+		fcyColor m_BlendColor = fcyColor(0xFFFFFFFF);
+	public:
+		f2dFontProvider* GetFontProvider()LNOEXCEPT { return m_pFontProvider; }
+		BlendMode GetBlendMode()const LNOEXCEPT { return m_BlendMode; }
+		void SetBlendMode(BlendMode m)LNOEXCEPT { m_BlendMode = m; }
+		fcyColor GetBlendColor()const LNOEXCEPT { return m_BlendColor; }
+		void SetBlendColor(fcyColor c)LNOEXCEPT { m_BlendColor = c; }
+	public:
+		ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont);
+	};
+
 	/// @brief 资源池
 	class ResourcePool
 	{
@@ -281,6 +332,8 @@ namespace LuaSTGPlus
 		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
 		Dictionary<fcyRefPointer<ResAnimation>> m_AnimationPool;
 		Dictionary<fcyRefPointer<ResParticle>> m_ParticlePool;
+		Dictionary<fcyRefPointer<ResFont>> m_SpriteFontPool;
+		Dictionary<fcyRefPointer<ResFont>> m_TTFFontPool;
 	private:
 		const wchar_t* getResourcePoolTypeName()
 		{
@@ -302,6 +355,8 @@ namespace LuaSTGPlus
 			m_SpritePool.clear();
 			m_AnimationPool.clear();
 			m_ParticlePool.clear();
+			m_SpriteFontPool.clear();
+			m_TTFFontPool.clear();
 		}
 
 		/// @brief 检查资源是否存在
@@ -322,11 +377,10 @@ namespace LuaSTGPlus
 				break;
 			case ResourceType::Particle:
 				return m_ParticlePool.find(name.c_str()) != m_ParticlePool.end();
-				break;
 			case ResourceType::SpriteFont:
-				break;
-			case ResourceType::TrueType:
-				break;
+				return m_SpriteFontPool.find(name.c_str()) != m_SpriteFontPool.end();
+			case ResourceType::TrueTypeFont:
+				return m_TTFFontPool.find(name.c_str()) != m_TTFFontPool.end();
 			default:
 				break;
 			}
@@ -355,9 +409,25 @@ namespace LuaSTGPlus
 		LNOINLINE bool LoadAnimation(const char* name, const char* texname,
 			double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false)LNOEXCEPT;
 
+		/// @brief 装载粒子
 		bool LoadParticle(const char* name, const std::wstring& path, const char* img_name, double a, double b, bool rect = false)LNOEXCEPT;
 
 		LNOINLINE bool LoadParticle(const char* name, const char* path, const char* img_name, double a, double b, bool rect = false)LNOEXCEPT;
+
+		/// @brief 装载纹理字体(HGE)
+		bool LoadSpriteFont(const char* name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
+
+		/// @brief 装载纹理字体(fancy2d)
+		bool LoadSpriteFont(const char* name, const std::wstring& path, const std::wstring& tex_path, bool mipmaps = true)LNOEXCEPT;
+
+		LNOINLINE bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true)LNOEXCEPT;
+
+		LNOINLINE bool LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps = true)LNOEXCEPT;
+
+		/// @brief 装载TTF字体
+		bool LoadTTFFont(const char* name, const std::wstring& path, float width, float height)LNOEXCEPT;
+
+		LNOINLINE bool LoadTTFFont(const char* name, const char* path, float width, float height)LNOEXCEPT;
 
 		/// @brief 获取纹理
 		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT
@@ -394,6 +464,26 @@ namespace LuaSTGPlus
 		{
 			auto i = m_ParticlePool.find(name);
 			if (i == m_ParticlePool.end())
+				return nullptr;
+			else
+				return i->second;
+		}
+
+		/// @brief 获取纹理字体
+		fcyRefPointer<ResFont> GetSpriteFont(const char* name)LNOEXCEPT
+		{
+			auto i = m_SpriteFontPool.find(name);
+			if (i == m_SpriteFontPool.end())
+				return nullptr;
+			else
+				return i->second;
+		}
+
+		/// @brief 获取TTF字体
+		fcyRefPointer<ResFont> GetTTFFont(const char* name)LNOEXCEPT
+		{
+			auto i = m_TTFFontPool.find(name);
+			if (i == m_TTFFontPool.end())
 				return nullptr;
 			else
 				return i->second;
@@ -575,6 +665,24 @@ namespace LuaSTGPlus
 			fcyRefPointer<ResParticle> tRet;
 			if (!(tRet = m_StageResourcePool.GetParticle(name)))
 				tRet = m_GlobalResourcePool.GetParticle(name);
+			return tRet;
+		}
+
+		/// @brief 寻找字体
+		fcyRefPointer<ResFont> FindSpriteFont(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResFont> tRet;
+			if (!(tRet = m_StageResourcePool.GetSpriteFont(name)))
+				tRet = m_GlobalResourcePool.GetSpriteFont(name);
+			return tRet;
+		}
+
+		/// @brief 寻找字体
+		fcyRefPointer<ResFont> FindTTFFont(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResFont> tRet;
+			if (!(tRet = m_StageResourcePool.GetTTFFont(name)))
+				tRet = m_GlobalResourcePool.GetTTFFont(name);
 			return tRet;
 		}
 	public:

@@ -1,3 +1,5 @@
+/// @file Dictionary.h
+/// @brief »ùÓÚMPQ¹şÏ£µÄ×Öµä
 #pragma once
 #include "Global.h"
 
