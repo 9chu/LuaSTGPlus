@@ -1129,14 +1129,17 @@ bool ResourcePool::LoadTTFFont(const char* name, const std::wstring& path, float
 		}
 	}
 
-	ConstVectorStream tVecStream(tDataBuf);
+	// ConstVectorStream在此处不可使用，必须拷贝进入MemoryBuffer
 
 	// 创建定义
 	try
 	{
+		fcyRefPointer<fcyMemStream> tMemoryStream;
+		tMemoryStream.DirectSet(new fcyMemStream((fcData)tDataBuf.data(), tDataBuf.size(), false, false));
+
 		if (!tFontProvider)
 		{
-			if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromFile(&tVecStream, 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
+			if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromFile(tMemoryStream, 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
 			{
 				LERROR("LoadTTFFont: 从文件'%s'创建纹理字体失败", path.c_str());
 				return false;

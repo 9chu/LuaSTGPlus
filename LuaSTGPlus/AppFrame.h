@@ -152,12 +152,12 @@ namespace LuaSTGPlus
 		{
 			if (FCYFAILED(m_pRenderDev->SetViewport(fcyRect(
 				static_cast<float>((int)left),
-				static_cast<float>(m_pRenderDev->GetBufferHeight() - (int)top),
+				static_cast<float>((int)m_pRenderDev->GetBufferHeight() - (int)top),
 				static_cast<float>((int)right),
-				static_cast<float>(m_pRenderDev->GetBufferHeight() - (int)bottom)
+				static_cast<float>((int)m_pRenderDev->GetBufferHeight() - (int)bottom)
 			))))
 			{
-				LWARNING("设置视口(left: %lf, right: %lf, bottom: %lf, top: %lf)失败", left, right, bottom, top);
+				LERROR("设置视口(left: %lf, right: %lf, bottom: %lf, top: %lf)失败", left, right, bottom, top);
 				return false;
 			}
 			return true;

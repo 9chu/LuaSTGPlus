@@ -1001,6 +1001,8 @@ bool AppFrame::Init()LNOEXCEPT
 
 	// 创建键盘输入
 	m_pInputSys->CreateKeyboard(-1, false, &m_Keyboard);
+	if (!m_Keyboard)
+		LWARNING("无法创建键盘设备，将使用窗口消息作为输入源 (f2dInputSys::CreateKeyboard failed.)");
 	
 	// luastg不使用ZBuffer，将其关闭。
 	m_pRenderDev->SetZBufferEnable(false);
