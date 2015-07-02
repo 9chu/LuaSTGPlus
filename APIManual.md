@@ -500,6 +500,17 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 		细节
 			音效将被装载进入内存。请勿使用较长的音频文件做音效。
+			对于wav格式，由于受限于目前的实现，故不支持非标准的、带压缩的格式。（如AU导出时若带有metadata将导致无法解析）
+
+- LoadMusic(name:string, path:string, end:number, loop:number)
+
+	装载音乐。name指定名称，path指定路径，end和loop指定循环节终止和持续时间（秒），即循环节范围为end-loop ~ end。
+
+	仅支持wav或ogg，推荐使用ogg格式。
+
+		细节
+			音乐将以流的形式装载进入内存，不会一次性完整解码放入内存。故不推荐使用wav格式，请使用ogg作为音乐格式。
+			通过描述循环节可以设置音乐的循环片段。当音乐位置播放到end时会衔接到start。这一步在解码器中进行，以保证完美衔接。
 
 ### 渲染方法
 
@@ -607,6 +618,38 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	播放一个音效。vol为音量，取值范围[0~1]，pan为平衡，取值[-1~1]。
 
+- PlayMusic(name:string, [vol:number=1.0, position:number=0])
+
+	播放音乐。name为资源名称，vol为音量，position为起始播放位置（秒）。
+
+- StopMusic(name:string)
+
+	停止播放音乐。该操作会使音乐播放位置回到开头。name为资源名称。
+
+- PauseMusic(name:string)
+
+	暂停播放音乐。name为资源名称。
+
+- ResumeMusic(name:string)
+
+	继续播放音乐。name为资源名称。
+
+- GetMusicState(name:string):string
+
+	获取音乐播放状态，将返回paused、playing、stopped。
+
+- UpdateSound()  **[否决]**
+
+	**该方法已不起任何作用，将于后续版本移除。**
+
+- SetSEVolume(vol:number)
+
+	设置全局音效音量，将影响后续播放音效的音量。
+
+- SetBGMVolume(vol:number)
+
+	设置全局音乐音量，将影响后续播放音乐的音量。
+
 ### 输入
 
 - GetKeyState(vk\_code:integer):boolean
@@ -623,6 +666,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - GetLastChar():string
 
 	返回上一次输入的字符。
+
+### 杂项
+
+- Snapshot(file\_path:string)
+
+	截屏并保存到file\_path。格式为PNG。
 
 ### 内置数学方法
 

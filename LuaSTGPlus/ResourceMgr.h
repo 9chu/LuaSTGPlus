@@ -11,6 +11,11 @@ namespace LuaSTGPlus
 {
 	class ResourceMgr;
 
+	inline float VolumeFix(float v)
+	{
+		return -exp(-v * 6.f) + 1;  // 修正音量过小的问题
+	}
+
 	/// @brief 资源类型
 	enum class ResourceType
 	{
@@ -322,17 +327,108 @@ namespace LuaSTGPlus
 	};
 
 	/// @brief 音效
-	/// @note 要求保证存放44100HZ\16bit\立体声采样数据
 	class ResSound :
 		public Resource
 	{
 	private:
-		std::vector<std::pair<fShort, fShort>> m_Samples;
+		fcyRefPointer<f2dSoundBuffer> m_pBuffer;
 	public:
-		const std::pair<fShort, fShort>* GetSamples()const LNOEXCEPT { return m_Samples.data(); }
-		size_t GetSampleCount()const LNOEXCEPT { return m_Samples.size(); }
+		void Play(float vol, float pan)
+		{
+			m_pBuffer->Stop();
+
+			float nv = VolumeFix(vol);
+			if (m_pBuffer->GetVolume() != nv)
+				m_pBuffer->SetVolume(nv);
+			if (m_pBuffer->GetPan() != pan)
+				m_pBuffer->SetPan(pan);
+
+			m_pBuffer->Play();
+		}
 	public:
-		ResSound(const char* name, fcyRefPointer<f2dSoundDecoder> decoder);
+		ResSound(const char* name, fcyRefPointer<f2dSoundBuffer> buffer)
+			: Resource(ResourceType::SoundEffect, name), m_pBuffer(buffer) {}
+	};
+
+	/// @brief 背景音乐
+	class ResMusic :
+		public Resource
+	{
+	public:
+		// 对SoundDecoder作一个包装来保持BGM循环
+		// 使用该Wrapper之后SoundBuffer的播放参数（位置）将没有意义
+		// ! 从fancystg（已坑）中抽取的上古时期代码
+		class BGMWrapper :
+			public fcyRefObjImpl<f2dSoundDecoder>
+		{
+		protected:
+			fcyRefPointer<f2dSoundDecoder> m_pDecoder;
+
+			// 转到采样为单位
+			fuInt m_TotalSample;
+			fuInt m_pLoopStartSample;
+			fuInt m_pLoopEndSample; // 监视哨，=EndSample+1
+		public:
+			// 直接返回原始参数
+			fuInt GetBufferSize() { return m_pDecoder->GetBufferSize(); }
+			fuInt GetAvgBytesPerSec() { return m_pDecoder->GetAvgBytesPerSec(); }
+			fuShort GetBlockAlign() { return m_pDecoder->GetBlockAlign(); }
+			fuShort GetChannelCount() { return m_pDecoder->GetChannelCount(); }
+			fuInt GetSamplesPerSec() { return m_pDecoder->GetSamplesPerSec(); }
+			fuShort GetFormatTag() { return m_pDecoder->GetFormatTag(); }
+			fuShort GetBitsPerSample() { return m_pDecoder->GetBitsPerSample(); }
+
+			// 不作任何处理
+			fLen GetPosition() { return m_pDecoder->GetPosition(); }
+			fResult SetPosition(F2DSEEKORIGIN Origin, fInt Offset) { return m_pDecoder->SetPosition(Origin, Offset); }
+
+			// 对Read作处理
+			fResult Read(fData pBuffer, fuInt SizeToRead, fuInt* pSizeRead);
+		public:
+			BGMWrapper(fcyRefPointer<f2dSoundDecoder> pOrg, fDouble LoopStart, fDouble LoopEnd);
+		};
+	private:
+		fcyRefPointer<f2dSoundBuffer> m_pBuffer;
+	public:
+		void Play(float vol, double position)
+		{
+			m_pBuffer->Stop();
+			m_pBuffer->SetTime(position);
+
+			float nv = VolumeFix(vol);
+			if (m_pBuffer->GetVolume() != nv)
+				m_pBuffer->SetVolume(nv);
+
+			m_pBuffer->Play();
+		}
+		
+		void Stop()
+		{
+			m_pBuffer->Stop();
+		}
+		
+		void Pause()
+		{
+			m_pBuffer->Pause();
+		}
+		
+		void Resume()
+		{
+			m_pBuffer->Play();
+		}
+
+		bool IsPlaying()
+		{
+			return m_pBuffer->IsPlaying();
+		}
+
+		bool IsStopped()
+		{
+			return !IsPlaying() && m_pBuffer->GetTime() == 0.;
+		}
+	public:
+		ResMusic(const char* name, fcyRefPointer<f2dSoundBuffer> buffer)
+			: Resource(ResourceType::Music, name), m_pBuffer(buffer) {}
 	};
 
 	/// @brief 资源池
@@ -345,7 +441,8 @@ namespace LuaSTGPlus
 		Dictionary<fcyRefPointer<ResTexture>> m_TexturePool;
 		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
 		Dictionary<fcyRefPointer<ResAnimation>> m_AnimationPool;
-		Dictionary<fcyRefPointer<ResSound>> m_SoundSpritePool;
+		Dictionary<fcyRefPointer<ResSound>> m_MusicPool;
+		Dictionary<fcyRefPointer<ResMusic>> m_SoundSpritePool;
 		Dictionary<fcyRefPointer<ResParticle>> m_ParticlePool;
 		Dictionary<fcyRefPointer<ResFont>> m_SpriteFontPool;
 		Dictionary<fcyRefPointer<ResFont>> m_TTFFontPool;
@@ -369,6 +466,7 @@ namespace LuaSTGPlus
 			m_TexturePool.clear();
 			m_SpritePool.clear();
 			m_AnimationPool.clear();
+			m_MusicPool.clear();
 			m_SoundSpritePool.clear();
 			m_ParticlePool.clear();
 			m_SpriteFontPool.clear();
@@ -388,7 +486,7 @@ namespace LuaSTGPlus
 			case ResourceType::Animation:
 				return m_AnimationPool.find(name.c_str()) != m_AnimationPool.end();
 			case ResourceType::Music:
-				break;
+				return m_MusicPool.find(name.c_str()) != m_MusicPool.end();
 			case ResourceType::SoundEffect:
 				return m_SoundSpritePool.find(name.c_str()) != m_SoundSpritePool.end();
 			case ResourceType::Particle:
@@ -424,6 +522,11 @@ namespace LuaSTGPlus
 
 		LNOINLINE bool LoadAnimation(const char* name, const char* texname,
 			double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false)LNOEXCEPT;
+
+		/// @brief 装载背景音乐
+		bool LoadMusic(const char* name, const std::wstring& path, double start, double end)LNOEXCEPT;
+
+		LNOINLINE bool LoadMusic(const char* name, const char* path, double start, double end)LNOEXCEPT;
 
 		/// @brief 装载音效
 		bool LoadSound(const char* name, const std::wstring& path)LNOEXCEPT;
@@ -479,7 +582,17 @@ namespace LuaSTGPlus
 			else
 				return i->second;
 		}
-		
+
+		/// @brief 获取背景音
+		fcyRefPointer<ResMusic> GetMusic(const char* name)LNOEXCEPT
+		{
+			auto i = m_MusicPool.find(name);
+			if (i == m_MusicPool.end())
+				return nullptr;
+			else
+				return i->second;
+		}
+
 		/// @brief 获取音效
 		fcyRefPointer<ResSound> GetSound(const char* name)LNOEXCEPT
 		{
@@ -563,12 +676,19 @@ namespace LuaSTGPlus
 		std::list<ResourcePack> m_ResPackList;
 
 		float m_GlobalImageScaleFactor = 1.0f;
+		float m_GlobalSoundEffectVolume = 1.0f;
+		float m_GlobalMusicVolume = 1.0f;
+
 		ResourcePoolType m_ActivedPool = ResourcePoolType::Global;
 		ResourcePool m_GlobalResourcePool;
 		ResourcePool m_StageResourcePool;
 	public:
 		float GetGlobalImageScaleFactor()const LNOEXCEPT{ return m_GlobalImageScaleFactor; }
 		void SetGlobalImageScaleFactor(float s)LNOEXCEPT{ m_GlobalImageScaleFactor = s; }
+		float GetGlobalSoundEffectVolume()const LNOEXCEPT{ return m_GlobalSoundEffectVolume; }
+		void SetGlobalSoundEffectVolume(float s)LNOEXCEPT{ m_GlobalSoundEffectVolume = s; }
+		float GetGlobalMusicVolume()const LNOEXCEPT{ return m_GlobalMusicVolume; }
+		void SetGlobalMusicVolume(float s)LNOEXCEPT{ m_GlobalMusicVolume = s; }
 
 		/// @brief 获得当前激活的资源池类型
 		ResourcePoolType GetActivedPoolType()LNOEXCEPT
@@ -621,6 +741,8 @@ namespace LuaSTGPlus
 			m_StageResourcePool.Clear();
 			m_ActivedPool = ResourcePoolType::Global;
 			m_GlobalImageScaleFactor = 1.;
+			m_GlobalSoundEffectVolume = 1.0f;
+			m_GlobalMusicVolume = 1.0f;
 		}
 
 		/// @brief 加载资源包（UTF8）
@@ -687,6 +809,15 @@ namespace LuaSTGPlus
 			fcyRefPointer<ResAnimation> tRet;
 			if (!(tRet = m_StageResourcePool.GetAnimation(name)))
 				tRet = m_GlobalResourcePool.GetAnimation(name);
+			return tRet;
+		}
+
+		/// @brief 寻找音乐
+		fcyRefPointer<ResMusic> FindMusic(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResMusic> tRet;
+			if (!(tRet = m_StageResourcePool.GetMusic(name)))
+				tRet = m_GlobalResourcePool.GetMusic(name);
 			return tRet;
 		}
 

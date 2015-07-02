@@ -393,37 +393,82 @@ ResFont::ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont)
 {
 }
 
-ResSound::ResSound(const char* name, fcyRefPointer<f2dSoundDecoder> decoder)
-	: Resource(ResourceType::SoundEffect, name)
+////////////////////////////////////////////////////////////////////////////////
+/// ResMusic
+////////////////////////////////////////////////////////////////////////////////
+fResult ResMusic::BGMWrapper::Read(fData pBuffer, fuInt SizeToRead, fuInt* pSizeRead)
 {
-	if (decoder->GetChannelCount() != 2)
-		throw fcyException("ResSound::ResSound", "Unsupported format, stereo required.");
-	if (decoder->GetSamplesPerSec() != 44100)
-		throw fcyException("ResSound::ResSound", "Unsupported format, 44100hz samplerate required.");
-	if (decoder->GetBitsPerSample() != 16)
-		throw fcyException("ResSound::ResSound", "Unsupported format, 16bit sample required.");
-	if (decoder->GetBufferSize() == 0 && (decoder->GetBufferSize() % decoder->GetBlockAlign()) != 0)
-		throw fcyException("ResSound::ResSound", "Invalid decoding data.");
-	if (decoder->GetBlockAlign() != 2 * 16 / 8)
-		throw fcyException("ResSound::ResSound", "Invalid decoding data.");
+	fResult tFR;
 
-	fuInt tSampleSize = decoder->GetBlockAlign();
-	fuInt tSampleCount = decoder->GetBufferSize() / tSampleSize;
-	m_Samples.reserve(tSampleCount);
-	
-	fuInt iSizeReaded = 0;
-	const fuInt iReadBuffer = 32;
-	do
+	// 获得单个采样大小
+	fuInt tBlockAlign = GetBlockAlign();
+
+	// 计算需要读取的采样个数
+	fuInt tSampleToRead = SizeToRead / tBlockAlign;
+
+	// 填充音频数据
+	while (tSampleToRead)
 	{
-		fShort tSampleData[iReadBuffer * 2];
-		if (FCYFAILED(decoder->Read((fData)tSampleData, iReadBuffer * tSampleSize, &iSizeReaded)))
-			throw fcyException("ResSound::ResSound", "Failed to read decoding data.");
-		fuInt iSampleReaded = iSizeReaded / tSampleSize;
-		for (fuInt i = 0; i < iSampleReaded; ++i)
-			m_Samples.emplace_back(tSampleData[i * 2], tSampleData[i * 2 + 1]);
-	} while (iSizeReaded == iReadBuffer * tSampleSize);
+		// 获得当前解码器位置(采样)
+		fuInt tCurSample = (fuInt)GetPosition() / tBlockAlign;
 
-	LASSERT(m_Samples.size() == decoder->GetBufferSize() / decoder->GetBlockAlign());
+		// 检查读取位置是否超出循环节
+		if (tCurSample + tSampleToRead > m_pLoopEndSample)
+		{
+			// 填充尚未填充数据
+			if (tCurSample < m_pLoopEndSample)
+			{
+				fuInt tVaildSample = m_pLoopEndSample - tCurSample;
+				fuInt tVaildSize = tVaildSample * tBlockAlign;
+
+				if (FAILED(tFR = m_pDecoder->Read(pBuffer, tVaildSize, pSizeRead)))
+					return tFR;
+
+				// 指针后移
+				pBuffer += tVaildSize;
+
+				// 减少采样
+				tSampleToRead -= tVaildSample;
+			}
+
+			// 跳到循环头
+			SetPosition(FCYSEEKORIGIN_BEG, m_pLoopStartSample * tBlockAlign);
+		}
+		else
+		{
+			// 直接填充数据
+			if (FAILED(tFR = m_pDecoder->Read(pBuffer, tSampleToRead * tBlockAlign, pSizeRead)))
+				return tFR;
+
+			break;
+		}
+	}
+
+	if (pSizeRead)
+		*pSizeRead = SizeToRead;
+
+	return FCYERR_OK;
+}
+
+ResMusic::BGMWrapper::BGMWrapper(fcyRefPointer<f2dSoundDecoder> pOrg, fDouble LoopStart, fDouble LoopEnd)
+	: m_pDecoder(pOrg)
+{
+	LASSERT(pOrg);
+
+	// 计算参数
+	m_TotalSample = m_pDecoder->GetBufferSize() / m_pDecoder->GetBlockAlign();
+
+	if (LoopStart < 0)
+		LoopStart = 0;
+	m_pLoopStartSample = (fuInt)(LoopStart * m_pDecoder->GetSamplesPerSec());
+
+	if (LoopEnd < 0)
+		m_pLoopEndSample = m_TotalSample;
+	else
+		m_pLoopEndSample = min(m_TotalSample, (fuInt)(LoopEnd * m_pDecoder->GetSamplesPerSec()));
+
+	if (m_pLoopEndSample < m_pLoopStartSample)
+		std::swap(m_pLoopStartSample, m_pLoopEndSample);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -460,6 +505,11 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::Music:
 		lua_newtable(L);  // t
+		for (auto& i : m_MusicPool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
 	case ResourceType::SoundEffect:
 		lua_newtable(L);  // t
@@ -634,6 +684,76 @@ bool ResourcePool::LoadAnimation(const char* name, const char* texname,
 	return true;
 }
 
+bool ResourcePool::LoadMusic(const char* name, const std::wstring& path, double start, double end)LNOEXCEPT
+{
+	LASSERT(LAPP.GetSoundSys());
+
+	vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+		return false;
+
+	// ConstVectorStream在此处不可使用，必须拷贝进入MemoryBuffer
+
+	try
+	{
+		fcyRefPointer<fcyMemStream> tMemoryStream;
+		tMemoryStream.DirectSet(new fcyMemStream((fcData)tDataBuf.data(), tDataBuf.size(), false, false));
+
+		fcyRefPointer<f2dSoundDecoder> tDecoder;
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(tMemoryStream, &tDecoder)))
+		{
+			tMemoryStream->SetPosition(FCYSEEKORIGIN_BEG, 0);
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(tMemoryStream, &tDecoder)))
+			{
+				LERROR("LoadMusic: 无法解码文件'%s'", path.c_str());
+				return false;
+			}
+		}
+
+		fcyRefPointer<ResMusic::BGMWrapper> tWrapperedBuffer;
+		tWrapperedBuffer.DirectSet(new ResMusic::BGMWrapper(tDecoder, start, end));
+
+		fcyRefPointer<f2dSoundBuffer> tBuffer;
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateDynamicBuffer(tWrapperedBuffer, false, &tBuffer)))
+		{
+			LERROR("LoadMusic: 无法创建音频缓冲区，文件'%s' (f2dSoundSys::CreateDynamicBuffer failed.)", path.c_str());
+			return false;
+		}
+
+		fcyRefPointer<ResMusic> tRes;
+		tRes.DirectSet(new ResMusic(name, tBuffer));
+		m_MusicPool.emplace(name, tRes);
+	}
+	catch (const fcyException& e)
+	{
+		LERROR("LoadMusic: 解码文件'%s'的音频数据时发生错误，格式不支持？ (异常信息'%m' 源'%m')", path.c_str(), e.GetDesc(), e.GetSrc());
+		return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadMusic: 内存不足");
+		return false;
+	}
+
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadMusic: BGM'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadMusic(const char* name, const char* path, double start, double end)LNOEXCEPT
+{
+	try
+	{
+		return LoadMusic(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8), start, end);
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadMusic: 转换编码时无法分配内存");
+		return false;
+	}
+}
+
 bool ResourcePool::LoadSound(const char* name, const std::wstring& path)LNOEXCEPT
 {
 	LASSERT(LAPP.GetSoundSys());
@@ -657,8 +777,15 @@ bool ResourcePool::LoadSound(const char* name, const std::wstring& path)LNOEXCEP
 			}
 		}
 
+		fcyRefPointer<f2dSoundBuffer> tBuffer;
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateStaticBuffer(tDecoder, false, &tBuffer)))
+		{
+			LERROR("LoadSound: 无法创建音频缓冲区，文件'%s' (f2dSoundSys::CreateStaticBuffer failed.)", path.c_str());
+			return false;
+		}
+
 		fcyRefPointer<ResSound> tRes;
-		tRes.DirectSet(new ResSound(name, tDecoder));
+		tRes.DirectSet(new ResSound(name, tBuffer));
 		m_SoundSpritePool.emplace(name, tRes);
 	}
 	catch (const fcyException& e)

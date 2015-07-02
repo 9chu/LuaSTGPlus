@@ -5,11 +5,6 @@
 #include "ResourceMgr.h"
 #include "GameObjectPool.h"
 #include "UnicodeStringEncoding.h"
-#include "AudioMixer.h"
-
-#ifdef PlaySound
-#undef PlaySound
-#endif
 
 namespace LuaSTGPlus
 {
@@ -66,6 +61,7 @@ namespace LuaSTGPlus
 		f2dRenderer* m_pRenderer = nullptr;
 		f2dRenderDevice* m_pRenderDev = nullptr;
 		f2dSoundSys* m_pSoundSys = nullptr;
+		f2dInputSys* m_pInputSys = nullptr;
 		
 		GraphicsType m_GraphType = GraphicsType::Graph2D;
 		bool m_bRenderStarted = false;
@@ -77,9 +73,7 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dFontRenderer> m_FontRenderer;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
 
-		fcyRefPointer<AudioMixer> m_AudioMixer;
-		fcyRefPointer<f2dSoundBuffer> m_pEffectOutputBuffer;
-
+		fcyRefPointer<f2dInputKeyboard> m_Keyboard;
 		fCharW m_LastChar;
 		fInt m_LastKey;
 		fBool m_KeyStateMap[256];
@@ -356,18 +350,7 @@ namespace LuaSTGPlus
 
 		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c);
 
-		/// @brief 播放音效
-		bool PlaySound(const char* name, float vol, float pan)LNOEXCEPT
-		{
-			fcyRefPointer<ResSound> p = m_ResourceMgr.FindSound(name);
-			if (!p)
-			{
-				LERROR("PlaySound: 找不到音效资源'%m'", name);
-				return false;
-			}
-			m_AudioMixer->PlaySound(p, vol, pan);
-			return true;
-		}
+		LNOINLINE void SnapShot(const char* path);
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
 		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }

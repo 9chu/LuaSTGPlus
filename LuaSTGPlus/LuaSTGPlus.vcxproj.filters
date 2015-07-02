@@ -60,9 +60,6 @@
     <ClInclude Include="UnicodeStringEncoding.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="AudioMixer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -90,9 +87,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="UnicodeStringEncoding.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="AudioMixer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
