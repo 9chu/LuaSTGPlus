@@ -91,6 +91,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AppFrame.h" />
+    <ClInclude Include="AudioMixer.h" />
     <ClInclude Include="Dictionary.hpp" />
     <ClInclude Include="GameObjectPool.h" />
     <ClInclude Include="Global.h" />
@@ -104,6 +105,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppFrame.cpp" />
+    <ClCompile Include="AudioMixer.cpp" />
     <ClCompile Include="GameObjectPool.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="LuaExtensions\lfs\lfs.c" />

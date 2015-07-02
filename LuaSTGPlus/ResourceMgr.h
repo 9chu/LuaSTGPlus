@@ -321,6 +321,20 @@ namespace LuaSTGPlus
 		ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont);
 	};
 
+	/// @brief 音效
+	/// @note 要求保证存放44100HZ\16bit\立体声采样数据
+	class ResSound :
+		public Resource
+	{
+	private:
+		std::vector<std::pair<fShort, fShort>> m_Samples;
+	public:
+		const std::pair<fShort, fShort>* GetSamples()const LNOEXCEPT { return m_Samples.data(); }
+		size_t GetSampleCount()const LNOEXCEPT { return m_Samples.size(); }
+	public:
+		ResSound(const char* name, fcyRefPointer<f2dSoundDecoder> decoder);
+	};
+
 	/// @brief 资源池
 	class ResourcePool
 	{
@@ -331,6 +345,7 @@ namespace LuaSTGPlus
 		Dictionary<fcyRefPointer<ResTexture>> m_TexturePool;
 		Dictionary<fcyRefPointer<ResSprite>> m_SpritePool;
 		Dictionary<fcyRefPointer<ResAnimation>> m_AnimationPool;
+		Dictionary<fcyRefPointer<ResSound>> m_SoundSpritePool;
 		Dictionary<fcyRefPointer<ResParticle>> m_ParticlePool;
 		Dictionary<fcyRefPointer<ResFont>> m_SpriteFontPool;
 		Dictionary<fcyRefPointer<ResFont>> m_TTFFontPool;
@@ -354,6 +369,7 @@ namespace LuaSTGPlus
 			m_TexturePool.clear();
 			m_SpritePool.clear();
 			m_AnimationPool.clear();
+			m_SoundSpritePool.clear();
 			m_ParticlePool.clear();
 			m_SpriteFontPool.clear();
 			m_TTFFontPool.clear();
@@ -374,7 +390,7 @@ namespace LuaSTGPlus
 			case ResourceType::Music:
 				break;
 			case ResourceType::SoundEffect:
-				break;
+				return m_SoundSpritePool.find(name.c_str()) != m_SoundSpritePool.end();
 			case ResourceType::Particle:
 				return m_ParticlePool.find(name.c_str()) != m_ParticlePool.end();
 			case ResourceType::SpriteFont:
@@ -408,6 +424,11 @@ namespace LuaSTGPlus
 
 		LNOINLINE bool LoadAnimation(const char* name, const char* texname,
 			double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false)LNOEXCEPT;
+
+		/// @brief 装载音效
+		bool LoadSound(const char* name, const std::wstring& path)LNOEXCEPT;
+
+		LNOINLINE bool LoadSound(const char* name, const char* path)LNOEXCEPT;
 
 		/// @brief 装载粒子
 		bool LoadParticle(const char* name, const std::wstring& path, const char* img_name, double a, double b, bool rect = false)LNOEXCEPT;
@@ -459,6 +480,16 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 		
+		/// @brief 获取音效
+		fcyRefPointer<ResSound> GetSound(const char* name)LNOEXCEPT
+		{
+			auto i = m_SoundSpritePool.find(name);
+			if (i == m_SoundSpritePool.end())
+				return nullptr;
+			else
+				return i->second;
+		}
+
 		/// @brief 获取粒子系统
 		fcyRefPointer<ResParticle> GetParticle(const char* name)LNOEXCEPT
 		{
@@ -656,6 +687,15 @@ namespace LuaSTGPlus
 			fcyRefPointer<ResAnimation> tRet;
 			if (!(tRet = m_StageResourcePool.GetAnimation(name)))
 				tRet = m_GlobalResourcePool.GetAnimation(name);
+			return tRet;
+		}
+
+		/// @brief 寻找音效
+		fcyRefPointer<ResSound> FindSound(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResSound> tRet;
+			if (!(tRet = m_StageResourcePool.GetSound(name)))
+				tRet = m_GlobalResourcePool.GetSound(name);
 			return tRet;
 		}
 

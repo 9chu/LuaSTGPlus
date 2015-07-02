@@ -737,6 +737,15 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int LoadSound(lua_State* L)LNOEXCEPT
 		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (!pActivedPool->LoadSound(name, path))
+				return luaL_error(L, "load sound failed (name=%s, path=%s)", name, path);
 			return 0;
 		}
 		static int LoadMusic(lua_State* L)LNOEXCEPT
@@ -1136,6 +1145,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int RegTTF(lua_State* L)LNOEXCEPT
 		{
+			// 否决的方法
 			return 0;
 		}
 		static int SetFog(lua_State* L)LNOEXCEPT
@@ -1166,6 +1176,9 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		// 声音控制函数
 		static int PlaySound(lua_State* L)LNOEXCEPT
 		{
+			const char* s = luaL_checkstring(L, 1);
+			if (!LAPP.PlaySound(s, (float)luaL_checknumber(L, 2), (float)luaL_optnumber(L, 3, 0.)))
+				return luaL_error(L, "can't play sound '%s'.", s);
 			return 0;
 		}
 		static int PlayMusic(lua_State* L)LNOEXCEPT

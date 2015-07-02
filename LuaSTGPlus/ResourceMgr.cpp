@@ -393,6 +393,39 @@ ResFont::ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont)
 {
 }
 
+ResSound::ResSound(const char* name, fcyRefPointer<f2dSoundDecoder> decoder)
+	: Resource(ResourceType::SoundEffect, name)
+{
+	if (decoder->GetChannelCount() != 2)
+		throw fcyException("ResSound::ResSound", "Unsupported format, stereo required.");
+	if (decoder->GetSamplesPerSec() != 44100)
+		throw fcyException("ResSound::ResSound", "Unsupported format, 44100hz samplerate required.");
+	if (decoder->GetBitsPerSample() != 16)
+		throw fcyException("ResSound::ResSound", "Unsupported format, 16bit sample required.");
+	if (decoder->GetBufferSize() == 0 && (decoder->GetBufferSize() % decoder->GetBlockAlign()) != 0)
+		throw fcyException("ResSound::ResSound", "Invalid decoding data.");
+	if (decoder->GetBlockAlign() != 2 * 16 / 8)
+		throw fcyException("ResSound::ResSound", "Invalid decoding data.");
+
+	fuInt tSampleSize = decoder->GetBlockAlign();
+	fuInt tSampleCount = decoder->GetBufferSize() / tSampleSize;
+	m_Samples.reserve(tSampleCount);
+	
+	fuInt iSizeReaded = 0;
+	const fuInt iReadBuffer = 32;
+	do
+	{
+		fShort tSampleData[iReadBuffer * 2];
+		if (FCYFAILED(decoder->Read((fData)tSampleData, iReadBuffer * tSampleSize, &iSizeReaded)))
+			throw fcyException("ResSound::ResSound", "Failed to read decoding data.");
+		fuInt iSampleReaded = iSizeReaded / tSampleSize;
+		for (fuInt i = 0; i < iSampleReaded; ++i)
+			m_Samples.emplace_back(tSampleData[i * 2], tSampleData[i * 2 + 1]);
+	} while (iSizeReaded == iReadBuffer * tSampleSize);
+
+	LASSERT(m_Samples.size() == decoder->GetBufferSize() / decoder->GetBlockAlign());
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// ResourcePool
 ////////////////////////////////////////////////////////////////////////////////
@@ -430,6 +463,11 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 		break;
 	case ResourceType::SoundEffect:
 		lua_newtable(L);  // t
+		for (auto& i : m_SoundSpritePool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
 		break;
 	case ResourceType::Particle:
 		lua_newtable(L);  // t
@@ -594,6 +632,63 @@ bool ResourcePool::LoadAnimation(const char* name, const char* texname,
 	LINFO("LoadAnimation: 动画'%m'已装载 (%s)", name, getResourcePoolTypeName());
 #endif
 	return true;
+}
+
+bool ResourcePool::LoadSound(const char* name, const std::wstring& path)LNOEXCEPT
+{
+	LASSERT(LAPP.GetSoundSys());
+
+	vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+		return false;
+
+	ConstVectorStream tStream(tDataBuf);
+
+	try
+	{
+		fcyRefPointer<f2dSoundDecoder> tDecoder;
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(&tStream, &tDecoder)))
+		{
+			tStream.SetPosition(FCYSEEKORIGIN_BEG, 0);
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(&tStream, &tDecoder)))
+			{
+				LERROR("LoadSound: 无法解码文件'%s'", path.c_str());
+				return false;
+			}
+		}
+
+		fcyRefPointer<ResSound> tRes;
+		tRes.DirectSet(new ResSound(name, tDecoder));
+		m_SoundSpritePool.emplace(name, tRes);
+	}
+	catch (const fcyException& e)
+	{
+		LERROR("LoadSound: 解码文件'%s'的音频数据时发生错误，格式不支持？ (异常信息'%m' 源'%m')", path.c_str(), e.GetDesc(), e.GetSrc());
+		return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadSound: 内存不足");
+		return false;
+	}
+
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadSound: 音效'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadSound(const char* name, const char* path)LNOEXCEPT
+{
+	try
+	{
+		return LoadSound(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8));
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadSound: 转换编码时无法分配内存");
+		return false;
+	}
 }
 
 bool ResourcePool::LoadParticle(const char* name, const std::wstring& path, const char* img_name, double a, double b, bool rect)LNOEXCEPT
@@ -900,7 +995,7 @@ bool ResourcePool::LoadTTFFont(const char* name, const std::wstring& path, float
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 	{
 		LINFO("LoadTTFFont: 无法在路径'%s'上加载字体，尝试以系统字体对待并加载系统字体", path.c_str());
-		if (FCYFAILED(LAPP.GetRenderer()->CreateSystemFont(path.c_str(), 0, fcyVec2(width, height) * 0.5f, F2DFONTFLAG_NONE, &tFontProvider)))  // WHY 0.5??
+		if (FCYFAILED(LAPP.GetRenderer()->CreateSystemFont(path.c_str(), 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
 		{
 			LERROR("LoadTTFFont: 尝试失败，无法从路径'%s'上加载字体", path.c_str());
 			return false;

@@ -4,6 +4,13 @@
 
 #include "D3D9.H"  // for SetFog
 
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
 // 内置lua扩展
 extern "C" int luaopen_lfs(lua_State *L);
 
@@ -282,7 +289,7 @@ void AppFrame::SetFog(float start, float end, fcyColor color)
 		pDev->SetRenderState(D3DRS_FOGENABLE, FALSE);
 }
 
-bool AppFrame::RenderText(ResFont* p, wchar_t* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT
+bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign, bool bWordBreak)LNOEXCEPT
 {
 	if (m_GraphType != GraphicsType::Graph2D)
 	{
@@ -290,90 +297,179 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* str, float x, float y, float scal
 		return false;
 	}
 
-	// 准备渲染字体
-	m_FontRenderer->SetFontProvider(p->GetFontProvider());
-	m_FontRenderer->SetScale(fcyVec2(scale, scale));
-	fcyRect tRect = m_FontRenderer->MeasureString(str, false);
+	f2dFontProvider* pFontProvider = p->GetFontProvider();
 
-	// 根据对齐信息决定渲染位置
-	fcyVec2 tRenderPos(x, y);
+	// 准备渲染字体
+	m_FontRenderer->SetFontProvider(pFontProvider);
+	m_FontRenderer->SetScale(scale);
+#ifdef LSHOWFONTBASELINE
+	FontBaseLineDebugHelper tDebugger(m_Graph2D, m_GRenderer, rect);
+	m_FontRenderer->SetListener(&tDebugger);
+#endif
+
+	// 设置混合和颜色
+	updateGraph2DBlendMode(p->GetBlendMode());
+	m_FontRenderer->SetColor(p->GetBlendColor());
+
+	// 第一次遍历计算要渲染多少行
+	const wchar_t* pText = strBuf;
+	int iLineCount = 1;
+	float fLineWidth = 0.f;
+	while (*pText)
+	{
+		bool bNewLine = false;
+		if (*pText == L'\n')
+			bNewLine = true;
+		else
+		{
+			f2dGlyphInfo tGlyphInfo;
+			if (FCYOK(pFontProvider->QueryGlyph(m_Graph2D, *pText, &tGlyphInfo)))
+			{
+				float adv = tGlyphInfo.Advance.x * scale.x;
+				if (bWordBreak && fLineWidth + adv > rect.GetWidth())  // 截断模式
+				{
+					if (pText == strBuf || *(pText - 1) == L'\n')
+					{
+						++pText;  // 防止一个字符都不渲染导致死循环
+						if (*pText == L'\0')
+							break;
+					}
+					bNewLine = true;
+				}
+				else
+					fLineWidth += adv;
+			}
+		}
+		if (bNewLine)
+		{
+			++iLineCount;
+			fLineWidth = 0.f;
+		}
+		if (*pText != L'\0')
+			++pText;
+	}
+	
+	// 计算起笔位置
+	float fTotalLineHeight = pFontProvider->GetLineHeight() * iLineCount * scale.y;
+	fcyVec2 vRenderPos;
 	switch (valign)
 	{
-	case ResFont::FontAlignVertical::Middle:
-		tRenderPos.y += tRect.GetHeight() / 2.f;
-		break;
 	case ResFont::FontAlignVertical::Bottom:
-		tRenderPos.y += tRect.GetHeight();
+		vRenderPos.y = rect.b.y + fTotalLineHeight;
+		break;
+	case ResFont::FontAlignVertical::Middle:
+		vRenderPos.y = rect.a.y - rect.GetHeight() / 2.f + fTotalLineHeight / 2.f;
 		break;
 	case ResFont::FontAlignVertical::Top:
 	default:
+		vRenderPos.y = rect.a.y;
 		break;
 	}
-	switch (halign)
-	{
-	case ResFont::FontAlignHorizontal::Center:
-		tRenderPos.x -= tRect.GetWidth() / 2.f;
-		break;
-	case ResFont::FontAlignHorizontal::Right:
-		tRenderPos.x -= tRect.GetWidth();
-		break;
-	case ResFont::FontAlignHorizontal::Left:
-	default:
-		break;
-	}
+	vRenderPos.x = rect.a.x;
+	vRenderPos.y -= pFontProvider->GetAscender() * scale.y;
 
-	// 设置混合
-	updateGraph2DBlendMode(p->GetBlendMode());
-
-	// 设置颜色
-	m_FontRenderer->SetColor(p->GetBlendColor());
-
-	// 基线偏移
-	tRenderPos.y -= (p->GetFontProvider()->GetAscender() * scale);
-
-	// 逐行渲染，以达到对齐效果
-	wchar_t* pText = str;
-	wchar_t* pScanner = pText;
-	int iLineCount = 0;
+	// 逐行渲染文字
+	wchar_t* pScanner = strBuf;
+	wchar_t c = 0;
 	bool bEOS = false;
+	fLineWidth = 0.f;
+	pText = pScanner;
 	while (!bEOS)
 	{
+		// 寻找断句位置，换行、EOF、或者行溢出
 		while (*pScanner != L'\0' && *pScanner != '\n')
+		{
+			f2dGlyphInfo tGlyphInfo;
+			if (FCYOK(pFontProvider->QueryGlyph(m_Graph2D, *pScanner, &tGlyphInfo)))
+			{
+				float adv = tGlyphInfo.Advance.x * scale.x;
+
+				// 检查当前字符渲染后会不会导致行溢出
+				if (bWordBreak && fLineWidth + adv > rect.GetWidth())
+				{
+					if (pScanner == pText)  // 防止一个字符都不渲染导致死循环
+						++pScanner;
+					break;
+				}
+				fLineWidth += adv;
+			}
 			++pScanner;
-		if (*pScanner == L'\0')
+		}
+		
+		// 在断句位置写入\0
+		c = *pScanner;
+		if (c == L'\0')
 			bEOS = true;
 		else
 			*pScanner = L'\0';
-
-		++iLineCount;
-
+		
 		// 渲染从pText~pScanner的文字
-		float tTextWidth = m_FontRenderer->MeasureStringWidth(pText);
 		switch (halign)
 		{
-		case ResFont::FontAlignHorizontal::Center:
-			m_FontRenderer->DrawTextW2(m_Graph2D, pText,
-				fcyVec2(tRenderPos.x + tRect.GetWidth() / 2.f - tTextWidth / 2.f, tRenderPos.y));
-			break;
 		case ResFont::FontAlignHorizontal::Right:
 			m_FontRenderer->DrawTextW2(m_Graph2D, pText,
-				fcyVec2(tRenderPos.x + tRect.GetWidth() - tTextWidth, tRenderPos.y));
+				fcyVec2(vRenderPos.x + rect.GetWidth() - fLineWidth, vRenderPos.y));
+			break;
+		case ResFont::FontAlignHorizontal::Center:
+			m_FontRenderer->DrawTextW2(m_Graph2D, pText,
+				fcyVec2(vRenderPos.x + rect.GetWidth() / 2.f - fLineWidth / 2.f, vRenderPos.y));
 			break;
 		case ResFont::FontAlignHorizontal::Left:
 		default:
-			m_FontRenderer->DrawTextW2(m_Graph2D, pText, tRenderPos);
+			m_FontRenderer->DrawTextW2(m_Graph2D, pText, vRenderPos);
 			break;
 		}
 
-		pText = ++pScanner;
-		tRenderPos.y -= p->GetFontProvider()->GetLineHeight() * scale;
+		// 恢复断句处字符
+		*pScanner = c;
+		fLineWidth = 0.f;
+		if (c == L'\n')
+			pText = ++pScanner;
+		else
+			pText = pScanner;
+		
+		// 移动y轴
+		vRenderPos.y -= p->GetFontProvider()->GetLineHeight() * scale.y;
 	}
 
 #ifdef LSHOWFONTBASELINE
 	m_FontRenderer->SetListener(nullptr);
 #endif
-
 	return true;
+}
+
+fcyVec2 AppFrame::CalcuTextSize(ResFont* p, const wchar_t* strBuf, fcyVec2 scale)LNOEXCEPT
+{
+	if (m_GraphType != GraphicsType::Graph2D)
+	{
+		LERROR("RenderText: 只有2D渲染器可以执行该方法");
+		return false;
+	}
+
+	f2dFontProvider* pFontProvider = p->GetFontProvider();
+
+	int iLineCount = 1;
+	float fLineWidth = 0.f;
+	float fMaxLineWidth = 0.f;
+	while (*strBuf)
+	{
+		if (*strBuf == L'\n')
+		{
+			++iLineCount;
+			fMaxLineWidth = max(fMaxLineWidth, fLineWidth);
+			fLineWidth = 0.f;
+		}
+		else
+		{
+			f2dGlyphInfo tGlyphInfo;
+			if (FCYOK(pFontProvider->QueryGlyph(m_Graph2D, *strBuf, &tGlyphInfo)))
+				fLineWidth += tGlyphInfo.Advance.x * scale.x;
+		}
+		++strBuf;
+	}
+	fMaxLineWidth = max(fMaxLineWidth, fLineWidth);
+
+	return fcyVec2(fMaxLineWidth, iLineCount * pFontProvider->GetLineHeight() * scale.y);
 }
 
 LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT
@@ -397,7 +493,42 @@ LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, 
 		return false;
 	}
 
-	return RenderText(p, const_cast<wchar_t*>(s_TempStringBuf.data()), x, y, scale, halign, valign);
+	// 计算渲染位置
+	fcyVec2 tSize = CalcuTextSize(p, s_TempStringBuf.c_str(), fcyVec2(scale, scale));
+	switch (halign)
+	{
+	case ResFont::FontAlignHorizontal::Right:
+		x -= tSize.x;
+		break;
+	case ResFont::FontAlignHorizontal::Center:
+		x -= tSize.x / 2.f;
+		break;
+	case ResFont::FontAlignHorizontal::Left:
+	default:
+		break;
+	}
+	switch (valign)
+	{
+	case ResFont::FontAlignVertical::Bottom:
+		y += tSize.y;
+		break;
+	case ResFont::FontAlignVertical::Middle:
+		y += tSize.y / 2.f;
+		break;
+	case ResFont::FontAlignVertical::Top:
+	default:
+		break;
+	}
+
+	return RenderText(
+		p,
+		const_cast<wchar_t*>(s_TempStringBuf.data()),
+		fcyRect(x, y, x + tSize.x, y - tSize.y),
+		fcyVec2(scale, scale),
+		halign,
+		valign,
+		false
+		);
 }
 
 LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)
@@ -421,35 +552,33 @@ LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left
 		return false;
 	}
 
-	ResFont::FontAlignHorizontal halign = ResFont::FontAlignHorizontal::Left;
-	ResFont::FontAlignVertical valign = ResFont::FontAlignVertical::Top;
-	float x = left;
-	float y = top;
-
-	if (right < left)
-		std::swap(left, right);
-	if (top < bottom)
-		std::swap(top, bottom);
-	if ((format & DT_CENTER) == DT_CENTER)
-	{
-		halign = ResFont::FontAlignHorizontal::Center;
-		x = (right - left) / 2.f + left;
-	}
-	if ((format & DT_VCENTER) == DT_VCENTER)
-	{
-		valign = ResFont::FontAlignVertical::Middle;
-		y = (top - bottom) / 2.f + bottom;
-	}
-
 	p->SetBlendColor(c);
 
-	return RenderText(p,
+	bool bWordBreak = false;
+	ResFont::FontAlignHorizontal halign = ResFont::FontAlignHorizontal::Left;
+	ResFont::FontAlignVertical valign = ResFont::FontAlignVertical::Top;
+
+	if ((format & DT_CENTER) == DT_CENTER)
+		halign = ResFont::FontAlignHorizontal::Center;
+	else if ((format & DT_RIGHT) == DT_RIGHT)
+		halign = ResFont::FontAlignHorizontal::Right;
+
+	if ((format & DT_VCENTER) == DT_VCENTER)
+		valign = ResFont::FontAlignVertical::Middle;
+	else if ((format & DT_BOTTOM) == DT_BOTTOM)
+		valign = ResFont::FontAlignVertical::Bottom;
+
+	if ((format & DT_WORDBREAK) == DT_WORDBREAK)
+		bWordBreak = true;
+
+	return RenderText(
+		p,
 		const_cast<wchar_t*>(s_TempStringBuf.data()),
-		x,
-		y,
-		scale, 
+		fcyRect(left, top, right, bottom),
+		fcyVec2(scale, scale) * 0.5f,  // 缩放系数=0.5
 		halign,
-		valign
+		valign,
+		bWordBreak
 		);
 }
 #pragma endregion
@@ -573,6 +702,22 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 	}
 	
+	// 创建混音器
+	try
+	{
+		m_AudioMixer.DirectSet(new AudioMixer());
+	}
+	catch (...)
+	{
+		LERROR("无法创建混音器，内存不足？");
+		return false;
+	}
+	if (FCYFAILED(m_pSoundSys->CreatePullBuffer(m_AudioMixer, 5292, false, &m_pEffectOutputBuffer)))  // 5292采样x44100Hz大概120毫秒 最少60毫秒
+	{
+		LERROR("无法创建音效输出缓冲 (f2dSoundSys::CreatePullBuffer failed)");
+		return false;
+	}
+
 	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
 	m_pMainWindow->MoveToCenter();
 	m_pMainWindow->SetVisiable(true);
@@ -603,14 +748,16 @@ void AppFrame::Shutdown()LNOEXCEPT
 	m_ResourceMgr.ClearAllResource();
 	LINFO("已清空所有资源");
 
+	m_pEffectOutputBuffer = nullptr;
+	m_AudioMixer = nullptr;
 	m_GRenderer = nullptr;
 	m_FontRenderer = nullptr;
 	m_Graph2D = nullptr;
-	m_pEngine = nullptr;
-	m_pMainWindow = nullptr;
-	m_pRenderer = nullptr;
-	m_pRenderDev = nullptr;
 	m_pSoundSys = nullptr;
+	m_pRenderDev = nullptr;
+	m_pRenderer = nullptr;
+	m_pMainWindow = nullptr;
+	m_pEngine = nullptr;
 	LINFO("已卸载fancy2d");
 
 	if (L)
@@ -631,7 +778,9 @@ void AppFrame::Run()LNOEXCEPT
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
 
+	m_pEffectOutputBuffer->Play();
 	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
+	m_pEffectOutputBuffer->Pause();
 
 	LINFO("退出游戏循环");
 }
@@ -733,6 +882,9 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEX
 fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump)
 {
 	m_fFPS = (float)pFPSController->GetFPS();
+
+	m_LastChar = 0;
+	m_LastKey = 0;
 
 	// 处理消息
 	f2dMsg tMsg;

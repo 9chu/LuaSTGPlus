@@ -5,6 +5,11 @@
 #include "ResourceMgr.h"
 #include "GameObjectPool.h"
 #include "UnicodeStringEncoding.h"
+#include "AudioMixer.h"
+
+#ifdef PlaySound
+#undef PlaySound
+#endif
 
 namespace LuaSTGPlus
 {
@@ -71,6 +76,9 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dGeometryRenderer> m_GRenderer;
 		fcyRefPointer<f2dFontRenderer> m_FontRenderer;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
+
+		fcyRefPointer<AudioMixer> m_AudioMixer;
+		fcyRefPointer<f2dSoundBuffer> m_pEffectOutputBuffer;
 
 		fCharW m_LastChar;
 		fInt m_LastKey;
@@ -340,16 +348,32 @@ namespace LuaSTGPlus
 		}
 
 		/// @brief 渲染文字
-		bool RenderText(ResFont* p, wchar_t* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT;
+		bool RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign, bool bWordBreak)LNOEXCEPT;
+
+		fcyVec2 CalcuTextSize(ResFont* p, const wchar_t* strBuf, fcyVec2 scale)LNOEXCEPT;
 
 		LNOINLINE bool RenderText(const char* name, const char* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT;
 
 		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c);
+
+		/// @brief 播放音效
+		bool PlaySound(const char* name, float vol, float pan)LNOEXCEPT
+		{
+			fcyRefPointer<ResSound> p = m_ResourceMgr.FindSound(name);
+			if (!p)
+			{
+				LERROR("PlaySound: 找不到音效资源'%m'", name);
+				return false;
+			}
+			m_AudioMixer->PlaySound(p, vol, pan);
+			return true;
+		}
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
 		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }
 		f2dRenderer* GetRenderer()LNOEXCEPT { return m_pRenderer; }
 		f2dRenderDevice* GetRenderDev()LNOEXCEPT { return m_pRenderDev; }
+		f2dSoundSys* GetSoundSys()LNOEXCEPT { return m_pSoundSys; }
 
 		/// @brief 初始化框架
 		/// @note 该函数必须在一开始被调用，且仅能调用一次
