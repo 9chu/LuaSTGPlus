@@ -94,6 +94,17 @@ namespace LuaSTGPlus
 		bool ChangeResource(const char* res_name);
 	};
 
+	/// @brief 曲线激光特化实现
+	class GameObjectBentLaser
+	{
+	public:
+		bool Update(size_t id, int length, float width)LNOEXCEPT;
+		void Release()LNOEXCEPT;
+		void Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT;
+		bool CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT;
+		bool BoundCheck(float l, float r, float b, float t)LNOEXCEPT;
+	};
+
 	/// @brief 游戏对象池
 	class GameObjectPool
 	{

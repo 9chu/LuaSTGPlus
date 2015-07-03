@@ -3,6 +3,7 @@
 
 #define TYPENAME_COLOR "lstgColor"
 #define TYPENAME_RANDGEN "lstgRand"
+#define TYPENAME_BENTLASER "lstgBentLaserData"
 
 #ifdef min
 #undef min
@@ -22,6 +23,59 @@
 
 using namespace std;
 using namespace LuaSTGPlus;
+
+static inline BlendMode TranslateBlendMode(lua_State* L, int argnum)
+{
+	const char* s = luaL_checkstring(L, argnum);
+	if (strcmp(s, "mul+add") == 0)
+		return BlendMode::MulAdd;
+	else if (strcmp(s, "") == 0)
+		return BlendMode::MulAlpha;
+	else if (strcmp(s, "mul+alpha") == 0)
+		return BlendMode::MulAlpha;
+	else if (strcmp(s, "add+add") == 0)
+		return BlendMode::AddAdd;
+	else if (strcmp(s, "add+alpha") == 0)
+		return BlendMode::AddAlpha;
+	else
+		luaL_error(L, "invalid blend mode '%s'.", s);
+	return BlendMode::MulAlpha;
+}
+
+static inline void TranslateAlignMode(lua_State* L, int argnum, ResFont::FontAlignHorizontal& halign, ResFont::FontAlignVertical& valign)
+{
+	int e = luaL_checkinteger(L, argnum);
+	switch (e & 0x03)  // HGETEXT_HORZMASK
+	{
+	case 0:  // HGETEXT_LEFT
+		halign = ResFont::FontAlignHorizontal::Left;
+		break;
+	case 1:  // HGETEXT_CENTER
+		halign = ResFont::FontAlignHorizontal::Center;
+		break;
+	case 2:  // HGETEXT_RIGHT
+		halign = ResFont::FontAlignHorizontal::Right;
+		break;
+	default:
+		luaL_error(L, "invalid align mode.");
+		return;
+	}
+	switch (e & 0x0C)  // HGETEXT_VERTMASK
+	{
+	case 0:  // HGETEXT_TOP
+		valign = ResFont::FontAlignVertical::Top;
+		break;
+	case 4:  // HGETEXT_MIDDLE
+		valign = ResFont::FontAlignVertical::Middle;
+		break;
+	case 8:  // HGETEXT_BOTTOM
+		valign = ResFont::FontAlignVertical::Bottom;
+		break;
+	default:
+		luaL_error(L, "invalid align mode.");
+		return;
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// ColorWrapper
@@ -240,6 +294,124 @@ fcyRandomWELL512* RandomizerWrapper::CreateAndPush(lua_State* L)
 #pragma endregion
 
 ////////////////////////////////////////////////////////////////////////////////
+/// BentLaserWrapper
+////////////////////////////////////////////////////////////////////////////////
+#pragma region BentLaserWrapper
+void BentLaserWrapper::Register(lua_State* L)LNOEXCEPT
+{
+	struct WrapperImplement
+	{
+		static int Update(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'Update'.");
+			lua_rawgeti(L, 1, 2);  // t(object) ??? id
+			size_t id = (size_t)luaL_checkinteger(L, -1);
+			lua_pop(L, 1);
+			if (!p->Update(id, luaL_checkinteger(L, 2), (float)luaL_checknumber(L, 3)))
+				return luaL_error(L, "invalid lstg object for 'Update'.");
+			return 0;
+		}
+		static int Release(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			p->Release();
+			return 0;
+		}
+		static int Render(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			p->Render(
+				luaL_checkstring(L, 2),
+				TranslateBlendMode(L, 3),
+				*static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
+				(float)luaL_checknumber(L, 5),
+				(float)luaL_checknumber(L, 6),
+				(float)luaL_checknumber(L, 7),
+				(float)luaL_checknumber(L, 8)
+				);
+			return 0;
+		}
+		static int CollisionCheck(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			bool r = p->CollisionCheck(
+				(float)luaL_checknumber(L, 2),
+				(float)luaL_checknumber(L, 3),
+				(float)luaL_optnumber(L, 4, 0),
+				(float)luaL_optnumber(L, 5, 0),
+				(float)luaL_optnumber(L, 6, 0),
+				lua_toboolean(L, 7) == 0 ? false : true
+				);
+			lua_pushboolean(L, r);
+			return 1;
+		}
+		static int BoundCheck(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			bool r = p->BoundCheck(
+				(float)luaL_checknumber(L, 2),
+				(float)luaL_checknumber(L, 3),
+				(float)luaL_checknumber(L, 4),
+				(float)luaL_checknumber(L, 5)
+				);
+			lua_pushboolean(L, r);
+			return 1;
+		}
+		static int Meta_ToString(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			lua_pushfstring(L, "lstg.BentLaserData object");
+			return 1;
+		}
+		static int Meta_GC(lua_State* L)LNOEXCEPT
+		{
+			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			p->~GameObjectBentLaser();
+			return 0;
+		}
+	};
+
+	luaL_Reg tMethods[] =
+	{
+		{ "Update", &WrapperImplement::Update },
+		{ "Release", &WrapperImplement::Release },
+		{ "Render", &WrapperImplement::Render },
+		{ "CollisionCheck", &WrapperImplement::CollisionCheck },
+		{ "BoundCheck", &WrapperImplement::BoundCheck },
+		{ NULL, NULL }
+	};
+	luaL_Reg tMetaTable[] =
+	{
+		{ "__tostring", &WrapperImplement::Meta_ToString },
+		{ "__gc", &WrapperImplement::Meta_GC },
+		{ NULL, NULL }
+	};
+
+	luaL_openlib(L, TYPENAME_BENTLASER, tMethods, 0);  // t
+	luaL_newmetatable(L, TYPENAME_BENTLASER);  // t mt
+	luaL_openlib(L, 0, tMetaTable, 0);  // t mt
+	lua_pushliteral(L, "__index");  // t mt s
+	lua_pushvalue(L, -3);  // t mt s t
+	lua_rawset(L, -3);  // t mt (mt["__index"] = t)
+	lua_pushliteral(L, "__metatable");  // t mt s
+	lua_pushvalue(L, -3);  // t mt s t
+	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  保护metatable不被修改
+	lua_pop(L, 2);
+}
+
+GameObjectBentLaser* BentLaserWrapper::CreateAndPush(lua_State* L)
+{
+	GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(lua_newuserdata(L, sizeof(GameObjectBentLaser)));
+	new(p)GameObjectBentLaser();  // 构造
+	luaL_getmetatable(L, TYPENAME_BENTLASER);
+	lua_setmetatable(L, -2);
+	return p;
+}
+#pragma endregion
+
+////////////////////////////////////////////////////////////////////////////////
 /// BuiltInFunctionWrapper
 ////////////////////////////////////////////////////////////////////////////////
 #pragma region BuiltInFunctionWrapper
@@ -247,58 +419,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 {
 	struct WrapperImplement
 	{
-		static inline BlendMode TranslateBlendMode(lua_State* L, int argnum)
-		{
-			const char* s = luaL_checkstring(L, argnum);
-			if (strcmp(s, "mul+add") == 0)
-				return BlendMode::MulAdd;
-			else if (strcmp(s, "") == 0)
-				return BlendMode::MulAlpha;
-			else if (strcmp(s, "mul+alpha") == 0)
-				return BlendMode::MulAlpha;
-			else if (strcmp(s, "add+add") == 0)
-				return BlendMode::AddAdd;
-			else if (strcmp(s, "add+alpha") == 0)
-				return BlendMode::AddAlpha;
-			else
-				luaL_error(L, "invalid blend mode '%s'.", s);
-			return BlendMode::MulAlpha;
-		}
-		static inline void TranslateAlignMode(lua_State* L, int argnum, ResFont::FontAlignHorizontal& halign, ResFont::FontAlignVertical& valign)
-		{
-			int e = luaL_checkinteger(L, argnum);
-			switch (e & 0x03)  // HGETEXT_HORZMASK
-			{
-			case 0:  // HGETEXT_LEFT
-				halign = ResFont::FontAlignHorizontal::Left;
-				break;
-			case 1:  // HGETEXT_CENTER
-				halign = ResFont::FontAlignHorizontal::Center;
-				break;
-			case 2:  // HGETEXT_RIGHT
-				halign = ResFont::FontAlignHorizontal::Right;
-				break;
-			default:
-				luaL_error(L, "invalid align mode.");
-				return;
-			}
-			switch (e & 0x0C)  // HGETEXT_VERTMASK
-			{
-			case 0:  // HGETEXT_TOP
-				valign = ResFont::FontAlignVertical::Top;
-				break;
-			case 4:  // HGETEXT_MIDDLE
-				valign = ResFont::FontAlignVertical::Middle;
-				break;
-			case 8:  // HGETEXT_BOTTOM
-				valign = ResFont::FontAlignVertical::Bottom;
-				break;
-			default:
-				luaL_error(L, "invalid align mode.");
-				return;
-			}
-		}
-
 		// 框架函数
 		static int SetWindowed(lua_State* L)LNOEXCEPT
 		{

@@ -25,6 +25,18 @@ namespace LuaSTGPlus
 		static fcyRandomWELL512* CreateAndPush(lua_State* L);
 	};
 
+	class GameObjectBentLaser;
+
+	/// @brief 曲线激光包装
+	class BentLaserWrapper
+	{
+	public:
+		/// @brief 向lua注册包装类
+		static void Register(lua_State* L)LNOEXCEPT;
+		/// @brief 创建一个曲线激光类并推入堆栈
+		static GameObjectBentLaser* CreateAndPush(lua_State* L);
+	};
+
 	/// @brief 内建函数包装
 	class BuiltInFunctionWrapper
 	{

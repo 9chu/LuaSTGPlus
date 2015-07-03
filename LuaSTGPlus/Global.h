@@ -82,9 +82,9 @@
 #define LFUNC_GAINFOCUS "FocusGainFunc"
 
 // 对象池信息
-#define LGOBJ_MAXCNT 32768
-#define LGOBJ_DEFAULTGROUP 0
-#define LGOBJ_GROUPCNT 16
+#define LGOBJ_MAXCNT 32768  // 最大对象数
+#define LGOBJ_DEFAULTGROUP 0  // 默认组
+#define LGOBJ_GROUPCNT 16  // 碰撞组数
 
 // CLASS中存放的回调函数的下标
 #define LGOBJ_CC_INIT 1

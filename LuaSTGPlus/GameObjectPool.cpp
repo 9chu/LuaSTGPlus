@@ -74,6 +74,40 @@ inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 	return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// GameObjectBentLaser
+////////////////////////////////////////////////////////////////////////////////
+bool GameObjectBentLaser::Update(size_t id, int length, float width)LNOEXCEPT
+{
+	GameObject* p = nullptr; // LPOOL.Data(id);
+	if (!p)
+		return false;
+	return true;
+}
+
+void GameObjectBentLaser::Release()LNOEXCEPT
+{
+
+}
+
+void GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT
+{
+
+}
+
+bool GameObjectBentLaser::CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT
+{
+	return false;
+}
+
+bool GameObjectBentLaser::BoundCheck(float l, float r, float b, float t)LNOEXCEPT
+{
+	return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// GameObject
+////////////////////////////////////////////////////////////////////////////////
 bool GameObject::ChangeResource(const char* res_name)
 {
 	LASSERT(!res);
