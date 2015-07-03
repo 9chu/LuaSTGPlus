@@ -97,12 +97,25 @@ namespace LuaSTGPlus
 	/// @brief 曲线激光特化实现
 	class GameObjectBentLaser
 	{
+	private:
+		struct LaserNode
+		{
+			fcyVec2 pos;
+			float rot;
+			float half_width;
+		};
+	private:
+		LaserNode m_NodeList[LGOBJ_MAXLASERNODE];
+		int m_iStart = 0, m_iEnd = 0;
 	public:
 		bool Update(size_t id, int length, float width)LNOEXCEPT;
 		void Release()LNOEXCEPT;
 		void Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT;
 		bool CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT;
 		bool BoundCheck(float l, float r, float b, float t)LNOEXCEPT;
+	public:
+		GameObjectBentLaser();
+		~GameObjectBentLaser();
 	};
 
 	/// @brief 游戏对象池

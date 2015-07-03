@@ -77,6 +77,14 @@ inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 ////////////////////////////////////////////////////////////////////////////////
 /// GameObjectBentLaser
 ////////////////////////////////////////////////////////////////////////////////
+GameObjectBentLaser::GameObjectBentLaser()
+{
+}
+
+GameObjectBentLaser::~GameObjectBentLaser()
+{
+}
+
 bool GameObjectBentLaser::Update(size_t id, int length, float width)LNOEXCEPT
 {
 	GameObject* p = nullptr; // LPOOL.Data(id);
@@ -87,11 +95,12 @@ bool GameObjectBentLaser::Update(size_t id, int length, float width)LNOEXCEPT
 
 void GameObjectBentLaser::Release()LNOEXCEPT
 {
-
 }
 
 void GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT
 {
+	int cnt = (m_iEnd - m_iStart + LGOBJ_MAXLASERNODE) % LGOBJ_MAXLASERNODE;
+
 
 }
 
