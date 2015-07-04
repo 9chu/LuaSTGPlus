@@ -111,6 +111,40 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	打印类名，该值始终为`lstg.Rand object`
 
+### lstgBentLaserData
+
+该类用于控制内建的曲线激光。
+
+	细节
+		luastg+中至多允许出现1024个激光，每个激光至多捕获512个节点。
+		曲线激光目前在实现上仍有问题，待日后优化。
+
+#### 方法
+
+- Update(lstgBentLaserData, base\_obj, length, width)
+
+	传入基础对象，获取基础对象的坐标信息构造下一个激光位置。length和width决定激光的节点数和节点宽度。节点宽度同时会影响碰撞。
+
+- Release(lstgBentLaserData)
+
+	回收对象。（当前实现中无作用，对象交由GC回收）
+
+- Render(lstgBentLaserData, texture:string, blend:string, color:lstgColor, tex\_left:number, tex\_top:number, tex\_weight:number, tex\_height:number, [scale:number=1]) **[新]**
+
+	渲染曲线激光。参数为纹理、混合模式、颜色以及激光图像在纹理中的位置。scale用于控制激光纵向的缩放。
+
+	注意，始终以纹理宽度方向作为激光的伸缩方向。
+
+	该函数受全局缩放系数影响。
+
+- CollisionCheck(lstgBentLaserData, x:number, y:number, [rot:number=0, a:number=0, b:number=0, rect:boolean=false]):boolean  **[新]**
+
+	检查当前对象和位于(x,y)的对象是否发生碰撞。
+
+- BoundCheck(lstgBentLaserData):boolean
+
+	检查当前对象是否在边界内。若越界则返回false。
+
 ## 内建方法
 
 所有内建方法归类于lstg全局表中。
@@ -213,6 +247,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 		细节
 			按照下列顺序更新这些属性：
+				vx += ax
+				vy += ay
 				x += vx
 				y += vy
 				rot += omiga
@@ -273,6 +309,7 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 				omiga            角度增量
 				timer            计数器
 				vx, vy           速度
+				ax, ay           加速度
 				layer            渲染层级
 				group            碰撞组
 				hide             是否隐藏
@@ -315,6 +352,10 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - IsValid(object)
 
 	检查对象是否有效。
+
+- GetV(object):number, number **[新增]**
+
+	获取对象的速度，依次返回速度大小和速度方向。
 
 - SetV(object, v:number, a:number, track:boolean)
 
@@ -413,12 +454,9 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	获取纹理的宽度和高度。
 
-- LoadTexture(name:string, path:string, [mipmap:boolean])
+- LoadTexture(name:string, path:string, [mipmap:boolean=false])
 
 	装载纹理，支持多种格式但是首推png。其中mipmap为纹理链。
-
-		潜在不兼容性
-			luastg中若不提供mipmap参数默认将不创建mipmap，在luastg+中其行为相反。
 
 - LoadImage(name:string, tex\_name:string, x:number, y:number, w:number, h:number, [a:number, [b:number, [rect:boolean]]])
 

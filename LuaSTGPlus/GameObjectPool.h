@@ -1,6 +1,7 @@
 #pragma once
 #include "Global.h"
 #include "ObjectPool.hpp"
+#include "CirularQueue.hpp"
 #include "ResourceMgr.h"
 
 namespace LuaSTGPlus
@@ -26,6 +27,7 @@ namespace LuaSTGPlus
 		lua_Number dx, dy;  // (只读)上一帧中心坐标相对中心坐标的偏移量
 		lua_Number rot, omiga;  // 旋转角度与角度增量
 		lua_Number vx, vy;  // 速度
+		lua_Number ax, ay;  // 加速度
 		lua_Number layer;  // 图层
 		lua_Number a, b;  // 单位的横向、纵向碰撞大小的一半
 		lua_Number hscale, vscale;  // 横向、纵向拉伸率，仅影响渲染
@@ -58,6 +60,7 @@ namespace LuaSTGPlus
 			dx = dy = 0.;
 			rot = omiga = 0.;
 			vx = vy = 0.;
+			ax = ay = 0.;
 			layer = 0.;
 			a = b = 0.;
 			hscale = vscale = 1.;
@@ -97,24 +100,27 @@ namespace LuaSTGPlus
 	/// @brief 曲线激光特化实现
 	class GameObjectBentLaser
 	{
+	public:
+		static GameObjectBentLaser* AllocInstance();
+		static void FreeInstance(GameObjectBentLaser* p);
 	private:
 		struct LaserNode
 		{
 			fcyVec2 pos;
-			float rot;
 			float half_width;
 		};
 	private:
-		LaserNode m_NodeList[LGOBJ_MAXLASERNODE];
-		int m_iStart = 0, m_iEnd = 0;
+		int m_iId;
+		CirularQueue<LaserNode, LGOBJ_MAXLASERNODE> m_Queue;
+		float m_fLength = 0.f;  // 记录激光长度
 	public:
 		bool Update(size_t id, int length, float width)LNOEXCEPT;
 		void Release()LNOEXCEPT;
-		void Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT;
+		bool Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height, float scale)LNOEXCEPT;
 		bool CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT;
-		bool BoundCheck(float l, float r, float b, float t)LNOEXCEPT;
-	public:
-		GameObjectBentLaser();
+		bool BoundCheck()LNOEXCEPT;
+	protected:
+		GameObjectBentLaser(int id);
 		~GameObjectBentLaser();
 	};
 
@@ -137,7 +143,6 @@ namespace LuaSTGPlus
 		lua_Number m_BoundTop = 100.f;
 		lua_Number m_BoundBottom = -100.f;
 	private:
-		bool collisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT;
 		GameObject* freeObject(GameObject* p)LNOEXCEPT;
 	public:
 		/// @brief 检查是否为主线程
@@ -146,11 +151,20 @@ namespace LuaSTGPlus
 		/// @brief 获取已分配对象数量
 		size_t GetObjectCount()LNOEXCEPT { return m_ObjectPool.Size(); }
 		
+		/// @brief 获取对象
+		GameObject* GetPooledObject(size_t i)LNOEXCEPT { return m_ObjectPool.Data(i); }
+
 		/// @brief 执行对象的Frame函数
 		void DoFrame()LNOEXCEPT;
 
 		/// @brief 执行对象的Render函数
 		void DoRender()LNOEXCEPT;
+
+		/// @brief 获取舞台边界
+		fcyRect GetBound()LNOEXCEPT
+		{
+			return fcyRect((float)m_BoundLeft, (float)m_BoundTop, (float)m_BoundRight, (float)m_BoundBottom);
+		}
 
 		/// @brief 设置舞台边界
 		void SetBound(lua_Number l, lua_Number r, lua_Number b, lua_Number t)LNOEXCEPT
@@ -192,6 +206,9 @@ namespace LuaSTGPlus
 
 		/// @brief 求距离
 		bool Dist(size_t idA, size_t idB, double& out)LNOEXCEPT;
+
+		/// @brief 计算速度方向和大小
+		bool GetV(size_t id, double& v, double& a)LNOEXCEPT;
 
 		/// @brief 设置速度方向和大小
 		bool SetV(size_t id, double v, double a, bool updateRot)LNOEXCEPT;

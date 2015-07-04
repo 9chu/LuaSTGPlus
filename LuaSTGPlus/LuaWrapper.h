@@ -28,8 +28,13 @@ namespace LuaSTGPlus
 	class GameObjectBentLaser;
 
 	/// @brief 曲线激光包装
-	class BentLaserWrapper
+	class BentLaserDataWrapper
 	{
+	private:
+		struct Wrapper
+		{
+			GameObjectBentLaser* handle;
+		};
 	public:
 		/// @brief 向lua注册包装类
 		static void Register(lua_State* L)LNOEXCEPT;

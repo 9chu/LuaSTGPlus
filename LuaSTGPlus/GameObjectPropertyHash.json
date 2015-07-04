@@ -17,6 +17,8 @@
         ["timer", "TIMER"],
         ["vx", "VX"],
         ["vy", "VY"],
+        ["ax", "AX"],
+        ["ay", "AY"],
         ["layer", "LAYER"],
         ["group", "GROUP"],
         ["hide", "HIDE"],

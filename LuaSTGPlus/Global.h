@@ -62,6 +62,7 @@
 // 对象池信息
 #define LGOBJ_MAXCNT 32768  // 最大对象数
 #define LGOBJ_MAXLASERNODE 512  // 曲线激光最大节点数
+#define LGOBJ_MAXBENTLASER 1024 // 曲线激光最大数
 #define LGOBJ_DEFAULTGROUP 0  // 默认组
 #define LGOBJ_GROUPCNT 16  // 碰撞组数
 

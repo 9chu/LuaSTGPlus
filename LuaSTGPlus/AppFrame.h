@@ -312,6 +312,33 @@ namespace LuaSTGPlus
 		}
 
 		/// @brief 渲染纹理
+		bool RenderTexture(ResTexture* tex, BlendMode blend, const f2dGraphics2DVertex vertex[])LNOEXCEPT
+		{
+			if (m_GraphType != GraphicsType::Graph2D)
+			{
+				LERROR("RenderTexture: 只有2D渲染器可以执行该方法");
+				return false;
+			}
+			
+			// 设置混合
+			updateGraph2DBlendMode(blend);
+
+			// 复制坐标
+			f2dGraphics2DVertex tVertex[4];
+			memcpy(tVertex, vertex, sizeof(tVertex));
+
+			// 修正UV到[0,1]区间
+			for (int i = 0; i < 4; ++i)
+			{
+				tVertex[i].u /= (float)tex->GetTexture()->GetWidth();
+				tVertex[i].v /= (float)tex->GetTexture()->GetHeight();
+			}
+
+			m_Graph2D->DrawQuad(tex->GetTexture(), tVertex, false);
+			return true;
+		}
+
+		/// @brief 渲染纹理
 		bool RenderTexture(const char* name, BlendMode blend, f2dGraphics2DVertex vertex[])LNOEXCEPT
 		{
 			if (m_GraphType != GraphicsType::Graph2D)

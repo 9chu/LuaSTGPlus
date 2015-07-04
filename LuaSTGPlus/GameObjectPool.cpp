@@ -62,22 +62,67 @@
 using namespace std;
 using namespace LuaSTGPlus;
 
-inline bool ObjectListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
+static inline bool ObjectListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
 	// 总是以uid为参照
 	return p1->uid < p2->uid;
 }
 
-inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
+static inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
 	// layer小的靠前。若layer相同则参照uid。
 	return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
 }
 
+static inline bool CollisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
+{
+	if (!p1->colli || !p2->colli)  // 忽略不碰撞对象
+	return false;
+
+	// ! 来自luastg的代码 原理不明。
+	double a = p2->a;
+	double b = p2->b;
+	double r = p1->a;
+	double l = a + b + r;
+	double dx = p2->x - p1->x;
+	double dy = p2->y - p1->y;
+	if (fabs(dx) > l || fabs(dy) > l)
+		return false;
+	double x = dx*cos(p1->rot) + dy*sin(p1->rot);
+	double y = -dx*sin(p1->rot) + dy*cos(p1->rot);
+	a += r;
+	b += r;
+	a = a*a; b = b*b;
+	x = x*x; y = y*y;
+	if (p2->rect)
+		return x < a && y < b;
+	else
+		return (x * b + y * a) < a * b;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// GameObjectBentLaser
 ////////////////////////////////////////////////////////////////////////////////
-GameObjectBentLaser::GameObjectBentLaser()
+struct GAMEOBJECTBENTLASER_POD { char buf[sizeof(GameObjectBentLaser)]; };
+static FixedObjectPool<GAMEOBJECTBENTLASER_POD, LGOBJ_MAXBENTLASER> s_GameObjectBentLaserPool;
+
+GameObjectBentLaser* GameObjectBentLaser::AllocInstance()
+{
+	size_t id;
+	if (!s_GameObjectBentLaserPool.Alloc(id))
+		return nullptr;
+	GameObjectBentLaser* pRet = new(s_GameObjectBentLaserPool.Data(id)) GameObjectBentLaser(id);
+	return pRet;
+}
+
+void GameObjectBentLaser::FreeInstance(GameObjectBentLaser* p)
+{
+	p->~GameObjectBentLaser();
+	s_GameObjectBentLaserPool.Free(p->m_iId);
+}
+
+GameObjectBentLaser::GameObjectBentLaser(int id)
+	: m_iId(id)
 {
 }
 
@@ -87,9 +132,46 @@ GameObjectBentLaser::~GameObjectBentLaser()
 
 bool GameObjectBentLaser::Update(size_t id, int length, float width)LNOEXCEPT
 {
-	GameObject* p = nullptr; // LPOOL.Data(id);
+	GameObject* p = LPOOL.GetPooledObject(id);
 	if (!p)
 		return false;
+	if (length <= 1)
+	{
+		LERROR("lstgBentLaserData: 无效的参数length");
+		return false;
+	}
+
+	// 移除多余的节点，保证长度在length范围内
+	while (m_Queue.IsFull() || m_Queue.Size() >= (size_t)length)
+	{
+		LaserNode tLastPop;
+		m_Queue.Pop(tLastPop);
+
+		// 减少总长度
+		if (!m_Queue.IsEmpty())
+		{
+			LaserNode tFront = m_Queue.Front();
+			m_fLength -= (tLastPop.pos - tFront.pos).Length();
+		}
+	}
+
+	// 添加新节点
+	if (m_Queue.Size() < (size_t)length)
+	{
+		LaserNode tNode;
+		tNode.pos.Set((float)p->x, (float)p->y);
+		tNode.half_width = width / 2.f;
+		m_Queue.Push(tNode);
+
+		// 增加总长度
+		if (m_Queue.Size() > 1)
+		{
+			LaserNode& tNodeLast = m_Queue.Back();
+			LaserNode& tNodeBeforeLast = m_Queue[m_Queue.Size() - 2];
+			m_fLength += (tNodeBeforeLast.pos - tNodeLast.pos).Length();
+		}
+	}
+
 	return true;
 }
 
@@ -97,20 +179,178 @@ void GameObjectBentLaser::Release()LNOEXCEPT
 {
 }
 
-void GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height)LNOEXCEPT
+bool GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height, float scale)LNOEXCEPT
 {
-	int cnt = (m_iEnd - m_iStart + LGOBJ_MAXLASERNODE) % LGOBJ_MAXLASERNODE;
+	// 忽略只有一个节点的情况
+	if (m_Queue.Size() <= 1)
+		return true;
 
+	fcyRefPointer<ResTexture> pTex = LRES.FindTexture(tex_name);
+	if (!pTex)
+	{
+		LERROR("lstgBentLaserData: 找不到纹理资源'%m'", tex_name);
+		return false;
+	}
 
+	f2dGraphics2DVertex renderVertex[4] = {
+		{ 0, 0, 0.5f, c.argb, 0, tex_top },
+		{ 0, 0, 0.5f, c.argb, 0, tex_top },
+		{ 0, 0, 0.5f, c.argb, 0, tex_top + tex_height },
+		{ 0, 0, 0.5f, c.argb, 0, tex_top + tex_height }
+	};
+
+	float tVecLength = 0;
+	for (size_t i = 0; i < m_Queue.Size() - 1; ++i)
+	{
+		LaserNode& cur = m_Queue[i];
+		LaserNode& next = m_Queue[i + 1];
+
+		// === 计算最左侧的两个点 ===
+		// 计算从cur到next的向量
+		fcyVec2 offsetA = cur.pos - next.pos;
+
+		// 计算宽度上的扩展长度(旋转270度)
+		fcyVec2 expandVec = offsetA.GetNormalize();
+		std::swap(expandVec.x, expandVec.y);
+		expandVec.y = -expandVec.y;
+
+		if (i == 0)  // 如果是第一个节点，则其宽度扩展使用expandVec计算
+		{
+			float expX = expandVec.x * scale * cur.half_width;
+			float expY = expandVec.y * scale * cur.half_width;
+			renderVertex[0].x = cur.pos.x + expX;
+			renderVertex[0].y = cur.pos.y + expY;
+			renderVertex[0].u = tex_left;
+			renderVertex[3].x = cur.pos.x - expX;
+			renderVertex[3].y = cur.pos.y - expY;
+			renderVertex[3].u = tex_left;
+		}
+		else  // 否则，拷贝1和2
+		{
+			renderVertex[0].x = renderVertex[1].x;
+			renderVertex[0].y = renderVertex[1].y;
+			renderVertex[0].u = renderVertex[1].u;
+			renderVertex[3].x = renderVertex[2].x;
+			renderVertex[3].y = renderVertex[2].y;
+			renderVertex[3].u = renderVertex[2].u;
+		}
+
+		// === 计算最右侧的两个点 ===
+		tVecLength += offsetA.Length();
+		if (i == m_Queue.Size() - 2)  // 这是最后两个节点，则其宽度扩展使用expandVec计算
+		{
+			float expX = expandVec.x * scale * next.half_width;
+			float expY = expandVec.y * scale * next.half_width;
+			renderVertex[1].x = next.pos.x + expX;
+			renderVertex[1].y = next.pos.y + expY;
+			renderVertex[1].u = tex_left + tex_width;
+			renderVertex[2].x = next.pos.x - expX;
+			renderVertex[2].y = next.pos.y - expY;
+			renderVertex[2].u = tex_left + tex_width;
+		}
+		else  // 否则，参考第三个点
+		{
+			float expX, expY;
+			LaserNode& afterNext = m_Queue[i + 2];
+
+			// 计算向量next->afterNext并规范化，相加offsetA和offsetB后得角平分线
+			fcyVec2 offsetB = afterNext.pos - next.pos;
+			fcyVec2 angleBisect = offsetA.GetNormalize() + offsetB.GetNormalize();
+
+			if (angleBisect.Length2() < 0.002f)  // 几乎在一条直线上
+			{
+				/*
+				renderVertex[1].x = renderVertex[0].x;
+				renderVertex[1].y = renderVertex[0].y;
+				renderVertex[1].u = renderVertex[0].u;
+				renderVertex[2].x = renderVertex[3].x;
+				renderVertex[2].y = renderVertex[3].y;
+				renderVertex[2].u = renderVertex[3].u;
+				continue;
+				*/
+				expX = expandVec.x * scale * next.half_width;
+				expY = expandVec.y * scale * next.half_width;
+			}
+			else // 计算角平分线到角两边距离为next.half_width * scale的偏移量
+			{
+				angleBisect.Normalize();
+				float t = angleBisect * offsetA;
+				float l = scale * next.half_width;
+				float expandDelta = sqrt(l * l / (1.f - t * t));
+				expX = angleBisect.x * expandDelta;
+				expY = angleBisect.y * expandDelta;
+			}
+			
+			// 设置顶点
+			float u = tex_left + tVecLength / m_fLength * tex_width;
+			renderVertex[1].x = next.pos.x + expX;
+			renderVertex[1].y = next.pos.y + expY;
+			renderVertex[1].u = u;
+			renderVertex[2].x = next.pos.x - expX;
+			renderVertex[2].y = next.pos.y - expY;
+			renderVertex[2].u = u;
+
+			// 修正交叉的情况
+			float cross1 = fcyVec2(renderVertex[1].x - renderVertex[0].x, renderVertex[1].y - renderVertex[0].y) *
+				fcyVec2(renderVertex[2].x - renderVertex[3].x, renderVertex[2].y - renderVertex[3].y);
+			float cross2 = fcyVec2(renderVertex[2].x - renderVertex[0].x, renderVertex[2].y - renderVertex[0].y) *
+				fcyVec2(renderVertex[1].x - renderVertex[3].x, renderVertex[1].y - renderVertex[3].y);
+			if (cross2 > cross1)
+			{
+				std::swap(renderVertex[1].x, renderVertex[2].x);
+				std::swap(renderVertex[1].y, renderVertex[2].y);
+			}	
+		}
+
+		// 绘制这一段
+		if (!LAPP.RenderTexture(pTex, blend, renderVertex))
+			return false;
+	}
+	return true;
 }
 
 bool GameObjectBentLaser::CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT
 {
+	// 忽略只有一个节点的情况
+	if (m_Queue.Size() <= 1)
+		return false;
+
+	GameObject testObjA;
+	testObjA.Reset();
+	testObjA.rot = 0.;
+	testObjA.rect = false;
+
+	GameObject testObjB;
+	testObjB.Reset();
+	testObjB.x = x;
+	testObjB.y = y;
+	testObjB.rot = rot;
+	testObjB.a = a;
+	testObjB.b = b;
+	testObjB.rect = rect;
+
+	for (size_t i = 0; i < m_Queue.Size(); ++i)
+	{
+		LaserNode& n = m_Queue[i];
+		testObjA.x = n.pos.x;
+		testObjA.y = n.pos.y;
+		testObjA.a = testObjA.b = n.half_width;
+		if (::CollisionCheck(&testObjA, &testObjB))
+			return true;
+	}
 	return false;
 }
 
-bool GameObjectBentLaser::BoundCheck(float l, float r, float b, float t)LNOEXCEPT
+bool GameObjectBentLaser::BoundCheck()LNOEXCEPT
 {
+	fcyRect tBound = LPOOL.GetBound();
+	for (size_t i = 0; i < m_Queue.Size(); ++i)
+	{
+		LaserNode& n = m_Queue[i];
+		if (n.pos.x >= tBound.a.x && n.pos.x <= tBound.b.x && n.pos.y <= tBound.a.y && n.pos.y >= tBound.b.y)
+			return true;
+	}
+	// 越界时返回false，只有当所有的弹幕越界才返回false
 	return false;
 }
 
@@ -218,32 +458,6 @@ GameObjectPool::~GameObjectPool()
 	ResetPool();
 }
 
-bool GameObjectPool::collisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
-{
-	if (!p1->colli || !p2->colli)  // 忽略不碰撞对象
-		return false;
-
-	// ! 来自luastg的代码 原理不明。
-	double a = p2->a;
-	double b = p2->b;
-	double r = p1->a;
-	double l = a + b + r;
-	double dx = p2->x - p1->x;
-	double dy = p2->y - p1->y;
-	if (fabs(dx) > l || fabs(dy) > l)
-		return false;
-	double x = dx*cos(p1->rot) + dy*sin(p1->rot);
-	double y = -dx*sin(p1->rot) + dy*cos(p1->rot);
-	a += r;
-	b += r;
-	a = a*a; b = b*b;
-	x = x*x; y = y*y;
-	if (p2->rect)
-		return x < a && y < b;
-	else
-		return (x * b + y * a) < a * b;
-}
-
 GameObject* GameObjectPool::freeObject(GameObject* p)LNOEXCEPT
 {
 	GameObject* pRet = p->pObjectNext;
@@ -288,6 +502,8 @@ void GameObjectPool::DoFrame()LNOEXCEPT
 		lua_pop(L, 2);  // ot
 
 		// 更新对象状态
+		p->vx += p->ax;
+		p->vy += p->ay;
 		p->x += p->vx;
 		p->y += p->vy;
 		p->rot += p->omiga;
@@ -373,7 +589,7 @@ void GameObjectPool::CollisionCheck(size_t groupA, size_t groupB)LNOEXCEPT
 		GameObject* pB = pBHeader;
 		while (pB && pB != pBTail)
 		{
-			if (collisionCheck(pA, pB))
+			if (::CollisionCheck(pA, pB))
 			{
 				// 根据id获取对象的lua绑定table、拿到class再拿到collifunc
 				lua_rawgeti(L, -1, pA->id + 1);  // ot t(object)
@@ -577,6 +793,16 @@ bool GameObjectPool::Dist(size_t idA, size_t idB, double& out)LNOEXCEPT
 	lua_Number dx = pB->x - pA->x;
 	lua_Number dy = pB->y - pA->y;
 	out = sqrt(dx*dx + dy*dy);
+	return true;
+}
+
+bool GameObjectPool::GetV(size_t id, double& v, double& a)LNOEXCEPT
+{
+	GameObject* p = m_ObjectPool.Data(id);
+	if (!p)
+		return false;
+	v = sqrt(p->vx * p->vx + p->vy * p->vy);
+	a = atan2(p->vy, p->vx) * LRAD2DEGREE;
 	return true;
 }
 
@@ -799,6 +1025,12 @@ int GameObjectPool::GetAttr(lua_State* L)LNOEXCEPT
 	case GameObjectProperty::VY:
 		lua_pushnumber(L, p->vy);
 		break;
+	case GameObjectProperty::AX:
+		lua_pushnumber(L, p->ax);
+		break;
+	case GameObjectProperty::AY:
+		lua_pushnumber(L, p->ay);
+		break;
 	case GameObjectProperty::LAYER:
 		lua_pushnumber(L, p->layer);
 		break;
@@ -917,6 +1149,12 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 		break;
 	case GameObjectProperty::VY:
 		p->vy = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::AX:
+		p->ax = luaL_checknumber(L, 3);
+		break;
+	case GameObjectProperty::AY:
+		p->ay = luaL_checknumber(L, 3);
 		break;
 	case GameObjectProperty::LAYER:
 		p->layer = luaL_checkinteger(L, 3);

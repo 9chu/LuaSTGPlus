@@ -905,7 +905,7 @@ bool AppFrame::Init()LNOEXCEPT
 	luaopen_lfs(L);  // 文件系统库
 	ColorWrapper::Register(L);  // 颜色对象
 	RandomizerWrapper::Register(L);  // 随机数发生器
-	BentLaserWrapper::Register(L);  // 曲线激光
+	BentLaserDataWrapper::Register(L);  // 曲线激光
 	BuiltInFunctionWrapper::Register(L);  // 内建函数库
 	
 	// 为对象池分配空间

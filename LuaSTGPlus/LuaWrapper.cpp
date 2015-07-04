@@ -294,49 +294,63 @@ fcyRandomWELL512* RandomizerWrapper::CreateAndPush(lua_State* L)
 #pragma endregion
 
 ////////////////////////////////////////////////////////////////////////////////
-/// BentLaserWrapper
+/// BentLaserDataWrapper
 ////////////////////////////////////////////////////////////////////////////////
-#pragma region BentLaserWrapper
-void BentLaserWrapper::Register(lua_State* L)LNOEXCEPT
+#pragma region BentLaserDataWrapper
+void BentLaserDataWrapper::Register(lua_State* L)LNOEXCEPT
 {
 	struct WrapperImplement
 	{
 		static int Update(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			if (!lua_istable(L, 1))
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (!p->handle)
+				return luaL_error(L, "lstgBentLaserData was released.");
+			if (!lua_istable(L, 2))
 				return luaL_error(L, "invalid lstg object for 'Update'.");
-			lua_rawgeti(L, 1, 2);  // t(object) ??? id
+			lua_rawgeti(L, 2, 2);  // self t(object) ??? id
 			size_t id = (size_t)luaL_checkinteger(L, -1);
 			lua_pop(L, 1);
-			if (!p->Update(id, luaL_checkinteger(L, 2), (float)luaL_checknumber(L, 3)))
+			if (!p->handle->Update(id, luaL_checkinteger(L, 3), (float)luaL_checknumber(L, 4)))
 				return luaL_error(L, "invalid lstg object for 'Update'.");
 			return 0;
 		}
 		static int Release(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			p->Release();
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (p->handle)
+			{
+				GameObjectBentLaser::FreeInstance(p->handle);
+				p->handle = nullptr;
+			}
 			return 0;
 		}
 		static int Render(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			p->Render(
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (!p->handle)
+				return luaL_error(L, "lstgBentLaserData was released.");
+			if (!p->handle->Render(
 				luaL_checkstring(L, 2),
 				TranslateBlendMode(L, 3),
 				*static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
 				(float)luaL_checknumber(L, 5),
 				(float)luaL_checknumber(L, 6),
 				(float)luaL_checknumber(L, 7),
-				(float)luaL_checknumber(L, 8)
-				);
+				(float)luaL_checknumber(L, 8),
+				(float)luaL_optnumber(L, 9, 1.) * LRES.GetGlobalImageScaleFactor()
+				))
+			{
+				return luaL_error(L, "can't render object with texture '%s'.", luaL_checkstring(L, 2));
+			}
 			return 0;
 		}
 		static int CollisionCheck(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			bool r = p->CollisionCheck(
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (!p->handle)
+				return luaL_error(L, "lstgBentLaserData was released.");
+			bool r = p->handle->CollisionCheck(
 				(float)luaL_checknumber(L, 2),
 				(float)luaL_checknumber(L, 3),
 				(float)luaL_optnumber(L, 4, 0),
@@ -349,26 +363,27 @@ void BentLaserWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int BoundCheck(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			bool r = p->BoundCheck(
-				(float)luaL_checknumber(L, 2),
-				(float)luaL_checknumber(L, 3),
-				(float)luaL_checknumber(L, 4),
-				(float)luaL_checknumber(L, 5)
-				);
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (!p->handle)
+				return luaL_error(L, "lstgBentLaserData was released.");
+			bool r = p->handle->BoundCheck();
 			lua_pushboolean(L, r);
 			return 1;
 		}
 		static int Meta_ToString(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
 			lua_pushfstring(L, "lstg.BentLaserData object");
 			return 1;
 		}
 		static int Meta_GC(lua_State* L)LNOEXCEPT
 		{
-			GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-			p->~GameObjectBentLaser();
+			Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
+			if (p->handle)
+			{
+				GameObjectBentLaser::FreeInstance(p->handle);
+				p->handle = nullptr;
+			}
 			return 0;
 		}
 	};
@@ -401,13 +416,13 @@ void BentLaserWrapper::Register(lua_State* L)LNOEXCEPT
 	lua_pop(L, 2);
 }
 
-GameObjectBentLaser* BentLaserWrapper::CreateAndPush(lua_State* L)
+GameObjectBentLaser* BentLaserDataWrapper::CreateAndPush(lua_State* L)
 {
-	GameObjectBentLaser* p = static_cast<GameObjectBentLaser*>(lua_newuserdata(L, sizeof(GameObjectBentLaser)));
-	new(p)GameObjectBentLaser();  // 构造
+	Wrapper* p = static_cast<Wrapper*>(lua_newuserdata(L, sizeof(Wrapper)));
+	p->handle = GameObjectBentLaser::AllocInstance();
 	luaL_getmetatable(L, TYPENAME_BENTLASER);
 	lua_setmetatable(L, -2);
-	return p;
+	return p->handle;
 }
 #pragma endregion
 
@@ -631,6 +646,18 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			}
 			return 1;
 		}
+		static int GetV(lua_State* L)LNOEXCEPT
+		{
+			if (!lua_istable(L, 1))
+				return luaL_error(L, "invalid lstg object for 'GetV'.");
+			double v, a;
+			lua_rawgeti(L, 1, 2);  // t(object) ??? id
+			if (!LPOOL.GetV((size_t)luaL_checkinteger(L, -1), v, a))
+				return luaL_error(L, "invalid lstg object for 'GetV'.");
+			lua_pushnumber(L, v);
+			lua_pushnumber(L, a);
+			return 2;
+		}
 		static int SetV(lua_State* L)LNOEXCEPT
 		{
 			if (!lua_istable(L, 1))
@@ -761,20 +788,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			ResourcePool* pActivedPool = LRES.GetActivedPool();
 			if (!pActivedPool)
 				return luaL_error(L, "can't load resource at this time.");
-			switch (lua_gettop(L))
-			{
-			case 2:
-				if (!pActivedPool->LoadTexture(name, path))
-					return luaL_error(L, "can't load texture from file '%s'.", path);
-				break;
-			case 3:
-				if (!pActivedPool->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
-					return luaL_error(L, "can't load texture from file '%s'.", path);
-				break;
-			default:
-				return luaL_error(L, "invalid argument count for 'LoadTexture'.");
-				break;
-			}
+			if (!pActivedPool->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
+				return luaL_error(L, "can't load texture from file '%s'.", path);
 			return 0;
 		}
 		static int LoadImage(lua_State* L)LNOEXCEPT
@@ -1450,10 +1465,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return LPOOL.GetObjectTable(L);
 		}
-		static int BentLaserData(lua_State* L)LNOEXCEPT
-		{
-			return 0;
-		}
 
 		// 对象构造函数
 		static int NewColor(lua_State* L)LNOEXCEPT
@@ -1476,6 +1487,11 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		static int NewRand(lua_State* L)LNOEXCEPT
 		{
 			RandomizerWrapper::CreateAndPush(L);
+			return 1;
+		}
+		static int BentLaserData(lua_State* L)LNOEXCEPT
+		{
+			BentLaserDataWrapper::CreateAndPush(L);
 			return 1;
 		}
 	};
@@ -1513,6 +1529,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "IsValid", &WrapperImplement::IsValid },
 		{ "Angle", &WrapperImplement::Angle },
 		{ "Dist", &WrapperImplement::Dist },
+		{ "GetV", &WrapperImplement::GetV },
 		{ "SetV", &WrapperImplement::SetV },
 		{ "SetImgState", &WrapperImplement::SetImgState },
 		{ "ResetPool", &WrapperImplement::ResetPool },
@@ -1587,10 +1604,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "atan2", &WrapperImplement::ATan2 },
 		// 调试函数
 		{ "ObjTable", &WrapperImplement::ObjTable },
-		{ "BentLaserData", &WrapperImplement::BentLaserData },
 		// 对象构造函数
 		{ "Color", &WrapperImplement::NewColor },
 		{ "Rand", &WrapperImplement::NewRand },
+		{ "BentLaserData", &WrapperImplement::BentLaserData },
 		{ NULL, NULL }
 	};
 
