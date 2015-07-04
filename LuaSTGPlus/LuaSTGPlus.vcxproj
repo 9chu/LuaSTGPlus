@@ -150,10 +150,10 @@
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Users\CHU\Desktop\lua-cjson-2.1.0-1.src\lua-cjson-2.1.0\dtoa.c" />
     <ClCompile Include="AppFrame.cpp" />
     <ClCompile Include="GameObjectPool.cpp" />
     <ClCompile Include="LogSystem.cpp" />
+    <ClCompile Include="LuaExtensions\cjson4lua\dtoa.c" />
     <ClCompile Include="LuaExtensions\cjson4lua\fpconv.c" />
     <ClCompile Include="LuaExtensions\cjson4lua\g_fmt.c" />
     <ClCompile Include="LuaExtensions\cjson4lua\lua_cjson.c" />

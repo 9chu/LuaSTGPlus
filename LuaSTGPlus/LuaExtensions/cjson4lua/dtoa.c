@@ -2472,7 +2472,7 @@ retlow1:
 	}
 #endif /* NO_STRTOD_BIGCOMP */
 
- double
+static double
 fpconv_strtod
 #ifdef KR_headers
 	(s00, se) CONST char *s00; char **se;

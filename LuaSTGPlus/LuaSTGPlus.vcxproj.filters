@@ -128,7 +128,7 @@
     <ClCompile Include="LuaExtensions\cjson4lua\strbuf.c">
       <Filter>LuaExtensions\cjson4lua\源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Users\CHU\Desktop\lua-cjson-2.1.0-1.src\lua-cjson-2.1.0\dtoa.c">
+    <ClCompile Include="LuaExtensions\cjson4lua\dtoa.c">
       <Filter>LuaExtensions\cjson4lua\源文件</Filter>
     </ClCompile>
   </ItemGroup>
