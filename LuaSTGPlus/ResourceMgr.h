@@ -42,8 +42,12 @@ namespace LuaSTGPlus
 	{
 		AddAdd = 1,
 		AddAlpha,
+		AddSub,
+		AddRev,
 		MulAdd,
-		MulAlpha
+		MulAlpha,
+		MulSub,
+		MulRev
 	};
 	
 	/// @brief 资源接口
@@ -426,6 +430,13 @@ namespace LuaSTGPlus
 		{
 			return !IsPlaying() && m_pBuffer->GetTime() == 0.;
 		}
+
+		void SetVolume(float v)
+		{
+			float nv = VolumeFix(v);
+			if (m_pBuffer->GetVolume() != nv)
+				m_pBuffer->SetVolume(nv);
+		}
 	public:
 		ResMusic(const char* name, fcyRefPointer<f2dSoundBuffer> buffer)
 			: Resource(ResourceType::Music, name), m_pBuffer(buffer) {}
@@ -459,6 +470,17 @@ namespace LuaSTGPlus
 				return nullptr;
 			}
 		}
+		template <typename T>
+		void removeResource(Dictionary<fcyRefPointer<T>> pool, const char* name)
+		{
+			auto i = pool.find(name);
+			if (i == pool.end())
+				LWARNING("RemoveResource: 试图移除一个不存在的资源'%m'", name);
+			pool.erase(i);
+#ifdef LSHOWRESLOADINFO
+			LINFO("RemoveResource: 资源'%m'已卸载", name);
+#endif
+		}
 	public:
 		/// @brief 清空对象池
 		void Clear()LNOEXCEPT
@@ -471,6 +493,40 @@ namespace LuaSTGPlus
 			m_ParticlePool.clear();
 			m_SpriteFontPool.clear();
 			m_TTFFontPool.clear();
+		}
+
+		/// @brief 移除某个资源类型的资源
+		void RemoveResource(ResourceType t, const char* name)LNOEXCEPT
+		{
+			switch (t)
+			{
+			case ResourceType::Texture:
+				removeResource(m_TexturePool, name);
+				break;
+			case ResourceType::Sprite:
+				removeResource(m_SpritePool, name);
+				break;
+			case ResourceType::Animation:
+				removeResource(m_AnimationPool, name);
+				break;
+			case ResourceType::Music:
+				removeResource(m_MusicPool, name);
+				break;
+			case ResourceType::SoundEffect:
+				removeResource(m_SoundSpritePool, name);
+				break;
+			case ResourceType::Particle:
+				removeResource(m_ParticlePool, name);
+				break;
+			case ResourceType::SpriteFont:
+				removeResource(m_SpriteFontPool, name);
+				break;
+			case ResourceType::TrueTypeFont:
+				removeResource(m_TTFFontPool, name);
+				break;
+			default:
+				break;
+			}
 		}
 
 		/// @brief 检查资源是否存在

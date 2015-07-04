@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_Dev|Win32">
+      <Configuration>Release_Dev</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -29,6 +33,13 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -36,6 +47,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -49,6 +63,12 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>bin\</OutDir>
     <IntDir>obj\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>bin\</OutDir>
+    <IntDir>obj\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName).dev</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -89,6 +109,28 @@
       <AdditionalDependencies>zlib.lib;lua.lib;fancy2d.lib;fancylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>LDEVVERSION;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\fancy2d\fancy2d\;$(SolutionDir)\..\fancy2d\fancylib\;$(SolutionDir)\3rdParty\luajit\src\;$(SolutionDir)\3rdParty\luajit\_build\;$(SolutionDir)\ZLib\;$(SolutionDir)\ZLib\minizip\</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)\..\fancy2d\fancy2d\bin\;$(SolutionDir)\..\fancy2d\fancylib\bin\;$(SolutionDir)\3rdParty\luajit\_build\Release\;$(SolutionDir)\ZLib\bin\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>zlib.lib;lua.lib;fancy2d.lib;fancylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AppFrame.h" />
     <ClInclude Include="CirularQueue.hpp" />
@@ -96,17 +138,26 @@
     <ClInclude Include="GameObjectPool.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="LogSystem.h" />
+    <ClInclude Include="LuaExtensions\cjson4lua\dtoa_config.h" />
+    <ClInclude Include="LuaExtensions\cjson4lua\fpconv.h" />
+    <ClInclude Include="LuaExtensions\cjson4lua\strbuf.h" />
     <ClInclude Include="LuaExtensions\lfs\lfs.h" />
     <ClInclude Include="LuaWrapper.h" />
     <ClInclude Include="ObjectPool.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="ResourceMgr.h" />
     <ClInclude Include="UnicodeStringEncoding.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Users\CHU\Desktop\lua-cjson-2.1.0-1.src\lua-cjson-2.1.0\dtoa.c" />
     <ClCompile Include="AppFrame.cpp" />
     <ClCompile Include="GameObjectPool.cpp" />
     <ClCompile Include="LogSystem.cpp" />
+    <ClCompile Include="LuaExtensions\cjson4lua\fpconv.c" />
+    <ClCompile Include="LuaExtensions\cjson4lua\g_fmt.c" />
+    <ClCompile Include="LuaExtensions\cjson4lua\lua_cjson.c" />
+    <ClCompile Include="LuaExtensions\cjson4lua\strbuf.c" />
     <ClCompile Include="LuaExtensions\lfs\lfs.c" />
     <ClCompile Include="LuaWrapper.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -118,6 +169,12 @@
     <None Include="GameObjectPropertyHash.inl" />
     <None Include="GameObjectPropertyHash.json" />
     <None Include="string2enum.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="LuaSTGPlus.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="app.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

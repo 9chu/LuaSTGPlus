@@ -87,7 +87,9 @@
 #endif
 
 // 调试辅助
-// #define LSHOWRESLOADINFO  // 显示加载信息
+#if (defined LDEVVERSION) || (defined LDEBUG)
+#define LSHOWRESLOADINFO  // 显示加载信息
+#endif
 // #define LSHOWFONTBASELINE  // 显示文字基线
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())

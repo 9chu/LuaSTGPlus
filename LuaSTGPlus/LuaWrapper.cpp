@@ -37,6 +37,14 @@ static inline BlendMode TranslateBlendMode(lua_State* L, int argnum)
 		return BlendMode::AddAdd;
 	else if (strcmp(s, "add+alpha") == 0)
 		return BlendMode::AddAlpha;
+	else if (strcmp(s, "add+rev") == 0)
+		return BlendMode::AddRev;
+	else if (strcmp(s, "mul+rev") == 0)
+		return BlendMode::MulRev;
+	else if (strcmp(s, "add+sub") == 0)
+		return BlendMode::AddSub;
+	else if (strcmp(s, "mul+sub") == 0)
+		return BlendMode::MulSub;
 	else
 		luaL_error(L, "invalid blend mode '%s'.", s);
 	return BlendMode::MulAlpha;
@@ -980,19 +988,40 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			else
 				return luaL_error(L, "invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
 
-			switch (t)
+			if (lua_gettop(L) == 1)
 			{
-			case ResourcePoolType::Stage:
-				LRES.GetResourcePool(ResourcePoolType::Stage)->Clear();
-				LINFO("关卡资源池已清空");
-				break;
-			case ResourcePoolType::Global:
-				LRES.GetResourcePool(ResourcePoolType::Global)->Clear();
-				LINFO("全局资源池已清空");
-				break;
-			default:
-				break;
-			}	
+				switch (t)
+				{
+				case ResourcePoolType::Stage:
+					LRES.GetResourcePool(ResourcePoolType::Stage)->Clear();
+					LINFO("关卡资源池已清空");
+					break;
+				case ResourcePoolType::Global:
+					LRES.GetResourcePool(ResourcePoolType::Global)->Clear();
+					LINFO("全局资源池已清空");
+					break;
+				default:
+					break;
+				}
+			}
+			else
+			{
+				ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 2));
+				const char* tResourceName = luaL_checkstring(L, 3);
+
+				switch (t)
+				{
+				case ResourcePoolType::Stage:
+					LRES.GetResourcePool(ResourcePoolType::Stage)->RemoveResource(tResourceType, tResourceName);
+					break;
+				case ResourcePoolType::Global:
+					LRES.GetResourcePool(ResourcePoolType::Global)->RemoveResource(tResourceType, tResourceName);
+					break;
+				default:
+					break;
+				}
+			}
+			
 			return 0;
 		}
 		static int CheckRes(lua_State* L)LNOEXCEPT
@@ -1345,7 +1374,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			ResMusic* p = LRES.FindMusic(s);
 			if (!p)
 				return luaL_error(L, "music '%s' not found.", s);
-			p->Play((float)luaL_optnumber(L, 2, 1.) * LRES.GetGlobalSoundEffectVolume(), luaL_optnumber(L, 3, 0.));
+			p->Play((float)luaL_optnumber(L, 2, 1.) * LRES.GetGlobalMusicVolume(), luaL_optnumber(L, 3, 0.));
 			return 0;
 		}
 		static int StopMusic(lua_State* L)LNOEXCEPT
@@ -1402,8 +1431,20 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SetBGMVolume(lua_State* L)LNOEXCEPT
 		{
-			float x = static_cast<float>(luaL_checknumber(L, 1));
-			LRES.SetGlobalMusicVolume(max(min(x, 1.f), 0.f));
+			if (lua_gettop(L) == 1)
+			{
+				float x = static_cast<float>(luaL_checknumber(L, 1));
+				LRES.SetGlobalMusicVolume(max(min(x, 1.f), 0.f));
+			}
+			else
+			{
+				const char* s = luaL_checkstring(L, 1);
+				float x = static_cast<float>(luaL_checknumber(L, 2));
+				ResMusic* p = LRES.FindMusic(s);
+				if (!p)
+					return luaL_error(L, "music '%s' not found.", s);
+				p->SetVolume(x * LRES.GetGlobalMusicVolume());
+			}
 			return 0;
 		}
 

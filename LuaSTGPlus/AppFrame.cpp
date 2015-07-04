@@ -13,6 +13,7 @@
 
 // 内置lua扩展
 extern "C" int luaopen_lfs(lua_State *L);
+extern "C" int luaopen_cjson(lua_State* L);
 
 using namespace std;
 using namespace LuaSTGPlus;
@@ -903,6 +904,7 @@ bool AppFrame::Init()LNOEXCEPT
 
 	luaL_openlibs(L);  // 内建库
 	luaopen_lfs(L);  // 文件系统库
+	luaopen_cjson(L);  // CJSON库
 	ColorWrapper::Register(L);  // 颜色对象
 	RandomizerWrapper::Register(L);  // 随机数发生器
 	BentLaserDataWrapper::Register(L);  // 曲线激光

@@ -433,9 +433,11 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 	资源池使用字符串哈希表进行管理，一个池中的同种资源其名称不能重复。
 	所有的加载函数会根据当前的资源池类别加载到对应的池中。寻找资源时优先到关卡资源池中寻找，若没有再到全局资源池中寻找。
 
-- RemoveResource(pool:string)
+- RemoveResource(pool:string, [type:integer, name:string]) **[新]**
 
-	删除一个池中的所有资源。参数可选global或stage。
+	若只有一个参数，则删除一个池中的所有资源。否则删除对应池中的某个资源。参数可选global或stage。
+
+	若资源仍在使用之中，将继续保持装载直到相关的对象被释放。
 
 - CheckRes(type:integer, name:string):string|nil
 
@@ -473,8 +475,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 			""          默认值，=mul+alpha
 			"mul+add"   顶点颜色使用乘法，目标混合使用加法
 			"mul+alpha" (默认)顶点颜色使用乘法，目标混合使用alpha混合
+			"mul+sub"   顶点颜色使用乘法，结果=屏幕上的颜色-图像上的颜色 [新增]
+			"mul+rev"   顶点颜色使用乘法，结果=图像上的颜色-屏幕上的颜色 [新增]
 			"add+add"   顶点颜色使用加法，目标混合使用加法
 			"add+alpha" 顶点颜色使用加法，目标混合使用alpha混合
+			"add+sub"   顶点颜色使用加法，结果=屏幕上的颜色-图像上的颜色 [新增]
+			"add+rev"   顶点颜色使用加法，结果=图像上的颜色-屏幕上的颜色 [新增]
 
 - SetImageCenter(name:string, x:number, y:number)
 
@@ -684,9 +690,11 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	设置全局音效音量，将影响后续播放音效的音量。
 
-- SetBGMVolume(vol:number)
+- SetBGMVolume([vol:number] | [name:string, vol:number]) **[新]**
 
-	设置全局音乐音量，将影响后续播放音乐的音量。
+	若参数个数为1，则设置全局音乐音量。该操作将影响后续播放音乐的音量。
+
+	若参数个数为2，则设置指定音乐的播放音量。
 
 ### 输入
 
@@ -771,3 +779,19 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - RenderFunc() **[新增]**
 
 	渲染处理函数，每帧被调用时用来渲染场景。
+
+## 第三方库
+
+### cjson **[新增]**
+
+#### 方法
+
+更多帮助请参考[cjson主页](http://www.kyne.com.au/~mark/software/lua-cjson.php)
+
+- encode(table):string
+
+	编码一个table为字符串。
+
+- decode(string):table
+
+	解码一个字符串为table。
