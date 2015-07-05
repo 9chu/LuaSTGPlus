@@ -208,6 +208,9 @@ bool GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor
 		// === 计算最左侧的两个点 ===
 		// 计算从cur到next的向量
 		fcyVec2 offsetA = cur.pos - next.pos;
+		float lenOffsetA = offsetA.Length();
+		if (lenOffsetA < 0.0001f && i + 1 != m_Queue.Size() - 1)
+			continue;
 
 		// 计算宽度上的扩展长度(旋转270度)
 		fcyVec2 expandVec = offsetA.GetNormalize();
@@ -236,7 +239,7 @@ bool GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor
 		}
 
 		// === 计算最右侧的两个点 ===
-		tVecLength += offsetA.Length();
+		tVecLength += lenOffsetA;
 		if (i == m_Queue.Size() - 2)  // 这是最后两个节点，则其宽度扩展使用expandVec计算
 		{
 			float expX = expandVec.x * scale * next.half_width;
@@ -256,25 +259,17 @@ bool GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor
 			// 计算向量next->afterNext并规范化，相加offsetA和offsetB后得角平分线
 			fcyVec2 offsetB = afterNext.pos - next.pos;
 			fcyVec2 angleBisect = offsetA.GetNormalize() + offsetB.GetNormalize();
+			float angleBisectLen = angleBisect.Length();
 
-			if (angleBisect.Length2() < 0.002f)  // 几乎在一条直线上
+			if (angleBisectLen < 0.00002f || angleBisectLen > 1.99998f)  // 几乎在一条直线上
 			{
-				/*
-				renderVertex[1].x = renderVertex[0].x;
-				renderVertex[1].y = renderVertex[0].y;
-				renderVertex[1].u = renderVertex[0].u;
-				renderVertex[2].x = renderVertex[3].x;
-				renderVertex[2].y = renderVertex[3].y;
-				renderVertex[2].u = renderVertex[3].u;
-				continue;
-				*/
 				expX = expandVec.x * scale * next.half_width;
 				expY = expandVec.y * scale * next.half_width;
 			}
 			else // 计算角平分线到角两边距离为next.half_width * scale的偏移量
 			{
-				angleBisect.Normalize();
-				float t = angleBisect * offsetA;
+				angleBisect *= (1 / angleBisectLen);  // angleBisect.Normalize();
+				float t = angleBisect * offsetA.GetNormalize();
 				float l = scale * next.half_width;
 				float expandDelta = sqrt(l * l / (1.f - t * t));
 				expX = angleBisect.x * expandDelta;

@@ -179,6 +179,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	仅限初始化中使用，不允许在运行时动态设置分辨率。
 
+- ChangeVideoMode(width:number, height:number, windowed:boolean, vsync:boolean):boolean **[新增]**
+
+	改变视频选项。若成功返回true，否则返回false并恢复到上次的视频模式。
+
+	**仅限运行时使用**
+
 - SetSplash(boolean)
 
 	设置是否显示光标。默认为false。
@@ -223,6 +229,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 	执行指定路径的脚本。已执行过的脚本会再次执行。
 
 	若文件不存在、编译失败、执行失败则抛出错误。
+
+- ShowSplashWindow([path:string]) **[新增]**
+
+	装载载入窗口。参数为图片路径。
+
+	若图片加载失败或为空则使用内置的图片打开窗口。
 
 ### 对象池管理方法
 

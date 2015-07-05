@@ -2,6 +2,7 @@
 /// @brief 定义应用程序框架
 #pragma once
 #include "Global.h"
+#include "SplashWindow.h"
 #include "ResourceMgr.h"
 #include "GameObjectPool.h"
 #include "UnicodeStringEncoding.h"
@@ -33,7 +34,27 @@ namespace LuaSTGPlus
 	public:
 		static LNOINLINE AppFrame& GetInstance();
 	private:
+		class GdiPlusScope
+		{
+		private:
+			ULONG_PTR m_gdiplusToken;
+		public:
+			GdiPlusScope()
+			{
+				Gdiplus::GdiplusStartupInput StartupInput;
+				GdiplusStartup(&m_gdiplusToken, &StartupInput, NULL);
+			}
+			~GdiPlusScope()
+			{
+				Gdiplus::GdiplusShutdown(m_gdiplusToken);
+			}
+		};
+	private:
 		AppStatus m_iStatus = AppStatus::NotInitialized;
+
+		// 载入窗口
+		GdiPlusScope m_GdiScope;
+		SplashWindow m_SplashWindow;
 
 		// 资源管理器
 		ResourceMgr m_ResourceMgr;
@@ -49,7 +70,6 @@ namespace LuaSTGPlus
 		bool m_OptionWindowed = true;
 		fuInt m_OptionFPSLimit = 60;
 		bool m_OptionVsync = true;
-		bool m_OptionVsyncOrg = true;  // 用于保存设备垂直同步信息
 		fcyVec2 m_OptionResolution = fcyVec2(640.f, 480.f);
 		bool m_OptionSplash = false;
 		std::wstring m_OptionTitle = L"LuaSTGPlus";
@@ -132,6 +152,8 @@ namespace LuaSTGPlus
 			}
 		}
 	public: // 脚本调用接口，含义参见API文档
+		LNOINLINE void ShowSplashWindow(const char* imgPath = nullptr)LNOEXCEPT;  // UTF8编码
+
 		void SetWindowed(bool v)LNOEXCEPT;
 		void SetFPS(fuInt v)LNOEXCEPT;
 		void SetVsync(bool v)LNOEXCEPT;
@@ -141,7 +163,7 @@ namespace LuaSTGPlus
 
 		/// @brief 使用新的视频参数更新显示模式
 		/// @note 若切换失败则进行回滚
-		LNOINLINE bool UpdateVideoParameters()LNOEXCEPT;
+		LNOINLINE bool ChangeVideoMode(int width, int height, bool windowed, bool vsync)LNOEXCEPT;
 
 		/// @brief 获取当前的FPS
 		double GetFPS()LNOEXCEPT { return m_fFPS; }

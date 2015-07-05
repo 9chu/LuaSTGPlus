@@ -87,6 +87,9 @@
     <ClInclude Include="LuaExtensions\cjson4lua\fpconv.h">
       <Filter>LuaExtensions\cjson4lua\头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SplashWindow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -131,6 +134,9 @@
     <ClCompile Include="LuaExtensions\cjson4lua\dtoa.c">
       <Filter>LuaExtensions\cjson4lua\源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SplashWindow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="string2enum.py">
@@ -150,6 +156,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="app.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="splash.png">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

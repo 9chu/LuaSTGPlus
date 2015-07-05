@@ -2,6 +2,8 @@
 #include "Utility.h"
 #include "LuaWrapper.h"
 
+#include "resource.h"
+
 #include "D3D9.H"  // for SetFog
 
 #ifdef max
@@ -347,6 +349,39 @@ AppFrame::~AppFrame()
 }
 
 #pragma region 脚本接口
+LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
+{
+	if (m_iStatus == AppStatus::Initializing)
+	{
+		try
+		{
+			Gdiplus::Image* pImg = nullptr;
+
+			// 若有图片，则加载
+			if (imgPath)
+			{
+				std::vector<char> tDataBuf;
+				if (m_ResourceMgr.LoadFile(imgPath, tDataBuf))
+					pImg = SplashWindow::LoadImageFromMemory((fcData)tDataBuf.data(), tDataBuf.size());
+				
+				if (!pImg)
+					LERROR("ShowSplashWindow: 无法加载图片'%m'", imgPath);
+			}
+
+			// 显示窗口
+			m_SplashWindow.ShowSplashWindow(pImg);
+
+			FCYSAFEDEL(pImg);
+		}
+		catch (const bad_alloc&)
+		{
+			LERROR("ShowSplashWindow: 内存不足");
+		}
+	}
+	else
+		LWARNING("ShowSplashWindow: 无法在此时装载窗口");
+}
+
 void AppFrame::SetWindowed(bool v)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
@@ -383,7 +418,7 @@ void AppFrame::SetSplash(bool v)LNOEXCEPT
 {
 	m_OptionSplash = v;
 	if (m_pMainWindow)
-		m_pMainWindow->HideMouse(m_OptionSplash);
+		m_pMainWindow->HideMouse(!m_OptionSplash);
 }
 
 LNOINLINE void AppFrame::SetTitle(const char* v)LNOEXCEPT
@@ -400,26 +435,25 @@ LNOINLINE void AppFrame::SetTitle(const char* v)LNOEXCEPT
 	}
 }
 
-LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
+LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, bool vsync)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initialized)
 	{
-		// 获取原始视频选项
-		bool tOrgOptionWindowed = m_pRenderDev->IsWindowed();
-		fcyVec2 tOrgOptionResolution = fcyVec2((float)m_pRenderDev->GetBufferWidth(),
-			(float)m_pRenderDev->GetBufferHeight());
-
 		// 切换到新的视频选项
 		if (FCYOK(m_pRenderDev->SetBufferSize(
-			(fuInt)m_OptionResolution.x,
-			(fuInt)m_OptionResolution.y,
-			m_OptionWindowed,
-			m_OptionVsync,
+			(fuInt)width,
+			(fuInt)height,
+			windowed,
+			vsync,
 			F2DAALEVEL_NONE)))
 		{
 			LINFO("视频模式切换成功 (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
-				(int)tOrgOptionResolution.x, (int)tOrgOptionResolution.y, m_OptionVsyncOrg, tOrgOptionWindowed,
-				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
+				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed,
+				width, height, vsync, windowed);
+
+			m_OptionResolution.Set((float)width, (float)height);
+			m_OptionWindowed = windowed;
+			m_OptionVsync = vsync;
 
 			// 切换窗口大小
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
@@ -428,15 +462,21 @@ LNOINLINE bool AppFrame::UpdateVideoParameters()LNOEXCEPT
 			);
 			m_pMainWindow->SetTopMost(!m_OptionWindowed);
 			m_pMainWindow->MoveToCenter();
-
-			m_OptionVsyncOrg = m_OptionVsync;
 			return true;
 		}
 		else
 		{
+			// 切换窗口大小
+			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
+			m_pMainWindow->SetClientRect(
+				fcyRect(10.f, 10.f, 10.f + m_OptionResolution.x, 10.f + m_OptionResolution.y)
+				);
+			m_pMainWindow->SetTopMost(!m_OptionWindowed);
+			m_pMainWindow->MoveToCenter();
+
 			LINFO("视频模式切换失败 (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
-				tOrgOptionResolution.x, tOrgOptionResolution.y, m_OptionVsyncOrg, tOrgOptionWindowed,
-				m_OptionResolution.x, m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
+				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed,
+				width, height, vsync, windowed);
 		}
 	}
 	return false;
@@ -890,7 +930,11 @@ bool AppFrame::Init()LNOEXCEPT
 
 	LINFO("开始初始化 版本: %s", LVERSION);
 	m_iStatus = AppStatus::Initializing;
-	
+
+	Scope tSplashWindowExit([this]() {
+		m_SplashWindow.HideSplashWindow();
+	});
+
 	//////////////////////////////////////// Lua初始化部分
 	LINFO("开始初始化Lua虚拟机 版本: %m", LVERSION_LUA);
 	L = lua_open();
@@ -940,7 +984,7 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 	if (!SafeCallScript(m_TempBuffer.data(), m_TempBuffer.size(), "launch"))
 		return false;
-
+	
 	//////////////////////////////////////// 初始化fancy2d引擎
 	LINFO("初始化fancy2d 版本 %d.%d (分辨率: %dx%d 垂直同步: %b 窗口化: %b)",
 		(F2DVERSION & 0xFFFF0000) >> 16, F2DVERSION & 0x0000FFFF,
@@ -967,7 +1011,6 @@ bool AppFrame::Init()LNOEXCEPT
 	{
 		return false;
 	}
-	m_OptionVsyncOrg = m_OptionVsync;
 
 	// 获取组件
 	m_pMainWindow = m_pEngine->GetMainWindow();
@@ -1010,9 +1053,11 @@ bool AppFrame::Init()LNOEXCEPT
 	// luastg不使用ZBuffer，将其关闭。
 	m_pRenderDev->SetZBufferEnable(false);
 
-	// 显示窗口（初始化时显示窗口，至少在加载的时候留个界面给用户）
-	m_pMainWindow->MoveToCenter();
-	m_pMainWindow->SetVisiable(true);
+	// 设置窗口图标
+	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APPICON));
+	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)hIcon);
+	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)hIcon);
+	DestroyIcon(hIcon);
 
 	m_LastChar = 0;
 	m_LastKey = 0;
@@ -1070,6 +1115,16 @@ void AppFrame::Run()LNOEXCEPT
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
 
+	// 关闭SplashWindow（若有）
+	m_SplashWindow.HideSplashWindow();
+
+	// 显示窗口
+	m_pMainWindow->MoveToCenter();
+	m_pMainWindow->SetVisiable(true);
+	m_pMainWindow->HideMouse(!m_OptionSplash);
+	SetWindowPos((HWND)m_pMainWindow->GetHandle(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+	// 启动游戏循环
 	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
 
 	LINFO("退出游戏循环");
@@ -1194,6 +1249,10 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 			m_LastChar = (fCharW)tMsg.Param1;
 			break;
 		case F2DMSG_WINDOW_ONKEYDOWN:
+			// ctrl+enter全屏
+			if (tMsg.Param1 == VK_RETURN && !m_KeyStateMap[VK_RETURN] && m_KeyStateMap[VK_CONTROL])  // 防止反复触发
+				ChangeVideoMode((int)m_OptionResolution.x, (int)m_OptionResolution.y, !m_OptionWindowed, m_OptionVsync);
+
 			m_LastKey = (fInt)tMsg.Param1;
 			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
 				m_KeyStateMap[tMsg.Param1] = true;

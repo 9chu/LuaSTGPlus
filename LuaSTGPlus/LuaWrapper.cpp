@@ -472,6 +472,16 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				static_cast<fuInt>(::max(luaL_checkinteger(L, 2), 0)));
 			return 0;
 		}
+		static int ChangeVideoMode(lua_State* L)LNOEXCEPT
+		{
+			lua_pushboolean(L, LAPP.ChangeVideoMode(
+				luaL_checkinteger(L, 1),
+				luaL_checkinteger(L, 2),
+				lua_toboolean(L, 3) == 0 ? false : true,
+				lua_toboolean(L, 4) == 0 ? false : true
+			));
+			return 0;
+		}
 		static int SetSplash(lua_State* L)LNOEXCEPT
 		{
 			LAPP.SetSplash(lua_toboolean(L, 1) == 0 ? false : true);
@@ -536,6 +546,14 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		static int DoFile(lua_State* L)LNOEXCEPT
 		{
 			LAPP.LoadScript(luaL_checkstring(L, 1));
+			return 0;
+		}
+		static int ShowSplashWindow(lua_State* L)LNOEXCEPT
+		{
+			if (lua_gettop(L) == 0)
+				LAPP.ShowSplashWindow();
+			else
+				LAPP.ShowSplashWindow(luaL_checkstring(L, 1));
 			return 0;
 		}
 
@@ -1545,6 +1563,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "GetFPS", &WrapperImplement::GetFPS },
 		{ "SetVsync", &WrapperImplement::SetVsync },
 		{ "SetResolution", &WrapperImplement::SetResolution },
+		{ "ChangeVideoMode", &WrapperImplement::ChangeVideoMode },
 		{ "SetSplash", &WrapperImplement::SetSplash },
 		{ "SetTitle", &WrapperImplement::SetTitle },
 		{ "SystemLog", &WrapperImplement::SystemLog },
@@ -1553,6 +1572,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "UnloadPack", &WrapperImplement::UnloadPack },
 		{ "ExtractRes", &WrapperImplement::ExtractRes },
 		{ "DoFile", &WrapperImplement::DoFile },
+		{ "ShowSplashWindow", &WrapperImplement::ShowSplashWindow },
 		// 对象控制函数
 		{ "GetnObj", &WrapperImplement::GetnObj },
 		{ "UpdateObjList", &WrapperImplement::UpdateObjList },

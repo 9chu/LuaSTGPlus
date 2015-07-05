@@ -5,6 +5,23 @@
 
 namespace LuaSTGPlus
 {
+	/// @brief 域
+	class Scope
+	{
+	private:
+		std::function<void()> m_WhatToDo;
+	private:
+		Scope& operator=(const Scope&);
+		Scope(const Scope&);
+	public:
+		Scope(std::function<void()> exitJob)
+			: m_WhatToDo(exitJob) {}
+		~Scope()
+		{
+			m_WhatToDo();
+		}
+	};
+
 	/// @brief 字符串格式化
 	/// @param Format 字符串格式，不支持精度
 	std::string StringFormat(const char* Format, ...)LNOEXCEPT;

@@ -462,13 +462,16 @@ ResMusic::BGMWrapper::BGMWrapper(fcyRefPointer<f2dSoundDecoder> pOrg, fDouble Lo
 		LoopStart = 0;
 	m_pLoopStartSample = (fuInt)(LoopStart * m_pDecoder->GetSamplesPerSec());
 
-	if (LoopEnd < 0)
+	if (LoopEnd <= 0)
 		m_pLoopEndSample = m_TotalSample;
 	else
 		m_pLoopEndSample = min(m_TotalSample, (fuInt)(LoopEnd * m_pDecoder->GetSamplesPerSec()));
 
 	if (m_pLoopEndSample < m_pLoopStartSample)
 		std::swap(m_pLoopStartSample, m_pLoopEndSample);
+
+	if (m_pLoopEndSample == m_pLoopStartSample)
+		throw fcyException("ResMusic::BGMWrapper::BGMWrapper", "Invalid loop period.");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
