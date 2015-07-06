@@ -26,7 +26,8 @@ namespace LuaSTGPlus
 		SoundEffect,
 		Particle,
 		SpriteFont,
-		TrueTypeFont
+		TrueTypeFont,
+		FX
 	};
 
 	/// @brief 资源池类型
@@ -442,6 +443,34 @@ namespace LuaSTGPlus
 			: Resource(ResourceType::Music, name), m_pBuffer(buffer) {}
 	};
 
+	/// @brief shader包装
+	class ResFX :
+		public Resource
+	{
+	private:
+		fcyRefPointer<f2dEffect> m_pShader;
+
+		// 特殊对象绑定
+		std::vector<f2dEffectParamValue*> m_pBindingPostEffectTexture;  // POSTEFFECTTEXTURE
+		std::vector<f2dEffectParamValue*> m_pBindingViewport;  // VIEWPORT
+		std::vector<f2dEffectParamValue*> m_pBindingScreenSize;  // SCREENSIZE
+
+		// 变量绑定
+		Dictionary<std::vector<f2dEffectParamValue*>> m_pBindingVar;
+	public:
+		f2dEffect* GetEffect()LNOEXCEPT { return m_pShader; }
+		
+		void SetPostEffectTexture(f2dTexture2D* val)LNOEXCEPT;
+		void SetViewport(fcyRect rect)LNOEXCEPT;
+		void SetScreenSize(fcyVec2 size)LNOEXCEPT;
+
+		void SetValue(const char* key, float val)LNOEXCEPT;
+		void SetValue(const char* key, fcyColor val)LNOEXCEPT;  // 以float4进行绑定
+		void SetValue(const char* key, f2dTexture2D* val)LNOEXCEPT;
+	public:
+		ResFX(const char* name, fcyRefPointer<f2dEffect> shader);
+	};
+
 	/// @brief 资源池
 	class ResourcePool
 	{
@@ -457,6 +486,7 @@ namespace LuaSTGPlus
 		Dictionary<fcyRefPointer<ResParticle>> m_ParticlePool;
 		Dictionary<fcyRefPointer<ResFont>> m_SpriteFontPool;
 		Dictionary<fcyRefPointer<ResFont>> m_TTFFontPool;
+		Dictionary<fcyRefPointer<ResFX>> m_FXPool;
 	private:
 		const wchar_t* getResourcePoolTypeName()
 		{
@@ -493,6 +523,7 @@ namespace LuaSTGPlus
 			m_ParticlePool.clear();
 			m_SpriteFontPool.clear();
 			m_TTFFontPool.clear();
+			m_FXPool.clear();
 		}
 
 		/// @brief 移除某个资源类型的资源
@@ -524,6 +555,9 @@ namespace LuaSTGPlus
 			case ResourceType::TrueTypeFont:
 				removeResource(m_TTFFontPool, name);
 				break;
+			case ResourceType::FX:
+				removeResource(m_FXPool, name);
+				break;
 			default:
 				break;
 			}
@@ -551,6 +585,8 @@ namespace LuaSTGPlus
 				return m_SpriteFontPool.find(name.c_str()) != m_SpriteFontPool.end();
 			case ResourceType::TrueTypeFont:
 				return m_TTFFontPool.find(name.c_str()) != m_TTFFontPool.end();
+			case ResourceType::FX:
+				return m_FXPool.find(name.c_str()) != m_FXPool.end();
 			default:
 				break;
 			}
@@ -608,6 +644,11 @@ namespace LuaSTGPlus
 		bool LoadTTFFont(const char* name, const std::wstring& path, float width, float height)LNOEXCEPT;
 
 		LNOINLINE bool LoadTTFFont(const char* name, const char* path, float width, float height)LNOEXCEPT;
+
+		/// @brief 装载FX
+		bool LoadFX(const char* name, const std::wstring& path)LNOEXCEPT;
+
+		LNOINLINE bool LoadFX(const char* name, const char* path)LNOEXCEPT;
 
 		/// @brief 获取纹理
 		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT
@@ -684,6 +725,16 @@ namespace LuaSTGPlus
 		{
 			auto i = m_TTFFontPool.find(name);
 			if (i == m_TTFFontPool.end())
+				return nullptr;
+			else
+				return i->second;
+		}
+
+		/// @brief 获取FX
+		fcyRefPointer<ResFX> GetFX(const char* name)LNOEXCEPT
+		{
+			auto i = m_FXPool.find(name);
+			if (i == m_FXPool.end())
 				return nullptr;
 			else
 				return i->second;
@@ -910,6 +961,15 @@ namespace LuaSTGPlus
 			fcyRefPointer<ResFont> tRet;
 			if (!(tRet = m_StageResourcePool.GetTTFFont(name)))
 				tRet = m_GlobalResourcePool.GetTTFFont(name);
+			return tRet;
+		}
+
+		/// @brief 寻找shader
+		fcyRefPointer<ResFX> FindFX(const char* name)LNOEXCEPT
+		{
+			fcyRefPointer<ResFX> tRet;
+			if (!(tRet = m_StageResourcePool.GetFX(name)))
+				tRet = m_GlobalResourcePool.GetFX(name);
 			return tRet;
 		}
 	public:

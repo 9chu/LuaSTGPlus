@@ -376,7 +376,9 @@ LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
 		catch (const bad_alloc&)
 		{
 			LERROR("ShowSplashWindow: 内存不足");
+			return;
 		}
+		m_bSplashWindowEnabled = true;
 	}
 	else
 		LWARNING("ShowSplashWindow: 无法在此时装载窗口");
@@ -466,6 +468,10 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 		}
 		else
 		{
+			// ! 当显示加载窗口而启动游戏后改为全屏失败时则将窗口模式设为true
+			if (m_bSplashWindowEnabled)
+				m_OptionWindowed = true;
+
 			// 切换窗口大小
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
 			m_pMainWindow->SetClientRect(
@@ -848,7 +854,7 @@ LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, 
 		);
 }
 
-LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)
+LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)LNOEXCEPT
 {
 	fcyRefPointer<ResFont> p = m_ResourceMgr.FindTTFFont(name);
 	if (!p)
@@ -899,7 +905,7 @@ LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left
 		);
 }
 
-LNOINLINE void AppFrame::SnapShot(const char* path)
+LNOINLINE void AppFrame::SnapShot(const char* path)LNOEXCEPT
 {
 	LASSERT(m_pRenderDev);
 
@@ -921,6 +927,111 @@ LNOINLINE void AppFrame::SnapShot(const char* path)
 		LERROR("Snapshot: 保存截图失败 (异常信息'%m' 源'%m')", e.GetDesc(), e.GetSrc());
 	}
 }
+
+LNOINLINE bool AppFrame::PostEffectCapture()LNOEXCEPT
+{
+	if (!m_bRenderStarted || m_bPostEffectCaptureStarted)
+	{
+		LERROR("PostEffectCapture: 非法调用");
+		return false;
+	}
+
+	fcyRect orgVP = m_pRenderDev->GetViewport();
+	if (FCYFAILED(m_pRenderDev->SetRenderTarget(m_PostEffectBuffer)))
+	{
+		LERROR("PostEffectCapture: 内部错误 (f2dRenderDevice::SetRenderTarget failed.)");
+		return false;
+	}
+	m_pRenderDev->SetViewport(orgVP);
+
+	m_pRenderDev->ClearColor();
+	m_bPostEffectCaptureStarted = true;
+	return true;
+}
+
+LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEPT
+{
+	f2dEffectTechnique* pTechnique = shader->GetEffect()->GetTechnique(0U);
+	if (!m_bRenderStarted || !m_bPostEffectCaptureStarted || !pTechnique)
+	{
+		LERROR("PostEffectApply: 非法调用");
+		return false;
+	}
+	
+	// 终止渲染过程
+	bool bRestartRenderPeriod = false;
+	switch (m_GraphType)
+	{
+	case GraphicsType::Graph2D:
+		if (m_Graph2D->IsInRender())
+		{
+			bRestartRenderPeriod = true;
+			m_Graph2D->End();
+		}
+		break;
+	case GraphicsType::Graph3D:
+		if (m_Graph3D->IsInRender())
+		{
+			bRestartRenderPeriod = true;
+			m_Graph3D->End();
+		}
+		break;
+	}
+
+	// 切换RenderTarget
+	fcyRect orgVP = m_pRenderDev->GetViewport();
+	if (FCYFAILED(m_pRenderDev->SetRenderTarget(nullptr)))
+	{
+		// ！ 异常退出不可恢复渲染过程
+		LERROR("PostEffectCapture: 内部错误 (f2dRenderDevice::SetRenderTarget failed)");
+		m_bPostEffectCaptureStarted = false;
+		return false;
+	}
+	m_pRenderDev->SetViewport(orgVP);
+
+	// 更新渲染状态
+	updateGraph3DBlendMode(blend);
+
+	// 设置effect
+	shader->SetPostEffectTexture(m_PostEffectBuffer);
+	shader->SetViewport(orgVP);
+	shader->SetScreenSize(fcyVec2((float)m_pRenderDev->GetBufferWidth(), (float)m_pRenderDev->GetBufferHeight()));
+	m_Graph3D->SetEffect(shader->GetEffect());
+	if (FCYFAILED(m_Graph3D->Begin()))
+	{
+		// ！ 异常退出不可恢复渲染过程
+		LERROR("PostEffectCapture: 内部错误 (f2dGraphics3D::Begin failed)");
+		m_bPostEffectCaptureStarted = false;
+		return false;
+	}
+	// 执行所有的pass
+	for (fuInt i = 0; i < pTechnique->GetPassCount(); ++i)
+	{
+		m_Graph3D->BeginPass(i);
+		m_Graph3D->RenderPostEffect();
+		m_Graph3D->EndPass();
+	}
+	m_Graph3D->End();
+	shader->SetPostEffectTexture(NULL);
+	
+	// 重启渲染过程
+	if (bRestartRenderPeriod)
+	{
+		switch (m_GraphType)
+		{
+		case GraphicsType::Graph2D:
+			m_Graph2D->Begin();
+			break;
+		case GraphicsType::Graph3D:
+			m_Graph3D->Begin();
+			break;
+		}
+	}
+
+	m_bPostEffectCaptureStarted = false;
+	return true;
+}
+
 #pragma endregion
 
 #pragma region 框架函数
@@ -1001,7 +1112,7 @@ bool AppFrame::Init()LNOEXCEPT
 		F2DVERSION,
 		fcyRect(0.f, 0.f, m_OptionResolution.x, m_OptionResolution.y),
 		m_OptionTitle.c_str(),
-		m_OptionWindowed,
+		m_bSplashWindowEnabled ? true : m_OptionWindowed,
 		m_OptionVsync,
 		F2DAALEVEL_NONE,
 		this,
@@ -1045,6 +1156,26 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 	}
 
+	// 创建3D渲染器
+	if (FCYFAILED(m_pRenderDev->CreateGraphics3D(nullptr, &m_Graph3D)))
+	{
+		LERROR("无法创建3D渲染器 (fcyRenderDevice::CreateGraphics3D failed)");
+		return false;
+	}
+	m_Graph3DLastBlendMode = BlendMode::AddAlpha;
+	m_Graph3DBlendState = m_Graph3D->GetBlendState();
+	
+	// 创建PostEffect缓冲
+	if (FCYFAILED(m_pRenderDev->CreateRenderTarget(
+		m_pRenderDev->GetBufferWidth(),
+		m_pRenderDev->GetBufferHeight(),
+		true,
+		&m_PostEffectBuffer)))
+	{
+		LERROR("无法创建POSTEFFECT缓冲区 (fcyRenderDevice::CreateRenderTarget failed)");
+		return false;
+	}
+
 	// 创建键盘输入
 	m_pInputSys->CreateKeyboard(-1, false, &m_Keyboard);
 	if (!m_Keyboard)
@@ -1052,12 +1183,20 @@ bool AppFrame::Init()LNOEXCEPT
 	
 	// luastg不使用ZBuffer，将其关闭。
 	m_pRenderDev->SetZBufferEnable(false);
-
+	
 	// 设置窗口图标
 	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APPICON));
 	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)hIcon);
 	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)hIcon);
 	DestroyIcon(hIcon);
+
+	// 若没有载入窗口，则显示游戏窗口
+	if (!m_bSplashWindowEnabled)
+	{
+		// 显示窗口
+		m_pMainWindow->MoveToCenter();
+		m_pMainWindow->SetVisiable(true);
+	}
 
 	m_LastChar = 0;
 	m_LastKey = 0;
@@ -1086,6 +1225,8 @@ void AppFrame::Shutdown()LNOEXCEPT
 	LINFO("已清空所有资源");
 
 	m_Keyboard = nullptr;
+	m_PostEffectBuffer = nullptr;
+	m_Graph3D = nullptr;
 	m_GRenderer = nullptr;
 	m_FontRenderer = nullptr;
 	m_Graph2D = nullptr;
@@ -1115,14 +1256,21 @@ void AppFrame::Run()LNOEXCEPT
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
 
-	// 关闭SplashWindow（若有）
-	m_SplashWindow.HideSplashWindow();
+	if (m_bSplashWindowEnabled)  // 显示过载入窗口
+	{
+		// 显示窗口
+		m_pMainWindow->MoveToCenter();
+		m_pMainWindow->SetVisiable(true);
 
-	// 显示窗口
-	m_pMainWindow->MoveToCenter();
-	m_pMainWindow->SetVisiable(true);
-	m_pMainWindow->HideMouse(!m_OptionSplash);
+		// 改变显示模式到全屏
+		if (!m_OptionWindowed)
+			ChangeVideoMode((int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionWindowed, m_OptionVsync);
+	}
+	m_bSplashWindowEnabled = false;
+
+	// 窗口前移、显示、隐藏鼠标指针
 	SetWindowPos((HWND)m_pMainWindow->GetHandle(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	m_pMainWindow->HideMouse(!m_OptionSplash);
 
 	// 启动游戏循环
 	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
@@ -1283,6 +1431,7 @@ fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 
 	// 执行渲染函数
 	m_bRenderStarted = true;
+	m_bPostEffectCaptureStarted = false;
 	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0, 0))
 		m_pEngine->Abort();
 	m_bRenderStarted = false;

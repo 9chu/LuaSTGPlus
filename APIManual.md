@@ -236,6 +236,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	若图片加载失败或为空则使用内置的图片打开窗口。
 
+----------
+
 ### 对象池管理方法
 
 - GetnObj():number
@@ -439,11 +441,34 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	设置绑定在对象上粒子发射器的发射密度。（个/秒）
 
+----------
+
 ### 资源管理系统
 
-	luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用于存放不同用途的资源。
-	资源池使用字符串哈希表进行管理，一个池中的同种资源其名称不能重复。
-	所有的加载函数会根据当前的资源池类别加载到对应的池中。寻找资源时优先到关卡资源池中寻找，若没有再到全局资源池中寻找。
+luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用于存放不同用途的资源。
+
+资源池使用字符串哈希表进行管理，一个池中的同种资源其名称不能重复。
+
+所有的加载函数会根据当前的资源池类别加载到对应的池中。寻找资源时优先到关卡资源池中寻找，若没有再到全局资源池中寻找。
+
+	资源类型表
+		1 纹理
+		2 图像
+		3 动画
+		4 音乐
+		5 音效
+		6 粒子
+		7 纹理字体
+		8 ttf字体
+		9 shader [新增]
+
+	Shader补充说明
+		Shader使用D3D9的fx格式，在fx中通过在Annotation中添加名为"binding"的注释来和脚本系统互联。
+		允许在lua端进行赋值的类型有
+			string：被解释并定位到纹理资源
+			number：被解释成float
+			lstgColor：被解释成float4
+		当前，Shader仅被用于PostEffect。
 
 - RemoveResource(pool:string, [type:integer, name:string]) **[新]**
 
@@ -568,12 +593,21 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 			音乐将以流的形式装载进入内存，不会一次性完整解码放入内存。故不推荐使用wav格式，请使用ogg作为音乐格式。
 			通过描述循环节可以设置音乐的循环片段。当音乐位置播放到end时会衔接到start。这一步在解码器中进行，以保证完美衔接。
 
+- LoadFX(name:string, path:string) **[新增]**
+
+	装载Shader特效。
+
+----------
+
 ### 渲染方法
 
-	luastg/luastg+使用笛卡尔坐标系（右正上正）作为窗口坐标系，且以屏幕左下角作为原点，Viewport、鼠标消息将以此作为基准。
-	luastg/luastg+中存在一个全局图像缩放系数，用于在不同模式下进行渲染，该系数将会影响对象的渲染大小、与图像绑定的碰撞大小和部分渲染函数。
-	luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这一工作。
-	另外，从luastg+开始，渲染和更新将被独立在两个函数中进行。所有的渲染操作必须在RenderFunc中执行。
+luastg/luastg+使用笛卡尔坐标系（右正上正）作为窗口坐标系，且以屏幕左下角作为原点，Viewport、鼠标消息将以此作为基准。
+
+luastg/luastg+中存在一个全局图像缩放系数，用于在不同模式下进行渲染，该系数将会影响对象的渲染大小、与图像绑定的碰撞大小和部分渲染函数。
+
+luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这一工作。
+
+另外，从luastg+开始，渲染和更新将被独立在两个函数中进行。所有的渲染操作必须在RenderFunc中执行。
 
 - BeginScene()
 
@@ -668,6 +702,33 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 			暂时不支持渲染格式设置。 
 			接口已统一到屏幕坐标系，不需要在代码中进行转换。
 
+- PostEffectCapture() **[新增]**
+
+	开始捕获绘制数据。
+
+	从这一步开始，所有后续渲染操作都将在PostEffect缓冲区中进行。
+
+	必须使用PostEffectApply执行PostEffect方可退出。
+
+	高级方法。
+
+- PostEffectApply(name:string, blend:string, [args:table]) **[新增]**
+
+	应用PostEffect。参数指定传递给FX的参数表，将会影响后续对该FX的使用。
+
+	其中blend指定posteffect要以什么样的形式绘制到屏幕上，此时blend的第一分量无效。
+
+	高级方法。
+
+		细节
+			对于PostEffect只会渲染第一个technique中的所有pass。
+			可以在PostEffect中使用下列语义注释(不区分大小写)捕获对象：
+				POSTEFFECTTEXTURE获取posteffect的捕获纹理(texture2d类型)。
+				VIEWPORT获取视口大小(vector类型)。
+				SCREENSIZE获取屏幕大小(vector类型)。
+
+----------
+
 ### 声音播放
 
 - PlaySound(name:string, vol:number, [pan:number=0.0])
@@ -708,6 +769,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	若参数个数为2，则设置指定音乐的播放音量。
 
+----------
+
 ### 输入
 
 - GetKeyState(vk\_code:integer):boolean
@@ -725,11 +788,15 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 
 	返回上一次输入的字符。
 
+----------
+
 ### 杂项
 
 - Snapshot(file\_path:string)
 
 	截屏并保存到file\_path。格式为PNG。
+
+----------
 
 ### 内置数学方法
 
@@ -743,6 +810,8 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - atan(v)
 - atan2(y,x)
 
+----------
+
 ### 内置对象构造方法
 
 - Rand()
@@ -752,6 +821,12 @@ lstgColor用于表示一个基于a,r,g,b四分量的32位颜色
 - Color(\[argb:integer\] | [a:integer, r:integer, g:integer, b:integer])
 
 	构造一个颜色。
+
+- BentLaserData()
+
+	构造一个曲线激光控制器。
+
+----------
 
 ### 调试方法
 

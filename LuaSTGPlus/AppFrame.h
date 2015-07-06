@@ -67,6 +67,7 @@ namespace LuaSTGPlus
 		std::vector<char> m_TempBuffer;  // 临时缓冲区
 
 		// 选项与值
+		bool m_bSplashWindowEnabled = false;
 		bool m_OptionWindowed = true;
 		fuInt m_OptionFPSLimit = 60;
 		bool m_OptionVsync = true;
@@ -92,6 +93,13 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dGeometryRenderer> m_GRenderer;
 		fcyRefPointer<f2dFontRenderer> m_FontRenderer;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
+
+		BlendMode m_Graph3DLastBlendMode;
+		f2dBlendState m_Graph3DBlendState;
+		fcyRefPointer<f2dGraphics3D> m_Graph3D;
+
+		bool m_bPostEffectCaptureStarted = false;
+		fcyRefPointer<f2dTexture2D> m_PostEffectBuffer;
 
 		fcyRefPointer<f2dInputKeyboard> m_Keyboard;
 		fCharW m_LastChar;
@@ -149,6 +157,38 @@ namespace LuaSTGPlus
 				m_Graph2DLastBlendMode = m;
 				m_Graph2D->SetBlendState(m_Graph2DBlendState);
 				m_Graph2D->SetColorBlendType(m_Graph2DColorBlendState);
+			}
+		}
+		void updateGraph3DBlendMode(BlendMode m)
+		{
+			if (m != m_Graph3DLastBlendMode)
+			{
+				switch (m)
+				{
+				case BlendMode::AddAdd:
+				case BlendMode::MulAdd:
+					m_Graph3DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
+					m_Graph3DBlendState.BlendOp = F2DBLENDOPERATOR_ADD;
+					break;
+				case BlendMode::AddSub:
+				case BlendMode::MulSub:
+					m_Graph3DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph3DBlendState.BlendOp = F2DBLENDOPERATOR_SUBTRACT;
+					break;
+				case BlendMode::AddRev:
+				case BlendMode::MulRev:
+					m_Graph3DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph3DBlendState.BlendOp = F2DBLENDOPERATOR_REVSUBTRACT;
+					break;
+				case BlendMode::AddAlpha:
+				case BlendMode::MulAlpha:
+				default:
+					m_Graph3DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph3DBlendState.BlendOp = F2DBLENDOPERATOR_ADD;
+					break;
+				}
+				m_Graph3DLastBlendMode = m;
+				m_Graph3D->SetBlendState(m_Graph3DBlendState);
 			}
 		}
 	public: // 脚本调用接口，含义参见API文档
@@ -421,12 +461,17 @@ namespace LuaSTGPlus
 
 		LNOINLINE bool RenderText(const char* name, const char* str, float x, float y, float scale, ResFont::FontAlignHorizontal halign, ResFont::FontAlignVertical valign)LNOEXCEPT;
 
-		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c);
+		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)LNOEXCEPT;
 
-		LNOINLINE void SnapShot(const char* path);
+		LNOINLINE void SnapShot(const char* path)LNOEXCEPT;
+
+		LNOINLINE bool PostEffectCapture()LNOEXCEPT;
+
+		LNOINLINE bool PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEPT;
 	public:
 		ResourceMgr& GetResourceMgr()LNOEXCEPT { return m_ResourceMgr; }
-		GameObjectPool& GetGameObjectPool()LNOEXCEPT { return *m_GameObjectPool.get(); }
+		GameObjectPool& GetGameObjectPool()LNOEXCEPT{ return *m_GameObjectPool.get(); }
+		f2dEngine* GetEngine()LNOEXCEPT { return m_pEngine; }
 		f2dRenderer* GetRenderer()LNOEXCEPT { return m_pRenderer; }
 		f2dRenderDevice* GetRenderDev()LNOEXCEPT { return m_pRenderDev; }
 		f2dSoundSys* GetSoundSys()LNOEXCEPT { return m_pSoundSys; }

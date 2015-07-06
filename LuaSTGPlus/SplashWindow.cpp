@@ -134,7 +134,7 @@ void SplashWindow::threadJob()
 	UnregisterClass(CLASSNAME, GetModuleHandle(NULL));
 }
 
-void SplashWindow::ShowSplashWindow(Gdiplus::Image* bkImage)
+void SplashWindow::ShowSplashWindow(Gdiplus::Image* bkImage)LNOEXCEPT
 {
 	struct Wrapper {
 		static void ThreadJob(SplashWindow* p)
@@ -155,7 +155,7 @@ void SplashWindow::ShowSplashWindow(Gdiplus::Image* bkImage)
 	}
 }
 
-void SplashWindow::HideSplashWindow()
+void SplashWindow::HideSplashWindow()LNOEXCEPT
 {
 	if (m_SplashWindowThread)
 	{

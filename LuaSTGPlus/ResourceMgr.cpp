@@ -475,6 +475,121 @@ ResMusic::BGMWrapper::BGMWrapper(fcyRefPointer<f2dSoundDecoder> pOrg, fDouble Lo
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// ResFX
+////////////////////////////////////////////////////////////////////////////////
+ResFX::ResFX(const char* name, fcyRefPointer<f2dEffect> shader)
+	: Resource(ResourceType::FX, name), m_pShader(shader)
+{
+	// 扫描所有的变量注释
+	for (fuInt i = 0; i < m_pShader->GetParamCount(); ++i)
+	{
+		f2dEffectParam* pParam = m_pShader->GetParam(i);
+
+		if (pParam->GetType() == F2DEPTYPE_VALUE)
+		{
+			f2dEffectParamValue* pValue = (f2dEffectParamValue*)pParam;
+
+			// 注释绑定
+			f2dEffectParam* pAnnotation = pValue->GetAnnotation("binding");
+			if (pAnnotation && pAnnotation->GetType() == F2DEPTYPE_VALUE)
+			{
+				f2dEffectParamValue* pAnnotationVal = (f2dEffectParamValue*)pAnnotation;
+				if (pAnnotationVal->GetValueType() == F2DEPVTYPE_STRING && pAnnotationVal->GetString())
+				{
+					fcStr tBindingVar = pAnnotationVal->GetString();  // 被绑定的脚本变量
+					m_pBindingVar[tBindingVar].push_back(pValue);
+				}
+			}
+
+			// 语义绑定
+			fcStr pSemantic = pValue->GetSemantic();
+			if (pSemantic)
+			{
+				if (_stricmp(pSemantic, "POSTEFFECTTEXTURE") == 0)
+				{
+					if (pValue->GetValueType() != F2DEPVTYPE_TEXTURE2D)
+						throw fcyException("ResFX::ResFX", "Invalid binding for 'POSTEFFECTTEXTURE'.");
+					m_pBindingPostEffectTexture.push_back(pValue);
+				}
+				else if (_stricmp(pSemantic, "VIEWPORT") == 0)
+				{
+					if (pValue->GetValueType() != F2DEPVTYPE_VECTOR)
+						throw fcyException("ResFX::ResFX", "Invalid binding for 'VIEWPORT'.");
+					m_pBindingViewport.push_back(pValue);
+				}
+				else if (_stricmp(pSemantic, "SCREENSIZE") == 0)
+				{
+					if (pValue->GetValueType() != F2DEPVTYPE_VECTOR)
+						throw fcyException("ResFX::ResFX", "Invalid binding for 'SCREENSIZE'.");
+					m_pBindingScreenSize.push_back(pValue);
+				}
+			}
+		}
+	}
+}
+
+void ResFX::SetPostEffectTexture(f2dTexture2D* val)LNOEXCEPT
+{
+	for (auto& p : m_pBindingPostEffectTexture)
+		p->SetTexture(val);
+}
+
+void ResFX::SetViewport(fcyRect rect)LNOEXCEPT
+{
+	fcyVec4 vec(rect.a.x, rect.a.y, rect.b.x, rect.b.y);
+	for (auto& p : m_pBindingViewport)
+		p->SetVector(vec);
+}
+
+void ResFX::SetScreenSize(fcyVec2 size)LNOEXCEPT
+{
+	fcyVec4 vec(0.f, 0.f, size.x, size.y);
+	for (auto& p : m_pBindingScreenSize)
+		p->SetVector(vec);
+}
+
+void ResFX::SetValue(const char* key, float val)LNOEXCEPT
+{
+	auto i = m_pBindingVar.find(key);
+	if (i != m_pBindingVar.end())
+	{
+		for (auto& p : i->second)
+		{
+			if (p->GetValueType() == F2DEPVTYPE_FLOAT)
+				p->SetFloat(val);
+		}
+	}
+}
+
+void ResFX::SetValue(const char* key, fcyColor val)LNOEXCEPT
+{
+	auto i = m_pBindingVar.find(key);
+	if (i != m_pBindingVar.end())
+	{
+		fcyVec4 tColorVec(val.r / 255.f, val.g / 255.f, val.b / 255.f, val.a / 255.f);
+
+		for (auto& p : i->second)
+		{
+			if (p->GetValueType() == F2DEPVTYPE_VECTOR)
+				p->SetVector(tColorVec);
+		}
+	}
+}
+
+void ResFX::SetValue(const char* key, f2dTexture2D* val)LNOEXCEPT
+{
+	auto i = m_pBindingVar.find(key);
+	if (i != m_pBindingVar.end())
+	{
+		for (auto& p : i->second)
+		{
+			if (p->GetValueType() == F2DEPVTYPE_TEXTURE2D)
+				p->SetTexture(val);
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// ResourcePool
 ////////////////////////////////////////////////////////////////////////////////
 void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCEPT
@@ -541,6 +656,14 @@ void ResourcePool::ExportResourceList(lua_State* L, ResourceType t)const LNOEXCE
 	case ResourceType::TrueTypeFont:
 		lua_newtable(L);  // t
 		for (auto& i : m_TTFFontPool)
+		{
+			lua_pushstring(L, i.second->GetResName().c_str());  // t s
+			lua_rawseti(L, -2, cnt++);  // t
+		}
+		break;
+	case ResourceType::FX:
+		lua_newtable(L);  // t
+		for (auto& i : m_FXPool)
 		{
 			lua_pushstring(L, i.second->GetResName().c_str());  // t s
 			lua_rawseti(L, -2, cnt++);  // t
@@ -1174,6 +1297,65 @@ LNOINLINE bool ResourcePool::LoadTTFFont(const char* name, const char* path, flo
 	catch (const bad_alloc&)
 	{
 		LERROR("LoadTTFFont: 转换编码时无法分配内存");
+		return false;
+	}
+}
+
+bool ResourcePool::LoadFX(const char* name, const std::wstring& path)LNOEXCEPT
+{
+	LASSERT(LAPP.GetRenderDev());
+
+	if (m_FXPool.find(name) != m_FXPool.end())
+	{
+		LWARNING("LoadFX: FX'%m'已存在，加载操作已被取消", name);
+		return true;
+	}
+
+	// 读取文件
+	std::vector<char> tDataBuf;
+	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
+		return false;
+
+	ConstVectorStream tStream(tDataBuf);
+
+	try
+	{
+		fcyRefPointer<f2dEffect> tEffect;
+		if (FCYFAILED(LAPP.GetRenderDev()->CreateEffect(&tStream, false, &tEffect)))
+		{
+			LERROR("LoadFX: 加载shader于文件'%s'失败 (lasterr=%m)", path.c_str(), LAPP.GetEngine()->GetLastErrDesc());
+			return false;
+		}
+
+		fcyRefPointer<ResFX> tRes;
+		tRes.DirectSet(new ResFX(name, tEffect));
+		m_FXPool.emplace(name, tRes);
+	}
+	catch (const fcyException& e)
+	{
+		LERROR("LoadFX: 绑定变量于文件'%s'失败 (异常信息'%m' 源'%m')", path.c_str(), e.GetDesc(), e.GetSrc());
+		return false;
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFX: 内存不足");
+		return false;
+	}
+#ifdef LSHOWRESLOADINFO
+	LINFO("LoadFX: FX'%m'已装载 (%s)", name, getResourcePoolTypeName());
+#endif
+	return true;
+}
+
+LNOINLINE bool ResourcePool::LoadFX(const char* name, const char* path)LNOEXCEPT
+{
+	try
+	{
+		return LoadFX(name, fcyStringHelper::MultiByteToWideChar(path, CP_UTF8));
+	}
+	catch (const bad_alloc&)
+	{
+		LERROR("LoadFX: 转换编码时无法分配内存");
 		return false;
 	}
 }

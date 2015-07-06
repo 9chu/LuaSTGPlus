@@ -14,6 +14,11 @@ luaSTGPlus项目致力于发展luastg的后续可维护版本。
 
 ## 更新记录
 
+### 0.1.4
+
+- 修正fancy2d视口设置的bug
+- 增加了shader/PostEffect支持
+
 ### 0.1.3
 
 - 增加了可选的加载窗口

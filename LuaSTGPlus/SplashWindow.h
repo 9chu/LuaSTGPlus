@@ -23,8 +23,8 @@ namespace LuaSTGPlus
 		void createWindow();
 		void threadJob();
 	public:
-		void ShowSplashWindow(Gdiplus::Image* bkImage=nullptr);
-		void HideSplashWindow();
+		void ShowSplashWindow(Gdiplus::Image* bkImage=nullptr)LNOEXCEPT;
+		void HideSplashWindow()LNOEXCEPT;
 	protected:
 		SplashWindow& operator=(const SplashWindow&);
 		SplashWindow(const SplashWindow&);
