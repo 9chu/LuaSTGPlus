@@ -350,6 +350,31 @@ namespace LuaSTGPlus
 
 			m_pBuffer->Play();
 		}
+
+		void Resume()
+		{
+			m_pBuffer->Play();
+		}
+
+		void Pause()
+		{
+			m_pBuffer->Pause();
+		}
+
+		void Stop()
+		{
+			m_pBuffer->Stop();
+		}
+
+		bool IsPlaying()
+		{
+			return m_pBuffer->IsPlaying();
+		}
+
+		bool IsStopped()
+		{
+			return !IsPlaying() && m_pBuffer->GetTime() == 0.;
+		}
 	public:
 		ResSound(const char* name, fcyRefPointer<f2dSoundBuffer> buffer)
 			: Resource(ResourceType::SoundEffect, name), m_pBuffer(buffer) {}

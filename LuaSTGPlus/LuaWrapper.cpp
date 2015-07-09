@@ -1445,6 +1445,47 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			p->Play((float)luaL_checknumber(L, 2) * LRES.GetGlobalSoundEffectVolume(), (float)luaL_optnumber(L, 3, 0.));
 			return 0;
 		}
+		static int StopSound(lua_State* L)LNOEXCEPT
+		{
+			const char* s = luaL_checkstring(L, 1);
+			ResSound* p = LRES.FindSound(s);
+			if (!p)
+				return luaL_error(L, "sound '%s' not found.", s);
+			p->Stop();
+			return 0;
+		}
+		static int PauseSound(lua_State* L)LNOEXCEPT
+		{
+			const char* s = luaL_checkstring(L, 1);
+			ResSound* p = LRES.FindSound(s);
+			if (!p)
+				return luaL_error(L, "sound '%s' not found.", s);
+			p->Pause();
+			return 0;
+		}
+		static int ResumeSound(lua_State* L)LNOEXCEPT
+		{
+			const char* s = luaL_checkstring(L, 1);
+			ResSound* p = LRES.FindSound(s);
+			if (!p)
+				return luaL_error(L, "sound '%s' not found.", s);
+			p->Resume();
+			return 0;
+		}
+		static int GetSoundState(lua_State* L)LNOEXCEPT
+		{
+			const char* s = luaL_checkstring(L, 1);
+			ResSound* p = LRES.FindSound(s);
+			if (!p)
+				return luaL_error(L, "sound '%s' not found.", s);
+			if (p->IsPlaying())
+				lua_pushstring(L, "playing");
+			else if (p->IsStopped())
+				lua_pushstring(L, "stopped");
+			else
+				lua_pushstring(L, "paused");
+			return 1;
+		}
 		static int PlayMusic(lua_State* L)LNOEXCEPT
 		{
 			const char* s = luaL_checkstring(L, 1);
@@ -1705,6 +1746,10 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "Snapshot", &WrapperImplement::Snapshot },
 		// ÉùÒô¿ØÖÆº¯Êý
 		{ "PlaySound", &WrapperImplement::PlaySound },
+		{ "StopSound", &WrapperImplement::StopSound },
+		{ "PauseSound", &WrapperImplement::PauseSound },
+		{ "ResumeSound", &WrapperImplement::ResumeSound },
+		{ "GetSoundState", &WrapperImplement::GetSoundState },
 		{ "PlayMusic", &WrapperImplement::PlayMusic },
 		{ "StopMusic", &WrapperImplement::StopMusic },
 		{ "PauseMusic", &WrapperImplement::PauseMusic },

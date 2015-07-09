@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuaSTGPlus", "LuaSTGPlus\Lu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZLib", "ZLib\ZLib.vcxproj", "{0968B6EF-F49F-4ABC-9449-905D181B3B78}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerformanceMonitor", "PerformanceMonitor\PerformanceMonitor.csproj", "{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,6 +31,12 @@ Global
 		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Release_Dev|Win32.Build.0 = Release_Dev|Win32
 		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Release|Win32.ActiveCfg = Release|Win32
 		{0968B6EF-F49F-4ABC-9449-905D181B3B78}.Release|Win32.Build.0 = Release|Win32
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Debug|Win32.ActiveCfg = Debug|x86
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Debug|Win32.Build.0 = Debug|x86
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release_Dev|Win32.ActiveCfg = Release|x86
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release_Dev|Win32.Build.0 = Release|x86
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release|Win32.ActiveCfg = Release|x86
+		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release|Win32.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

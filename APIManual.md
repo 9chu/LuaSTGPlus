@@ -735,6 +735,25 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 	播放一个音效。vol为音量，取值范围[0~1]，pan为平衡，取值[-1~1]。
 
+		细节
+			luastg+每次只播放一个音效，如果一个音效已在播放中则会打断这个播放从头开始。
+
+- StopSound(name:string) **[新增]**
+
+	停止播放音效。name为资源名称。
+
+- PauseSound(name:string) **[新增]**
+
+	暂停播放音效。name为资源名称。
+
+- ResumeSound(name:string) **[新增]**
+
+	继续播放音效。name为资源名称。
+
+- GetSoundState(name:string):string **[新增]**
+
+	获取音效播放状态，将返回paused、playing、stopped。
+
 - PlayMusic(name:string, [vol:number=1.0, position:number=0])
 
 	播放音乐。name为资源名称，vol为音量，position为起始播放位置（秒）。
