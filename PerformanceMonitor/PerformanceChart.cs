@@ -109,7 +109,7 @@ namespace PerformanceMonitor
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            float tXUnit = Width / (float)LogMaxCount;
+            float tXUnit = Width / (float)(LogMaxCount - 1);
             for (int i = 0; i < 6; ++i)
             {
                 float tPerformanceMax = _PerformaceMax[i];

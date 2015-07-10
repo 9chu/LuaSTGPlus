@@ -15,77 +15,6 @@ using namespace LuaSTGPlus;
 
 FixedObjectPool<ResParticle::PARTICLE_POD, LPARTICLESYS_MAX> ResParticle::s_MemoryPool;
 
-class ConstVectorStream :
-	public fcyRefObjImpl<fcyStream>
-{
-private:
-	fLen m_iPosition = 0;
-	const std::vector<char>& m_Org;
-public: // 接口实现
-	fBool CanWrite() { return false; }
-	fBool CanResize() { return false; }
-	fLen GetLength() { return m_Org.size(); }
-	fResult SetLength(fLen Length) { return FCYERR_ILLEGAL; }
-	fLen GetPosition() { return m_iPosition; }
-	fResult SetPosition(FCYSEEKORIGIN Origin, fLong Offset)
-	{
-		switch (Origin)
-		{
-		case FCYSEEKORIGIN_BEG:
-			m_iPosition = Offset < 0 ? 0 : (fLen)Offset;
-			break;
-		case FCYSEEKORIGIN_CUR:
-			m_iPosition = (fLen)::max((fLong)0, ::min((fLong)m_Org.size(), (fLong)m_iPosition + Offset));
-			break;
-		case FCYSEEKORIGIN_END:
-			m_iPosition = (fLen)::max((fLong)0, ::min((fLong)m_Org.size(), (fLong)m_Org.size() + Offset));
-			break;
-		}
-		return FCYERR_OK;
-	}
-	fResult ReadBytes(fData pData, fLen Length, fLen* pBytesRead)
-	{
-		if (pBytesRead)
-			*pBytesRead = 0;
-		if (Length == 0)
-			return FCYERR_OK;
-		if (!pData)
-			return FCYERR_INVAILDPARAM;
-
-		fLen tRestSize = m_Org.size() - m_iPosition;
-
-		if (tRestSize == 0)
-			return FCYERR_OUTOFRANGE;
-
-		if (tRestSize<Length)
-		{
-			memcpy(pData, &m_Org[(vector<char>::size_type)m_iPosition], (size_t)tRestSize);
-			m_iPosition += tRestSize;
-			if (pBytesRead)
-				*pBytesRead = tRestSize;
-			return FCYERR_OUTOFRANGE;
-		}
-		else
-		{
-			memcpy(pData, &m_Org[(vector<char>::size_type)m_iPosition], (size_t)Length);
-			m_iPosition += Length;
-			if (pBytesRead)
-				*pBytesRead = Length;
-			return FCYERR_OK;
-		}
-	}
-	fResult WriteBytes(fcData pSrc, fLen Length, fLen* pBytesWrite)
-	{
-		return FCYERR_ILLEGAL;
-	}
-	void Lock() {}
-	fResult TryLock() { return FCYERR_OK; }
-	void Unlock() {}
-public:
-	ConstVectorStream(const std::vector<char>& org)
-		: m_Org(org) {}
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 /// ResAnimation
 ////////////////////////////////////////////////////////////////////////////////
@@ -685,12 +614,12 @@ bool ResourcePool::LoadTexture(const char* name, const std::wstring& path, bool 
 		return true;
 	}
 	
-	vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
 
 	fcyRefPointer<f2dTexture2D> tTexture;
-	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
+	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf->GetInternalBuffer(), tDataBuf->GetLength(), 0, 0, false, mipmaps, &tTexture)))
 	{
 		LERROR("LoadTexture: 从文件'%s'创建纹理'%m'失败", path.c_str(), name);
 		return false;
@@ -814,22 +743,17 @@ bool ResourcePool::LoadMusic(const char* name, const std::wstring& path, double 
 {
 	LASSERT(LAPP.GetSoundSys());
 
-	vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
 
-	// ConstVectorStream在此处不可使用，必须拷贝进入MemoryBuffer
-
 	try
 	{
-		fcyRefPointer<fcyMemStream> tMemoryStream;
-		tMemoryStream.DirectSet(new fcyMemStream((fcData)tDataBuf.data(), tDataBuf.size(), false, false));
-
 		fcyRefPointer<f2dSoundDecoder> tDecoder;
-		if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(tMemoryStream, &tDecoder)))
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(tDataBuf, &tDecoder)))
 		{
-			tMemoryStream->SetPosition(FCYSEEKORIGIN_BEG, 0);
-			if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(tMemoryStream, &tDecoder)))
+			tDataBuf->SetPosition(FCYSEEKORIGIN_BEG, 0);
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(tDataBuf, &tDecoder)))
 			{
 				LERROR("LoadMusic: 无法解码文件'%s'", path.c_str());
 				return false;
@@ -884,19 +808,17 @@ bool ResourcePool::LoadSound(const char* name, const std::wstring& path)LNOEXCEP
 {
 	LASSERT(LAPP.GetSoundSys());
 
-	vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
-
-	ConstVectorStream tStream(tDataBuf);
 
 	try
 	{
 		fcyRefPointer<f2dSoundDecoder> tDecoder;
-		if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(&tStream, &tDecoder)))
+		if (FCYFAILED(LAPP.GetSoundSys()->CreateWaveDecoder(tDataBuf, &tDecoder)))
 		{
-			tStream.SetPosition(FCYSEEKORIGIN_BEG, 0);
-			if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(&tStream, &tDecoder)))
+			tDataBuf->SetPosition(FCYSEEKORIGIN_BEG, 0);
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateOGGVorbisDecoder(tDataBuf, &tDecoder)))
 			{
 				LERROR("LoadSound: 无法解码文件'%s'", path.c_str());
 				return false;
@@ -976,10 +898,10 @@ bool ResourcePool::LoadParticle(const char* name, const std::wstring& path, cons
 		pClone->SetZ(pSprite->GetSprite()->GetZ());
 	}
 
-	std::vector<char> outBuf;
+	fcyRefPointer<fcyMemStream> outBuf;
 	if (!LRES.LoadFile(path.c_str(), outBuf))
 		return false;
-	if (outBuf.size() != sizeof(ResParticle::ParticleInfo))
+	if (outBuf->GetLength() != sizeof(ResParticle::ParticleInfo))
 	{
 		LERROR("LoadParticle: 粒子定义文件'%s'格式不正确", path.c_str());
 		return false;
@@ -988,7 +910,7 @@ bool ResourcePool::LoadParticle(const char* name, const std::wstring& path, cons
 	try
 	{
 		ResParticle::ParticleInfo tInfo;
-		memcpy(&tInfo, outBuf.data(), sizeof(ResParticle::ParticleInfo));
+		memcpy(&tInfo, outBuf->GetInternalBuffer(), sizeof(ResParticle::ParticleInfo));
 		tInfo.iBlendInfo = (tInfo.iBlendInfo >> 16) & 0x00000003;
 
 		BlendMode tBlendInfo = BlendMode::AddAlpha;
@@ -1049,7 +971,7 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, bo
 	std::wstring tOutputTextureName;
 
 	// 读取文件
-	std::vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
 
@@ -1057,12 +979,11 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, bo
 	wstring tFileData;
 	try
 	{
-		if (tDataBuf.size() > 0)
+		if (tDataBuf->GetLength() > 0)
 		{
 			// stupid
-			tFileData = fcyStringHelper::MultiByteToWideChar(string(tDataBuf.data(), tDataBuf.size()), CP_UTF8);
+			tFileData = fcyStringHelper::MultiByteToWideChar(string((const char*)tDataBuf->GetInternalBuffer(), (size_t)tDataBuf->GetLength()), CP_UTF8);
 		}
-		tDataBuf.clear();
 	}
 	catch (const bad_alloc&)
 	{
@@ -1099,7 +1020,7 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, bo
 	}
 
 	fcyRefPointer<f2dTexture2D> tTexture;
-	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
+	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf->GetInternalBuffer(), tDataBuf->GetLength(), 0, 0, false, mipmaps, &tTexture)))
 	{
 		LERROR("LoadFont: 从文件'%s'创建纹理'%m'失败", tOutputTextureName.c_str(), name);
 		return false;
@@ -1137,7 +1058,7 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, co
 	}
 
 	// 读取文件
-	std::vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
 
@@ -1145,12 +1066,11 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, co
 	wstring tFileData;
 	try
 	{
-		if (tDataBuf.size() > 0)
+		if (tDataBuf->GetLength() > 0)
 		{
 			// stupid
-			tFileData = fcyStringHelper::MultiByteToWideChar(string(tDataBuf.data(), tDataBuf.size()), CP_UTF8);
+			tFileData = fcyStringHelper::MultiByteToWideChar(string((const char*)tDataBuf->GetInternalBuffer(), (size_t)tDataBuf->GetLength()), CP_UTF8);
 		}
-		tDataBuf.clear();
 	}
 	catch (const bad_alloc&)
 	{
@@ -1174,7 +1094,7 @@ bool ResourcePool::LoadSpriteFont(const char* name, const std::wstring& path, co
 	}
 
 	fcyRefPointer<f2dTexture2D> tTexture;
-	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf.data(), tDataBuf.size(), 0, 0, false, mipmaps, &tTexture)))
+	if (FCYFAILED(LAPP.GetRenderDev()->CreateTextureFromMemory((fcData)tDataBuf->GetInternalBuffer(), tDataBuf->GetLength(), 0, 0, false, mipmaps, &tTexture)))
 	{
 		LERROR("LoadFont: 从文件'%s'创建纹理'%m'失败", tex_path.c_str(), name);
 		return false;
@@ -1244,7 +1164,7 @@ bool ResourcePool::LoadTTFFont(const char* name, const std::wstring& path, float
 	fcyRefPointer<f2dFontProvider> tFontProvider;
 
 	// 读取文件
-	std::vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 	{
 		LINFO("LoadTTFFont: 无法在路径'%s'上加载字体，尝试以系统字体对待并加载系统字体", path.c_str());
@@ -1255,17 +1175,12 @@ bool ResourcePool::LoadTTFFont(const char* name, const std::wstring& path, float
 		}
 	}
 
-	// ConstVectorStream在此处不可使用，必须拷贝进入MemoryBuffer
-
 	// 创建定义
 	try
 	{
-		fcyRefPointer<fcyMemStream> tMemoryStream;
-		tMemoryStream.DirectSet(new fcyMemStream((fcData)tDataBuf.data(), tDataBuf.size(), false, false));
-
 		if (!tFontProvider)
 		{
-			if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromFile(tMemoryStream, 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
+			if (FCYFAILED(LAPP.GetRenderer()->CreateFontFromFile(tDataBuf, 0, fcyVec2(width, height), F2DFONTFLAG_NONE, &tFontProvider)))
 			{
 				LERROR("LoadTTFFont: 从文件'%s'创建纹理字体失败", path.c_str());
 				return false;
@@ -1312,16 +1227,14 @@ bool ResourcePool::LoadFX(const char* name, const std::wstring& path)LNOEXCEPT
 	}
 
 	// 读取文件
-	std::vector<char> tDataBuf;
+	fcyRefPointer<fcyMemStream> tDataBuf;
 	if (!m_pMgr->LoadFile(path.c_str(), tDataBuf))
 		return false;
-
-	ConstVectorStream tStream(tDataBuf);
 
 	try
 	{
 		fcyRefPointer<f2dEffect> tEffect;
-		if (FCYFAILED(LAPP.GetRenderDev()->CreateEffect(&tStream, false, &tEffect)))
+		if (FCYFAILED(LAPP.GetRenderDev()->CreateEffect(tDataBuf, false, &tEffect)))
 		{
 			LERROR("LoadFX: 加载shader于文件'%s'失败 (lasterr=%m)", path.c_str(), LAPP.GetEngine()->GetLastErrDesc());
 			return false;
@@ -1384,10 +1297,10 @@ ResourcePack::ResourcePack(const wchar_t* path, const char* passwd)
 {
 	pathUniform(m_PathLowerCase.begin(), m_PathLowerCase.end());
 
-	zlib_filefunc_def tZlibFileFunc;
+	zlib_filefunc64_def tZlibFileFunc;
 	memset(&tZlibFileFunc, 0, sizeof(tZlibFileFunc));
-	fill_win32_filefunc(&tZlibFileFunc);
-	m_zipFile = unzOpen2(reinterpret_cast<const char*>(path), &tZlibFileFunc);
+	fill_wfopen64_filefunc(&tZlibFileFunc);
+	m_zipFile = unzOpen2_64(reinterpret_cast<const char*>(path), &tZlibFileFunc);
 	if (!m_zipFile)
 	{
 		LERROR("ResourcePack: 无法打开资源包'%s' (unzOpen失败)", path);
@@ -1400,7 +1313,7 @@ ResourcePack::~ResourcePack()
 	unzClose(m_zipFile);
 }
 
-bool ResourcePack::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEXCEPT
+bool ResourcePack::LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT
 {
 	string tPathInUtf8;
 	try
@@ -1439,7 +1352,7 @@ bool ResourcePack::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEX
 
 				try
 				{
-					outBuf.resize(tFileInfo.uncompressed_size);
+					outBuf.DirectSet(new fcyMemStream(NULL, tFileInfo.uncompressed_size, true, false));
 				}
 				catch (const bad_alloc&)
 				{
@@ -1448,11 +1361,14 @@ bool ResourcePack::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEX
 					return false;
 				}
 				
-				if (unzReadCurrentFile(m_zipFile, outBuf.data(), tFileInfo.uncompressed_size) < 0)
+				if (outBuf->GetLength() > 0)
 				{
-					unzCloseCurrentFile(m_zipFile);
-					LERROR("ResourcePack: 解压资源包'%s'中的文件'%s'失败 (unzReadCurrentFile失败)", m_Path.c_str(), path);
-					return false;
+					if (unzReadCurrentFile(m_zipFile, outBuf->GetInternalBuffer(), tFileInfo.uncompressed_size) < 0)
+					{
+						unzCloseCurrentFile(m_zipFile);
+						LERROR("ResourcePack: 解压资源包'%s'中的文件'%s'失败 (unzReadCurrentFile失败)", m_Path.c_str(), path);
+						return false;
+					}
 				}
 				unzCloseCurrentFile(m_zipFile);
 
@@ -1554,7 +1470,7 @@ LNOINLINE void ResourceMgr::UnloadPack(const char* path)LNOEXCEPT
 	}
 }
 
-LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEXCEPT
+LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT
 {
 	// 尝试从各个资源包加载
 	for (auto& i : m_ResPackList)
@@ -1571,7 +1487,7 @@ LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& out
 	try
 	{
 		pFile.DirectSet(new fcyFileStream(path, false));
-		outBuf.resize((size_t)pFile->GetLength());
+		outBuf.DirectSet(new fcyMemStream(NULL, pFile->GetLength(), true, false));
 	}
 	catch (const bad_alloc&)
 	{
@@ -1586,7 +1502,7 @@ LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& out
 
 	if (pFile->GetLength() > 0)
 	{
-		if (FCYFAILED(pFile->ReadBytes((fData)outBuf.data(), outBuf.size(), nullptr)))
+		if (FCYFAILED(pFile->ReadBytes((fData)outBuf->GetInternalBuffer(), outBuf->GetLength(), nullptr)))
 		{
 			LERROR("ResourceMgr: 读取本地文件'%s'失败 (fcyFileStream::ReadBytes失败)", path);
 			return false;
@@ -1596,7 +1512,7 @@ LNOINLINE bool ResourceMgr::LoadFile(const wchar_t* path, std::vector<char>& out
 	return true;
 }
 
-LNOINLINE bool ResourceMgr::LoadFile(const char* path, std::vector<char>& outBuf)LNOEXCEPT
+LNOINLINE bool ResourceMgr::LoadFile(const char* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT
 {
 	try
 	{
@@ -1612,7 +1528,7 @@ LNOINLINE bool ResourceMgr::LoadFile(const char* path, std::vector<char>& outBuf
 
 bool ResourceMgr::ExtractRes(const wchar_t* path, const wchar_t* target)LNOEXCEPT
 {
-	vector<char> tBuf;
+	fcyRefPointer<fcyMemStream> tBuf;
 
 	// 读取文件
 	if (LoadFile(path, tBuf))
@@ -1627,9 +1543,9 @@ bool ResourceMgr::ExtractRes(const wchar_t* path, const wchar_t* target)LNOEXCEP
 				LERROR("ResourceMgr: 无法清空文件'%s' (fcyFileStream::SetLength 失败)", target);
 				return false;
 			}
-			if (tBuf.size() > 0)
+			if (tBuf->GetLength() > 0)
 			{
-				if (FCYFAILED(pFile->WriteBytes((fcData)tBuf.data(), tBuf.size(), nullptr)))
+				if (FCYFAILED(pFile->WriteBytes((fcData)tBuf->GetInternalBuffer(), tBuf->GetLength(), nullptr)))
 				{
 					LERROR("ResourceMgr: 无法向文件'%s'写出数据", target);
 					return false;

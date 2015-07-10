@@ -16,6 +16,7 @@
 #include <memory>
 #include <map>
 #include <set>
+#include <regex>
 #include <array>
 #include <limits>
 #include <type_traits>
@@ -30,6 +31,7 @@
 #include <fcyIO/fcyBinaryHelper.h>
 #include <fcyParser/fcyPathParser.h>
 #include <fcyParser/fcyIni.h>
+#include <fcyMisc/fcyStopWatch.h>
 #include <fcyMisc/fcyStringHelper.h>
 #include <fcyMisc/fcyRandom.h>
 #include <f2d.h>
@@ -92,6 +94,7 @@
 #define LSHOWRESLOADINFO  // 显示加载信息
 #endif
 // #define LSHOWFONTBASELINE  // 显示文字基线
+#define LPERFORMANCEUPDATETIMER 0.5f  // 半秒刷新一次计数器
 
 #define LAPP (LuaSTGPlus::AppFrame::GetInstance())
 #define LLOGGER (LuaSTGPlus::LogSystem::GetInstance())

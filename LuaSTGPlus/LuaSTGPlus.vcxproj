@@ -84,7 +84,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\fancy2d\fancy2d\bin\;$(SolutionDir)\..\fancy2d\fancylib\bin\;$(SolutionDir)\3rdParty\luajit\_build\Release\;$(SolutionDir)\ZLib\bin\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Gdiplus.lib;zlib_d.lib;lua.lib;fancy2d_d.lib;fancylib_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;Gdiplus.lib;zlib_d.lib;lua.lib;fancy2d_d.lib;fancylib_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -107,6 +107,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\fancy2d\fancy2d\bin\;$(SolutionDir)\..\fancy2d\fancylib\bin\;$(SolutionDir)\3rdParty\luajit\_build\Release\;$(SolutionDir)\ZLib\bin\</AdditionalLibraryDirectories>
       <AdditionalDependencies>Gdiplus.lib;zlib.lib;lua.lib;fancy2d.lib;fancylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Dev|Win32'">
@@ -128,11 +129,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\fancy2d\fancy2d\bin\;$(SolutionDir)\..\fancy2d\fancylib\bin\;$(SolutionDir)\3rdParty\luajit\_build\Release\;$(SolutionDir)\ZLib\bin\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Gdiplus.lib;zlib.lib;lua.lib;fancy2d.lib;fancylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;Gdiplus.lib;zlib.lib;lua.lib;fancy2d.lib;fancylib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AppFrame.h" />
+    <ClInclude Include="Bencode.h" />
     <ClInclude Include="CirularQueue.hpp" />
     <ClInclude Include="Dictionary.hpp" />
     <ClInclude Include="GameObjectPool.h" />
@@ -144,6 +146,7 @@
     <ClInclude Include="LuaExtensions\lfs\lfs.h" />
     <ClInclude Include="LuaWrapper.h" />
     <ClInclude Include="ObjectPool.hpp" />
+    <ClInclude Include="RemoteDebuggerClient.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ResourceMgr.h" />
     <ClInclude Include="SplashWindow.h" />
@@ -152,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppFrame.cpp" />
+    <ClCompile Include="Bencode.cpp" />
     <ClCompile Include="GameObjectPool.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="LuaExtensions\cjson4lua\dtoa.c" />
@@ -162,6 +166,7 @@
     <ClCompile Include="LuaExtensions\lfs\lfs.c" />
     <ClCompile Include="LuaWrapper.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="RemoteDebuggerClient.cpp" />
     <ClCompile Include="ResourceMgr.cpp" />
     <ClCompile Include="SplashWindow.cpp" />
     <ClCompile Include="UnicodeStringEncoding.cpp" />

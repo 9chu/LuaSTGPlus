@@ -11,6 +11,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZLib", "ZLib\ZLib.vcxproj", "{0968B6EF-F49F-4ABC-9449-905D181B3B78}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerformanceMonitor", "PerformanceMonitor\PerformanceMonitor.csproj", "{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C58FA3BD-E480-4271-B99F-A616EDE360DB} = {C58FA3BD-E480-4271-B99F-A616EDE360DB}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

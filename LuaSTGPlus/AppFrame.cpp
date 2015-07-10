@@ -360,9 +360,9 @@ LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
 			// 若有图片，则加载
 			if (imgPath)
 			{
-				std::vector<char> tDataBuf;
+				fcyRefPointer<fcyMemStream> tDataBuf;
 				if (m_ResourceMgr.LoadFile(imgPath, tDataBuf))
-					pImg = SplashWindow::LoadImageFromMemory((fcData)tDataBuf.data(), tDataBuf.size());
+					pImg = SplashWindow::LoadImageFromMemory((fcData)tDataBuf->GetInternalBuffer(), (size_t)tDataBuf->GetLength());
 				
 				if (!pImg)
 					LERROR("ShowSplashWindow: 无法加载图片'%m'", imgPath);
@@ -491,12 +491,13 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 {
 	LINFO("装载脚本'%m'", path);
-	if (!m_ResourceMgr.LoadFile(path, m_TempBuffer))
+	fcyRefPointer<fcyMemStream> tMemStream;
+	if (!m_ResourceMgr.LoadFile(path, tMemStream))
 	{
 		luaL_error(L, "can't load script '%s'", path);
 		return;
 	}
-	if (luaL_loadbuffer(L, m_TempBuffer.data(), m_TempBuffer.size(), luaL_checkstring(L, 1)))
+	if (luaL_loadbuffer(L, (fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), luaL_checkstring(L, 1)))
 	{
 		const char* tDetail = lua_tostring(L, -1);
 		LERROR("编译脚本'%m'失败: %m", path, tDetail);
@@ -1078,11 +1079,37 @@ bool AppFrame::Init()LNOEXCEPT
 	}
 
 	// 设置命令行参数
+	regex tDebuggerPattern("\\/debugger:(\\d+)");
 	lua_getglobal(L, "lstg");  // t
 	lua_newtable(L);  // t t
-	for (int i = 0; i < __argc; ++i)
+	for (int i = 0, c = 1; i < __argc; ++i)
 	{
-		lua_pushnumber(L, i + 1);  // t t i
+		cmatch tMatch;
+		if (regex_match(__argv[i], tMatch, tDebuggerPattern))
+		{
+#if (defined LDEVVERSION) || (defined LDEBUG)
+			// 创建调试器
+			if (!m_DebuggerClient)
+			{
+				fuShort tPort = atoi(tMatch[1].first);
+				
+				try
+				{
+					m_DebuggerClient = make_unique<RemoteDebuggerClient>(tPort);
+					LINFO("调试器已创建，于端口：%d", (fuInt)tPort);
+				}
+				catch (const fcyException& e)
+				{
+					LERROR("创建调试器失败 (详细信息: %m)", e.GetDesc());
+				}
+			}
+			else
+				LWARNING("命令行参数中带有多个/debugger项，忽略。");
+#endif
+			// 不将debugger项传入用户命令行参数中
+			continue;
+		}
+		lua_pushinteger(L, c++);  // t t i
 		lua_pushstring(L, __argv[i]);  // t t i s
 		lua_settable(L, -3);  // t t
 	}
@@ -1091,9 +1118,10 @@ bool AppFrame::Init()LNOEXCEPT
 
 	//////////////////////////////////////// 装载初始化脚本
 	LINFO("装载初始化脚本'%s'", LLAUNCH_SCRIPT);
-	if (!m_ResourceMgr.LoadFile(LLAUNCH_SCRIPT, m_TempBuffer))
+	fcyRefPointer<fcyMemStream> tMemStream;
+	if (!m_ResourceMgr.LoadFile(LLAUNCH_SCRIPT, tMemStream))
 		return false;
-	if (!SafeCallScript(m_TempBuffer.data(), m_TempBuffer.size(), "launch"))
+	if (!SafeCallScript((fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), "launch"))
 		return false;
 	
 	//////////////////////////////////////// 初始化fancy2d引擎
@@ -1204,9 +1232,9 @@ bool AppFrame::Init()LNOEXCEPT
 
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
-	if (!m_ResourceMgr.LoadFile(LCORE_SCRIPT, m_TempBuffer))
+	if (!m_ResourceMgr.LoadFile(LCORE_SCRIPT, tMemStream))
 		return false;
-	if (!SafeCallScript(m_TempBuffer.data(), m_TempBuffer.size(), "core.lua"))
+	if (!SafeCallScript((fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), "core.lua"))
 		return false;
 	if (!SafeCallGlobalFunction(LFUNC_GAMEINIT))
 		return false;
@@ -1255,6 +1283,18 @@ void AppFrame::Run()LNOEXCEPT
 {
 	LASSERT(m_iStatus == AppStatus::Initialized);
 	LINFO("开始执行游戏循环");
+
+	m_fFPS = 0.f;
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	m_UpdateTimer = 0.f;
+	m_RenderTimer = 0.f;
+	m_PerformanceUpdateTimer = 0.f;
+	m_PerformanceUpdateCounter = 0.f;
+	m_FPSTotal = 0.f;
+	m_ObjectTotal = 0.f;
+	m_UpdateTimerTotal = 0.f;
+	m_RenderTimerTotal = 0.f;
+#endif
 
 	if (m_bSplashWindowEnabled)  // 显示过载入窗口
 	{
@@ -1374,6 +1414,10 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEX
 #pragma region 游戏循环
 fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump)
 {
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	TimerScope tProfileScope(m_UpdateTimer);
+#endif
+
 	m_fFPS = (float)pFPSController->GetFPS();
 
 	m_LastChar = 0;
@@ -1422,11 +1466,45 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 	bool tAbort = lua_toboolean(L, -1) == 0 ? false : true;
 	lua_pop(L, 1);
 
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	// 刷新性能计数器
+	m_PerformanceUpdateTimer += static_cast<float>(ElapsedTime);
+	m_PerformanceUpdateCounter += 1.f;
+	m_FPSTotal += static_cast<float>(m_fFPS);
+	m_ObjectTotal += (float)m_GameObjectPool->GetObjectCount();
+	m_UpdateTimerTotal += m_UpdateTimer;
+	m_RenderTimerTotal += m_RenderTimer;
+	if (m_PerformanceUpdateTimer > LPERFORMANCEUPDATETIMER)
+	{
+		// 发送性能统计信息
+		if (m_DebuggerClient)
+		{
+			m_DebuggerClient->SendPerformanceCounter(
+				m_FPSTotal / m_PerformanceUpdateCounter,
+				m_ObjectTotal / m_PerformanceUpdateCounter,
+				m_UpdateTimerTotal / m_PerformanceUpdateCounter,
+				m_RenderTimerTotal / m_PerformanceUpdateCounter
+				);
+		}
+			
+		m_PerformanceUpdateTimer = 0.f;
+		m_PerformanceUpdateCounter = 0.f;
+		m_FPSTotal = 0.f;
+		m_ObjectTotal = 0.f;
+		m_UpdateTimerTotal = 0.f;
+		m_RenderTimerTotal = 0.f;
+	}
+#endif
+
 	return !tAbort;
 }
 
 fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 {
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	TimerScope tProfileScope(m_RenderTimer);
+#endif
+
 	m_pRenderDev->Clear();
 
 	// 执行渲染函数

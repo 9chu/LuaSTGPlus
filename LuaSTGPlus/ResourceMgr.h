@@ -790,7 +790,7 @@ namespace LuaSTGPlus
 		/// @param[in] path 相对路径
 		/// @param[out] outBuf 导出的文件数据
 		/// @return 失败返回false，成功返回true
-		bool LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEXCEPT;
+		bool LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 	protected:
 		ResourcePack& operator=(const ResourcePack&);
 		ResourcePack(const ResourcePack&);
@@ -889,12 +889,12 @@ namespace LuaSTGPlus
 		/// @brief 装载文件
 		/// @param[in] path 路径
 		/// @param[out] outBuf 输出缓冲
-		LNOINLINE bool LoadFile(const wchar_t* path, std::vector<char>& outBuf)LNOEXCEPT;
+		LNOINLINE bool LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 
 		/// @brief 装载文件（UTF8）
 		/// @param[in] path 路径
 		/// @param[out] outBuf 输出缓冲
-		LNOINLINE bool LoadFile(const char* path, std::vector<char>& outBuf)LNOEXCEPT;
+		LNOINLINE bool LoadFile(const char* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 
 		/// @brief 解压资源文件
 		/// @param[in] path 路径

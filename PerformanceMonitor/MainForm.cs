@@ -151,10 +151,10 @@ namespace PerformanceMonitor
 
                 label_cpu.Text = String.Format("CPU {0:N2}%", tCPUTime);
                 label_memory.Text = String.Format("内存 {0:N2}MB", tWorkingSet / 1024 / 1024);
-                label_fps.Text = String.Format("FPS {0}", tFPS);
-                label_objects.Text = String.Format("对象 {0}", tObjects);
-                label_frame.Text = String.Format("逻辑 {0}", tFrameTime);
-                label_render.Text = String.Format("渲染 {0}", tRenderTime);
+                label_fps.Text = String.Format("FPS {0:N2}", tFPS);
+                label_objects.Text = String.Format("对象 {0:N2}个", tObjects);
+                label_frame.Text = String.Format("逻辑 {0:N2}ms", tFrameTime * 1000);
+                label_render.Text = String.Format("渲染 {0:N2}ms", tRenderTime * 1000);
 
                 performanceChart_main.AddPerformance(PerformanceChart.PerformanceArg.CPU, tCPUTime);
                 performanceChart_main.AddPerformance(PerformanceChart.PerformanceArg.Memory, tWorkingSet);

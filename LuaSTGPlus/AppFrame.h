@@ -7,6 +7,10 @@
 #include "GameObjectPool.h"
 #include "UnicodeStringEncoding.h"
 
+#if (defined LDEVVERSION) || (defined LDEBUG)
+#include "RemoteDebuggerClient.h"
+#endif
+
 namespace LuaSTGPlus
 {
 	/// @brief 应用程序状态
@@ -52,6 +56,22 @@ namespace LuaSTGPlus
 	private:
 		AppStatus m_iStatus = AppStatus::NotInitialized;
 
+#if (defined LDEVVERSION) || (defined LDEBUG)
+		// 远端调试器
+		std::unique_ptr<RemoteDebuggerClient> m_DebuggerClient;
+
+		// 性能计数器
+		float m_UpdateTimer = 0.f;
+		float m_RenderTimer = 0.f;
+
+		float m_PerformanceUpdateTimer = 0.f;  // 记录性能参数的累计采样时间
+		float m_PerformanceUpdateCounter = 0.f;  // 记录采样次数
+		float m_FPSTotal = 0.f;  // 记录在采样时间内累计的FPS
+		float m_ObjectTotal = 0.f;  // 记录在采样时间内累计的对象数
+		float m_UpdateTimerTotal = 0.f;  // 记录在采样时间内累计的更新时间
+		float m_RenderTimerTotal = 0.f;  // 记录在采样时间内累计的渲染时间
+#endif
+
 		// 载入窗口
 		GdiPlusScope m_GdiScope;
 		SplashWindow m_SplashWindow;
@@ -64,7 +84,6 @@ namespace LuaSTGPlus
 
 		// Lua虚拟机
 		lua_State* L = nullptr;
-		std::vector<char> m_TempBuffer;  // 临时缓冲区
 
 		// 选项与值
 		bool m_bSplashWindowEnabled = false;

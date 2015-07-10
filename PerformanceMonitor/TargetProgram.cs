@@ -1,11 +1,15 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.ComponentModel;
+using System.Net;
+using System.Net.Sockets;
 using DbMon.NET;
+using Bencode;
 
 namespace PerformanceMonitor
 {
@@ -16,7 +20,10 @@ namespace PerformanceMonitor
     {
         Regex _Regex = new Regex("(\\[(INFO|ERRO|WARN)\\])?(.*)", RegexOptions.Compiled);
 
+        UdpClient _UdpClient;
+
         Process _Process;
+
         PerformanceCounter _WorkingSet;
         PerformanceCounter _PrivateWorkingSet;
         PerformanceCounter _CpuTime;
@@ -25,6 +32,17 @@ namespace PerformanceMonitor
         float _Objects = 0;
         float _FrameTime = 0;
         float _RenderTime = 0;
+
+        /// <summary>
+        /// udp数据类型
+        /// </summary>
+        private enum UdpMessageType
+        {
+            PerformanceUpdate = 1,
+            ScriptOutput = 2,
+            ScriptLoaded = 3,
+            ResourceLoaded = 4
+        }
 
         /// <summary>
         /// 日志类型
@@ -94,7 +112,10 @@ namespace PerformanceMonitor
         {
             get
             {
-                return _FPS;
+                lock (this)
+                {
+                    return _FPS;
+                }
             }
         }
 
@@ -105,7 +126,10 @@ namespace PerformanceMonitor
         {
             get
             {
-                return _Objects;
+                lock (this)
+                {
+                    return _Objects;
+                }
             }
         }
 
@@ -116,7 +140,10 @@ namespace PerformanceMonitor
         {
             get
             {
-                return _FrameTime;
+                lock (this)
+                {
+                    return _FrameTime;
+                }
             }
         }
 
@@ -127,7 +154,10 @@ namespace PerformanceMonitor
         {
             get
             {
-                return _RenderTime;
+                lock (this)
+                {
+                    return _RenderTime;
+                }
             }
         }
 
@@ -148,11 +178,13 @@ namespace PerformanceMonitor
         {
             return !_Process.HasExited;
         }
-
+        
         void Process_Exited(object sender, EventArgs e)
         {
             DebugMonitor.Stop();
             DebugMonitor.OnOutputDebugString -= DebugMonitor_OnOutputDebugString;
+
+            _UdpClient.Close();
 
             if (OnProcessExit != null)
             {
@@ -207,12 +239,59 @@ namespace PerformanceMonitor
                 }
             }
         }
+        
+        void UDP_OnDataReceived(IAsyncResult ar)
+        {
+            try
+            {
+                IPEndPoint tEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                Byte[] tBytesReceived = _UdpClient.EndReceive(ar, ref tEndPoint);
+                Dictionary<string, object> tData = Bencode.BencodeUtility.DecodeDictionary(tBytesReceived);
+                if ((long)tData["processId"] == _Process.Id)
+                {
+                    Dictionary<string, object> tArgs = (Dictionary<string, object>)tData["args"];
+                    switch ((UdpMessageType)(long)tData["msgType"])
+                    {
+                        case UdpMessageType.PerformanceUpdate:
+                            lock (this)
+                            {
+                                _FPS = ((long)tArgs["fps"]) / 1000.0f;
+                                _Objects = ((long)tArgs["objects"]) / 1000.0f;
+                                _FrameTime = ((long)tArgs["frametime"]) / 1000.0f / 1000.0f;
+                                _RenderTime = ((long)tArgs["rendertime"]) / 1000.0f / 1000.0f;
+                            }
+                            break;
+                        case UdpMessageType.ResourceLoaded:
+                            break;
+                        case UdpMessageType.ScriptLoaded:
+                            break;
+                        case UdpMessageType.ScriptOutput:
+                            break;
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // 操作被取消
+                return;
+            }
+            catch (Exception)
+            {
+            }
 
-        public TargetProgram(string path, string workDirectory, ISynchronizeInvoke invoker)
+            // 接收下一个数据包
+            _UdpClient.BeginReceive(new AsyncCallback(UDP_OnDataReceived), null);
+        }
+
+        public TargetProgram(string path, string workDirectory, ISynchronizeInvoke invoker, ushort port=3459)
         {
             SynchronizeInvoke = invoker;
 
+            // 启动监听服务
+            _UdpClient = new UdpClient(new IPEndPoint(IPAddress.Any, port));
+
             ProcessStartInfo tInfo = new ProcessStartInfo(path);
+            tInfo.Arguments = "/debugger:" + port.ToString();
             tInfo.WorkingDirectory = workDirectory;
 
             DebugMonitor.OnOutputDebugString += DebugMonitor_OnOutputDebugString;
@@ -226,6 +305,8 @@ namespace PerformanceMonitor
             }
             catch
             {
+                _UdpClient.Close();
+
                 DebugMonitor.Stop();
                 DebugMonitor.OnOutputDebugString -= DebugMonitor_OnOutputDebugString;
                 throw;
@@ -234,6 +315,9 @@ namespace PerformanceMonitor
             _WorkingSet = new PerformanceCounter("Process", "Working Set", _Process.ProcessName);
             _PrivateWorkingSet = new PerformanceCounter("Process", "Working Set - Private", _Process.ProcessName);
             _CpuTime = new PerformanceCounter("Process", "% Processor Time", _Process.ProcessName);
+
+            // 启动UDP
+            _UdpClient.BeginReceive(new AsyncCallback(UDP_OnDataReceived), null);
         }
     }
 }
