@@ -56,7 +56,10 @@ LNOINLINE void LogSystem::Log(LogType type, const wchar_t* info, ...)throw()
 	try
 	{
 		if (m_LogFile)
+		{
 			m_LogFile << std::move(fcyStringHelper::WideCharToMultiByte(tRet, CP_UTF8));
+			m_LogFile.flush();
+		}	
 	}
 	catch (const bad_alloc&)
 	{
