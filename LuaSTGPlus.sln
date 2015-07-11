@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerformanceMonitor", "Perfo
 		{C58FA3BD-E480-4271-B99F-A616EDE360DB} = {C58FA3BD-E480-4271-B99F-A616EDE360DB}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TexturedFontEditor", "TexturedFontEditor\TexturedFontEditor.csproj", "{4F227D23-99B8-4745-8E80-B8E83BC83BFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -40,6 +42,12 @@ Global
 		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release_Dev|Win32.Build.0 = Release|x86
 		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release|Win32.ActiveCfg = Release|x86
 		{A7147A15-74FC-40E9-A2D3-4AA054B3F21E}.Release|Win32.Build.0 = Release|x86
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Debug|Win32.Build.0 = Debug|Any CPU
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release_Dev|Win32.ActiveCfg = Release|Any CPU
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release_Dev|Win32.Build.0 = Release|Any CPU
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release|Win32.ActiveCfg = Release|Any CPU
+		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release|Win32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
