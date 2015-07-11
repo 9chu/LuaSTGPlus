@@ -512,12 +512,12 @@ luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用
 			""          默认值，=mul+alpha
 			"mul+add"   顶点颜色使用乘法，目标混合使用加法
 			"mul+alpha" (默认)顶点颜色使用乘法，目标混合使用alpha混合
-			"mul+sub"   顶点颜色使用乘法，结果=屏幕上的颜色-图像上的颜色 [新增]
-			"mul+rev"   顶点颜色使用乘法，结果=图像上的颜色-屏幕上的颜色 [新增]
+			"mul+sub"   顶点颜色使用乘法，结果=图像上的颜色-屏幕上的颜色 [新增]
+			"mul+rev"   顶点颜色使用乘法，结果=屏幕上的颜色-图像上的颜色 [新增]
 			"add+add"   顶点颜色使用加法，目标混合使用加法
 			"add+alpha" 顶点颜色使用加法，目标混合使用alpha混合
-			"add+sub"   顶点颜色使用加法，结果=屏幕上的颜色-图像上的颜色 [新增]
-			"add+rev"   顶点颜色使用加法，结果=图像上的颜色-屏幕上的颜色 [新增]
+			"add+sub"   顶点颜色使用加法，结果=图像上的颜色-屏幕上的颜色 [新增]
+			"add+rev"   顶点颜色使用加法，结果=屏幕上的颜色-图像上的颜色 [新增]
 
 - SetImageCenter(name:string, x:number, y:number)
 
@@ -806,6 +806,14 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 - GetLastChar():string
 
 	返回上一次输入的字符。
+
+- GetMousePosition():number,number **[新增]**
+
+	获取鼠标的位置，以窗口左下角为原点。
+
+- GetMouseState(button:integer):boolean **[新增]**
+
+	检查鼠标按键是否按下。button可取0、1、2，分别对应鼠标左键、中键、右键。
 
 ----------
 

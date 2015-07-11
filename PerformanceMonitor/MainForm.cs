@@ -13,12 +13,102 @@ namespace PerformanceMonitor
 {
     public partial class MainForm : Form
     {
+        class ResourceListViewSorter : System.Collections.IComparer
+        {
+            public bool Descending { get; set; }
+
+            public int Column { get; set; }
+            
+            public int Compare(object x, object y)
+            {
+                int tempInt;
+
+                ListViewItem lx = (ListViewItem)x;
+                ListViewItem ly = (ListViewItem)y;
+
+                if (Column == 3)
+                {
+                    double dx = Convert.ToDouble(lx.SubItems[Column].Text);
+                    double dy = Convert.ToDouble(ly.SubItems[Column].Text);
+                    if (dx < dy)
+                        tempInt = -1;
+                    else if (dx == dy)
+                        tempInt = 0;
+                    else
+                        tempInt = 1;
+                }
+                else
+                    tempInt = String.Compare(lx.SubItems[Column].Text, ly.SubItems[Column].Text);
+
+                if (Descending)
+                    return -tempInt;
+                else
+                    return tempInt;
+            }
+
+            public ResourceListViewSorter()
+            {
+                Column = 0;
+            }
+
+            public ResourceListViewSorter(int column)
+            {
+                Column = column;
+                Descending = true;
+            }
+        }
+        
         TargetProgram _Target;
         bool _CloseAfterExited = false;
+
+        ListView[] _ResourceStatusListView;
 
         public MainForm()
         {
             InitializeComponent();
+
+            _ResourceStatusListView = new ListView[] {
+                listView_texture,
+                listView_image,
+                listView_animation,
+                listView_music,
+                listView_soundeffect,
+                listView_particle,
+                listView_texturedfont,
+                listView_ttffont,
+                listView_shader
+            };
+
+            try
+            {
+                _Target = new TargetProgram(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("无法创建性能监测。\n\n错误：" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Application.Exit();
+            }
+            
+            // 绑定事件
+            _Target.OnProcessTrace += Target_OnProcessTrace;
+            _Target.OnProcessExit += Target_OnProcessExit;
+            _Target.OnResourceLoaded += Target_OnResourceLoaded;
+            _Target.OnResourceRemoved += Target_OnResourceRemoved;
+            _Target.OnResourceCleared += Target_OnResourceCleared;
+        }
+        
+        void clearListView()
+        {
+            foreach (ListViewItem item in listView_resourceCounter.Items)
+            {
+                item.SubItems[1].Text = "0";
+                item.SubItems[2].Text = "0";
+            }
+
+            foreach (ListView view in _ResourceStatusListView)
+            {
+                view.Items.Clear();
+            }
         }
 
         void Target_OnProcessTrace(DateTime t, TargetProgram.LogType type, string message)
@@ -78,10 +168,11 @@ namespace PerformanceMonitor
 
             listView_log.Items.Clear();
             textBox_log.Text = String.Empty;
+            clearListView();
 
             try
             {
-                _Target = new TargetProgram(toolStripTextBox_path.Text, Path.GetDirectoryName(toolStripTextBox_path.Text), this);
+                _Target.Start(toolStripTextBox_path.Text, Path.GetDirectoryName(toolStripTextBox_path.Text));
                 toolStripStatusLabel_status.Text = String.Format("运行中 - {0}", _Target.Lifetime.ToString("g"));
             }
             catch (Exception ex)
@@ -95,13 +186,84 @@ namespace PerformanceMonitor
             }
 
             performanceChart_main.Reset();
-
-            // 绑定事件
-            _Target.OnProcessTrace += Target_OnProcessTrace;
-            _Target.OnProcessExit += Target_OnProcessExit;
-
+            
             // 启动计时器
             timer_main.Enabled = true;
+        }
+
+        void Target_OnResourceCleared(TargetProgram.ResourcePoolType pool)
+        {
+            string tPoolName = pool == TargetProgram.ResourcePoolType.Global ? "全局" : "关卡";
+            
+            for (int i = 0; i < _ResourceStatusListView.Count(); ++i)
+            {
+                List<ListViewItem> tItemsToRemove = new List<ListViewItem>();
+                foreach (ListViewItem item in _ResourceStatusListView[i].Items)
+                {
+                    if (item.SubItems[0].Text == tPoolName)
+                        tItemsToRemove.Add(item);
+                }
+
+                ListViewItem tCounter = listView_resourceCounter.Items[i];
+                double tTotalTime = 0;
+                int tTotalCount = 0;
+                foreach (ListViewItem item in tItemsToRemove)
+                {
+                    tTotalTime += Convert.ToDouble(item.SubItems[3].Text);
+                    ++tTotalCount;
+                    _ResourceStatusListView[i].Items.Remove(item);
+                }
+                double tNewTime = Math.Max(0, Convert.ToDouble(tCounter.SubItems[1].Text) - tTotalTime);
+                if (tNewTime < 0.00001)
+                    tNewTime = 0;
+                tCounter.SubItems[1].Text = tNewTime.ToString();
+                tCounter.SubItems[2].Text = (Convert.ToInt32(tCounter.SubItems[2].Text) - tTotalCount).ToString();
+            }
+        }
+
+        void Target_OnResourceRemoved(TargetProgram.ResourceType type, TargetProgram.ResourcePoolType pool, string name)
+        {
+            if ((int)type < 1 || (int)type > _ResourceStatusListView.Count())
+                return;
+
+            string tPoolName = pool == TargetProgram.ResourcePoolType.Global ? "全局" : "关卡";
+            List<ListViewItem> tItemsToRemove = new List<ListViewItem>();
+            foreach (ListViewItem item in _ResourceStatusListView[(int)type - 1].Items)
+            {
+                if (item.SubItems[0].Text == tPoolName && item.SubItems[1].Text == name)
+                    tItemsToRemove.Add(item);
+            }
+
+            ListViewItem tCounter = listView_resourceCounter.Items[(int)type - 1];
+            double tTotalTime = 0;
+            int tTotalCount = 0;
+            foreach (ListViewItem item in tItemsToRemove)
+            {
+                tTotalTime += Convert.ToDouble(item.SubItems[3].Text);
+                ++tTotalCount;
+                _ResourceStatusListView[(int)type - 1].Items.Remove(item);
+            }
+            double tNewTime = Math.Max(0, Convert.ToDouble(tCounter.SubItems[1].Text) - tTotalTime);
+            if (tNewTime < 0.00001)
+                tNewTime = 0;
+            tCounter.SubItems[1].Text = tNewTime.ToString();
+            tCounter.SubItems[2].Text = (Convert.ToInt32(tCounter.SubItems[2].Text) - tTotalCount).ToString();
+        }
+
+        void Target_OnResourceLoaded(TargetProgram.ResourceType type, TargetProgram.ResourcePoolType pool, string name, string path, float time)
+        {
+            if ((int)type < 1 || (int)type > _ResourceStatusListView.Count())
+                return;
+
+            ListViewItem tNewItem = new ListViewItem(pool == TargetProgram.ResourcePoolType.Global ? "全局" : "关卡");
+            tNewItem.SubItems.Add(new ListViewItem.ListViewSubItem(tNewItem, name));
+            tNewItem.SubItems.Add(new ListViewItem.ListViewSubItem(tNewItem, path));
+            tNewItem.SubItems.Add(new ListViewItem.ListViewSubItem(tNewItem, time.ToString()));
+            _ResourceStatusListView[(int)type - 1].Items.Add(tNewItem);
+
+            ListViewItem tCounter = listView_resourceCounter.Items[(int)type - 1];
+            tCounter.SubItems[1].Text = (Convert.ToDouble(tCounter.SubItems[1].Text) + time).ToString();
+            tCounter.SubItems[2].Text = (Convert.ToInt32(tCounter.SubItems[2].Text) + 1).ToString();
         }
 
         private void listView_log_SelectedIndexChanged(object sender, EventArgs e)
@@ -115,6 +277,21 @@ namespace PerformanceMonitor
                     tItem.SubItems[2].Text
                     ).Replace("\r\n", "\n").Replace("\n", "\r\n");
             }
+        }
+
+        private void listView_resources_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            ListView listView = (ListView)sender;
+            
+            if (listView.ListViewItemSorter == null)
+                listView.ListViewItemSorter = new ResourceListViewSorter(e.Column);
+            else
+            {
+                ((ResourceListViewSorter)listView.ListViewItemSorter).Column = e.Column;
+                ((ResourceListViewSorter)listView.ListViewItemSorter).Descending = !((ResourceListViewSorter)listView.ListViewItemSorter).Descending;
+            }   
+
+            listView.Sort();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -165,6 +342,11 @@ namespace PerformanceMonitor
 
                 toolStripStatusLabel_status.Text = String.Format("运行中 - {0}", _Target.Lifetime.ToString("g"));
             }
+        }
+
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            _Target.CloseSocket();
         }
     }
 }

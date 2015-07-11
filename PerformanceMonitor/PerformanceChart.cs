@@ -56,8 +56,8 @@ namespace PerformanceMonitor
             _PerformaceUnit[1] = 1000 * 1024 * 1024;  // 内存显示单位
             _PerformaceUnit[2] = 80;  // FPS显示单位
             _PerformaceUnit[3] = 1000;  // 对象显示单位
-            _PerformaceUnit[4] = 1;  // 帧逻辑时间
-            _PerformaceUnit[5] = 1;  // 帧渲染时间
+            _PerformaceUnit[4] = 0.05f;  // 帧逻辑时间
+            _PerformaceUnit[5] = 0.05f;  // 帧渲染时间
 
             for (int i = 0; i < _PerformaceMax.Count(); ++i)
                 _PerformaceMax[i] = _PerformaceUnit[i];

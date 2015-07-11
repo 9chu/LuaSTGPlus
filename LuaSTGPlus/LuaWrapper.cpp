@@ -1581,6 +1581,18 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			return LAPP.GetLastChar(L);
 		}
+		static int GetMousePosition(lua_State* L)LNOEXCEPT
+		{
+			fcyVec2 tPos = LAPP.GetMousePosition();
+			lua_pushnumber(L, tPos.x);
+			lua_pushnumber(L, tPos.y);
+			return 2;
+		}
+		static int GetMouseState(lua_State* L)LNOEXCEPT
+		{
+			lua_pushboolean(L, LAPP.GetMouseState(luaL_checkinteger(L, 1)));
+			return 1;
+		}
 
 		// 内置数学库
 		static int Sin(lua_State* L)LNOEXCEPT
@@ -1762,6 +1774,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "GetKeyState", &WrapperImplement::GetKeyState },
 		{ "GetLastKey", &WrapperImplement::GetLastKey },
 		{ "GetLastChar", &WrapperImplement::GetLastChar },
+		{ "GetMousePosition", &WrapperImplement::GetMousePosition },
+		{ "GetMouseState", &WrapperImplement::GetMouseState },
 		// 内置数学函数
 		{ "sin", &WrapperImplement::Sin },
 		{ "cos", &WrapperImplement::Cos },

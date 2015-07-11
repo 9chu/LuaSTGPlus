@@ -1229,6 +1229,7 @@ bool AppFrame::Init()LNOEXCEPT
 	m_LastChar = 0;
 	m_LastKey = 0;
 	memset(m_KeyStateMap, 0, sizeof(m_KeyStateMap));
+	memset(m_MouseState, 0, sizeof(m_MouseState));
 
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
@@ -1454,6 +1455,28 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 				m_LastKey = 0;
 			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
 				m_KeyStateMap[tMsg.Param1] = false;
+			break;
+		case F2DMSG_WINDOW_ONMOUSELDOWN:
+			m_MouseState[0] = true;
+			break;
+		case F2DMSG_WINDOW_ONMOUSELUP:
+			m_MouseState[0] = false;
+			break;
+		case F2DMSG_WINDOW_ONMOUSEMDOWN:
+			m_MouseState[1] = true;
+			break;
+		case F2DMSG_WINDOW_ONMOUSEMUP:
+			m_MouseState[1] = false;
+			break;
+		case F2DMSG_WINDOW_ONMOUSERDOWN:
+			m_MouseState[2] = true;
+			break;
+		case F2DMSG_WINDOW_ONMOUSERUP:
+			m_MouseState[2] = false;
+			break;
+		case F2DMSG_WINDOW_ONMOUSEMOVE:
+			m_MousePosition.x = (float)static_cast<fInt>(tMsg.Param1);
+			m_MousePosition.y = m_OptionResolution.y - (float)static_cast<fInt>(tMsg.Param2);  // ! 潜在大小不匹配问题
 			break;
 		default:
 			break;

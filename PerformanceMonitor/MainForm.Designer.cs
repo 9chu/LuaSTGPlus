@@ -30,6 +30,42 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
+            "纹理",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] {
+            "图像",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem3 = new System.Windows.Forms.ListViewItem(new string[] {
+            "动画",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem4 = new System.Windows.Forms.ListViewItem(new string[] {
+            "音乐",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem5 = new System.Windows.Forms.ListViewItem(new string[] {
+            "音效",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem6 = new System.Windows.Forms.ListViewItem(new string[] {
+            "粒子",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem7 = new System.Windows.Forms.ListViewItem(new string[] {
+            "纹理化字体",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem8 = new System.Windows.Forms.ListViewItem(new string[] {
+            "TTF字体",
+            "0",
+            "0"}, -1);
+            System.Windows.Forms.ListViewItem listViewItem9 = new System.Windows.Forms.ListViewItem(new string[] {
+            "Shader",
+            "0",
+            "0"}, -1);
             this.toolStrip_main = new System.Windows.Forms.ToolStrip();
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.toolStripTextBox_path = new System.Windows.Forms.ToolStripTextBox();
@@ -37,6 +73,9 @@
             this.toolStripButton_launch = new System.Windows.Forms.ToolStripButton();
             this.statusStrip_main = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel_status = new System.Windows.Forms.ToolStripStatusLabel();
+            this.imageList_main = new System.Windows.Forms.ImageList(this.components);
+            this.openFileDialog_main = new System.Windows.Forms.OpenFileDialog();
+            this.timer_main = new System.Windows.Forms.Timer(this.components);
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -48,6 +87,66 @@
             this.label_frame = new System.Windows.Forms.Label();
             this.label_render = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.splitContainer3 = new System.Windows.Forms.SplitContainer();
+            this.listView_resourceCounter = new System.Windows.Forms.ListView();
+            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabControl_res = new System.Windows.Forms.TabControl();
+            this.tabPage5 = new System.Windows.Forms.TabPage();
+            this.listView_texture = new System.Windows.Forms.ListView();
+            this.columnHeader34 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage6 = new System.Windows.Forms.TabPage();
+            this.listView_image = new System.Windows.Forms.ListView();
+            this.columnHeader10 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader11 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader12 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader13 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage7 = new System.Windows.Forms.TabPage();
+            this.listView_animation = new System.Windows.Forms.ListView();
+            this.columnHeader14 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader15 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader16 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader17 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage8 = new System.Windows.Forms.TabPage();
+            this.listView_music = new System.Windows.Forms.ListView();
+            this.columnHeader18 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader19 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader20 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader21 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage9 = new System.Windows.Forms.TabPage();
+            this.listView_soundeffect = new System.Windows.Forms.ListView();
+            this.columnHeader22 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader23 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader24 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader25 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage10 = new System.Windows.Forms.TabPage();
+            this.listView_particle = new System.Windows.Forms.ListView();
+            this.columnHeader26 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader27 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader28 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader29 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage11 = new System.Windows.Forms.TabPage();
+            this.listView_texturedfont = new System.Windows.Forms.ListView();
+            this.columnHeader30 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader31 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader32 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader33 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage12 = new System.Windows.Forms.TabPage();
+            this.listView_ttffont = new System.Windows.Forms.ListView();
+            this.columnHeader35 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader36 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader37 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader38 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.tabPage13 = new System.Windows.Forms.TabPage();
+            this.listView_shader = new System.Windows.Forms.ListView();
+            this.columnHeader39 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader40 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader41 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader42 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tabControl2 = new System.Windows.Forms.TabControl();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
@@ -55,63 +154,8 @@
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.imageList_main = new System.Windows.Forms.ImageList(this.components);
             this.textBox_log = new System.Windows.Forms.TextBox();
-            this.tabPage4 = new System.Windows.Forms.TabPage();
-            this.openFileDialog_main = new System.Windows.Forms.OpenFileDialog();
-            this.timer_main = new System.Windows.Forms.Timer(this.components);
-            this.splitContainer3 = new System.Windows.Forms.SplitContainer();
-            this.listView1 = new System.Windows.Forms.ListView();
-            this.tabControl_res = new System.Windows.Forms.TabControl();
-            this.tabPage5 = new System.Windows.Forms.TabPage();
-            this.tabPage6 = new System.Windows.Forms.TabPage();
-            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.performanceChart_main = new PerformanceMonitor.PerformanceChart();
-            this.tabPage7 = new System.Windows.Forms.TabPage();
-            this.tabPage8 = new System.Windows.Forms.TabPage();
-            this.tabPage9 = new System.Windows.Forms.TabPage();
-            this.tabPage10 = new System.Windows.Forms.TabPage();
-            this.tabPage11 = new System.Windows.Forms.TabPage();
-            this.tabPage12 = new System.Windows.Forms.TabPage();
-            this.tabPage13 = new System.Windows.Forms.TabPage();
-            this.listView_texture = new System.Windows.Forms.ListView();
-            this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_image = new System.Windows.Forms.ListView();
-            this.columnHeader10 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader11 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader12 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_animation = new System.Windows.Forms.ListView();
-            this.columnHeader13 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader14 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader15 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_music = new System.Windows.Forms.ListView();
-            this.columnHeader16 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader17 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader18 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_soundeffect = new System.Windows.Forms.ListView();
-            this.columnHeader19 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader20 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader21 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_particle = new System.Windows.Forms.ListView();
-            this.columnHeader22 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader23 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader24 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_texturedfont = new System.Windows.Forms.ListView();
-            this.columnHeader25 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader26 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader27 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_ttffont = new System.Windows.Forms.ListView();
-            this.columnHeader28 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader29 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader30 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.listView_shader = new System.Windows.Forms.ListView();
-            this.columnHeader31 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader32 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader33 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.toolStrip_main.SuspendLayout();
             this.statusStrip_main.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -122,12 +166,6 @@
             this.tabPage1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.tabPage2.SuspendLayout();
-            this.tabControl2.SuspendLayout();
-            this.tabPage3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
-            this.splitContainer2.Panel1.SuspendLayout();
-            this.splitContainer2.Panel2.SuspendLayout();
-            this.splitContainer2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer3)).BeginInit();
             this.splitContainer3.Panel1.SuspendLayout();
             this.splitContainer3.Panel2.SuspendLayout();
@@ -142,6 +180,12 @@
             this.tabPage11.SuspendLayout();
             this.tabPage12.SuspendLayout();
             this.tabPage13.SuspendLayout();
+            this.tabControl2.SuspendLayout();
+            this.tabPage3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
+            this.splitContainer2.Panel1.SuspendLayout();
+            this.splitContainer2.Panel2.SuspendLayout();
+            this.splitContainer2.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStrip_main
@@ -201,6 +245,26 @@
             this.toolStripStatusLabel_status.Name = "toolStripStatusLabel_status";
             this.toolStripStatusLabel_status.Size = new System.Drawing.Size(38, 17);
             this.toolStripStatusLabel_status.Text = "就绪";
+            // 
+            // imageList_main
+            // 
+            this.imageList_main.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList_main.ImageStream")));
+            this.imageList_main.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList_main.Images.SetKeyName(0, "error");
+            this.imageList_main.Images.SetKeyName(1, "info");
+            this.imageList_main.Images.SetKeyName(2, "warning");
+            // 
+            // openFileDialog_main
+            // 
+            this.openFileDialog_main.DefaultExt = "exe";
+            this.openFileDialog_main.FileName = "LuaSTGPlus.dev.exe";
+            this.openFileDialog_main.Filter = "可执行程序(*.exe)|*.exe";
+            this.openFileDialog_main.Title = "选择LuaSTGPlus主程序";
+            // 
+            // timer_main
+            // 
+            this.timer_main.Interval = 500;
+            this.timer_main.Tick += new System.EventHandler(this.timer_main_Tick);
             // 
             // splitContainer1
             // 
@@ -349,10 +413,506 @@
             this.tabPage2.Text = "资源监控";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // splitContainer3
+            // 
+            this.splitContainer3.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer3.Location = new System.Drawing.Point(3, 3);
+            this.splitContainer3.Name = "splitContainer3";
+            // 
+            // splitContainer3.Panel1
+            // 
+            this.splitContainer3.Panel1.Controls.Add(this.listView_resourceCounter);
+            // 
+            // splitContainer3.Panel2
+            // 
+            this.splitContainer3.Panel2.Controls.Add(this.tabControl_res);
+            this.splitContainer3.Size = new System.Drawing.Size(692, 204);
+            this.splitContainer3.SplitterDistance = 222;
+            this.splitContainer3.TabIndex = 0;
+            // 
+            // listView_resourceCounter
+            // 
+            this.listView_resourceCounter.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader3,
+            this.columnHeader5,
+            this.columnHeader6});
+            this.listView_resourceCounter.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_resourceCounter.FullRowSelect = true;
+            this.listView_resourceCounter.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
+            listViewItem1,
+            listViewItem2,
+            listViewItem3,
+            listViewItem4,
+            listViewItem5,
+            listViewItem6,
+            listViewItem7,
+            listViewItem8,
+            listViewItem9});
+            this.listView_resourceCounter.Location = new System.Drawing.Point(0, 0);
+            this.listView_resourceCounter.MultiSelect = false;
+            this.listView_resourceCounter.Name = "listView_resourceCounter";
+            this.listView_resourceCounter.Size = new System.Drawing.Size(222, 204);
+            this.listView_resourceCounter.TabIndex = 0;
+            this.listView_resourceCounter.UseCompatibleStateImageBehavior = false;
+            this.listView_resourceCounter.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader3
+            // 
+            this.columnHeader3.Text = "资源类型";
+            // 
+            // columnHeader5
+            // 
+            this.columnHeader5.Text = "加载总计时";
+            this.columnHeader5.Width = 80;
+            // 
+            // columnHeader6
+            // 
+            this.columnHeader6.Text = "资源数量";
+            // 
+            // tabControl_res
+            // 
+            this.tabControl_res.Controls.Add(this.tabPage5);
+            this.tabControl_res.Controls.Add(this.tabPage6);
+            this.tabControl_res.Controls.Add(this.tabPage7);
+            this.tabControl_res.Controls.Add(this.tabPage8);
+            this.tabControl_res.Controls.Add(this.tabPage9);
+            this.tabControl_res.Controls.Add(this.tabPage10);
+            this.tabControl_res.Controls.Add(this.tabPage11);
+            this.tabControl_res.Controls.Add(this.tabPage12);
+            this.tabControl_res.Controls.Add(this.tabPage13);
+            this.tabControl_res.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl_res.Location = new System.Drawing.Point(0, 0);
+            this.tabControl_res.Name = "tabControl_res";
+            this.tabControl_res.SelectedIndex = 0;
+            this.tabControl_res.Size = new System.Drawing.Size(466, 204);
+            this.tabControl_res.TabIndex = 0;
+            // 
+            // tabPage5
+            // 
+            this.tabPage5.Controls.Add(this.listView_texture);
+            this.tabPage5.Location = new System.Drawing.Point(4, 22);
+            this.tabPage5.Name = "tabPage5";
+            this.tabPage5.Size = new System.Drawing.Size(458, 178);
+            this.tabPage5.TabIndex = 0;
+            this.tabPage5.Text = "纹理";
+            this.tabPage5.UseVisualStyleBackColor = true;
+            // 
+            // listView_texture
+            // 
+            this.listView_texture.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader34,
+            this.columnHeader7,
+            this.columnHeader8,
+            this.columnHeader9});
+            this.listView_texture.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_texture.FullRowSelect = true;
+            this.listView_texture.Location = new System.Drawing.Point(0, 0);
+            this.listView_texture.Name = "listView_texture";
+            this.listView_texture.Size = new System.Drawing.Size(458, 178);
+            this.listView_texture.TabIndex = 1;
+            this.listView_texture.UseCompatibleStateImageBehavior = false;
+            this.listView_texture.View = System.Windows.Forms.View.Details;
+            this.listView_texture.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader34
+            // 
+            this.columnHeader34.Text = "池";
+            this.columnHeader34.Width = 40;
+            // 
+            // columnHeader7
+            // 
+            this.columnHeader7.Text = "名称";
+            this.columnHeader7.Width = 125;
+            // 
+            // columnHeader8
+            // 
+            this.columnHeader8.Text = "路径";
+            this.columnHeader8.Width = 200;
+            // 
+            // columnHeader9
+            // 
+            this.columnHeader9.Text = "装载耗时";
+            this.columnHeader9.Width = 80;
+            // 
+            // tabPage6
+            // 
+            this.tabPage6.Controls.Add(this.listView_image);
+            this.tabPage6.Location = new System.Drawing.Point(4, 22);
+            this.tabPage6.Name = "tabPage6";
+            this.tabPage6.Size = new System.Drawing.Size(458, 178);
+            this.tabPage6.TabIndex = 1;
+            this.tabPage6.Text = "图像";
+            this.tabPage6.UseVisualStyleBackColor = true;
+            // 
+            // listView_image
+            // 
+            this.listView_image.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader10,
+            this.columnHeader11,
+            this.columnHeader12,
+            this.columnHeader13});
+            this.listView_image.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_image.FullRowSelect = true;
+            this.listView_image.Location = new System.Drawing.Point(0, 0);
+            this.listView_image.Name = "listView_image";
+            this.listView_image.Size = new System.Drawing.Size(458, 178);
+            this.listView_image.TabIndex = 1;
+            this.listView_image.UseCompatibleStateImageBehavior = false;
+            this.listView_image.View = System.Windows.Forms.View.Details;
+            this.listView_image.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader10
+            // 
+            this.columnHeader10.Text = "池";
+            this.columnHeader10.Width = 40;
+            // 
+            // columnHeader11
+            // 
+            this.columnHeader11.Text = "名称";
+            this.columnHeader11.Width = 125;
+            // 
+            // columnHeader12
+            // 
+            this.columnHeader12.Text = "路径";
+            this.columnHeader12.Width = 200;
+            // 
+            // columnHeader13
+            // 
+            this.columnHeader13.Text = "装载耗时";
+            this.columnHeader13.Width = 80;
+            // 
+            // tabPage7
+            // 
+            this.tabPage7.Controls.Add(this.listView_animation);
+            this.tabPage7.Location = new System.Drawing.Point(4, 22);
+            this.tabPage7.Name = "tabPage7";
+            this.tabPage7.Size = new System.Drawing.Size(458, 178);
+            this.tabPage7.TabIndex = 2;
+            this.tabPage7.Text = "动画";
+            this.tabPage7.UseVisualStyleBackColor = true;
+            // 
+            // listView_animation
+            // 
+            this.listView_animation.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader14,
+            this.columnHeader15,
+            this.columnHeader16,
+            this.columnHeader17});
+            this.listView_animation.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_animation.FullRowSelect = true;
+            this.listView_animation.Location = new System.Drawing.Point(0, 0);
+            this.listView_animation.Name = "listView_animation";
+            this.listView_animation.Size = new System.Drawing.Size(458, 178);
+            this.listView_animation.TabIndex = 1;
+            this.listView_animation.UseCompatibleStateImageBehavior = false;
+            this.listView_animation.View = System.Windows.Forms.View.Details;
+            this.listView_animation.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader14
+            // 
+            this.columnHeader14.Text = "池";
+            this.columnHeader14.Width = 40;
+            // 
+            // columnHeader15
+            // 
+            this.columnHeader15.Text = "名称";
+            this.columnHeader15.Width = 125;
+            // 
+            // columnHeader16
+            // 
+            this.columnHeader16.Text = "路径";
+            this.columnHeader16.Width = 200;
+            // 
+            // columnHeader17
+            // 
+            this.columnHeader17.Text = "装载耗时";
+            this.columnHeader17.Width = 80;
+            // 
+            // tabPage8
+            // 
+            this.tabPage8.Controls.Add(this.listView_music);
+            this.tabPage8.Location = new System.Drawing.Point(4, 22);
+            this.tabPage8.Name = "tabPage8";
+            this.tabPage8.Size = new System.Drawing.Size(458, 178);
+            this.tabPage8.TabIndex = 3;
+            this.tabPage8.Text = "音乐";
+            this.tabPage8.UseVisualStyleBackColor = true;
+            // 
+            // listView_music
+            // 
+            this.listView_music.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader18,
+            this.columnHeader19,
+            this.columnHeader20,
+            this.columnHeader21});
+            this.listView_music.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_music.FullRowSelect = true;
+            this.listView_music.Location = new System.Drawing.Point(0, 0);
+            this.listView_music.Name = "listView_music";
+            this.listView_music.Size = new System.Drawing.Size(458, 178);
+            this.listView_music.TabIndex = 1;
+            this.listView_music.UseCompatibleStateImageBehavior = false;
+            this.listView_music.View = System.Windows.Forms.View.Details;
+            this.listView_music.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader18
+            // 
+            this.columnHeader18.Text = "池";
+            this.columnHeader18.Width = 40;
+            // 
+            // columnHeader19
+            // 
+            this.columnHeader19.Text = "名称";
+            this.columnHeader19.Width = 125;
+            // 
+            // columnHeader20
+            // 
+            this.columnHeader20.Text = "路径";
+            this.columnHeader20.Width = 200;
+            // 
+            // columnHeader21
+            // 
+            this.columnHeader21.Text = "装载耗时";
+            this.columnHeader21.Width = 80;
+            // 
+            // tabPage9
+            // 
+            this.tabPage9.Controls.Add(this.listView_soundeffect);
+            this.tabPage9.Location = new System.Drawing.Point(4, 22);
+            this.tabPage9.Name = "tabPage9";
+            this.tabPage9.Size = new System.Drawing.Size(458, 178);
+            this.tabPage9.TabIndex = 4;
+            this.tabPage9.Text = "音效";
+            this.tabPage9.UseVisualStyleBackColor = true;
+            // 
+            // listView_soundeffect
+            // 
+            this.listView_soundeffect.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader22,
+            this.columnHeader23,
+            this.columnHeader24,
+            this.columnHeader25});
+            this.listView_soundeffect.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_soundeffect.FullRowSelect = true;
+            this.listView_soundeffect.Location = new System.Drawing.Point(0, 0);
+            this.listView_soundeffect.Name = "listView_soundeffect";
+            this.listView_soundeffect.Size = new System.Drawing.Size(458, 178);
+            this.listView_soundeffect.TabIndex = 1;
+            this.listView_soundeffect.UseCompatibleStateImageBehavior = false;
+            this.listView_soundeffect.View = System.Windows.Forms.View.Details;
+            this.listView_soundeffect.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader22
+            // 
+            this.columnHeader22.Text = "池";
+            this.columnHeader22.Width = 40;
+            // 
+            // columnHeader23
+            // 
+            this.columnHeader23.Text = "名称";
+            this.columnHeader23.Width = 125;
+            // 
+            // columnHeader24
+            // 
+            this.columnHeader24.Text = "路径";
+            this.columnHeader24.Width = 200;
+            // 
+            // columnHeader25
+            // 
+            this.columnHeader25.Text = "装载耗时";
+            this.columnHeader25.Width = 80;
+            // 
+            // tabPage10
+            // 
+            this.tabPage10.Controls.Add(this.listView_particle);
+            this.tabPage10.Location = new System.Drawing.Point(4, 22);
+            this.tabPage10.Name = "tabPage10";
+            this.tabPage10.Size = new System.Drawing.Size(458, 178);
+            this.tabPage10.TabIndex = 5;
+            this.tabPage10.Text = "粒子";
+            this.tabPage10.UseVisualStyleBackColor = true;
+            // 
+            // listView_particle
+            // 
+            this.listView_particle.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader26,
+            this.columnHeader27,
+            this.columnHeader28,
+            this.columnHeader29});
+            this.listView_particle.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_particle.FullRowSelect = true;
+            this.listView_particle.Location = new System.Drawing.Point(0, 0);
+            this.listView_particle.Name = "listView_particle";
+            this.listView_particle.Size = new System.Drawing.Size(458, 178);
+            this.listView_particle.TabIndex = 1;
+            this.listView_particle.UseCompatibleStateImageBehavior = false;
+            this.listView_particle.View = System.Windows.Forms.View.Details;
+            this.listView_particle.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader26
+            // 
+            this.columnHeader26.Text = "池";
+            this.columnHeader26.Width = 40;
+            // 
+            // columnHeader27
+            // 
+            this.columnHeader27.Text = "名称";
+            this.columnHeader27.Width = 125;
+            // 
+            // columnHeader28
+            // 
+            this.columnHeader28.Text = "路径";
+            this.columnHeader28.Width = 200;
+            // 
+            // columnHeader29
+            // 
+            this.columnHeader29.Text = "装载耗时";
+            this.columnHeader29.Width = 80;
+            // 
+            // tabPage11
+            // 
+            this.tabPage11.Controls.Add(this.listView_texturedfont);
+            this.tabPage11.Location = new System.Drawing.Point(4, 22);
+            this.tabPage11.Name = "tabPage11";
+            this.tabPage11.Size = new System.Drawing.Size(458, 178);
+            this.tabPage11.TabIndex = 6;
+            this.tabPage11.Text = "纹理化字体";
+            this.tabPage11.UseVisualStyleBackColor = true;
+            // 
+            // listView_texturedfont
+            // 
+            this.listView_texturedfont.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader30,
+            this.columnHeader31,
+            this.columnHeader32,
+            this.columnHeader33});
+            this.listView_texturedfont.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_texturedfont.FullRowSelect = true;
+            this.listView_texturedfont.Location = new System.Drawing.Point(0, 0);
+            this.listView_texturedfont.Name = "listView_texturedfont";
+            this.listView_texturedfont.Size = new System.Drawing.Size(458, 178);
+            this.listView_texturedfont.TabIndex = 1;
+            this.listView_texturedfont.UseCompatibleStateImageBehavior = false;
+            this.listView_texturedfont.View = System.Windows.Forms.View.Details;
+            this.listView_texturedfont.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader30
+            // 
+            this.columnHeader30.Text = "池";
+            this.columnHeader30.Width = 40;
+            // 
+            // columnHeader31
+            // 
+            this.columnHeader31.Text = "名称";
+            this.columnHeader31.Width = 125;
+            // 
+            // columnHeader32
+            // 
+            this.columnHeader32.Text = "路径";
+            this.columnHeader32.Width = 200;
+            // 
+            // columnHeader33
+            // 
+            this.columnHeader33.Text = "装载耗时";
+            this.columnHeader33.Width = 80;
+            // 
+            // tabPage12
+            // 
+            this.tabPage12.Controls.Add(this.listView_ttffont);
+            this.tabPage12.Location = new System.Drawing.Point(4, 22);
+            this.tabPage12.Name = "tabPage12";
+            this.tabPage12.Size = new System.Drawing.Size(458, 178);
+            this.tabPage12.TabIndex = 7;
+            this.tabPage12.Text = "TTF字体";
+            this.tabPage12.UseVisualStyleBackColor = true;
+            // 
+            // listView_ttffont
+            // 
+            this.listView_ttffont.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader35,
+            this.columnHeader36,
+            this.columnHeader37,
+            this.columnHeader38});
+            this.listView_ttffont.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_ttffont.FullRowSelect = true;
+            this.listView_ttffont.Location = new System.Drawing.Point(0, 0);
+            this.listView_ttffont.Name = "listView_ttffont";
+            this.listView_ttffont.Size = new System.Drawing.Size(458, 178);
+            this.listView_ttffont.TabIndex = 1;
+            this.listView_ttffont.UseCompatibleStateImageBehavior = false;
+            this.listView_ttffont.View = System.Windows.Forms.View.Details;
+            this.listView_ttffont.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader35
+            // 
+            this.columnHeader35.Text = "池";
+            this.columnHeader35.Width = 40;
+            // 
+            // columnHeader36
+            // 
+            this.columnHeader36.Text = "名称";
+            this.columnHeader36.Width = 125;
+            // 
+            // columnHeader37
+            // 
+            this.columnHeader37.Text = "路径";
+            this.columnHeader37.Width = 200;
+            // 
+            // columnHeader38
+            // 
+            this.columnHeader38.Text = "装载耗时";
+            this.columnHeader38.Width = 80;
+            // 
+            // tabPage13
+            // 
+            this.tabPage13.Controls.Add(this.listView_shader);
+            this.tabPage13.Location = new System.Drawing.Point(4, 22);
+            this.tabPage13.Name = "tabPage13";
+            this.tabPage13.Size = new System.Drawing.Size(458, 178);
+            this.tabPage13.TabIndex = 8;
+            this.tabPage13.Text = "Shader";
+            this.tabPage13.UseVisualStyleBackColor = true;
+            // 
+            // listView_shader
+            // 
+            this.listView_shader.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader39,
+            this.columnHeader40,
+            this.columnHeader41,
+            this.columnHeader42});
+            this.listView_shader.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView_shader.FullRowSelect = true;
+            this.listView_shader.Location = new System.Drawing.Point(0, 0);
+            this.listView_shader.Name = "listView_shader";
+            this.listView_shader.Size = new System.Drawing.Size(458, 178);
+            this.listView_shader.TabIndex = 1;
+            this.listView_shader.UseCompatibleStateImageBehavior = false;
+            this.listView_shader.View = System.Windows.Forms.View.Details;
+            this.listView_shader.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listView_resources_ColumnClick);
+            // 
+            // columnHeader39
+            // 
+            this.columnHeader39.Text = "池";
+            this.columnHeader39.Width = 40;
+            // 
+            // columnHeader40
+            // 
+            this.columnHeader40.Text = "名称";
+            this.columnHeader40.Width = 125;
+            // 
+            // columnHeader41
+            // 
+            this.columnHeader41.Text = "路径";
+            this.columnHeader41.Width = 200;
+            // 
+            // columnHeader42
+            // 
+            this.columnHeader42.Text = "装载耗时";
+            this.columnHeader42.Width = 80;
+            // 
             // tabControl2
             // 
             this.tabControl2.Controls.Add(this.tabPage3);
-            this.tabControl2.Controls.Add(this.tabPage4);
             this.tabControl2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl2.Location = new System.Drawing.Point(0, 0);
             this.tabControl2.Name = "tabControl2";
@@ -422,14 +982,6 @@
             this.columnHeader4.Text = "内容";
             this.columnHeader4.Width = 420;
             // 
-            // imageList_main
-            // 
-            this.imageList_main.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList_main.ImageStream")));
-            this.imageList_main.TransparentColor = System.Drawing.Color.Transparent;
-            this.imageList_main.Images.SetKeyName(0, "error");
-            this.imageList_main.Images.SetKeyName(1, "info");
-            this.imageList_main.Images.SetKeyName(2, "warning");
-            // 
             // textBox_log
             // 
             this.textBox_log.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -439,112 +991,6 @@
             this.textBox_log.ReadOnly = true;
             this.textBox_log.Size = new System.Drawing.Size(692, 29);
             this.textBox_log.TabIndex = 0;
-            // 
-            // tabPage4
-            // 
-            this.tabPage4.Location = new System.Drawing.Point(4, 22);
-            this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(698, 133);
-            this.tabPage4.TabIndex = 1;
-            this.tabPage4.Text = "远程控制台";
-            this.tabPage4.UseVisualStyleBackColor = true;
-            // 
-            // openFileDialog_main
-            // 
-            this.openFileDialog_main.DefaultExt = "exe";
-            this.openFileDialog_main.FileName = "LuaSTGPlus.dev.exe";
-            this.openFileDialog_main.Filter = "可执行程序(*.exe)|*.exe";
-            this.openFileDialog_main.Title = "选择LuaSTGPlus主程序";
-            // 
-            // timer_main
-            // 
-            this.timer_main.Interval = 500;
-            this.timer_main.Tick += new System.EventHandler(this.timer_main_Tick);
-            // 
-            // splitContainer3
-            // 
-            this.splitContainer3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer3.Location = new System.Drawing.Point(3, 3);
-            this.splitContainer3.Name = "splitContainer3";
-            // 
-            // splitContainer3.Panel1
-            // 
-            this.splitContainer3.Panel1.Controls.Add(this.listView1);
-            // 
-            // splitContainer3.Panel2
-            // 
-            this.splitContainer3.Panel2.Controls.Add(this.tabControl_res);
-            this.splitContainer3.Size = new System.Drawing.Size(692, 204);
-            this.splitContainer3.SplitterDistance = 222;
-            this.splitContainer3.TabIndex = 0;
-            // 
-            // listView1
-            // 
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader3,
-            this.columnHeader5,
-            this.columnHeader6});
-            this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView1.Location = new System.Drawing.Point(0, 0);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(222, 204);
-            this.listView1.TabIndex = 0;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
-            // 
-            // tabControl_res
-            // 
-            this.tabControl_res.Controls.Add(this.tabPage5);
-            this.tabControl_res.Controls.Add(this.tabPage6);
-            this.tabControl_res.Controls.Add(this.tabPage7);
-            this.tabControl_res.Controls.Add(this.tabPage8);
-            this.tabControl_res.Controls.Add(this.tabPage9);
-            this.tabControl_res.Controls.Add(this.tabPage10);
-            this.tabControl_res.Controls.Add(this.tabPage11);
-            this.tabControl_res.Controls.Add(this.tabPage12);
-            this.tabControl_res.Controls.Add(this.tabPage13);
-            this.tabControl_res.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tabControl_res.Location = new System.Drawing.Point(0, 0);
-            this.tabControl_res.Name = "tabControl_res";
-            this.tabControl_res.SelectedIndex = 0;
-            this.tabControl_res.Size = new System.Drawing.Size(466, 204);
-            this.tabControl_res.TabIndex = 0;
-            // 
-            // tabPage5
-            // 
-            this.tabPage5.Controls.Add(this.listView_texture);
-            this.tabPage5.Location = new System.Drawing.Point(4, 22);
-            this.tabPage5.Name = "tabPage5";
-            this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage5.Size = new System.Drawing.Size(458, 178);
-            this.tabPage5.TabIndex = 0;
-            this.tabPage5.Text = "纹理";
-            this.tabPage5.UseVisualStyleBackColor = true;
-            // 
-            // tabPage6
-            // 
-            this.tabPage6.Controls.Add(this.listView_image);
-            this.tabPage6.Location = new System.Drawing.Point(4, 22);
-            this.tabPage6.Name = "tabPage6";
-            this.tabPage6.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage6.Size = new System.Drawing.Size(458, 178);
-            this.tabPage6.TabIndex = 1;
-            this.tabPage6.Text = "图像";
-            this.tabPage6.UseVisualStyleBackColor = true;
-            // 
-            // columnHeader3
-            // 
-            this.columnHeader3.Text = "资源类型";
-            // 
-            // columnHeader5
-            // 
-            this.columnHeader5.Text = "加载总计时";
-            this.columnHeader5.Width = 80;
-            // 
-            // columnHeader6
-            // 
-            this.columnHeader6.Text = "资源数量";
             // 
             // performanceChart_main
             // 
@@ -556,337 +1002,6 @@
             this.performanceChart_main.Size = new System.Drawing.Size(692, 184);
             this.performanceChart_main.TabIndex = 0;
             // 
-            // tabPage7
-            // 
-            this.tabPage7.Controls.Add(this.listView_animation);
-            this.tabPage7.Location = new System.Drawing.Point(4, 22);
-            this.tabPage7.Name = "tabPage7";
-            this.tabPage7.Size = new System.Drawing.Size(458, 178);
-            this.tabPage7.TabIndex = 2;
-            this.tabPage7.Text = "动画";
-            this.tabPage7.UseVisualStyleBackColor = true;
-            // 
-            // tabPage8
-            // 
-            this.tabPage8.Controls.Add(this.listView_music);
-            this.tabPage8.Location = new System.Drawing.Point(4, 22);
-            this.tabPage8.Name = "tabPage8";
-            this.tabPage8.Size = new System.Drawing.Size(458, 178);
-            this.tabPage8.TabIndex = 3;
-            this.tabPage8.Text = "音乐";
-            this.tabPage8.UseVisualStyleBackColor = true;
-            // 
-            // tabPage9
-            // 
-            this.tabPage9.Controls.Add(this.listView_soundeffect);
-            this.tabPage9.Location = new System.Drawing.Point(4, 22);
-            this.tabPage9.Name = "tabPage9";
-            this.tabPage9.Size = new System.Drawing.Size(458, 178);
-            this.tabPage9.TabIndex = 4;
-            this.tabPage9.Text = "音效";
-            this.tabPage9.UseVisualStyleBackColor = true;
-            // 
-            // tabPage10
-            // 
-            this.tabPage10.Controls.Add(this.listView_particle);
-            this.tabPage10.Location = new System.Drawing.Point(4, 22);
-            this.tabPage10.Name = "tabPage10";
-            this.tabPage10.Size = new System.Drawing.Size(458, 178);
-            this.tabPage10.TabIndex = 5;
-            this.tabPage10.Text = "粒子";
-            this.tabPage10.UseVisualStyleBackColor = true;
-            // 
-            // tabPage11
-            // 
-            this.tabPage11.Controls.Add(this.listView_texturedfont);
-            this.tabPage11.Location = new System.Drawing.Point(4, 22);
-            this.tabPage11.Name = "tabPage11";
-            this.tabPage11.Size = new System.Drawing.Size(458, 178);
-            this.tabPage11.TabIndex = 6;
-            this.tabPage11.Text = "纹理化字体";
-            this.tabPage11.UseVisualStyleBackColor = true;
-            // 
-            // tabPage12
-            // 
-            this.tabPage12.Controls.Add(this.listView_ttffont);
-            this.tabPage12.Location = new System.Drawing.Point(4, 22);
-            this.tabPage12.Name = "tabPage12";
-            this.tabPage12.Size = new System.Drawing.Size(458, 178);
-            this.tabPage12.TabIndex = 7;
-            this.tabPage12.Text = "TTF字体";
-            this.tabPage12.UseVisualStyleBackColor = true;
-            // 
-            // tabPage13
-            // 
-            this.tabPage13.Controls.Add(this.listView_shader);
-            this.tabPage13.Location = new System.Drawing.Point(4, 22);
-            this.tabPage13.Name = "tabPage13";
-            this.tabPage13.Size = new System.Drawing.Size(458, 178);
-            this.tabPage13.TabIndex = 8;
-            this.tabPage13.Text = "Shader";
-            this.tabPage13.UseVisualStyleBackColor = true;
-            // 
-            // listView_texture
-            // 
-            this.listView_texture.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader7,
-            this.columnHeader8,
-            this.columnHeader9});
-            this.listView_texture.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_texture.Location = new System.Drawing.Point(3, 3);
-            this.listView_texture.Name = "listView_texture";
-            this.listView_texture.Size = new System.Drawing.Size(452, 172);
-            this.listView_texture.TabIndex = 0;
-            this.listView_texture.UseCompatibleStateImageBehavior = false;
-            this.listView_texture.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader7
-            // 
-            this.columnHeader7.Text = "名称";
-            this.columnHeader7.Width = 150;
-            // 
-            // columnHeader8
-            // 
-            this.columnHeader8.Text = "路径";
-            this.columnHeader8.Width = 200;
-            // 
-            // columnHeader9
-            // 
-            this.columnHeader9.Text = "装载耗时";
-            this.columnHeader9.Width = 80;
-            // 
-            // listView_image
-            // 
-            this.listView_image.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader10,
-            this.columnHeader11,
-            this.columnHeader12});
-            this.listView_image.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_image.Location = new System.Drawing.Point(3, 3);
-            this.listView_image.Name = "listView_image";
-            this.listView_image.Size = new System.Drawing.Size(452, 172);
-            this.listView_image.TabIndex = 1;
-            this.listView_image.UseCompatibleStateImageBehavior = false;
-            this.listView_image.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader10
-            // 
-            this.columnHeader10.Text = "名称";
-            this.columnHeader10.Width = 150;
-            // 
-            // columnHeader11
-            // 
-            this.columnHeader11.Text = "路径";
-            this.columnHeader11.Width = 200;
-            // 
-            // columnHeader12
-            // 
-            this.columnHeader12.Text = "装载耗时";
-            this.columnHeader12.Width = 80;
-            // 
-            // listView_animation
-            // 
-            this.listView_animation.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader13,
-            this.columnHeader14,
-            this.columnHeader15});
-            this.listView_animation.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_animation.Location = new System.Drawing.Point(0, 0);
-            this.listView_animation.Name = "listView_animation";
-            this.listView_animation.Size = new System.Drawing.Size(458, 178);
-            this.listView_animation.TabIndex = 1;
-            this.listView_animation.UseCompatibleStateImageBehavior = false;
-            this.listView_animation.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader13
-            // 
-            this.columnHeader13.Text = "名称";
-            this.columnHeader13.Width = 150;
-            // 
-            // columnHeader14
-            // 
-            this.columnHeader14.Text = "路径";
-            this.columnHeader14.Width = 200;
-            // 
-            // columnHeader15
-            // 
-            this.columnHeader15.Text = "装载耗时";
-            this.columnHeader15.Width = 80;
-            // 
-            // listView_music
-            // 
-            this.listView_music.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader16,
-            this.columnHeader17,
-            this.columnHeader18});
-            this.listView_music.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_music.Location = new System.Drawing.Point(0, 0);
-            this.listView_music.Name = "listView_music";
-            this.listView_music.Size = new System.Drawing.Size(458, 178);
-            this.listView_music.TabIndex = 1;
-            this.listView_music.UseCompatibleStateImageBehavior = false;
-            this.listView_music.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader16
-            // 
-            this.columnHeader16.Text = "名称";
-            this.columnHeader16.Width = 150;
-            // 
-            // columnHeader17
-            // 
-            this.columnHeader17.Text = "路径";
-            this.columnHeader17.Width = 200;
-            // 
-            // columnHeader18
-            // 
-            this.columnHeader18.Text = "装载耗时";
-            this.columnHeader18.Width = 80;
-            // 
-            // listView_soundeffect
-            // 
-            this.listView_soundeffect.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader19,
-            this.columnHeader20,
-            this.columnHeader21});
-            this.listView_soundeffect.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_soundeffect.Location = new System.Drawing.Point(0, 0);
-            this.listView_soundeffect.Name = "listView_soundeffect";
-            this.listView_soundeffect.Size = new System.Drawing.Size(458, 178);
-            this.listView_soundeffect.TabIndex = 1;
-            this.listView_soundeffect.UseCompatibleStateImageBehavior = false;
-            this.listView_soundeffect.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader19
-            // 
-            this.columnHeader19.Text = "名称";
-            this.columnHeader19.Width = 150;
-            // 
-            // columnHeader20
-            // 
-            this.columnHeader20.Text = "路径";
-            this.columnHeader20.Width = 200;
-            // 
-            // columnHeader21
-            // 
-            this.columnHeader21.Text = "装载耗时";
-            this.columnHeader21.Width = 80;
-            // 
-            // listView_particle
-            // 
-            this.listView_particle.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader22,
-            this.columnHeader23,
-            this.columnHeader24});
-            this.listView_particle.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_particle.Location = new System.Drawing.Point(0, 0);
-            this.listView_particle.Name = "listView_particle";
-            this.listView_particle.Size = new System.Drawing.Size(458, 178);
-            this.listView_particle.TabIndex = 1;
-            this.listView_particle.UseCompatibleStateImageBehavior = false;
-            this.listView_particle.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader22
-            // 
-            this.columnHeader22.Text = "名称";
-            this.columnHeader22.Width = 150;
-            // 
-            // columnHeader23
-            // 
-            this.columnHeader23.Text = "路径";
-            this.columnHeader23.Width = 200;
-            // 
-            // columnHeader24
-            // 
-            this.columnHeader24.Text = "装载耗时";
-            this.columnHeader24.Width = 80;
-            // 
-            // listView_texturedfont
-            // 
-            this.listView_texturedfont.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader25,
-            this.columnHeader26,
-            this.columnHeader27});
-            this.listView_texturedfont.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_texturedfont.Location = new System.Drawing.Point(0, 0);
-            this.listView_texturedfont.Name = "listView_texturedfont";
-            this.listView_texturedfont.Size = new System.Drawing.Size(458, 178);
-            this.listView_texturedfont.TabIndex = 1;
-            this.listView_texturedfont.UseCompatibleStateImageBehavior = false;
-            this.listView_texturedfont.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader25
-            // 
-            this.columnHeader25.Text = "名称";
-            this.columnHeader25.Width = 150;
-            // 
-            // columnHeader26
-            // 
-            this.columnHeader26.Text = "路径";
-            this.columnHeader26.Width = 200;
-            // 
-            // columnHeader27
-            // 
-            this.columnHeader27.Text = "装载耗时";
-            this.columnHeader27.Width = 80;
-            // 
-            // listView_ttffont
-            // 
-            this.listView_ttffont.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader28,
-            this.columnHeader29,
-            this.columnHeader30});
-            this.listView_ttffont.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_ttffont.Location = new System.Drawing.Point(0, 0);
-            this.listView_ttffont.Name = "listView_ttffont";
-            this.listView_ttffont.Size = new System.Drawing.Size(458, 178);
-            this.listView_ttffont.TabIndex = 1;
-            this.listView_ttffont.UseCompatibleStateImageBehavior = false;
-            this.listView_ttffont.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader28
-            // 
-            this.columnHeader28.Text = "名称";
-            this.columnHeader28.Width = 150;
-            // 
-            // columnHeader29
-            // 
-            this.columnHeader29.Text = "路径";
-            this.columnHeader29.Width = 200;
-            // 
-            // columnHeader30
-            // 
-            this.columnHeader30.Text = "装载耗时";
-            this.columnHeader30.Width = 80;
-            // 
-            // listView_shader
-            // 
-            this.listView_shader.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader31,
-            this.columnHeader32,
-            this.columnHeader33});
-            this.listView_shader.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView_shader.Location = new System.Drawing.Point(0, 0);
-            this.listView_shader.Name = "listView_shader";
-            this.listView_shader.Size = new System.Drawing.Size(458, 178);
-            this.listView_shader.TabIndex = 1;
-            this.listView_shader.UseCompatibleStateImageBehavior = false;
-            this.listView_shader.View = System.Windows.Forms.View.Details;
-            // 
-            // columnHeader31
-            // 
-            this.columnHeader31.Text = "名称";
-            this.columnHeader31.Width = 150;
-            // 
-            // columnHeader32
-            // 
-            this.columnHeader32.Text = "路径";
-            this.columnHeader32.Width = 200;
-            // 
-            // columnHeader33
-            // 
-            this.columnHeader33.Text = "装载耗时";
-            this.columnHeader33.Width = 80;
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -895,10 +1010,12 @@
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.statusStrip_main);
             this.Controls.Add(this.toolStrip_main);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "LuaSTGPlus 性能分析工具";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.toolStrip_main.ResumeLayout(false);
             this.toolStrip_main.PerformLayout();
@@ -913,13 +1030,6 @@
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.tabPage2.ResumeLayout(false);
-            this.tabControl2.ResumeLayout(false);
-            this.tabPage3.ResumeLayout(false);
-            this.splitContainer2.Panel1.ResumeLayout(false);
-            this.splitContainer2.Panel2.ResumeLayout(false);
-            this.splitContainer2.Panel2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
-            this.splitContainer2.ResumeLayout(false);
             this.splitContainer3.Panel1.ResumeLayout(false);
             this.splitContainer3.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer3)).EndInit();
@@ -934,6 +1044,13 @@
             this.tabPage11.ResumeLayout(false);
             this.tabPage12.ResumeLayout(false);
             this.tabPage13.ResumeLayout(false);
+            this.tabControl2.ResumeLayout(false);
+            this.tabPage3.ResumeLayout(false);
+            this.splitContainer2.Panel1.ResumeLayout(false);
+            this.splitContainer2.Panel2.ResumeLayout(false);
+            this.splitContainer2.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
+            this.splitContainer2.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -954,7 +1071,6 @@
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.TabControl tabControl2;
         private System.Windows.Forms.TabPage tabPage3;
-        private System.Windows.Forms.TabPage tabPage4;
         private System.Windows.Forms.OpenFileDialog openFileDialog_main;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.ListView listView_log;
@@ -973,56 +1089,65 @@
         private System.Windows.Forms.Label label_render;
         private System.Windows.Forms.Timer timer_main;
         private System.Windows.Forms.SplitContainer splitContainer3;
-        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ListView listView_resourceCounter;
         private System.Windows.Forms.ColumnHeader columnHeader3;
         private System.Windows.Forms.ColumnHeader columnHeader5;
         private System.Windows.Forms.ColumnHeader columnHeader6;
         private System.Windows.Forms.TabControl tabControl_res;
-        private System.Windows.Forms.TabPage tabPage5;
         private System.Windows.Forms.TabPage tabPage6;
-        private System.Windows.Forms.ListView listView_texture;
-        private System.Windows.Forms.ColumnHeader columnHeader7;
-        private System.Windows.Forms.ColumnHeader columnHeader8;
-        private System.Windows.Forms.ColumnHeader columnHeader9;
+        private System.Windows.Forms.TabPage tabPage7;
+        private System.Windows.Forms.TabPage tabPage8;
+        private System.Windows.Forms.TabPage tabPage9;
+        private System.Windows.Forms.TabPage tabPage10;
+        private System.Windows.Forms.TabPage tabPage11;
+        private System.Windows.Forms.TabPage tabPage12;
+        private System.Windows.Forms.TabPage tabPage13;
         private System.Windows.Forms.ListView listView_image;
         private System.Windows.Forms.ColumnHeader columnHeader10;
         private System.Windows.Forms.ColumnHeader columnHeader11;
         private System.Windows.Forms.ColumnHeader columnHeader12;
-        private System.Windows.Forms.TabPage tabPage7;
-        private System.Windows.Forms.ListView listView_animation;
         private System.Windows.Forms.ColumnHeader columnHeader13;
+        private System.Windows.Forms.ListView listView_animation;
         private System.Windows.Forms.ColumnHeader columnHeader14;
         private System.Windows.Forms.ColumnHeader columnHeader15;
-        private System.Windows.Forms.TabPage tabPage8;
-        private System.Windows.Forms.ListView listView_music;
         private System.Windows.Forms.ColumnHeader columnHeader16;
         private System.Windows.Forms.ColumnHeader columnHeader17;
+        private System.Windows.Forms.ListView listView_music;
         private System.Windows.Forms.ColumnHeader columnHeader18;
-        private System.Windows.Forms.TabPage tabPage9;
-        private System.Windows.Forms.ListView listView_soundeffect;
         private System.Windows.Forms.ColumnHeader columnHeader19;
         private System.Windows.Forms.ColumnHeader columnHeader20;
         private System.Windows.Forms.ColumnHeader columnHeader21;
-        private System.Windows.Forms.TabPage tabPage10;
-        private System.Windows.Forms.ListView listView_particle;
+        private System.Windows.Forms.ListView listView_soundeffect;
         private System.Windows.Forms.ColumnHeader columnHeader22;
         private System.Windows.Forms.ColumnHeader columnHeader23;
         private System.Windows.Forms.ColumnHeader columnHeader24;
-        private System.Windows.Forms.TabPage tabPage11;
-        private System.Windows.Forms.ListView listView_texturedfont;
         private System.Windows.Forms.ColumnHeader columnHeader25;
+        private System.Windows.Forms.ListView listView_particle;
         private System.Windows.Forms.ColumnHeader columnHeader26;
         private System.Windows.Forms.ColumnHeader columnHeader27;
-        private System.Windows.Forms.TabPage tabPage12;
-        private System.Windows.Forms.ListView listView_ttffont;
         private System.Windows.Forms.ColumnHeader columnHeader28;
         private System.Windows.Forms.ColumnHeader columnHeader29;
+        private System.Windows.Forms.ListView listView_texturedfont;
         private System.Windows.Forms.ColumnHeader columnHeader30;
-        private System.Windows.Forms.TabPage tabPage13;
-        private System.Windows.Forms.ListView listView_shader;
         private System.Windows.Forms.ColumnHeader columnHeader31;
         private System.Windows.Forms.ColumnHeader columnHeader32;
         private System.Windows.Forms.ColumnHeader columnHeader33;
+        private System.Windows.Forms.ListView listView_ttffont;
+        private System.Windows.Forms.ColumnHeader columnHeader35;
+        private System.Windows.Forms.ColumnHeader columnHeader36;
+        private System.Windows.Forms.ColumnHeader columnHeader37;
+        private System.Windows.Forms.ColumnHeader columnHeader38;
+        private System.Windows.Forms.ListView listView_shader;
+        private System.Windows.Forms.ColumnHeader columnHeader39;
+        private System.Windows.Forms.ColumnHeader columnHeader40;
+        private System.Windows.Forms.ColumnHeader columnHeader41;
+        private System.Windows.Forms.ColumnHeader columnHeader42;
+        private System.Windows.Forms.TabPage tabPage5;
+        private System.Windows.Forms.ListView listView_texture;
+        private System.Windows.Forms.ColumnHeader columnHeader34;
+        private System.Windows.Forms.ColumnHeader columnHeader7;
+        private System.Windows.Forms.ColumnHeader columnHeader8;
+        private System.Windows.Forms.ColumnHeader columnHeader9;
     }
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "Global.h"
-
+#include "ResourceMgr.h"
 #include "Bencode.h"
 
 namespace LuaSTGPlus
@@ -12,9 +12,9 @@ namespace LuaSTGPlus
 		enum class UdpMessageType
 		{
 			PerformanceUpdate = 1,
-			ScriptOutput = 2,
-			ScriptLoaded = 3,
-			ResourceLoaded = 4
+			ResourceLoaded = 2,
+			ResourceRemoved = 3,
+			ResourceCleared = 4
 		};
 	private:
 		SOCKET S;
@@ -26,6 +26,9 @@ namespace LuaSTGPlus
 		void sendUdpMessage(UdpMessageType type, std::shared_ptr<Bencode::Value> val);
 	public:
 		void SendPerformanceCounter(float FPS, float ObjCount, float FrameTime, float RenderTime);
+		void SendResourceLoadedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name, const wchar_t* Path, float LoadingTime);
+		void SendResourceRemovedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name);
+		void SendResourceClearedHint(ResourcePoolType PoolType);
 	protected:
 		RemoteDebuggerClient& operator=(const RemoteDebuggerClient&);
 		RemoteDebuggerClient(const RemoteDebuggerClient&);

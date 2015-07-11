@@ -124,6 +124,8 @@ namespace LuaSTGPlus
 		fCharW m_LastChar;
 		fInt m_LastKey;
 		fBool m_KeyStateMap[256];
+		fcyVec2 m_MousePosition;
+		fBool m_MouseState[3];
 	private:
 		void updateGraph2DBlendMode(BlendMode m)
 		{
@@ -137,12 +139,12 @@ namespace LuaSTGPlus
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				case BlendMode::AddSub:
-					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DBlendState.BlendOp = F2DBLENDOPERATOR_SUBTRACT;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
 				case BlendMode::AddRev:
-					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DBlendState.BlendOp = F2DBLENDOPERATOR_REVSUBTRACT;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_ADD;
 					break;
@@ -157,12 +159,12 @@ namespace LuaSTGPlus
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::MulSub:
-					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DBlendState.BlendOp = F2DBLENDOPERATOR_SUBTRACT;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
 				case BlendMode::MulRev:
-					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+					m_Graph2DBlendState.DestBlend = F2DBLENDFACTOR_ONE;
 					m_Graph2DBlendState.BlendOp = F2DBLENDOPERATOR_REVSUBTRACT;
 					m_Graph2DColorBlendState = F2DGRAPH2DBLENDTYPE_MODULATE;
 					break;
@@ -210,6 +212,24 @@ namespace LuaSTGPlus
 				m_Graph3D->SetBlendState(m_Graph3DBlendState);
 			}
 		}
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	public: // 调试用接口
+		void SendResourceLoadedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name, const wchar_t* Path, float LoadingTime)
+		{
+			if (m_DebuggerClient)
+				m_DebuggerClient->SendResourceLoadedHint(Type, PoolType, Name, Path, LoadingTime);
+		}
+		void SendResourceRemovedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name)
+		{
+			if (m_DebuggerClient)
+				m_DebuggerClient->SendResourceRemovedHint(Type, PoolType, Name);
+		}
+		void SendResourceClearedHint(ResourcePoolType PoolType)
+		{
+			if (m_DebuggerClient)
+				m_DebuggerClient->SendResourceClearedHint(PoolType);
+		}
+#endif
 	public: // 脚本调用接口，含义参见API文档
 		LNOINLINE void ShowSplashWindow(const char* imgPath = nullptr)LNOEXCEPT;  // UTF8编码
 
@@ -239,6 +259,17 @@ namespace LuaSTGPlus
 
 		/// @brief 获得最后一次按键输入
 		int GetLastKey()LNOEXCEPT { return m_LastKey; }
+
+		/// @brief 获取鼠标位置（以窗口左下角为原点）
+		fcyVec2 GetMousePosition()LNOEXCEPT { return m_MousePosition; }
+
+		/// @brief 检查鼠标是否按下
+		fBool GetMouseState(int button)LNOEXCEPT
+		{
+			if (button >= 0 && button < 3)
+				return m_MouseState[button];
+			return false;
+		}
 	public:  // 渲染器接口
 		/// @brief 通知开始渲染
 		bool BeginScene()LNOEXCEPT;

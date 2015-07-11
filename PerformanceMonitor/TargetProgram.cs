@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using DbMon.NET;
 using Bencode;
 
@@ -18,9 +19,10 @@ namespace PerformanceMonitor
     /// </summary>
     public class TargetProgram
     {
-        Regex _Regex = new Regex("(\\[(INFO|ERRO|WARN)\\])?(.*)", RegexOptions.Compiled);
+        Regex _Regex = new Regex("(\\[(INFO|ERRO|WARN)\\])?(.*)", RegexOptions.Compiled | RegexOptions.Multiline);
 
         UdpClient _UdpClient;
+        ushort _Port;
 
         Process _Process;
 
@@ -39,9 +41,9 @@ namespace PerformanceMonitor
         private enum UdpMessageType
         {
             PerformanceUpdate = 1,
-            ScriptOutput = 2,
-            ScriptLoaded = 3,
-            ResourceLoaded = 4
+            ResourceLoaded = 2,
+            ResourceRemoved = 3,
+            ResourceCleared = 4
         }
 
         /// <summary>
@@ -52,6 +54,43 @@ namespace PerformanceMonitor
             Information,
             Warning,
             Error
+        }
+
+        /// <summary>
+        /// 资源类型
+        /// </summary>
+        public enum ResourceType
+	    {
+		    Texture = 1,
+		    Sprite,
+		    Animation,
+		    Music,
+		    SoundEffect,
+		    Particle,
+		    SpriteFont,
+		    TrueTypeFont,
+		    FX
+        }
+
+        /// <summary>
+        /// 资源池类型
+        /// </summary>
+	    public enum ResourcePoolType
+	    {
+		    None = 0,
+		    Global,
+		    Stage
+	    }
+
+        /// <summary>
+        /// 调试器端口
+        /// </summary>
+        public ushort DebuggerPort
+        {
+            get
+            {
+                return _Port;
+            }
         }
 
         /// <summary>
@@ -66,6 +105,8 @@ namespace PerformanceMonitor
         {
             get
             {
+                if (_Process == null)
+                    return new TimeSpan();
                 if (_Process.HasExited)
                     return _Process.ExitTime - _Process.StartTime;
                 return DateTime.Now - _Process.StartTime;
@@ -79,6 +120,8 @@ namespace PerformanceMonitor
         {
             get
             {
+                if (_WorkingSet == null)
+                    return 0;
                 return _WorkingSet.NextValue();
             }
         }
@@ -90,6 +133,8 @@ namespace PerformanceMonitor
         {
             get
             {
+                if (_PrivateWorkingSet == null)
+                    return 0;
                 return _PrivateWorkingSet.NextValue();
             }
         }
@@ -101,6 +146,8 @@ namespace PerformanceMonitor
         {
             get
             {
+                if (_CpuTime == null)
+                    return 0;
                 return _CpuTime.NextValue();
             }
         }
@@ -164,27 +211,67 @@ namespace PerformanceMonitor
         // 事件回调
         public delegate void OnProcessExitHandler(int exitCode);
         public delegate void OnProcessTraceHandler(DateTime time, LogType type, string message);
+        public delegate void OnResourceLoadedHandler(ResourceType type, ResourcePoolType pool, string name, string path, float time);
+        public delegate void OnResourceRemovedHandler(ResourceType type, ResourcePoolType pool, string name);
+        public delegate void OnResourceClearedHandler(ResourcePoolType pool);
 
         public event OnProcessExitHandler OnProcessExit;
         public event OnProcessTraceHandler OnProcessTrace;
+        public event OnResourceLoadedHandler OnResourceLoaded;
+        public event OnResourceRemovedHandler OnResourceRemoved;
+        public event OnResourceClearedHandler OnResourceCleared;
 
         public void Kill()
         {
-            if (!_Process.HasExited)
+            if (_Process != null && !_Process.HasExited)
                 _Process.Kill();
         }
 
         public bool IsRunning()
         {
+            if (_Process == null)
+                return false;
             return !_Process.HasExited;
         }
         
+        public void Start(string path, string workDirectory)
+        {
+            if (_Process != null && !_Process.HasExited)
+                throw new InvalidOperationException();
+
+            ProcessStartInfo tInfo = new ProcessStartInfo(path);
+            tInfo.Arguments = "/debugger:" + DebuggerPort.ToString();
+            tInfo.WorkingDirectory = workDirectory;
+
+            DebugMonitor.Start();
+
+            Thread.Sleep(500);
+
+            try
+            {
+                _Process = Process.Start(tInfo);
+                _Process.EnableRaisingEvents = true;
+                _Process.Exited += Process_Exited;
+            }
+            catch
+            {
+                DebugMonitor.Stop();
+                throw;
+            }
+
+            _WorkingSet = new PerformanceCounter("Process", "Working Set", _Process.ProcessName);
+            _PrivateWorkingSet = new PerformanceCounter("Process", "Working Set - Private", _Process.ProcessName);
+            _CpuTime = new PerformanceCounter("Process", "% Processor Time", _Process.ProcessName);
+        }
+
+        public void CloseSocket()
+        {
+            _UdpClient.Close();
+        }
+
         void Process_Exited(object sender, EventArgs e)
         {
             DebugMonitor.Stop();
-            DebugMonitor.OnOutputDebugString -= DebugMonitor_OnOutputDebugString;
-
-            _UdpClient.Close();
 
             if (OnProcessExit != null)
             {
@@ -247,9 +334,16 @@ namespace PerformanceMonitor
                 IPEndPoint tEndPoint = new IPEndPoint(IPAddress.Any, 0);
                 Byte[] tBytesReceived = _UdpClient.EndReceive(ar, ref tEndPoint);
                 Dictionary<string, object> tData = Bencode.BencodeUtility.DecodeDictionary(tBytesReceived);
-                if ((long)tData["processId"] == _Process.Id)
+                if (_Process != null && (long)tData["processId"] == _Process.Id)
                 {
                     Dictionary<string, object> tArgs = (Dictionary<string, object>)tData["args"];
+                    
+                    ResourceType tResourceType;
+                    ResourcePoolType tResourcePoolType;
+                    string tResourceName;
+                    string tResourcePath;
+                    float tResourceTime;
+
                     switch ((UdpMessageType)(long)tData["msgType"])
                     {
                         case UdpMessageType.PerformanceUpdate:
@@ -262,10 +356,58 @@ namespace PerformanceMonitor
                             }
                             break;
                         case UdpMessageType.ResourceLoaded:
+                            tResourceType = (ResourceType)(long)tArgs["type"];
+                            tResourcePoolType = (ResourcePoolType)(long)tArgs["pool"];
+                            tResourceName = Encoding.UTF8.GetString((Byte[])tArgs["name"]);
+                            tResourcePath = Encoding.UTF8.GetString((Byte[])tArgs["path"]);
+                            tResourceTime = ((long)tArgs["time"] / 1000.0f);
+                            
+                            if (OnResourceLoaded != null)
+                            {
+                                if (SynchronizeInvoke != null)
+                                {
+                                    SynchronizeInvoke.Invoke((Action)(() =>
+                                    {
+                                        OnResourceLoaded(tResourceType, tResourcePoolType, tResourceName, tResourcePath, tResourceTime);
+                                    }), null);
+                                }
+                                else
+                                    OnResourceLoaded(tResourceType, tResourcePoolType, tResourceName, tResourcePath, tResourceTime);
+                            }
                             break;
-                        case UdpMessageType.ScriptLoaded:
+                        case UdpMessageType.ResourceRemoved:
+                            tResourceType = (ResourceType)(long)tArgs["type"];
+                            tResourcePoolType = (ResourcePoolType)(long)tArgs["pool"];
+                            tResourceName = Encoding.UTF8.GetString((Byte[])tArgs["name"]);
+
+                            if (OnResourceRemoved != null)
+                            {
+                                if (SynchronizeInvoke != null)
+                                {
+                                    SynchronizeInvoke.Invoke((Action)(() =>
+                                    {
+                                        OnResourceRemoved(tResourceType, tResourcePoolType, tResourceName);
+                                    }), null);
+                                }
+                                else
+                                    OnResourceRemoved(tResourceType, tResourcePoolType, tResourceName);
+                            }
                             break;
-                        case UdpMessageType.ScriptOutput:
+                        case UdpMessageType.ResourceCleared:
+                            tResourcePoolType = (ResourcePoolType)(long)tArgs["pool"];
+
+                            if (OnResourceCleared != null)
+                            {
+                                if (SynchronizeInvoke != null)
+                                {
+                                    SynchronizeInvoke.Invoke((Action)(() =>
+                                    {
+                                        OnResourceCleared(tResourcePoolType);
+                                    }), null);
+                                }
+                                else
+                                    OnResourceCleared(tResourcePoolType);
+                            }
                             break;
                     }
                 }
@@ -283,38 +425,15 @@ namespace PerformanceMonitor
             _UdpClient.BeginReceive(new AsyncCallback(UDP_OnDataReceived), null);
         }
 
-        public TargetProgram(string path, string workDirectory, ISynchronizeInvoke invoker, ushort port=3459)
+        public TargetProgram(ISynchronizeInvoke invoker, ushort port=3459)
         {
+            _Port = port;
             SynchronizeInvoke = invoker;
+
+            DebugMonitor.OnOutputDebugString += DebugMonitor_OnOutputDebugString;
 
             // 启动监听服务
             _UdpClient = new UdpClient(new IPEndPoint(IPAddress.Any, port));
-
-            ProcessStartInfo tInfo = new ProcessStartInfo(path);
-            tInfo.Arguments = "/debugger:" + port.ToString();
-            tInfo.WorkingDirectory = workDirectory;
-
-            DebugMonitor.OnOutputDebugString += DebugMonitor_OnOutputDebugString;
-            DebugMonitor.Start();
-
-            try
-            {
-                _Process = Process.Start(tInfo);
-                _Process.EnableRaisingEvents = true;
-                _Process.Exited += Process_Exited;
-            }
-            catch
-            {
-                _UdpClient.Close();
-
-                DebugMonitor.Stop();
-                DebugMonitor.OnOutputDebugString -= DebugMonitor_OnOutputDebugString;
-                throw;
-            }
-
-            _WorkingSet = new PerformanceCounter("Process", "Working Set", _Process.ProcessName);
-            _PrivateWorkingSet = new PerformanceCounter("Process", "Working Set - Private", _Process.ProcessName);
-            _CpuTime = new PerformanceCounter("Process", "% Processor Time", _Process.ProcessName);
 
             // 启动UDP
             _UdpClient.BeginReceive(new AsyncCallback(UDP_OnDataReceived), null);

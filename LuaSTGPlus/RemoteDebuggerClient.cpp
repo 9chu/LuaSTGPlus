@@ -64,4 +64,34 @@ void RemoteDebuggerClient::SendPerformanceCounter(float FPS, float ObjCount, flo
 	sendUdpMessage(UdpMessageType::PerformanceUpdate, tMessage);
 }
 
+void RemoteDebuggerClient::SendResourceLoadedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name, const wchar_t* Path, float LoadingTime)
+{
+	shared_ptr<Value> tMessage = make_shared<Value>(ValueType::Dictionary);
+	tMessage->VDict["type"] = make_shared<Value>(static_cast<int>(Type));
+	tMessage->VDict["pool"] = make_shared<Value>(static_cast<int>(PoolType));
+	tMessage->VDict["name"] = make_shared<Value>(Name);
+	tMessage->VDict["path"] = make_shared<Value>(fcyStringHelper::WideCharToMultiByte(Path, CP_UTF8));
+	tMessage->VDict["time"] = make_shared<Value>(static_cast<int>(LoadingTime * 1000.f));
+
+	sendUdpMessage(UdpMessageType::ResourceLoaded, tMessage);
+}
+
+void RemoteDebuggerClient::SendResourceRemovedHint(ResourceType Type, ResourcePoolType PoolType, const char* Name)
+{
+	shared_ptr<Value> tMessage = make_shared<Value>(ValueType::Dictionary);
+	tMessage->VDict["type"] = make_shared<Value>(static_cast<int>(Type));
+	tMessage->VDict["pool"] = make_shared<Value>(static_cast<int>(PoolType));
+	tMessage->VDict["name"] = make_shared<Value>(Name);
+
+	sendUdpMessage(UdpMessageType::ResourceRemoved, tMessage);
+}
+
+void RemoteDebuggerClient::SendResourceClearedHint(ResourcePoolType PoolType)
+{
+	shared_ptr<Value> tMessage = make_shared<Value>(ValueType::Dictionary);
+	tMessage->VDict["pool"] = make_shared<Value>(static_cast<int>(PoolType));
+
+	sendUdpMessage(UdpMessageType::ResourceCleared, tMessage);
+}
+
 #endif

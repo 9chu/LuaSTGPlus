@@ -33,7 +33,7 @@ namespace LuaSTGPlus
 	/// @brief 资源池类型
 	enum class ResourcePoolType
 	{
-		None,
+		None = 0,
 		Global,
 		Stage
 	};
@@ -538,55 +538,10 @@ namespace LuaSTGPlus
 		}
 	public:
 		/// @brief 清空对象池
-		void Clear()LNOEXCEPT
-		{
-			m_TexturePool.clear();
-			m_SpritePool.clear();
-			m_AnimationPool.clear();
-			m_MusicPool.clear();
-			m_SoundSpritePool.clear();
-			m_ParticlePool.clear();
-			m_SpriteFontPool.clear();
-			m_TTFFontPool.clear();
-			m_FXPool.clear();
-		}
+		void Clear()LNOEXCEPT;
 
 		/// @brief 移除某个资源类型的资源
-		void RemoveResource(ResourceType t, const char* name)LNOEXCEPT
-		{
-			switch (t)
-			{
-			case ResourceType::Texture:
-				removeResource(m_TexturePool, name);
-				break;
-			case ResourceType::Sprite:
-				removeResource(m_SpritePool, name);
-				break;
-			case ResourceType::Animation:
-				removeResource(m_AnimationPool, name);
-				break;
-			case ResourceType::Music:
-				removeResource(m_MusicPool, name);
-				break;
-			case ResourceType::SoundEffect:
-				removeResource(m_SoundSpritePool, name);
-				break;
-			case ResourceType::Particle:
-				removeResource(m_ParticlePool, name);
-				break;
-			case ResourceType::SpriteFont:
-				removeResource(m_SpriteFontPool, name);
-				break;
-			case ResourceType::TrueTypeFont:
-				removeResource(m_TTFFontPool, name);
-				break;
-			case ResourceType::FX:
-				removeResource(m_FXPool, name);
-				break;
-			default:
-				break;
-			}
-		}
+		void RemoveResource(ResourceType t, const char* name)LNOEXCEPT;
 
 		/// @brief 检查资源是否存在
 		/// @warning 注意t可以是非法枚举量
@@ -867,15 +822,7 @@ namespace LuaSTGPlus
 		void UnloadAllPack()LNOEXCEPT { m_ResPackList.clear(); }
 
 		/// @brief 卸载所有资源并重置状态
-		void ClearAllResource()LNOEXCEPT
-		{
-			m_GlobalResourcePool.Clear();
-			m_StageResourcePool.Clear();
-			m_ActivedPool = ResourcePoolType::Global;
-			m_GlobalImageScaleFactor = 1.;
-			m_GlobalSoundEffectVolume = 1.0f;
-			m_GlobalMusicVolume = 1.0f;
-		}
+		void ClearAllResource()LNOEXCEPT;
 
 		/// @brief 加载资源包（UTF8）
 		/// @param[in] path 路径
