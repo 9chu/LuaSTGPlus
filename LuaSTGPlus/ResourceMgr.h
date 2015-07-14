@@ -214,7 +214,6 @@ namespace LuaSTGPlus
 				Sleep
 			};
 		private:
-			size_t m_iId;  // 对象id
 			fcyRefPointer<ResParticle> m_pInstance;  // 信息
 
 			BlendMode m_BlendMode = BlendMode::MulAlpha;
@@ -233,11 +232,11 @@ namespace LuaSTGPlus
 			void SetBlendMode(BlendMode m)LNOEXCEPT { m_BlendMode = m; }
 			float GetEmission()const LNOEXCEPT { return m_fEmission; }
 			void SetEmission(float e)LNOEXCEPT { m_fEmission = e; }
+			bool IsActived()const LNOEXCEPT { return m_iStatus == Status::Alive; }
 			void SetActive()LNOEXCEPT
 			{
 				m_iStatus = Status::Alive;
 				m_fAge = 0.f;
-				m_fEmissionResidue = 0.f;
 			}
 			void SetInactive()LNOEXCEPT
 			{
@@ -255,11 +254,10 @@ namespace LuaSTGPlus
 			void Update(float delta);
 			void Render(f2dGraphics2D* graph, float scaleX, float scaleY);
 		public:
-			ParticlePool(size_t id, fcyRefPointer<ResParticle> ref);
+			ParticlePool(fcyRefPointer<ResParticle> ref);
 		};
 	private:
-		struct PARTICLE_POD { char buf[sizeof(ParticlePool)]; };
-		static FixedObjectPool<PARTICLE_POD, LPARTICLESYS_MAX> s_MemoryPool;
+		static fcyMemPool<sizeof(ParticlePool)> s_MemoryPool;
 
 		fcyRefPointer<f2dSprite> m_BindedSprite;
 		BlendMode m_BlendMode = BlendMode::MulAlpha;

@@ -26,7 +26,7 @@ using namespace LuaSTGPlus;
 #define LDEBUG_RESOURCEHINT
 #endif
 
-FixedObjectPool<ResParticle::PARTICLE_POD, LPARTICLESYS_MAX> ResParticle::s_MemoryPool;
+fcyMemPool<sizeof(ResParticle::ParticlePool)> ResParticle::s_MemoryPool(512);  // 预分配512个对象
 
 ////////////////////////////////////////////////////////////////////////////////
 /// ResAnimation
@@ -66,10 +66,8 @@ ResParticle::ResParticle(const char* name, const ParticleInfo& pinfo, fcyRefPoin
 
 ResParticle::ParticlePool* ResParticle::AllocInstance()LNOEXCEPT
 {
-	size_t id;
-	if (!s_MemoryPool.Alloc(id))
-		return nullptr;
-	ParticlePool* pRet = new(s_MemoryPool.Data(id)) ParticlePool(id, this);
+	// ！ 警告：潜在bad_alloc导致错误，暂时不予处理
+	ParticlePool* pRet = new(s_MemoryPool.Alloc()) ParticlePool(this);
 	pRet->SetBlendMode(m_BlendMode);
 	return pRet;
 }
@@ -77,11 +75,11 @@ ResParticle::ParticlePool* ResParticle::AllocInstance()LNOEXCEPT
 void ResParticle::FreeInstance(ResParticle::ParticlePool* p)LNOEXCEPT
 {
 	p->~ParticlePool();
-	s_MemoryPool.Free(p->m_iId);
+	s_MemoryPool.Free(p);
 }
 
-ResParticle::ParticlePool::ParticlePool(size_t id, fcyRefPointer<ResParticle> ref)
-	: m_iId(id), m_pInstance(ref), m_fEmission((float)ref->GetParticleInfo().nEmission) {}
+ResParticle::ParticlePool::ParticlePool(fcyRefPointer<ResParticle> ref)
+	: m_pInstance(ref), m_fEmission((float)ref->GetParticleInfo().nEmission) {}
 
 void ResParticle::ParticlePool::Update(float delta)
 {

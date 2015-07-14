@@ -103,26 +103,22 @@ static inline bool CollisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
 ////////////////////////////////////////////////////////////////////////////////
 /// GameObjectBentLaser
 ////////////////////////////////////////////////////////////////////////////////
-struct GAMEOBJECTBENTLASER_POD { char buf[sizeof(GameObjectBentLaser)]; };
-static FixedObjectPool<GAMEOBJECTBENTLASER_POD, LGOBJ_MAXBENTLASER> s_GameObjectBentLaserPool;
+static fcyMemPool<sizeof(GameObjectBentLaser)> s_GameObjectBentLaserPool(1024);
 
 GameObjectBentLaser* GameObjectBentLaser::AllocInstance()
 {
-	size_t id;
-	if (!s_GameObjectBentLaserPool.Alloc(id))
-		return nullptr;
-	GameObjectBentLaser* pRet = new(s_GameObjectBentLaserPool.Data(id)) GameObjectBentLaser(id);
+	// ! 潜在bad_alloc
+	GameObjectBentLaser* pRet = new(s_GameObjectBentLaserPool.Alloc()) GameObjectBentLaser();
 	return pRet;
 }
 
 void GameObjectBentLaser::FreeInstance(GameObjectBentLaser* p)
 {
 	p->~GameObjectBentLaser();
-	s_GameObjectBentLaserPool.Free(p->m_iId);
+	s_GameObjectBentLaserPool.Free(p);
 }
 
-GameObjectBentLaser::GameObjectBentLaser(int id)
-	: m_iId(id)
+GameObjectBentLaser::GameObjectBentLaser()
 {
 }
 
@@ -388,8 +384,10 @@ bool GameObject::ChangeResource(const char* res_name)
 			LERROR("无法构造粒子池，内存不足");
 			return false;
 		}
+		ps->SetInactive();
 		ps->SetCenter(fcyVec2((float)x, (float)y));
 		ps->SetRotation((float)rot);
+		ps->SetActive();
 
 		res->AddRef();
 		a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
@@ -508,7 +506,14 @@ void GameObjectPool::DoFrame()LNOEXCEPT
 		{
 			float gscale = LRES.GetGlobalImageScaleFactor();
 			p->ps->SetRotation((float)p->rot);
-			p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
+			if (p->ps->IsActived())  // 兼容性处理
+			{
+				p->ps->SetInactive();
+				p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
+				p->ps->SetActive();
+			}
+			else
+				p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
 			p->ps->Update(1.0f / 60.f);
 		}
 
@@ -754,19 +759,19 @@ int GameObjectPool::IsValid(lua_State* L)LNOEXCEPT
 	// 在对象池中检查
 	size_t id = (size_t)lua_tonumber(L, -1);
 	lua_pop(L, 1);  // t(object)
-if (!m_ObjectPool.Data(id))
-{
-	lua_pushboolean(L, 0);
-	return 1;
-}
+	if (!m_ObjectPool.Data(id))
+	{
+		lua_pushboolean(L, 0);
+		return 1;
+	}
 
-GETOBJTABLE;  // t(object) ot
-lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
-if (lua_rawequal(L, -1, -3))
-lua_pushboolean(L, 1);
-else
-lua_pushboolean(L, 0);
-return 1;
+	GETOBJTABLE;  // t(object) ot
+	lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
+	if (lua_rawequal(L, -1, -3))
+		lua_pushboolean(L, 1);
+	else
+		lua_pushboolean(L, 0);
+	return 1;
 }
 
 bool GameObjectPool::Angle(size_t idA, size_t idB, double& out)LNOEXCEPT
@@ -1220,9 +1225,16 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 		p->rect = lua_toboolean(L, 3) == 0 ? false : true;
 		break;
 	case GameObjectProperty::IMG:
-		p->ReleaseResource();
-		if (!p->ChangeResource(luaL_checkstring(L, 3)))
-			return luaL_error(L, "can't find resource '%s' in image/animation/particle pool.", luaL_checkstring(L, 3));
+		do
+		{
+			const char* name = luaL_checkstring(L, 3);
+			if (!p->res || strcmp(name, p->res->GetResName().c_str()) != 0)
+			{
+				p->ReleaseResource();
+				if (!p->ChangeResource(name))
+					return luaL_error(L, "can't find resource '%s' in image/animation/particle pool.", luaL_checkstring(L, 3));
+			}
+		} while (false);
 		break;
 	case GameObjectProperty::ANI:
 		return luaL_error(L, "property 'ani' is readonly.");
@@ -1339,6 +1351,6 @@ int GameObjectPool::ParticleSetEmission(lua_State* L)LNOEXCEPT
 		LWARNING("ParticleSetEmission: 试图设置一个不带有粒子发射器的对象的粒子发射密度(uid=%d)", m_iUid);
 		return 0;
 	}
-	p->ps->SetEmission((float)::max(0., luaL_checknumber(L, -1)));
+	p->ps->SetEmission((float)::max(0., luaL_checknumber(L, 2)));
 	return 0;
 }

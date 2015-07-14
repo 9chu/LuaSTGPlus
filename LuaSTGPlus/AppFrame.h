@@ -121,6 +121,7 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dTexture2D> m_PostEffectBuffer;
 
 		fcyRefPointer<f2dInputKeyboard> m_Keyboard;
+		fcyRefPointer<f2dInputJoystick> m_Joystick[2];
 		fCharW m_LastChar;
 		fInt m_LastKey;
 		fBool m_KeyStateMap[256];

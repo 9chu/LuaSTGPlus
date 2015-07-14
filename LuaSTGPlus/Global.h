@@ -34,6 +34,7 @@
 #include <fcyMisc/fcyStopWatch.h>
 #include <fcyMisc/fcyStringHelper.h>
 #include <fcyMisc/fcyRandom.h>
+#include <fcyOS/fcyMemPool.h>
 #include <f2d.h>
 
 // Zlib
@@ -65,7 +66,6 @@
 // 对象池信息
 #define LGOBJ_MAXCNT 32768  // 最大对象数
 #define LGOBJ_MAXLASERNODE 512  // 曲线激光最大节点数
-#define LGOBJ_MAXBENTLASER 1024 // 曲线激光最大数
 #define LGOBJ_DEFAULTGROUP 0  // 默认组
 #define LGOBJ_GROUPCNT 16  // 碰撞组数
 
@@ -119,7 +119,15 @@
 #endif
 
 #define LPARTICLE_MAXCNT 500  // 单个粒子池最多有500个粒子
-#define LPARTICLESYS_MAX 500  // 最大500个粒子池
+
+#define LJOYSTICK1_MAPPING_START 0x92
+#define LJOYSTICK1_MAPPING_END (0x92 + 31)
+#define LJOYSTICK2_MAPPING_START 0xDF
+#define LJOYSTICK2_MAPPING_END (0xDF + 31)
+#define LJOYSTICK_X_MIN -0.65
+#define LJOYSTICK_X_MAX 0.65
+#define LJOYSTICK_Y_MIN -0.65
+#define LJOYSTICK_Y_MAX 0.65
 
 namespace LuaSTGPlus
 {

@@ -110,7 +110,6 @@ namespace LuaSTGPlus
 			float half_width;
 		};
 	private:
-		int m_iId;
 		CirularQueue<LaserNode, LGOBJ_MAXLASERNODE> m_Queue;
 		float m_fLength = 0.f;  // 记录激光长度
 	public:
@@ -120,7 +119,7 @@ namespace LuaSTGPlus
 		bool CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT;
 		bool BoundCheck()LNOEXCEPT;
 	protected:
-		GameObjectBentLaser(int id);
+		GameObjectBentLaser();
 		~GameObjectBentLaser();
 	};
 

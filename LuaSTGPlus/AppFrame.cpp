@@ -461,7 +461,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
 			m_pMainWindow->SetClientRect(
 				fcyRect(10.f, 10.f, 10.f + m_OptionResolution.x, 10.f + m_OptionResolution.y)
-			);
+				);
 			m_pMainWindow->SetTopMost(!m_OptionWindowed);
 			m_pMainWindow->MoveToCenter();
 			return true;
@@ -517,7 +517,49 @@ fBool AppFrame::GetKeyState(int VKCode)LNOEXCEPT
 {
 	if (VKCode > 0 && VKCode < _countof(m_KeyStateMap))
 	{
-		if (m_Keyboard)
+		if (LJOYSTICK1_MAPPING_START <= VKCode && VKCode <= LJOYSTICK1_MAPPING_END)  // joystick1映射区域
+		{
+			if (m_Joystick[0])
+			{
+				switch (VKCode)
+				{
+				case LJOYSTICK1_MAPPING_START:  // 上
+					return (m_Joystick[0]->GetYPosition() < LJOYSTICK_Y_MIN);
+				case LJOYSTICK1_MAPPING_START + 1:  // 下
+					return (m_Joystick[0]->GetYPosition() > LJOYSTICK_Y_MAX);
+				case LJOYSTICK1_MAPPING_START + 2:  // 左
+					return (m_Joystick[0]->GetXPosition() < LJOYSTICK_X_MIN);
+				case LJOYSTICK1_MAPPING_START + 3:  // 右
+					return (m_Joystick[0]->GetXPosition() > LJOYSTICK_X_MAX);
+				default:
+					return m_Joystick[0]->IsButtonDown(VKCode - LJOYSTICK1_MAPPING_START - 4);
+				}
+			}	
+			else
+				return false;
+		}
+		else if (LJOYSTICK2_MAPPING_START <= VKCode && VKCode <= LJOYSTICK2_MAPPING_END)  // joystick2映射区域
+		{
+			if (m_Joystick[1])
+			{
+				switch (VKCode)
+				{
+				case LJOYSTICK2_MAPPING_START:  // 上
+					return (m_Joystick[1]->GetYPosition() < LJOYSTICK_Y_MIN);
+				case LJOYSTICK2_MAPPING_START + 1:  // 下
+					return (m_Joystick[1]->GetYPosition() > LJOYSTICK_Y_MAX);
+				case LJOYSTICK2_MAPPING_START + 2:  // 左
+					return (m_Joystick[1]->GetXPosition() < LJOYSTICK_X_MIN);
+				case LJOYSTICK2_MAPPING_START + 3:  // 右
+					return (m_Joystick[1]->GetXPosition() > LJOYSTICK_X_MAX);
+				default:
+					return m_Joystick[1]->IsButtonDown(VKCode - LJOYSTICK2_MAPPING_START - 4);
+				}
+			}
+			else
+				return false;
+		}	
+		else if (m_Keyboard)
 			return m_Keyboard->IsKeyDown(VKKeyToF2DKey(VKCode));
 		else
 			return m_KeyStateMap[VKCode];
@@ -1209,6 +1251,16 @@ bool AppFrame::Init()LNOEXCEPT
 	if (!m_Keyboard)
 		LWARNING("无法创建键盘设备，将使用窗口消息作为输入源 (f2dInputSys::CreateKeyboard failed.)");
 	
+	// 创建手柄输入
+	fuInt iJoyStickCount = ::min(2U, m_pInputSys->GetDeviceCount(F2DINPUTDEVTYPE_GAMECTRL));
+	for (fuInt i = 0; i < iJoyStickCount; ++i)
+	{
+		LINFO("侦测到手柄 设备名：%s 产品名：%s", m_pInputSys->GetDeviceName(F2DINPUTDEVTYPE_GAMECTRL, i), 
+			m_pInputSys->GetDeviceProductName(F2DINPUTDEVTYPE_GAMECTRL, i));
+		if (FCYFAILED(m_pInputSys->CreateJoystick(i, false, &m_Joystick[i])))
+			LWARNING("无法装载手柄，忽略。");
+	}
+
 	// luastg不使用ZBuffer，将其关闭。
 	m_pRenderDev->SetZBufferEnable(false);
 	
@@ -1253,6 +1305,7 @@ void AppFrame::Shutdown()LNOEXCEPT
 	m_ResourceMgr.ClearAllResource();
 	LINFO("已清空所有资源");
 
+	m_Joystick[0] = m_Joystick[1] = nullptr;
 	m_Keyboard = nullptr;
 	m_PostEffectBuffer = nullptr;
 	m_Graph3D = nullptr;
@@ -1446,15 +1499,23 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 			if (tMsg.Param1 == VK_RETURN && !m_KeyStateMap[VK_RETURN] && m_KeyStateMap[VK_CONTROL])  // 防止反复触发
 				ChangeVideoMode((int)m_OptionResolution.x, (int)m_OptionResolution.y, !m_OptionWindowed, m_OptionVsync);
 
-			m_LastKey = (fInt)tMsg.Param1;
-			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
+			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap) &&
+				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1映射区域
+				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2映射区域
+			{
+				m_LastKey = (fInt)tMsg.Param1;
 				m_KeyStateMap[tMsg.Param1] = true;
+			}	
 			break;
 		case F2DMSG_WINDOW_ONKEYUP:
 			if (m_LastKey == tMsg.Param1)
 				m_LastKey = 0;
-			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap))
+			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap) &&
+				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1映射区域
+				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2映射区域
+			{
 				m_KeyStateMap[tMsg.Param1] = false;
+			}
 			break;
 		case F2DMSG_WINDOW_ONMOUSELDOWN:
 			m_MouseState[0] = true;
@@ -1477,6 +1538,178 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 		case F2DMSG_WINDOW_ONMOUSEMOVE:
 			m_MousePosition.x = (float)static_cast<fInt>(tMsg.Param1);
 			m_MousePosition.y = m_OptionResolution.y - (float)static_cast<fInt>(tMsg.Param2);  // ! 潜在大小不匹配问题
+			break;
+		case F2DMSG_JOYSTICK_ONXPOSCHANGE:
+			do
+			{
+				double tValue = *(double*)&tMsg.Param1;
+				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
+
+				if (tValue < LJOYSTICK_X_MIN)  // 左键触发
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 2;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 2;
+					else
+						break;
+					if (!m_KeyStateMap[tVKCode])
+					{
+						m_LastKey = tVKCode;
+						m_KeyStateMap[tVKCode] = true;
+					}
+				}
+				else
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 2;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 2;
+					else
+						break;
+					if (m_LastKey == tVKCode)
+						m_LastKey = 0;
+					m_KeyStateMap[tVKCode] = false;
+				}
+
+				if (tValue > LJOYSTICK_X_MAX)  // 右键触发
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 3;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 3;
+					else
+						break;
+					if (!m_KeyStateMap[tVKCode])
+					{
+						m_LastKey = tVKCode;
+						m_KeyStateMap[tVKCode] = true;
+					}
+				}
+				else
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 3;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 3;
+					else
+						break;
+					if (m_LastKey == tVKCode)
+						m_LastKey = 0;
+					m_KeyStateMap[tVKCode] = false;
+				}
+			} while (false);
+			break;
+		case F2DMSG_JOYSTICK_ONYPOSCHANGE:
+			do
+			{
+				double tValue = *(double*)&tMsg.Param1;
+				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
+
+				if (tValue < LJOYSTICK_Y_MIN)  // 上键触发
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START;
+					else
+						break;
+					if (!m_KeyStateMap[tVKCode])
+					{
+						m_LastKey = tVKCode;
+						m_KeyStateMap[tVKCode] = true;
+					}
+				}
+				else
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START;
+					else
+						break;
+					if (m_LastKey == tVKCode)
+						m_LastKey = 0;
+					m_KeyStateMap[tVKCode] = false;
+				}
+
+				if (tValue > LJOYSTICK_Y_MAX)  // 下键触发
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 1;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 1;
+					else
+						break;
+					if (!m_KeyStateMap[tVKCode])
+					{
+						m_LastKey = tVKCode;
+						m_KeyStateMap[tVKCode] = true;
+					}
+				}
+				else
+				{
+					fInt tVKCode;
+					if (pJoystick == m_Joystick[0])
+						tVKCode = LJOYSTICK1_MAPPING_START + 1;
+					else if (pJoystick == m_Joystick[1])
+						tVKCode = LJOYSTICK2_MAPPING_START + 1;
+					else
+						break;
+					if (m_LastKey == tVKCode)
+						m_LastKey = 0;
+					m_KeyStateMap[tVKCode] = false;
+				}
+			} while (false);
+			break;
+		case F2DMSG_JOYSTICK_ONBUTTONUP:
+			do
+			{
+				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
+				if (tMsg.Param1 < LJOYSTICK1_MAPPING_END - LJOYSTICK1_MAPPING_START + 1 - 4)
+				{
+					if (pJoystick == m_Joystick[0])
+					{
+						fInt tLastKey = (fInt)tMsg.Param1 + LJOYSTICK1_MAPPING_START + 4;
+						if (m_LastKey == tLastKey)
+							m_LastKey = 0;
+						m_KeyStateMap[tLastKey] = false;
+					}	
+					else if (pJoystick == m_Joystick[1])
+					{
+						fInt tLastKey = (fInt)tMsg.Param1 + LJOYSTICK2_MAPPING_START + 4;
+						if (m_LastKey == tLastKey)
+							m_LastKey = 0;
+						m_KeyStateMap[tLastKey] = false;
+					}
+				}
+			} while (false);
+			break;
+		case F2DMSG_JOYSTICK_ONBUTTONDOWN:
+			do
+			{
+				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
+				if (tMsg.Param1 < LJOYSTICK1_MAPPING_END - LJOYSTICK1_MAPPING_START + 1 - 4)
+				{
+					if (pJoystick == m_Joystick[0])
+					{
+						m_LastKey = (fInt)tMsg.Param1 + LJOYSTICK1_MAPPING_START + 4;
+						m_KeyStateMap[m_LastKey] = true;
+					}
+					else if (pJoystick == m_Joystick[1])
+					{
+						m_LastKey = (fInt)tMsg.Param1 + LJOYSTICK2_MAPPING_START + 4;
+						m_KeyStateMap[m_LastKey] = true;
+					}
+				}
+			} while (false);
 			break;
 		default:
 			break;

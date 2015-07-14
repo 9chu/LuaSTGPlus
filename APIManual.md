@@ -792,6 +792,10 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 ### 输入
 
+当前，手柄输入被映射到0x92~0xB1和0xDF~0xFE（共2个手柄、32个按键）的位置上。
+
+其中，X轴Y轴的位置被映射到前4个按键上，对应上下左右。
+
 - GetKeyState(vk\_code:integer):boolean
 
 	给出虚拟键代码检测是否按下。
