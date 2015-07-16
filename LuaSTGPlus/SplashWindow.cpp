@@ -37,39 +37,16 @@ Gdiplus::Image* SplashWindow::LoadImageFromResource(UINT nID, LPCTSTR sTR)
 
 LRESULT WINAPI SplashWindow::WndProc(HWND hWnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-	int scrWidth, scrHeight;
-	RECT rect;
-	PAINTSTRUCT ptStr;
-	HDC hDC;
 	SplashWindow* pThis = (SplashWindow*)(LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
 	switch (wMsg)
 	{
 	case WM_CREATE:
-		// 获得屏幕尺寸
-		scrWidth = GetSystemMetrics(SM_CXSCREEN);
-		scrHeight = GetSystemMetrics(SM_CYSCREEN);
-		// 获取窗体尺寸
-		GetWindowRect(hWnd, &rect);
-		rect.left = (scrWidth - rect.right) / 2;
-		rect.top = (scrHeight - rect.bottom) / 2;
-		// 设置不显示任务栏图标
-		SetWindowLong(hWnd, GWL_EXSTYLE, WS_EX_TOOLWINDOW);
-		// 设置窗体位置
-		SetWindowPos(hWnd, HWND_TOPMOST, rect.left, rect.top, rect.right, rect.bottom, SWP_SHOWWINDOW);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
 	case WM_PAINT:
-		hDC = BeginPaint(hWnd, &ptStr);
-		if (pThis)
-		{
-			Graphics g(hDC);
-			Image* p = pThis->m_bkImage;
-			g.DrawImage(p, 0, 0, p->GetWidth(), p->GetHeight());
-		}
-		EndPaint(hWnd, &ptStr);
 		break;
 	}
 	return DefWindowProc(hWnd, wMsg, wParam, lParam);
@@ -86,10 +63,6 @@ SplashWindow::~SplashWindow()
 
 void SplashWindow::createWindow()
 {
-	struct Wrapper {
-		
-	};
-
 	WNDCLASS wc = { 0 };
 	wc.style = 0;
 	wc.lpfnWndProc = WndProc;
@@ -117,6 +90,49 @@ void SplashWindow::createWindow()
 		GetModuleHandle(NULL),
 		0);
 	SetWindowLongPtr(m_hHandle, GWLP_USERDATA, (LONG)(LONG_PTR)this);
+
+	// 设置层叠属性
+	SetWindowLong(m_hHandle, GWL_EXSTYLE, WS_EX_TOOLWINDOW | WS_EX_LAYERED);
+
+	// 更新窗口数据
+	HDC dcDest = GetDC(m_hHandle);
+	HDC dcSrc;
+	dcSrc = CreateCompatibleDC(dcDest);
+	HBITMAP bmpDest;
+	bmpDest = CreateCompatibleBitmap(dcDest, m_bkImage->GetWidth(), m_bkImage->GetHeight());
+	SelectObject(dcSrc, bmpDest);
+
+	Graphics g(dcSrc);
+	g.DrawImage(m_bkImage, 0, 0, m_bkImage->GetWidth(), m_bkImage->GetHeight());
+
+	BLENDFUNCTION tBlend;
+	tBlend.BlendOp = 0;
+	tBlend.BlendFlags = 0;
+	tBlend.AlphaFormat = 1;
+	tBlend.SourceConstantAlpha = 255;
+
+	POINT tZero = { 0, 0 };
+	SIZE tSize = { m_bkImage->GetWidth(), m_bkImage->GetHeight() };
+
+	UpdateLayeredWindow(m_hHandle, dcDest, &tZero, &tSize, dcSrc, &tZero, 0, &tBlend, ULW_ALPHA);
+
+	DeleteObject(bmpDest);
+	DeleteDC(dcSrc);
+	g.ReleaseHDC(dcSrc);
+	ReleaseDC(m_hHandle, dcDest);
+
+	// 显示窗口
+	int scrWidth, scrHeight;
+	RECT rect;
+	// 获得屏幕尺寸
+	scrWidth = GetSystemMetrics(SM_CXSCREEN);
+	scrHeight = GetSystemMetrics(SM_CYSCREEN);
+	// 获取窗体尺寸
+	GetWindowRect(m_hHandle, &rect);
+	rect.left = (scrWidth - rect.right) / 2;
+	rect.top = (scrHeight - rect.bottom) / 2;
+	// 设置窗体位置
+	SetWindowPos(m_hHandle, HWND_TOPMOST, rect.left, rect.top, rect.right, rect.bottom, SWP_SHOWWINDOW);
 }
 
 void SplashWindow::threadJob()
