@@ -480,7 +480,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				lua_toboolean(L, 3) == 0 ? false : true,
 				lua_toboolean(L, 4) == 0 ? false : true
 			));
-			return 0;
+			return 1;
 		}
 		static int SetSplash(lua_State* L)LNOEXCEPT
 		{

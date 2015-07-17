@@ -129,6 +129,8 @@
 #define LJOYSTICK_Y_MIN -0.65
 #define LJOYSTICK_Y_MAX 0.65
 
+#define LSOUNDGLOBALFOCUS  true
+
 namespace LuaSTGPlus
 {
 	class AppFrame;

@@ -861,7 +861,7 @@ bool ResourcePool::LoadMusic(const char* name, const std::wstring& path, double 
 			tWrapperedBuffer.DirectSet(new ResMusic::BGMWrapper(tDecoder, start, end));
 
 			fcyRefPointer<f2dSoundBuffer> tBuffer;
-			if (FCYFAILED(LAPP.GetSoundSys()->CreateDynamicBuffer(tWrapperedBuffer, false, &tBuffer)))
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateDynamicBuffer(tWrapperedBuffer, LSOUNDGLOBALFOCUS, &tBuffer)))
 			{
 				LERROR("LoadMusic: 无法创建音频缓冲区，文件'%s' (f2dSoundSys::CreateDynamicBuffer failed.)", path.c_str());
 				return false;
@@ -931,7 +931,7 @@ bool ResourcePool::LoadSound(const char* name, const std::wstring& path)LNOEXCEP
 			}
 
 			fcyRefPointer<f2dSoundBuffer> tBuffer;
-			if (FCYFAILED(LAPP.GetSoundSys()->CreateStaticBuffer(tDecoder, false, &tBuffer)))
+			if (FCYFAILED(LAPP.GetSoundSys()->CreateStaticBuffer(tDecoder, LSOUNDGLOBALFOCUS, &tBuffer)))
 			{
 				LERROR("LoadSound: 无法创建音频缓冲区，文件'%s' (f2dSoundSys::CreateStaticBuffer failed.)", path.c_str());
 				return false;

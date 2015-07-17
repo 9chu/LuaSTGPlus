@@ -305,7 +305,9 @@ namespace LuaSTGPlus
 		{
 			if (m_GraphType == GraphicsType::Graph2D)
 			{
-				m_Graph2D->SetWorldTransform(fcyMatrix4::GetTranslateMatrix(fcyVec3(-0.5f, -0.5f, 0.f)));
+				// luastg的lua部分已经做了坐标修正
+				// m_Graph2D->SetWorldTransform(fcyMatrix4::GetTranslateMatrix(fcyVec3(-0.5f, -0.5f, 0.f)));
+				m_Graph2D->SetWorldTransform(fcyMatrix4::GetIdentity());
 				m_Graph2D->SetViewTransform(fcyMatrix4::GetIdentity());
 				m_Graph2D->SetProjTransform(fcyMatrix4::GetOrthoOffCenterLH(left, right, bottom, top, 0.f, 100.f));
 			}
