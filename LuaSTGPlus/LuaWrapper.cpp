@@ -1428,13 +1428,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		
-		// 截图函数
-		static int Snapshot(lua_State* L)LNOEXCEPT
-		{
-			LAPP.SnapShot(luaL_checkstring(L, 1));
-			return 0;
-		}
-
 		// 声音控制函数
 		static int PlaySound(lua_State* L)LNOEXCEPT
 		{
@@ -1591,6 +1584,66 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		static int GetMouseState(lua_State* L)LNOEXCEPT
 		{
 			lua_pushboolean(L, LAPP.GetMouseState(luaL_checkinteger(L, 1)));
+			return 1;
+		}
+
+		// 杂项
+		static int Snapshot(lua_State* L)LNOEXCEPT
+		{
+			LAPP.SnapShot(luaL_checkstring(L, 1));
+			return 0;
+		}
+		static int Execute(lua_State* L)LNOEXCEPT
+		{
+			struct Detail_
+			{
+				LNOINLINE static bool Execute(const char* path, const char* args, const char* directory, bool bWait)LNOEXCEPT
+				{
+					wstring tPath, tArgs, tDirectory;
+
+					try
+					{
+						tPath = fcyStringHelper::MultiByteToWideChar(path, CP_UTF8);
+						tArgs = fcyStringHelper::MultiByteToWideChar(args, CP_UTF8);
+						if (directory)
+							tDirectory = fcyStringHelper::MultiByteToWideChar(directory, CP_UTF8);
+
+						SHELLEXECUTEINFO tShellExecuteInfo;
+						memset(&tShellExecuteInfo, 0, sizeof(SHELLEXECUTEINFO));
+
+						tShellExecuteInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+						tShellExecuteInfo.fMask = bWait ? SEE_MASK_NOCLOSEPROCESS : 0;
+						tShellExecuteInfo.lpVerb = L"open";
+						tShellExecuteInfo.lpFile = tPath.c_str();
+						tShellExecuteInfo.lpParameters = tArgs.c_str();
+						tShellExecuteInfo.lpDirectory = directory ? tDirectory.c_str() : nullptr;
+						tShellExecuteInfo.nShow = SW_SHOWDEFAULT;
+						
+						if (FALSE == ShellExecuteEx(&tShellExecuteInfo))
+							return false;
+
+						if (bWait)
+						{
+							WaitForSingleObject(tShellExecuteInfo.hProcess, INFINITE);
+							CloseHandle(tShellExecuteInfo.hProcess);
+						}
+						return true;
+					}
+					catch (const std::bad_alloc&)
+					{
+						return false;
+					}
+				}
+			};
+
+			const char* path = luaL_checkstring(L, 1);
+			const char* args = luaL_optstring(L, 2, "");
+			const char* directory = luaL_optstring(L, 3, NULL);
+			bool bWait = true;
+			if (lua_gettop(L) == 4)
+				bWait = lua_toboolean(L, 4) == 0 ? false : true;
+			
+			lua_pushboolean(L, Detail_::Execute(path, args, directory, bWait));
 			return 1;
 		}
 
@@ -1754,8 +1807,6 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "SetFog", &WrapperImplement::SetFog },
 		{ "PostEffectCapture", &WrapperImplement::PostEffectCapture },
 		{ "PostEffectApply", &WrapperImplement::PostEffectApply },
-		// 截图函数
-		{ "Snapshot", &WrapperImplement::Snapshot },
 		// 声音控制函数
 		{ "PlaySound", &WrapperImplement::PlaySound },
 		{ "StopSound", &WrapperImplement::StopSound },
@@ -1784,6 +1835,9 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "tan", &WrapperImplement::Tan },
 		{ "atan", &WrapperImplement::ATan },
 		{ "atan2", &WrapperImplement::ATan2 },
+		// 杂项
+		{ "Snapshot", &WrapperImplement::Snapshot },
+		{ "Execute", &WrapperImplement::Execute },
 		// 调试函数
 		{ "ObjTable", &WrapperImplement::ObjTable },
 		// 对象构造函数

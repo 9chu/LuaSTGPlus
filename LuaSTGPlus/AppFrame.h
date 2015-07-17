@@ -546,7 +546,7 @@ namespace LuaSTGPlus
 
 		/// @brief 保护模式调用全局函数
 		/// @note 该函数仅限框架调用，为主逻辑最外层调用。若脚本运行时发生错误，该函数负责截获错误发出错误消息。
-		bool SafeCallGlobalFunction(const char* name, int argc = 0, int retc = 0)LNOEXCEPT;
+		bool SafeCallGlobalFunction(const char* name, int retc = 0)LNOEXCEPT;
 	protected:  // fancy2d逻辑循环回调
 		fBool OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump);
 		fBool OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController);

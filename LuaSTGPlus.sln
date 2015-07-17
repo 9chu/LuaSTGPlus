@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerformanceMonitor", "Perfo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TexturedFontEditor", "TexturedFontEditor\TexturedFontEditor.csproj", "{4F227D23-99B8-4745-8E80-B8E83BC83BFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mbg2luastg", "mbg2luastg\mbg2luastg.csproj", "{CF743675-95B1-454F-B4CC-D69D2C151040}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -48,6 +50,12 @@ Global
 		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release_Dev|Win32.Build.0 = Release|Any CPU
 		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release|Win32.ActiveCfg = Release|Any CPU
 		{4F227D23-99B8-4745-8E80-B8E83BC83BFF}.Release|Win32.Build.0 = Release|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Debug|Win32.Build.0 = Debug|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Release_Dev|Win32.ActiveCfg = Release|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Release_Dev|Win32.Build.0 = Release|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Release|Win32.ActiveCfg = Release|Any CPU
+		{CF743675-95B1-454F-B4CC-D69D2C151040}.Release|Win32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

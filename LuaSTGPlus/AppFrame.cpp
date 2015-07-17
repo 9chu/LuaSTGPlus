@@ -499,11 +499,15 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 	}
 	if (luaL_loadbuffer(L, (fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), luaL_checkstring(L, 1)))
 	{
+		tMemStream = nullptr;
 		const char* tDetail = lua_tostring(L, -1);
 		LERROR("编译脚本'%m'失败: %m", path, tDetail);
 		luaL_error(L, "failed to compile '%s': %s", path, tDetail);
 		return;
 	}
+	tMemStream = nullptr;
+	lua_call(L, 0, 0);
+	/*
 	if (lua_pcall(L, 0, 0, 0))
 	{
 		const char* tDetail = lua_tostring(L, -1);
@@ -511,6 +515,7 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 		luaL_error(L, "failed to execute '%s':\n\t%s", path, tDetail);
 		return;
 	}
+	*/
 }
 
 fBool AppFrame::GetKeyState(int VKCode)LNOEXCEPT
@@ -1078,6 +1083,30 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 #pragma endregion
 
 #pragma region 框架函数
+static int StackTraceback(lua_State *L)
+{
+	lua_getfield(L, LUA_GLOBALSINDEX, "debug");  // errmsg t
+	if (!lua_istable(L, -1))
+	{
+		lua_pop(L, 1);
+		return 1;
+	}
+	lua_getfield(L, -1, "traceback");  // errmsg t f
+	if (!lua_isfunction(L, -1) && !lua_iscfunction(L, -1))
+	{
+		lua_pop(L, 2);
+		return 1;
+	}
+	lua_pushvalue(L, 1);  // errmsg t f errmsg
+	lua_pushinteger(L, 2);  // errmsg t f errmsg 2
+	if (0 != lua_pcall(L, 2, 1, 0))  // errmsg t 
+	{
+		LWARNING("执行stacktrace时发生错误。(%m)", lua_tostring(L, -1));
+		lua_pop(L, 2);
+	}	
+	return 1;
+}
+
 bool AppFrame::Init()LNOEXCEPT
 {
 	LASSERT(m_iStatus == AppStatus::NotInitialized);
@@ -1100,6 +1129,8 @@ bool AppFrame::Init()LNOEXCEPT
 	if (0 != luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
 		LWARNING("无法启动JIT模式");
 
+	lua_gc(L, LUA_GCSTOP, 0);  // 初始化时关闭GC
+
 	luaL_openlibs(L);  // 内建库
 	luaopen_lfs(L);  // 文件系统库
 	luaopen_cjson(L);  // CJSON库
@@ -1107,7 +1138,9 @@ bool AppFrame::Init()LNOEXCEPT
 	RandomizerWrapper::Register(L);  // 随机数发生器
 	BentLaserDataWrapper::Register(L);  // 曲线激光
 	BuiltInFunctionWrapper::Register(L);  // 内建函数库
-	
+
+	lua_gc(L, LUA_GCRESTART, -1);  // 重启GC
+
 	// 为对象池分配空间
 	LINFO("初始化对象池 上限=%u", LGOBJ_MAXCNT);
 	try
@@ -1374,6 +1407,8 @@ void AppFrame::Run()LNOEXCEPT
 
 bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)LNOEXCEPT
 {
+	lua_pushcfunction(L, StackTraceback);
+
 	if (0 != luaL_loadbuffer(L, source, len, desc))
 	{
 		try
@@ -1397,11 +1432,11 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 			LERROR("尝试写出脚本错误时发生内存不足错误");
 		}
 		
-		lua_pop(L, 1);
+		lua_pop(L, 2);
 		return false;
 	}
 
-	if (0 != lua_pcall(L, 0, 0, 0))
+	if (0 != lua_pcall(L, 0, 0, lua_gettop(L) - 1))
 	{
 		try
 		{
@@ -1424,17 +1459,21 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 			LERROR("尝试写出脚本错误时发生内存不足错误");
 		}
 
-		lua_pop(L, 1);
+		lua_pop(L, 2);
 		return false;
 	}
 
+	lua_pop(L, 1);
 	return true;
 }
 
-bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEXCEPT
+bool AppFrame::SafeCallGlobalFunction(const char* name, int retc)LNOEXCEPT
 {
-	lua_getglobal(L, name);
-	if (0 != lua_pcall(L, argc, retc, 0))
+	lua_pushcfunction(L, StackTraceback);  // ... c
+	int tStacktraceIndex = lua_gettop(L);
+
+	lua_getglobal(L, name);  // ... c f
+	if (0 != lua_pcall(L, 0, retc, tStacktraceIndex))
 	{
 		try
 		{
@@ -1457,10 +1496,11 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int argc, int retc)LNOEX
 			LERROR("尝试写出脚本错误时发生内存不足错误");
 		}
 
-		lua_pop(L, 1);
+		lua_pop(L, 2);
 		return false;
 	}
 
+	lua_remove(L, tStacktraceIndex);
 	return true;
 }
 #pragma endregion
@@ -1717,7 +1757,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 	}
 
 	// 执行帧函数
-	if (!SafeCallGlobalFunction(LFUNC_FRAME, 0, 1))
+	if (!SafeCallGlobalFunction(LFUNC_FRAME, 1))
 		return false;
 	bool tAbort = lua_toboolean(L, -1) == 0 ? false : true;
 	lua_pop(L, 1);
@@ -1766,7 +1806,7 @@ fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 	// 执行渲染函数
 	m_bRenderStarted = true;
 	m_bPostEffectCaptureStarted = false;
-	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0, 0))
+	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0))
 		m_pEngine->Abort();
 	m_bRenderStarted = false;
 
