@@ -132,7 +132,8 @@ void SplashWindow::createWindow()
 	rect.left = (scrWidth - rect.right) / 2;
 	rect.top = (scrHeight - rect.bottom) / 2;
 	// …Ë÷√¥∞ÃÂŒª÷√
-	SetWindowPos(m_hHandle, HWND_TOPMOST, rect.left, rect.top, rect.right, rect.bottom, SWP_SHOWWINDOW);
+	SetWindowPos(m_hHandle, 0, rect.left, rect.top, rect.right, rect.bottom, SWP_SHOWWINDOW);
+	SetWindowPos(m_hHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 }
 
 void SplashWindow::threadJob()

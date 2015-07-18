@@ -444,7 +444,10 @@ static int make_dir (lua_State *L) {
         const char *path = luaL_checkstring (L, 1);
         int fail;
 #ifdef _WIN32
-        fail = _mkdir (path);
+		// fail = _mkdir (path);
+		wchar_t wpath[_MAX_PATH + 1] = { 0 };
+		MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, _MAX_PATH);
+		fail = _wmkdir(wpath);
 #else
         fail =  mkdir (path, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP |
                              S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH );

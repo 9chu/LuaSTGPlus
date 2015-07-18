@@ -1396,7 +1396,10 @@ void AppFrame::Run()LNOEXCEPT
 	m_bSplashWindowEnabled = false;
 
 	// 窗口前移、显示、隐藏鼠标指针
-	SetWindowPos((HWND)m_pMainWindow->GetHandle(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	SetActiveWindow((HWND)m_pMainWindow->GetHandle());  // 然并卵
+	// SetForegroundWindow((HWND)m_pMainWindow->GetHandle());
+	// BringWindowToTop((HWND)m_pMainWindow->GetHandle());
+	m_pMainWindow->SetHideIME(true);
 	m_pMainWindow->HideMouse(!m_OptionSplash);
 
 	// 启动游戏循环
