@@ -60,22 +60,22 @@ namespace LuaSTGPlus
 		uint8_t S[256];
 	public:
 		void operator()(const uint8_t* input, size_t inputlen, uint8_t* output)
-		{
-			uint8_t Scpy[256];
-			memcpy(Scpy, S, sizeof(S));
+        {
+            uint8_t Scpy[256];
+            memcpy(Scpy, S, sizeof(S));
 
-			for (size_t i = 0, j = 0; i < inputlen; i++)
-			{
-				// SºÐÖÃ»»
-				i = (i + 1) % 256;
-				j = (j + Scpy[i]) % 256;
-				std::swap(Scpy[i], Scpy[j]);
-				uint8_t n = Scpy[(Scpy[i] + Scpy[j]) % 256];
+            for (size_t i = 0, j = 0; i < inputlen; i++)
+            {
+                // SºÐÖÃ»»
+                size_t i2 = (i + 1) % 256;
+                j = (j + Scpy[i2]) % 256;
+                std::swap(Scpy[i2], Scpy[j]);
+                uint8_t n = Scpy[(Scpy[i2] + Scpy[j]) % 256];
 
-				// ¼Ó½âÃÜ
-				*(output + i) = *(input + i) ^ n;
-			}
-		}
+                // ¼Ó½âÃÜ
+                *(output + i) = *(input + i) ^ n;
+            }
+        }
 	public:
 		RC4(const uint8_t* password, size_t len)
 		{
