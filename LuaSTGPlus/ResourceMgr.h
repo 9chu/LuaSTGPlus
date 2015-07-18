@@ -528,7 +528,10 @@ namespace LuaSTGPlus
 		{
 			auto i = pool.find(name);
 			if (i == pool.end())
+			{
 				LWARNING("RemoveResource: 试图移除一个不存在的资源'%m'", name);
+				return;
+			}	
 			pool.erase(i);
 #ifdef LSHOWRESLOADINFO
 			LINFO("RemoveResource: 资源'%m'已卸载", name);
