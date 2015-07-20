@@ -1597,7 +1597,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			struct Detail_
 			{
-				LNOINLINE static bool Execute(const char* path, const char* args, const char* directory, bool bWait)LNOEXCEPT
+				LNOINLINE static bool Execute(const char* path, const char* args, const char* directory, bool bWait, bool bShow)LNOEXCEPT
 				{
 					wstring tPath, tArgs, tDirectory;
 
@@ -1617,7 +1617,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 						tShellExecuteInfo.lpFile = tPath.c_str();
 						tShellExecuteInfo.lpParameters = tArgs.c_str();
 						tShellExecuteInfo.lpDirectory = directory ? tDirectory.c_str() : nullptr;
-						tShellExecuteInfo.nShow = SW_SHOWDEFAULT;
+						tShellExecuteInfo.nShow = bShow ? SW_SHOWDEFAULT : SW_HIDE;
 						
 						if (FALSE == ShellExecuteEx(&tShellExecuteInfo))
 							return false;
@@ -1640,10 +1640,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			const char* args = luaL_optstring(L, 2, "");
 			const char* directory = luaL_optstring(L, 3, NULL);
 			bool bWait = true;
-			if (lua_gettop(L) == 4)
+			bool bShow = true;
+			if (lua_gettop(L) >= 4)
 				bWait = lua_toboolean(L, 4) == 0 ? false : true;
+			if (lua_gettop(L) >= 5)
+				bShow = lua_toboolean(L, 5) == 0 ? false : true;
 			
-			lua_pushboolean(L, Detail_::Execute(path, args, directory, bWait));
+			lua_pushboolean(L, Detail_::Execute(path, args, directory, bWait, bShow));
 			return 1;
 		}
 

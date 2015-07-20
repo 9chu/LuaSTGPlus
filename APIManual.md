@@ -831,9 +831,9 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 	截屏并保存到file\_path。格式为PNG。
 
-- Execute(path:string, [arguments:string=nil, directory:string=nil, wait:boolean=true]):boolean  **[新增]**
+- Execute(path:string, [arguments:string=nil, directory:string=nil, wait:boolean=true, show:boolean=true]):boolean  **[新增]**
 
-	执行外部程序。参数path为可执行程序路径，arguments为参数，directory为工作目录，wait表明是否等待程序执行完毕。
+	执行外部程序。参数path为可执行程序路径，arguments为参数，directory为工作目录，wait表明是否等待程序执行完毕，show表明是否显示窗体。
 
 	成功返回true，失败返回false。
 
