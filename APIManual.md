@@ -692,7 +692,7 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 				[6] = 顶点颜色
 			注意该函数效率较低，若要使用请考虑缓存顶点所用table。
 
-- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor)  **[不兼容]**
+- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor, [scale:number=1])  **[不兼容]**
 
 	渲染TTF字体。
 
@@ -910,6 +910,8 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 ## 第三方库
 
+以下第三方库均为内置。
+
 ### cjson **[新增]**
 
 #### 方法
@@ -923,3 +925,25 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 - decode(string):table
 
 	解码一个字符串为table。
+
+### lfs
+
+#### 方法
+
+更多方法请参考luafilesystem主页
+
+- mkdir(path):boolean
+
+	创建目录，不支持递归创建。
+
+	已支持utf-8编码。
+
+	成功返回true，否则返回nil,错误信息。
+
+- rm(path):boolean **[新增]**
+
+	移除文件，不支持移除文件夹。
+
+	已支持utf-8编码。
+
+	成功返回true，否则返回false。

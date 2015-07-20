@@ -1349,9 +1349,9 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				(float)luaL_checknumber(L, 4),
 				(float)luaL_checknumber(L, 5),
 				(float)luaL_checknumber(L, 6),
-				LRES.GetGlobalImageScaleFactor(),
+				LRES.GetGlobalImageScaleFactor() * (float)luaL_optnumber(L, 9, 1.0),
 				luaL_checkinteger(L, 7),
-				*static_cast<fcyColor*>(luaL_checkudata(L, -1, TYPENAME_COLOR))
+				*static_cast<fcyColor*>(luaL_checkudata(L, 8, TYPENAME_COLOR))
 			))
 			{
 				return luaL_error(L, "can't render font '%s'.", luaL_checkstring(L, 1));

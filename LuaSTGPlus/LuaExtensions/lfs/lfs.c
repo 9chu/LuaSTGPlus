@@ -880,6 +880,20 @@ static void set_info (lua_State *L) {
         lua_settable (L, -3);
 }
 
+static int delete_file(lua_State *L) {
+	const char *path = luaL_checkstring(L, 1);
+	int fail;
+#ifdef _WIN32
+	wchar_t wpath[_MAX_PATH + 1] = { 0 };
+	MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, _MAX_PATH);
+	fail = !DeleteFile(wpath);
+#endif
+	if (fail)
+		lua_pushboolean(L, 0);
+	else
+		lua_pushboolean(L, 1);
+	return 1;
+}
 
 static const struct luaL_Reg fslib[] = {
         {"attributes", file_info},
@@ -895,6 +909,7 @@ static const struct luaL_Reg fslib[] = {
         {"touch", file_utime},
         {"unlock", file_unlock},
         {"lock_dir", lfs_lock_dir},
+		{"rm", delete_file},
         {NULL, NULL},
 };
 
