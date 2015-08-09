@@ -58,10 +58,22 @@ namespace PerformanceMonitor
             }
         }
         
+        struct PerformanceData
+        {
+            public float CPUTime;
+            public float WorkingSet;
+            public float FPS;
+            public float Objects;
+            public float FrameTime;
+            public float RenderTime;
+        }
+
         TargetProgram _Target;
         bool _CloseAfterExited = false;
 
         ListView[] _ResourceStatusListView;
+
+        List<PerformanceData> _PerformanceDataRecorder = new List<PerformanceData>();
 
         public MainForm()
         {
@@ -169,6 +181,7 @@ namespace PerformanceMonitor
             listView_log.Items.Clear();
             textBox_log.Text = String.Empty;
             clearListView();
+            _PerformanceDataRecorder.Clear();
 
             try
             {
@@ -340,6 +353,16 @@ namespace PerformanceMonitor
                 performanceChart_main.AddPerformance(PerformanceChart.PerformanceArg.FrameTime, tFrameTime);
                 performanceChart_main.AddPerformance(PerformanceChart.PerformanceArg.RenderTime, tRenderTime);
 
+                _PerformanceDataRecorder.Add(new PerformanceData
+                {
+                    CPUTime = tCPUTime,
+                    WorkingSet = tWorkingSet / 1024 / 1024,
+                    FPS = tFPS,
+                    Objects = tObjects,
+                    FrameTime = tFrameTime * 1000,
+                    RenderTime = tRenderTime * 1000
+                });
+
                 toolStripStatusLabel_status.Text = String.Format("运行中 - {0}", _Target.Lifetime.ToString("g"));
             }
         }
@@ -347,6 +370,44 @@ namespace PerformanceMonitor
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             _Target.CloseSocket();
+        }
+
+        private void ToolStripMenuItem_exportPerformanceData_Click(object sender, EventArgs e)
+        {
+            if (saveFileDialog_main.ShowDialog() != System.Windows.Forms.DialogResult.Cancel)
+            {
+                try
+                {
+                    using (FileStream fs = new FileStream(saveFileDialog_main.FileName, FileMode.Create, FileAccess.Write))
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        BinaryWriter wr = new BinaryWriter(fs, Encoding.Default);
+
+                        sb.Append("CPU,内存,FPS,对象数,逻辑时间,渲染时间\n");
+                        for (int i = 0; i < _PerformanceDataRecorder.Count; ++i)
+                        {
+                            sb.Append(_PerformanceDataRecorder[i].CPUTime);
+                            sb.Append(",");
+                            sb.Append(_PerformanceDataRecorder[i].WorkingSet);
+                            sb.Append(",");
+                            sb.Append(_PerformanceDataRecorder[i].FPS);
+                            sb.Append(",");
+                            sb.Append(_PerformanceDataRecorder[i].Objects);
+                            sb.Append(",");
+                            sb.Append(_PerformanceDataRecorder[i].FrameTime);
+                            sb.Append(",");
+                            sb.Append(_PerformanceDataRecorder[i].RenderTime);
+                            sb.Append("\n");
+                        }
+
+                        wr.Write(sb.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("保存性能分析结果失败。\n\n错误：" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }

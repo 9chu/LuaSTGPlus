@@ -155,6 +155,9 @@
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.textBox_log = new System.Windows.Forms.TextBox();
+            this.contextMenuStrip_performance = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.ToolStripMenuItem_exportPerformanceData = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveFileDialog_main = new System.Windows.Forms.SaveFileDialog();
             this.performanceChart_main = new PerformanceMonitor.PerformanceChart();
             this.toolStrip_main.SuspendLayout();
             this.statusStrip_main.SuspendLayout();
@@ -186,6 +189,7 @@
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
             this.splitContainer2.SuspendLayout();
+            this.contextMenuStrip_performance.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStrip_main
@@ -992,10 +996,31 @@
             this.textBox_log.Size = new System.Drawing.Size(692, 29);
             this.textBox_log.TabIndex = 0;
             // 
+            // contextMenuStrip_performance
+            // 
+            this.contextMenuStrip_performance.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.ToolStripMenuItem_exportPerformanceData});
+            this.contextMenuStrip_performance.Name = "contextMenuStrip_performance";
+            this.contextMenuStrip_performance.Size = new System.Drawing.Size(167, 26);
+            // 
+            // ToolStripMenuItem_exportPerformanceData
+            // 
+            this.ToolStripMenuItem_exportPerformanceData.Name = "ToolStripMenuItem_exportPerformanceData";
+            this.ToolStripMenuItem_exportPerformanceData.Size = new System.Drawing.Size(166, 22);
+            this.ToolStripMenuItem_exportPerformanceData.Text = "导出分析数据";
+            this.ToolStripMenuItem_exportPerformanceData.Click += new System.EventHandler(this.ToolStripMenuItem_exportPerformanceData_Click);
+            // 
+            // saveFileDialog_main
+            // 
+            this.saveFileDialog_main.DefaultExt = "csv";
+            this.saveFileDialog_main.Filter = "逗号分割文件(*.csv)|*.csv";
+            this.saveFileDialog_main.Title = "保存性能数据";
+            // 
             // performanceChart_main
             // 
             this.performanceChart_main.BackColor = System.Drawing.Color.White;
             this.performanceChart_main.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.performanceChart_main.ContextMenuStrip = this.contextMenuStrip_performance;
             this.performanceChart_main.Dock = System.Windows.Forms.DockStyle.Fill;
             this.performanceChart_main.Location = new System.Drawing.Point(3, 3);
             this.performanceChart_main.Name = "performanceChart_main";
@@ -1051,6 +1076,7 @@
             this.splitContainer2.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
             this.splitContainer2.ResumeLayout(false);
+            this.contextMenuStrip_performance.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1148,6 +1174,9 @@
         private System.Windows.Forms.ColumnHeader columnHeader7;
         private System.Windows.Forms.ColumnHeader columnHeader8;
         private System.Windows.Forms.ColumnHeader columnHeader9;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip_performance;
+        private System.Windows.Forms.ToolStripMenuItem ToolStripMenuItem_exportPerformanceData;
+        private System.Windows.Forms.SaveFileDialog saveFileDialog_main;
     }
 }
 
