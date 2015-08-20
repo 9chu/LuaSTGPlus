@@ -118,14 +118,24 @@ luastg交流群`230927410`
 
 ## 编译配置
 
-1. 确保克隆3rdParty/luajit
-2. 在luajit目录中建立_build文件夹，并使用CMake&VS编译luajit
+1. 确保项目根目录外克隆了fancy2d，同时确保克隆了3rdParty/luajit
+	
+		目录结构：
+			fancy2d\
+				...
+			luastgplus\
+				3rdparty\
+				...
+
+2. 编译fancy2d
+
+3. 在luajit目录中建立_build文件夹，并使用CMake&VS编译luajit
 
 		mkdir _build
 		cd _build
 		cmake -G "Visual Studio 12" -DLUAJIT_ENABLE_LUA52COMPAT=false ..
 
-3. 在VS中编译luastg+
+4. 在VS中编译luastg+
 
 		NOTE:
 			Debug版本用于调试（log细节多）
