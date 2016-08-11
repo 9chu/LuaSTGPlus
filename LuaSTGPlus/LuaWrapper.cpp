@@ -996,6 +996,26 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				return luaL_error(L, "load fx failed (name=%s, path=%s)", name, path);
 			return 0;
 		}
+		static int CreateRenderTarget(lua_State* L)LNOEXCEPT
+		{
+			const char* name = luaL_checkstring(L, 1);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+
+			if (!pActivedPool->CreateRenderTarget(name))
+				return luaL_error(L, "can't create render target with name '%s'.", name);
+			return 0;
+		}
+		static int IsRenderTarget(lua_State* L)LNOEXCEPT
+		{
+			ResTexture* p = LRES.FindTexture(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "render target '%s' not found.", luaL_checkstring(L, 1));
+			lua_pushboolean(L, p->IsRenderTarget());
+			return 1;
+		}
 		static int GetTextureSize(lua_State* L)LNOEXCEPT
 		{
 			const char* name = luaL_checkstring(L, 1);
@@ -1381,6 +1401,72 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				LAPP.SetFog(0.0f, 0.0f, 0x00FFFFFF);
 			return 0;
 		}
+		static int PushRenderTarget(lua_State* L)LNOEXCEPT
+		{
+			ResTexture* p = LRES.FindTexture(luaL_checkstring(L, 1));
+			if (!p)
+				return luaL_error(L, "rendertarget '%s' not found.", luaL_checkstring(L, 1));
+			if (!p->IsRenderTarget())
+				return luaL_error(L, "'%s' is a texture.", luaL_checkstring(L, 1));
+
+			if (!LAPP.PushRenderTarget(p))
+				return luaL_error(L, "push rendertarget '%s' failed.", luaL_checkstring(L, 1));
+			return 0;
+		}
+		static int PopRenderTarget(lua_State* L)LNOEXCEPT
+		{
+			if (!LAPP.PopRenderTarget())
+				return luaL_error(L, "pop rendertarget failed.");
+			return 0;
+		}
+		static int PostEffect(lua_State* L)LNOEXCEPT
+		{
+			const char* texture = luaL_checkstring(L, 1);
+			const char* name = luaL_checkstring(L, 2);
+			BlendMode blend = TranslateBlendMode(L, 3);
+
+			// 获取纹理
+			ResTexture* rt = LRES.FindTexture(luaL_checkstring(L, 1));
+			if (!rt)
+				return luaL_error(L, "texture '%s' not found.", texture);
+
+			// 获取fx
+			ResFX* p = LRES.FindFX(name);
+			if (!p)
+				return luaL_error(L, "PostEffect: can't find effect '%s'.", name);
+			if (lua_istable(L, 4))
+			{
+				// 设置table上的参数到fx
+				lua_pushnil(L);  // s s t ... nil
+				while (0 != lua_next(L, 4))
+				{
+					// s s t ... nil key value
+					const char* key = luaL_checkstring(L, -2);
+					if (lua_isnumber(L, -1))
+						p->SetValue(key, (float)lua_tonumber(L, -1));
+					else if (lua_isstring(L, -1))
+					{
+						ResTexture* pTex = LRES.FindTexture(lua_tostring(L, -1));
+						if (!pTex)
+							return luaL_error(L, "PostEffect: can't find texture '%s'.", lua_tostring(L, -1));
+						p->SetValue(key, pTex->GetTexture());
+					}
+					else if (lua_isuserdata(L, -1))
+					{
+						fcyColor c = *static_cast<fcyColor*>(luaL_checkudata(L, -1, TYPENAME_COLOR));
+						p->SetValue(key, c);
+					}
+					else
+						return luaL_error(L, "PostEffect: invalid data type.");
+
+					lua_pop(L, 1);  // s s t ... nil key
+				}
+			}
+
+			if (!LAPP.PostEffect(rt, p, blend))
+				return luaL_error(L, "PostEffect failed.");
+			return 0;
+		}
 		static int PostEffectCapture(lua_State* L)LNOEXCEPT
 		{
 			if (!LAPP.PostEffectCapture())
@@ -1394,6 +1480,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			
 			// 获取fx
 			ResFX* p = LRES.FindFX(name);
+			if (!p)
+				return luaL_error(L, "PostEffectApply: can't find effect '%s'.", name);
 			if (lua_istable(L, 3))
 			{
 				// 设置table上的参数到fx
@@ -1784,6 +1872,8 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "LoadTTF", &WrapperImplement::LoadTTF },
 		{ "RegTTF", &WrapperImplement::RegTTF },
 		{ "LoadFX", &WrapperImplement::LoadFX },
+		{ "CreateRenderTarget", &WrapperImplement::CreateRenderTarget },
+		{ "IsRenderTarget", &WrapperImplement::IsRenderTarget },
 		{ "GetTextureSize", &WrapperImplement::GetTextureSize },
 		{ "RemoveResource", &WrapperImplement::RemoveResource },
 		{ "CheckRes", &WrapperImplement::CheckRes },
@@ -1808,6 +1898,9 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "RenderTexture", &WrapperImplement::RenderTexture },
 		{ "RenderTTF", &WrapperImplement::RenderTTF },
 		{ "SetFog", &WrapperImplement::SetFog },
+		{ "PushRenderTarget", &WrapperImplement::PushRenderTarget },
+		{ "PopRenderTarget", &WrapperImplement::PopRenderTarget },
+		{ "PostEffect", &WrapperImplement::PostEffect },
 		{ "PostEffectCapture", &WrapperImplement::PostEffectCapture },
 		{ "PostEffectApply", &WrapperImplement::PostEffectApply },
 		// 声音控制函数

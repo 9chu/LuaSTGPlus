@@ -469,6 +469,10 @@ luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用
 			number：被解释成float
 			lstgColor：被解释成float4
 		当前，Shader仅被用于PostEffect。
+		
+	RenderTarget补充说明
+		RenderTarget大小会和屏幕大小保持一致，且不可自定义。
+		注意到RenderTarget即可被作为渲染输出，也可以作为像素的输入源，因此同一时刻，当RenderTarget正被使用时，任何在其上的渲染操作都是无效的。出于效率考虑，lstg+没有对这种行为作出检查，使用时必须自行避免，以免导致出现显卡驱动崩溃等问题。
 
 - RemoveResource(pool:string, [type:integer, name:string]) **[新]**
 
@@ -597,6 +601,14 @@ luastg/luastg+提供了两个资源池：全局资源池、关卡资源池，用
 
 	装载Shader特效。
 
+- CreateRenderTarget(name:string) **[新增]**
+
+	创建一个名为name的RenderTarget，将被放置于Texture池中，这意味着可以像纹理那样被使用。
+
+- IsRenderTarget(name:string) **[新增]**
+
+	检查一个纹理是否为RenderTarget。
+
 ----------
 
 ### 渲染方法
@@ -608,6 +620,8 @@ luastg/luastg+中存在一个全局图像缩放系数，用于在不同模式下
 luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这一工作。
 
 另外，从luastg+开始，渲染和更新将被独立在两个函数中进行。所有的渲染操作必须在RenderFunc中执行。
+
+**针对RenderTarget特别注意：当RenderTarget处于屏幕缓冲区时，不可以再使用这一RenderTarget进行渲染。**
 
 - BeginScene()
 
@@ -692,7 +706,7 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 				[6] = 顶点颜色
 			注意该函数效率较低，若要使用请考虑缓存顶点所用table。
 
-- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor, [scale:number=1])  **[不兼容]**
+- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor)  **[不兼容]**
 
 	渲染TTF字体。
 
@@ -702,30 +716,68 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 			暂时不支持渲染格式设置。 
 			接口已统一到屏幕坐标系，不需要在代码中进行转换。
 
-- PostEffectCapture() **[新增]**
+- PushRenderTarget(name:string) **[新增]**
 
-	开始捕获绘制数据。
-
-	从这一步开始，所有后续渲染操作都将在PostEffect缓冲区中进行。
-
-	必须使用PostEffectApply执行PostEffect方可退出。
+	将一个RenderTarget作为屏幕缓冲区，并推入栈。
 
 	高级方法。
 
-- PostEffectApply(name:string, blend:string, [args:table]) **[新增]**
+		细节
+			lstg+使用栈来管理RenderTarget，这意味着可以嵌套使用RenderTarget。
+
+- PopRenderTarget()  **[新增]**
+
+	将当前使用的RenderTarget从堆栈中移除。
+
+	高级方法。
+
+- PostEffect(name:string, fx:string, blend:string, [args:table]) **[新增]**
 
 	应用PostEffect。参数指定传递给FX的参数表，将会影响后续对该FX的使用。
 
 	其中blend指定posteffect要以什么样的形式绘制到屏幕上，此时blend的第一分量无效。
 
 	高级方法。
-
+	
 		细节
 			对于PostEffect只会渲染第一个technique中的所有pass。
 			可以在PostEffect中使用下列语义注释(不区分大小写)捕获对象：
 				POSTEFFECTTEXTURE获取posteffect的捕获纹理(texture2d类型)。
 				VIEWPORT获取视口大小(vector类型)。
 				SCREENSIZE获取屏幕大小(vector类型)。
+
+- PostEffectCapture() **[新增]**
+
+	开始捕获绘制数据。
+
+	从这一步开始，所有后续渲染操作都将在PostEffect缓冲区中进行。
+
+	这一操作等价于`PushRenderTarget(InternalPostEffectBuffer)`。
+
+	高级方法。
+
+- PostEffectApply(fx_name:string, blend:string, [args:table]) **[新增]**
+
+	结束屏幕捕获并应用PostEffect。
+
+	这一操作等价于：
+	
+	```lua
+	PopRenderTarget(InternalPostEffectBuffer)
+	PostEffect(InternalPostEffectBuffer, fx_name, blend, args)
+	```
+
+	由于需要配对`InternalPostEffectBuffer`，因此RenderTarget栈顶必须为`InternalPostEffectBuffer`。
+	
+	换言之，代码必须满足：
+	
+	```lua
+	PostEffectCapture(...)
+	...  -- 配对的Push/PopRenderTarget操作
+	PostEffectApply(...)
+	```
+
+	高级方法。
 
 ----------
 
@@ -831,9 +883,9 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 	截屏并保存到file\_path。格式为PNG。
 
-- Execute(path:string, [arguments:string=nil, directory:string=nil, wait:boolean=true, show:boolean=true]):boolean  **[新增]**
+- Execute(path:string, [arguments:string=nil, directory:string=nil, wait:boolean=true]):boolean  **[新增]**
 
-	执行外部程序。参数path为可执行程序路径，arguments为参数，directory为工作目录，wait表明是否等待程序执行完毕，show表明是否显示窗体。
+	执行外部程序。参数path为可执行程序路径，arguments为参数，directory为工作目录，wait表明是否等待程序执行完毕。
 
 	成功返回true，失败返回false。
 
@@ -910,8 +962,6 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 
 ## 第三方库
 
-以下第三方库均为内置。
-
 ### cjson **[新增]**
 
 #### 方法
@@ -925,25 +975,3 @@ luastg/luastg+不开启Z-Buffer进行深度剔除，通过排序手动完成这�
 - decode(string):table
 
 	解码一个字符串为table。
-
-### lfs
-
-#### 方法
-
-更多方法请参考luafilesystem主页
-
-- mkdir(path):boolean
-
-	创建目录，不支持递归创建。
-
-	已支持utf-8编码。
-
-	成功返回true，否则返回nil,错误信息。
-
-- rm(path):boolean **[新增]**
-
-	移除文件，不支持移除文件夹。
-
-	已支持utf-8编码。
-
-	成功返回true，否则返回false。

@@ -976,36 +976,110 @@ LNOINLINE void AppFrame::SnapShot(const char* path)LNOEXCEPT
 	}
 }
 
-LNOINLINE bool AppFrame::PostEffectCapture()LNOEXCEPT
+bool AppFrame::CheckRenderTargetInUse(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT
 {
-	if (!m_bRenderStarted || m_bPostEffectCaptureStarted)
-	{
-		LERROR("PostEffectCapture: 非法调用");
+	if (!rt || !rt->IsRenderTarget() || m_stRenderTargetStack.empty())
 		return false;
-	}
 
+	return rt == m_stRenderTargetStack.back();
+}
+
+bool AppFrame::CheckRenderTargetInUse(ResTexture* rt)LNOEXCEPT
+{
+	if (!rt || !rt->IsRenderTarget() || m_stRenderTargetStack.empty())
+		return false;
+
+	return rt->GetTexture() == m_stRenderTargetStack.back();
+}
+
+bool AppFrame::PushRenderTarget(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT
+{
 	fcyRect orgVP = m_pRenderDev->GetViewport();
-	if (FCYFAILED(m_pRenderDev->SetRenderTarget(m_PostEffectBuffer)))
+	if (FCYFAILED(m_pRenderDev->SetRenderTarget(rt)))
 	{
-		LERROR("PostEffectCapture: 内部错误 (f2dRenderDevice::SetRenderTarget failed.)");
+		LERROR("PushRenderTarget: 内部错误 (f2dRenderDevice::SetRenderTarget failed.)");
 		return false;
 	}
 	m_pRenderDev->SetViewport(orgVP);
 
-	m_pRenderDev->ClearColor();
-	m_bPostEffectCaptureStarted = true;
+	try
+	{
+		m_stRenderTargetStack.push_back(rt);
+	}
+	catch (const std::bad_alloc&)
+	{
+		LERROR("PushRenderTarget: 内存不足");
+		if (m_stRenderTargetStack.empty())
+			m_pRenderDev->SetRenderTarget(nullptr);
+		else
+			m_pRenderDev->SetRenderTarget(m_stRenderTargetStack.back());
+		m_pRenderDev->SetViewport(orgVP);
+		return false;
+	}
+
 	return true;
 }
 
-LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEPT
+LNOINLINE bool AppFrame::PushRenderTarget(ResTexture* rt)LNOEXCEPT
 {
-	f2dEffectTechnique* pTechnique = shader->GetEffect()->GetTechnique(0U);
-	if (!m_bRenderStarted || !m_bPostEffectCaptureStarted || !pTechnique)
+	if (!rt || !rt->IsRenderTarget())
 	{
-		LERROR("PostEffectApply: 非法调用");
+		assert(false);  // 这不该发生
 		return false;
 	}
+
+	if (!m_bRenderStarted)
+	{
+		LERROR("PushRenderTarget: 非法调用");
+		return false;
+	}
+
+	return PushRenderTarget(rt->GetTexture());
+}
+
+LNOINLINE bool AppFrame::PopRenderTarget()LNOEXCEPT
+{
+	if (!m_bRenderStarted)
+	{
+		LERROR("PopRenderTarget: 非法调用");
+		return false;
+	}
+
+	if (m_stRenderTargetStack.empty())
+	{
+		LERROR("PopRenderTarget: RenderTarget栈为空");
+		return false;
+	}
+
+	fcyRect orgVP = m_pRenderDev->GetViewport();
+
+	m_stRenderTargetStack.pop_back();
+	if (m_stRenderTargetStack.empty())
+		m_pRenderDev->SetRenderTarget(nullptr);
+	else
+		m_pRenderDev->SetRenderTarget(m_stRenderTargetStack.back());
 	
+	m_pRenderDev->SetViewport(orgVP);
+	return true;
+}
+
+bool AppFrame::PostEffect(fcyRefPointer<f2dTexture2D> rt, ResFX* shader, BlendMode blend)LNOEXCEPT
+{
+	f2dEffectTechnique* pTechnique = shader->GetEffect()->GetTechnique(0U);
+
+	if (!pTechnique)
+	{
+		LERROR("PostEffect: 无效的Shader数据");
+		return false;
+	}
+
+	// 纹理使用检查
+	if (CheckRenderTargetInUse(rt))
+	{
+		LERROR("PostEffect: 无法在一个RenderTarget正在使用时作为后处理输入");
+		return false;
+	}
+
 	// 终止渲染过程
 	bool bRestartRenderPeriod = false;
 	switch (m_GraphType)
@@ -1026,30 +1100,25 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 		break;
 	}
 
-	// 切换RenderTarget
-	fcyRect orgVP = m_pRenderDev->GetViewport();
-	if (FCYFAILED(m_pRenderDev->SetRenderTarget(nullptr)))
-	{
-		// ！ 异常退出不可恢复渲染过程
-		LERROR("PostEffectCapture: 内部错误 (f2dRenderDevice::SetRenderTarget failed)");
-		m_bPostEffectCaptureStarted = false;
-		return false;
-	}
-	m_pRenderDev->SetViewport(orgVP);
-
 	// 更新渲染状态
 	updateGraph3DBlendMode(blend);
 
+	// 关闭fog
+	IDirect3DDevice9* pDev = (IDirect3DDevice9*)m_pRenderDev->GetHandle();
+	DWORD iFogEnabled = FALSE;
+	pDev->GetRenderState(D3DRS_FOGENABLE, &iFogEnabled);
+	if (iFogEnabled == TRUE)
+		pDev->SetRenderState(D3DRS_FOGENABLE, FALSE);
+
 	// 设置effect
-	shader->SetPostEffectTexture(m_PostEffectBuffer);
-	shader->SetViewport(orgVP);
+	shader->SetPostEffectTexture(rt);
+	shader->SetViewport(m_pRenderDev->GetViewport());
 	shader->SetScreenSize(fcyVec2((float)m_pRenderDev->GetBufferWidth(), (float)m_pRenderDev->GetBufferHeight()));
 	m_Graph3D->SetEffect(shader->GetEffect());
 	if (FCYFAILED(m_Graph3D->Begin()))
 	{
 		// ！ 异常退出不可恢复渲染过程
-		LERROR("PostEffectCapture: 内部错误 (f2dGraphics3D::Begin failed)");
-		m_bPostEffectCaptureStarted = false;
+		LERROR("PostEffect: 内部错误 (f2dGraphics3D::Begin failed)");
 		return false;
 	}
 	// 执行所有的pass
@@ -1061,7 +1130,11 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 	}
 	m_Graph3D->End();
 	shader->SetPostEffectTexture(NULL);
-	
+
+	// 检查是否开启了雾
+	if (iFogEnabled == TRUE)
+		pDev->SetRenderState(D3DRS_FOGENABLE, TRUE);
+
 	// 重启渲染过程
 	if (bRestartRenderPeriod)
 	{
@@ -1076,8 +1149,56 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 		}
 	}
 
-	m_bPostEffectCaptureStarted = false;
 	return true;
+}
+
+LNOINLINE bool AppFrame::PostEffect(ResTexture* rt, ResFX* shader, BlendMode blend)LNOEXCEPT
+{
+	if (!m_bRenderStarted)
+	{
+		LERROR("PostEffect: 非法调用");
+		return false;
+	}
+
+	return PostEffect(rt->GetTexture(), shader, blend);
+}
+
+LNOINLINE bool AppFrame::PostEffectCapture()LNOEXCEPT
+{
+	if (!m_bRenderStarted || m_bPostEffectCaptureStarted)
+	{
+		LERROR("PostEffectCapture: 非法调用 (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
+		return false;
+	}
+
+	PushRenderTarget(m_PostEffectBuffer);
+	m_pRenderDev->ClearColor();
+	m_bPostEffectCaptureStarted = true;
+	return true;
+}
+
+LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEPT
+{
+	if (!m_bRenderStarted || !m_bPostEffectCaptureStarted)
+	{
+		LERROR("PostEffectApply: 非法调用 (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
+		return false;
+	}
+	
+	if (m_stRenderTargetStack.empty() || m_stRenderTargetStack.back() != m_PostEffectBuffer)
+	{
+		LERROR("PostEffectApply: 非法调用，RenderTarget栈空或未匹配");
+		return false;
+	}
+
+	if (!PopRenderTarget())
+	{
+		LERROR("PostEffectApply: PopRenderTarget失败");
+		return false;
+	}
+
+	m_bPostEffectCaptureStarted = false;
+	return PostEffect(m_PostEffectBuffer, shader, blend);
 }
 
 #pragma endregion
@@ -1233,6 +1354,11 @@ bool AppFrame::Init()LNOEXCEPT
 	m_pSoundSys = m_pEngine->GetSoundSys();
 	m_pInputSys = m_pEngine->GetInputSys();
 
+	// 打印设备信息
+	f2dCPUInfo stCPUInfo = { 0 };
+	m_pEngine->GetCPUInfo(stCPUInfo);
+	LINFO("CPU %m %m / GPU %m", stCPUInfo.CPUBrandString, stCPUInfo.CPUString, m_pRenderDev->GetDeviceName());
+
 	// 创建渲染器
 	if (FCYFAILED(m_pRenderDev->CreateGraphics2D(1024, 2048, &m_Graph2D)))
 	{
@@ -1313,8 +1439,8 @@ bool AppFrame::Init()LNOEXCEPT
 
 	m_LastChar = 0;
 	m_LastKey = 0;
-	memset(m_KeyStateMap, 0, sizeof(m_KeyStateMap));
-	memset(m_MouseState, 0, sizeof(m_MouseState));
+	::memset(m_KeyStateMap, 0, sizeof(m_KeyStateMap));
+	::memset(m_MouseState, 0, sizeof(m_MouseState));
 
 	//////////////////////////////////////// 装载核心脚本并执行GameInit
 	LINFO("装载核心脚本'%s'", LCORE_SCRIPT);
@@ -1549,6 +1675,11 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 				m_LastKey = (fInt)tMsg.Param1;
 				m_KeyStateMap[tMsg.Param1] = true;
 			}	
+
+#if (defined LDEVVERSION) || (defined LDEBUG)
+			if (tMsg.Param1 == VK_F8)
+				m_bShowCollider = !m_bShowCollider;
+#endif
 			break;
 		case F2DMSG_WINDOW_ONKEYUP:
 			if (m_LastKey == tMsg.Param1)
@@ -1811,8 +1942,35 @@ fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 	m_bPostEffectCaptureStarted = false;
 	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0))
 		m_pEngine->Abort();
+	if (!m_stRenderTargetStack.empty())
+	{
+		LWARNING("OnRender: 渲染结束时没有推出所有的RenderTarget.");
+		while (!m_stRenderTargetStack.empty())
+			PopRenderTarget();
+	}
 	m_bRenderStarted = false;
 
+#if (defined LDEVVERSION) || (defined LDEBUG)
+	if (m_bShowCollider)
+	{
+		m_pRenderDev->ClearZBuffer();
+
+		f2dBlendState stState = m_Graph2D->GetBlendState();
+		f2dBlendState stStateClone = stState;
+		stStateClone.DestBlend = F2DBLENDFACTOR_INVSRCALPHA;
+		stStateClone.BlendOp = F2DBLENDOPERATOR_ADD;
+		m_Graph2D->SetBlendState(stStateClone);
+
+		m_Graph2D->Begin();
+		m_GameObjectPool->DrawGroupCollider(m_Graph2D, m_GRenderer, 1, fcyColor(150, 163, 73, 164));  // GROUP_ENEMY_BULLET
+		m_GameObjectPool->DrawGroupCollider(m_Graph2D, m_GRenderer, 2, fcyColor(150, 163, 73, 164));  // GROUP_ENEMY
+		m_GameObjectPool->DrawGroupCollider(m_Graph2D, m_GRenderer, 5, fcyColor(150, 163, 73, 20));  // GROUP_INDES
+		m_GameObjectPool->DrawGroupCollider(m_Graph2D, m_GRenderer, 4, fcyColor(100, 175, 15, 20));  // GROUP_PLAYER
+		m_Graph2D->End();
+
+		m_Graph2D->SetBlendState(stState);
+	}
+#endif
 	return true;
 }
 #pragma endregion

@@ -1,6 +1,7 @@
 #include "GameObjectPool.h"
 #include "GameObjectPropertyHash.inl"
 #include "AppFrame.h"
+#include "CollisionDetect.h"
 
 #define METATABLE_OBJ "mt"
 
@@ -77,8 +78,42 @@ static inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 static inline bool CollisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
 	if (!p1->colli || !p2->colli)  // 忽略不碰撞对象
-	return false;
+		return false;
 
+	// 快速检测
+	if ((p1->x - p1->col_r >= p2->x + p2->col_r) ||
+		(p1->x + p1->col_r <= p2->x - p2->col_r) ||
+		(p1->y - p1->col_r >= p2->y + p2->col_r) ||
+		(p1->y + p1->col_r <= p2->y - p2->col_r))
+	{
+		return false;
+	}
+
+	fcyVec2 pos1((float)p1->x, (float)p1->y), pos2((float)p2->x, (float)p2->y);
+	fcyVec2 size1((float)p1->a, (float)p1->b), size2((float)p2->a, (float)p2->b);  // half size
+	float r1((float)p1->col_r), r2((float)p2->col_r);
+
+	// 外接圆检查
+	if (!CircleHitTest(pos1, r1, pos2, r2))
+		return false;
+
+	// 精确碰撞检查
+	if (p1->rect)
+	{
+		if (p2->rect)
+			return OBBHitTest(pos1, size1, (float)p1->rot, pos2, size2, (float)p2->rot);
+		else
+			return OBBCircleHitTest(pos1, size1, (float)p1->rot, pos2, r2);
+	}
+	else
+	{
+		if (p2->rect)
+			return OBBCircleHitTest(pos2, size2, (float)p2->rot, pos1, r1);
+		else
+			return true;  // 外接圆检查通过了
+	}
+
+	/*
 	// ! 来自luastg的代码 原理不明。
 	double a = p2->a;
 	double b = p2->b;
@@ -98,6 +133,7 @@ static inline bool CollisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
 		return x < a && y < b;
 	else
 		return (x * b + y * a) < a * b;
+	*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -319,6 +355,7 @@ bool GameObjectBentLaser::CollisionCheck(float x, float y, float rot, float a, f
 	testObjB.a = a;
 	testObjB.b = b;
 	testObjB.rect = rect;
+	testObjB.UpdateCollisionCirclrRadius();
 
 	for (size_t i = 0; i < m_Queue.Size(); ++i)
 	{
@@ -326,6 +363,7 @@ bool GameObjectBentLaser::CollisionCheck(float x, float y, float rot, float a, f
 		testObjA.x = n.pos.x;
 		testObjA.y = n.pos.y;
 		testObjA.a = testObjA.b = n.half_width;
+		testObjA.UpdateCollisionCirclrRadius();
 		if (::CollisionCheck(&testObjA, &testObjB))
 			return true;
 	}
@@ -360,6 +398,7 @@ bool GameObject::ChangeResource(const char* res_name)
 		a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
 		b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
 		rect = tSprite->IsRectangle();
+		UpdateCollisionCirclrRadius();
 		return true;
 	}
 
@@ -371,6 +410,7 @@ bool GameObject::ChangeResource(const char* res_name)
 		a = tAnimation->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
 		b = tAnimation->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
 		rect = tAnimation->IsRectangle();
+		UpdateCollisionCirclrRadius();
 		return true;
 	}
 
@@ -393,6 +433,7 @@ bool GameObject::ChangeResource(const char* res_name)
 		a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
 		b = tParticle->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
 		rect = tParticle->IsRectangle();
+		UpdateCollisionCirclrRadius();
 		return true;
 	}
 
@@ -1217,12 +1258,15 @@ int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 		break;
 	case GameObjectProperty::A:
 		p->a = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
+		p->UpdateCollisionCirclrRadius();
 		break;
 	case GameObjectProperty::B:
 		p->b = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
+		p->UpdateCollisionCirclrRadius();
 		break;
 	case GameObjectProperty::RECT:
 		p->rect = lua_toboolean(L, 3) == 0 ? false : true;
+		p->UpdateCollisionCirclrRadius();
 		break;
 	case GameObjectProperty::IMG:
 		do
@@ -1353,4 +1397,50 @@ int GameObjectPool::ParticleSetEmission(lua_State* L)LNOEXCEPT
 	}
 	p->ps->SetEmission((float)::max(0., luaL_checknumber(L, 2)));
 	return 0;
+}
+
+void GameObjectPool::DrawGroupCollider(f2dGraphics2D* graph, f2dGeometryRenderer* grender, int groupId, fcyColor fillColor)
+{
+	GameObject* p = m_pCollisionListHeader[groupId].pCollisionNext;
+	GameObject* pTail = &m_pCollisionListTail[groupId];
+	while (p && p != pTail)
+	{
+		if (p->colli)
+		{
+			if (p->rect)
+			{
+				fcyVec2 tHalfSize((float)p->a, (float)p->b);
+
+				// 计算出矩形的4个顶点
+				f2dGraphics2DVertex tFinalPos[4] =
+				{
+					{ -tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 0.0f },
+					{ tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 1.0f },
+					{ tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 1.0f },
+					{ -tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 0.0f }
+				};
+
+				// float tSin = sin(Angle), tCos = cos(Angle);
+				float tSin, tCos;
+				SinCos((float)p->rot, tSin, tCos);
+
+				// 变换
+				for (int i = 0; i < 4; i++)
+				{
+					fFloat tx = tFinalPos[i].x * tCos - tFinalPos[i].y * tSin,
+						ty = tFinalPos[i].x * tSin + tFinalPos[i].y * tCos;
+					tFinalPos[i].x = tx + (float)p->x; tFinalPos[i].y = ty + (float)p->y;
+				}
+
+				graph->DrawQuad(nullptr, tFinalPos);
+			}
+			else
+			{
+				grender->FillCircle(graph, fcyVec2((float)p->x, (float)p->y), (float)p->col_r, fillColor, fillColor,
+					p->col_r < 10 ? 3 : (p->col_r < 20 ? 6 : 8));
+			}
+		}
+
+		p = p->pCollisionNext;
+	}
 }

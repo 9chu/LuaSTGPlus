@@ -77,6 +77,7 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dTexture2D> m_Texture;
 	public:
 		f2dTexture2D* GetTexture() { return m_Texture; }
+		bool IsRenderTarget() { return m_Texture->IsRenderTarget(); }
 	public:
 		ResTexture(const char* name, fcyRefPointer<f2dTexture2D> tex)
 			: Resource(ResourceType::Texture, name), m_Texture(tex) {}
@@ -630,6 +631,9 @@ namespace LuaSTGPlus
 		bool LoadFX(const char* name, const std::wstring& path)LNOEXCEPT;
 
 		LNOINLINE bool LoadFX(const char* name, const char* path)LNOEXCEPT;
+
+		/// @brief 构造RenderTarget
+		LNOINLINE bool CreateRenderTarget(const char* name)LNOEXCEPT;
 
 		/// @brief 获取纹理
 		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT

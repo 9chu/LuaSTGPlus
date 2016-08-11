@@ -70,6 +70,8 @@ namespace LuaSTGPlus
 		float m_ObjectTotal = 0.f;  // 记录在采样时间内累计的对象数
 		float m_UpdateTimerTotal = 0.f;  // 记录在采样时间内累计的更新时间
 		float m_RenderTimerTotal = 0.f;  // 记录在采样时间内累计的渲染时间
+
+		bool m_bShowCollider = false;
 #endif
 
 		// 载入窗口
@@ -106,6 +108,7 @@ namespace LuaSTGPlus
 		GraphicsType m_GraphType = GraphicsType::Graph2D;
 		bool m_bRenderStarted = false;
 
+		// 2D模式
 		BlendMode m_Graph2DLastBlendMode;
 		f2dBlendState m_Graph2DBlendState;
 		F2DGRAPH2DBLENDTYPE m_Graph2DColorBlendState;
@@ -113,12 +116,17 @@ namespace LuaSTGPlus
 		fcyRefPointer<f2dFontRenderer> m_FontRenderer;
 		fcyRefPointer<f2dGraphics2D> m_Graph2D;
 
+		// 3D模式
 		BlendMode m_Graph3DLastBlendMode;
 		f2dBlendState m_Graph3DBlendState;
 		fcyRefPointer<f2dGraphics3D> m_Graph3D;
 
+		// PostEffect控制
 		bool m_bPostEffectCaptureStarted = false;
 		fcyRefPointer<f2dTexture2D> m_PostEffectBuffer;
+
+		// RenderTarget控制
+		std::vector<fcyRefPointer<f2dTexture2D>> m_stRenderTargetStack;
 
 		fcyRefPointer<f2dInputKeyboard> m_Keyboard;
 		fcyRefPointer<f2dInputJoystick> m_Joystick[2];
@@ -517,6 +525,20 @@ namespace LuaSTGPlus
 		LNOINLINE bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, fcyColor c)LNOEXCEPT;
 
 		LNOINLINE void SnapShot(const char* path)LNOEXCEPT;
+
+		bool CheckRenderTargetInUse(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT;
+
+		bool CheckRenderTargetInUse(ResTexture* rt)LNOEXCEPT;
+
+		bool PushRenderTarget(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT;
+
+		LNOINLINE bool PushRenderTarget(ResTexture* rt)LNOEXCEPT;
+
+		LNOINLINE bool PopRenderTarget()LNOEXCEPT;
+
+		bool PostEffect(fcyRefPointer<f2dTexture2D> rt, ResFX* shader, BlendMode blend)LNOEXCEPT;
+
+		LNOINLINE bool PostEffect(ResTexture* rt, ResFX* shader, BlendMode blend)LNOEXCEPT;
 
 		LNOINLINE bool PostEffectCapture()LNOEXCEPT;
 

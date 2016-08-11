@@ -37,7 +37,10 @@ namespace LuaSTGPlus
 		bool bound;  // 是否越界清除
 		bool hide;  // 是否隐藏
 		bool navi;  // 是否自动转向
-		
+
+		// 受colli,a,b,rect参数影响的碰撞盒外圆半径
+		lua_Number col_r;
+
 		lua_Integer group;  // 对象所在的碰撞组
 		lua_Integer timer, ani_timer;  // 计数器
 
@@ -68,6 +71,8 @@ namespace LuaSTGPlus
 			colli = bound = true;
 			rect = hide = navi = false;
 
+			col_r = 0.;
+
 			group = LGOBJ_DEFAULTGROUP;
 			timer = ani_timer = 0;
 
@@ -77,6 +82,14 @@ namespace LuaSTGPlus
 			pObjectPrev = pObjectNext = nullptr;
 			pRenderPrev = pRenderNext = nullptr;
 			pCollisionPrev = pCollisionNext = nullptr;
+		}
+
+		void UpdateCollisionCirclrRadius()
+		{
+			if (rect)
+				col_r = ::sqrt(a * a + b * b);
+			else
+				col_r = (a + b) / 2;
 		}
 
 		void ReleaseResource()
@@ -250,6 +263,8 @@ namespace LuaSTGPlus
 		int ParticleGetn(lua_State* L)LNOEXCEPT;
 		int ParticleGetEmission(lua_State* L)LNOEXCEPT;
 		int ParticleSetEmission(lua_State* L)LNOEXCEPT;
+	public:  // 内部使用
+		void DrawGroupCollider(f2dGraphics2D* graph, f2dGeometryRenderer* grender, int groupId, fcyColor fillColor);
 	private:
 		GameObjectPool& operator=(const GameObjectPool&);
 		GameObjectPool(const GameObjectPool&);
