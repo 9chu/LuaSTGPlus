@@ -79,6 +79,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\fancy2d\fancy2d\;$(SolutionDir)\..\fancy2d\fancylib\;$(SolutionDir)\3rdParty\luajit\src\;$(SolutionDir)\3rdParty\luajit\_build\;$(SolutionDir)\ZLib\;$(SolutionDir)\ZLib\minizip\</AdditionalIncludeDirectories>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -99,6 +100,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\fancy2d\fancy2d\;$(SolutionDir)\..\fancy2d\fancylib\;$(SolutionDir)\3rdParty\luajit\src\;$(SolutionDir)\3rdParty\luajit\_build\;$(SolutionDir)\ZLib\;$(SolutionDir)\ZLib\minizip\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -122,6 +124,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\fancy2d\fancy2d\;$(SolutionDir)\..\fancy2d\fancylib\;$(SolutionDir)\3rdParty\luajit\src\;$(SolutionDir)\3rdParty\luajit\_build\;$(SolutionDir)\ZLib\;$(SolutionDir)\ZLib\minizip\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
