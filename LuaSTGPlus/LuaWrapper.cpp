@@ -240,7 +240,7 @@ void RandomizerWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			fcyRandomWELL512* p = static_cast<fcyRandomWELL512*>(luaL_checkudata(L, 1, TYPENAME_RANDGEN));
 			int a = luaL_checkinteger(L, 2), b = luaL_checkinteger(L, 3);
-			lua_pushinteger(L, a + static_cast<fInt>(p->GetRandUInt(::max(static_cast<fuInt>(b - a), 0U))));
+			lua_pushinteger(L, a + static_cast<fInt>(p->GetRandUInt(static_cast<fuInt>(::max(b - a, 0)))));
 			return 1;
 		}
 		static int Float(lua_State* L)LNOEXCEPT

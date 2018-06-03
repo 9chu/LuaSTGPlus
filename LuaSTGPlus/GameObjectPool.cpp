@@ -13,127 +13,127 @@
 #endif
 
 #define GETOBJTABLE \
-	do { \
-		lua_pushlightuserdata(L, (void*)&LAPP); \
-		lua_gettable(L, LUA_REGISTRYINDEX); \
-	} while (false)
+    do { \
+        lua_pushlightuserdata(L, (void*)&LAPP); \
+        lua_gettable(L, LUA_REGISTRYINDEX); \
+    } while (false)
 
 #define LIST_INSERT_BEFORE(target, p, field) \
-	do { \
-		p->p##field##Prev = (target)->p##field##Prev; \
-		p->p##field##Next = (target); \
-		p->p##field##Prev->p##field##Next = p; \
-		p->p##field##Next->p##field##Prev = p; \
-	} while(false)
+    do { \
+        p->p##field##Prev = (target)->p##field##Prev; \
+        p->p##field##Next = (target); \
+        p->p##field##Prev->p##field##Next = p; \
+        p->p##field##Next->p##field##Prev = p; \
+    } while(false)
 
 #define LIST_INSERT_AFTER(target, p, field) \
-	do { \
-		p->p##field##Prev = (target); \
-		p->p##field##Next = (target)->p##field##Next; \
-		p->p##field##Prev->p##field##Next = p; \
-		p->p##field##Next->p##field##Prev = p; \
-	} while(false)
+    do { \
+        p->p##field##Prev = (target); \
+        p->p##field##Next = (target)->p##field##Next; \
+        p->p##field##Prev->p##field##Next = p; \
+        p->p##field##Next->p##field##Prev = p; \
+    } while(false)
 
 #define LIST_REMOVE(p, field) \
-	do { \
-		p->p##field##Prev->p##field##Next = p->p##field##Next; \
-		p->p##field##Next->p##field##Prev = p->p##field##Prev; \
-	} while(false)
+    do { \
+        p->p##field##Prev->p##field##Next = p->p##field##Next; \
+        p->p##field##Next->p##field##Prev = p->p##field##Prev; \
+    } while(false)
 
 #define LIST_INSERT_SORT(p, field, func) \
-	do { \
-		if (p->p##field##Next->p##field##Next && func(p->p##field##Next, p)) \
-		{ \
-			GameObject* pInsertBefore = p->p##field##Next->p##field##Next; \
-			while (pInsertBefore->p##field##Next && func(pInsertBefore, p)) \
-				pInsertBefore = pInsertBefore->p##field##Next; \
-			LIST_REMOVE(p, field); \
-			LIST_INSERT_BEFORE(pInsertBefore, p, field); \
-		} \
-		else if (p->p##field##Prev->p##field##Prev && func(p, p->p##field##Prev)) \
-		{ \
-			GameObject* pInsertAfter = p->p##field##Prev->p##field##Prev; \
-			while (pInsertAfter->p##field##Prev && func(p, pInsertAfter)) \
-				pInsertAfter = pInsertAfter->p##field##Prev; \
-			LIST_REMOVE(p, field); \
-			LIST_INSERT_AFTER(pInsertAfter, p, field); \
-		} \
-	} while (false)
+    do { \
+        if (p->p##field##Next->p##field##Next && func(p->p##field##Next, p)) \
+        { \
+            GameObject* pInsertBefore = p->p##field##Next->p##field##Next; \
+            while (pInsertBefore->p##field##Next && func(pInsertBefore, p)) \
+                pInsertBefore = pInsertBefore->p##field##Next; \
+            LIST_REMOVE(p, field); \
+            LIST_INSERT_BEFORE(pInsertBefore, p, field); \
+        } \
+        else if (p->p##field##Prev->p##field##Prev && func(p, p->p##field##Prev)) \
+        { \
+            GameObject* pInsertAfter = p->p##field##Prev->p##field##Prev; \
+            while (pInsertAfter->p##field##Prev && func(p, pInsertAfter)) \
+                pInsertAfter = pInsertAfter->p##field##Prev; \
+            LIST_REMOVE(p, field); \
+            LIST_INSERT_AFTER(pInsertAfter, p, field); \
+        } \
+    } while (false)
 
 using namespace std;
 using namespace LuaSTGPlus;
 
 static inline bool ObjectListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
-	// æ€»æ˜¯ä»¥uidä¸ºå‚ç…§
-	return p1->uid < p2->uid;
+    // ×ÜÊÇÒÔuidÎª²ÎÕÕ
+    return p1->uid < p2->uid;
 }
 
 static inline bool RenderListSortFunc(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
-	// layerå°çš„é å‰ã€‚è‹¥layerç›¸åŒåˆ™å‚ç…§uidã€‚
-	return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
+    // layerĞ¡µÄ¿¿Ç°¡£ÈôlayerÏàÍ¬Ôò²ÎÕÕuid¡£
+    return (p1->layer < p2->layer) || ((p1->layer == p2->layer) && (p1->uid < p2->uid));
 }
 
 static inline bool CollisionCheck(GameObject* p1, GameObject* p2)LNOEXCEPT
 {
-	if (!p1->colli || !p2->colli)  // å¿½ç•¥ä¸ç¢°æ’å¯¹è±¡
-		return false;
+    if (!p1->colli || !p2->colli)  // ºöÂÔ²»Åö×²¶ÔÏó
+        return false;
 
-	// å¿«é€Ÿæ£€æµ‹
-	if ((p1->x - p1->col_r >= p2->x + p2->col_r) ||
-		(p1->x + p1->col_r <= p2->x - p2->col_r) ||
-		(p1->y - p1->col_r >= p2->y + p2->col_r) ||
-		(p1->y + p1->col_r <= p2->y - p2->col_r))
-	{
-		return false;
-	}
+    // ¿ìËÙ¼ì²â
+    if ((p1->x - p1->col_r >= p2->x + p2->col_r) ||
+        (p1->x + p1->col_r <= p2->x - p2->col_r) ||
+        (p1->y - p1->col_r >= p2->y + p2->col_r) ||
+        (p1->y + p1->col_r <= p2->y - p2->col_r))
+    {
+        return false;
+    }
 
-	fcyVec2 pos1((float)p1->x, (float)p1->y), pos2((float)p2->x, (float)p2->y);
-	fcyVec2 size1((float)p1->a, (float)p1->b), size2((float)p2->a, (float)p2->b);  // half size
-	float r1((float)p1->col_r), r2((float)p2->col_r);
+    fcyVec2 pos1((float)p1->x, (float)p1->y), pos2((float)p2->x, (float)p2->y);
+    fcyVec2 size1((float)p1->a, (float)p1->b), size2((float)p2->a, (float)p2->b);  // half size
+    float r1((float)p1->col_r), r2((float)p2->col_r);
 
-	// å¤–æ¥åœ†æ£€æŸ¥
-	if (!CircleHitTest(pos1, r1, pos2, r2))
-		return false;
+    // Íâ½ÓÔ²¼ì²é
+    if (!CircleHitTest(pos1, r1, pos2, r2))
+        return false;
 
-	// ç²¾ç¡®ç¢°æ’æ£€æŸ¥
-	if (p1->rect)
-	{
-		if (p2->rect)
-			return OBBHitTest(pos1, size1, (float)p1->rot, pos2, size2, (float)p2->rot);
-		else
-			return OBBCircleHitTest(pos1, size1, (float)p1->rot, pos2, r2);
-	}
-	else
-	{
-		if (p2->rect)
-			return OBBCircleHitTest(pos2, size2, (float)p2->rot, pos1, r1);
-		else
-			return true;  // å¤–æ¥åœ†æ£€æŸ¥é€šè¿‡äº†
-	}
+    // ¾«È·Åö×²¼ì²é
+    if (p1->rect)
+    {
+        if (p2->rect)
+            return OBBHitTest(pos1, size1, (float)p1->rot, pos2, size2, (float)p2->rot);
+        else
+            return OBBCircleHitTest(pos1, size1, (float)p1->rot, pos2, r2);
+    }
+    else
+    {
+        if (p2->rect)
+            return OBBCircleHitTest(pos2, size2, (float)p2->rot, pos1, r1);
+        else
+            return true;  // Íâ½ÓÔ²¼ì²éÍ¨¹ıÁË
+    }
 
-	/*
-	// ! æ¥è‡ªluastgçš„ä»£ç  åŸç†ä¸æ˜ã€‚
-	double a = p2->a;
-	double b = p2->b;
-	double r = p1->a;
-	double l = a + b + r;
-	double dx = p2->x - p1->x;
-	double dy = p2->y - p1->y;
-	if (fabs(dx) > l || fabs(dy) > l)
-		return false;
-	double x = dx*cos(p1->rot) + dy*sin(p1->rot);
-	double y = -dx*sin(p1->rot) + dy*cos(p1->rot);
-	a += r;
-	b += r;
-	a = a*a; b = b*b;
-	x = x*x; y = y*y;
-	if (p2->rect)
-		return x < a && y < b;
-	else
-		return (x * b + y * a) < a * b;
-	*/
+    /*
+    // ! À´×ÔluastgµÄ´úÂë Ô­Àí²»Ã÷¡£
+    double a = p2->a;
+    double b = p2->b;
+    double r = p1->a;
+    double l = a + b + r;
+    double dx = p2->x - p1->x;
+    double dy = p2->y - p1->y;
+    if (fabs(dx) > l || fabs(dy) > l)
+        return false;
+    double x = dx*cos(p1->rot) + dy*sin(p1->rot);
+    double y = -dx*sin(p1->rot) + dy*cos(p1->rot);
+    a += r;
+    b += r;
+    a = a*a; b = b*b;
+    x = x*x; y = y*y;
+    if (p2->rect)
+        return x < a && y < b;
+    else
+        return (x * b + y * a) < a * b;
+    */
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -143,15 +143,15 @@ static fcyMemPool<sizeof(GameObjectBentLaser)> s_GameObjectBentLaserPool(1024);
 
 GameObjectBentLaser* GameObjectBentLaser::AllocInstance()
 {
-	// ! æ½œåœ¨bad_alloc
-	GameObjectBentLaser* pRet = new(s_GameObjectBentLaserPool.Alloc()) GameObjectBentLaser();
-	return pRet;
+    // ! Ç±ÔÚbad_alloc
+    GameObjectBentLaser* pRet = new(s_GameObjectBentLaserPool.Alloc()) GameObjectBentLaser();
+    return pRet;
 }
 
 void GameObjectBentLaser::FreeInstance(GameObjectBentLaser* p)
 {
-	p->~GameObjectBentLaser();
-	s_GameObjectBentLaserPool.Free(p);
+    p->~GameObjectBentLaser();
+    s_GameObjectBentLaserPool.Free(p);
 }
 
 GameObjectBentLaser::GameObjectBentLaser()
@@ -164,47 +164,47 @@ GameObjectBentLaser::~GameObjectBentLaser()
 
 bool GameObjectBentLaser::Update(size_t id, int length, float width)LNOEXCEPT
 {
-	GameObject* p = LPOOL.GetPooledObject(id);
-	if (!p)
-		return false;
-	if (length <= 1)
-	{
-		LERROR("lstgBentLaserData: æ— æ•ˆçš„å‚æ•°length");
-		return false;
-	}
+    GameObject* p = LPOOL.GetPooledObject(id);
+    if (!p)
+        return false;
+    if (length <= 1)
+    {
+        LERROR("lstgBentLaserData: ÎŞĞ§µÄ²ÎÊılength");
+        return false;
+    }
 
-	// ç§»é™¤å¤šä½™çš„èŠ‚ç‚¹ï¼Œä¿è¯é•¿åº¦åœ¨lengthèŒƒå›´å†…
-	while (m_Queue.IsFull() || m_Queue.Size() >= (size_t)length)
-	{
-		LaserNode tLastPop;
-		m_Queue.Pop(tLastPop);
+    // ÒÆ³ı¶àÓàµÄ½Úµã£¬±£Ö¤³¤¶ÈÔÚlength·¶Î§ÄÚ
+    while (m_Queue.IsFull() || m_Queue.Size() >= (size_t)length)
+    {
+        LaserNode tLastPop;
+        m_Queue.Pop(tLastPop);
 
-		// å‡å°‘æ€»é•¿åº¦
-		if (!m_Queue.IsEmpty())
-		{
-			LaserNode tFront = m_Queue.Front();
-			m_fLength -= (tLastPop.pos - tFront.pos).Length();
-		}
-	}
+        // ¼õÉÙ×Ü³¤¶È
+        if (!m_Queue.IsEmpty())
+        {
+            LaserNode tFront = m_Queue.Front();
+            m_fLength -= (tLastPop.pos - tFront.pos).Length();
+        }
+    }
 
-	// æ·»åŠ æ–°èŠ‚ç‚¹
-	if (m_Queue.Size() < (size_t)length)
-	{
-		LaserNode tNode;
-		tNode.pos.Set((float)p->x, (float)p->y);
-		tNode.half_width = width / 2.f;
-		m_Queue.Push(tNode);
+    // Ìí¼ÓĞÂ½Úµã
+    if (m_Queue.Size() < (size_t)length)
+    {
+        LaserNode tNode;
+        tNode.pos.Set((float)p->x, (float)p->y);
+        tNode.half_width = width / 2.f;
+        m_Queue.Push(tNode);
 
-		// å¢åŠ æ€»é•¿åº¦
-		if (m_Queue.Size() > 1)
-		{
-			LaserNode& tNodeLast = m_Queue.Back();
-			LaserNode& tNodeBeforeLast = m_Queue[m_Queue.Size() - 2];
-			m_fLength += (tNodeBeforeLast.pos - tNodeLast.pos).Length();
-		}
-	}
+        // Ôö¼Ó×Ü³¤¶È
+        if (m_Queue.Size() > 1)
+        {
+            LaserNode& tNodeLast = m_Queue.Back();
+            LaserNode& tNodeBeforeLast = m_Queue[m_Queue.Size() - 2];
+            m_fLength += (tNodeBeforeLast.pos - tNodeLast.pos).Length();
+        }
+    }
 
-	return true;
+    return true;
 }
 
 void GameObjectBentLaser::Release()LNOEXCEPT
@@ -213,174 +213,174 @@ void GameObjectBentLaser::Release()LNOEXCEPT
 
 bool GameObjectBentLaser::Render(const char* tex_name, BlendMode blend, fcyColor c, float tex_left, float tex_top, float tex_width, float tex_height, float scale)LNOEXCEPT
 {
-	// å¿½ç•¥åªæœ‰ä¸€ä¸ªèŠ‚ç‚¹çš„æƒ…å†µ
-	if (m_Queue.Size() <= 1)
-		return true;
+    // ºöÂÔÖ»ÓĞÒ»¸ö½ÚµãµÄÇé¿ö
+    if (m_Queue.Size() <= 1)
+        return true;
 
-	fcyRefPointer<ResTexture> pTex = LRES.FindTexture(tex_name);
-	if (!pTex)
-	{
-		LERROR("lstgBentLaserData: æ‰¾ä¸åˆ°çº¹ç†èµ„æº'%m'", tex_name);
-		return false;
-	}
+    fcyRefPointer<ResTexture> pTex = LRES.FindTexture(tex_name);
+    if (!pTex)
+    {
+        LERROR("lstgBentLaserData: ÕÒ²»µ½ÎÆÀí×ÊÔ´'%m'", tex_name);
+        return false;
+    }
 
-	f2dGraphics2DVertex renderVertex[4] = {
-		{ 0, 0, 0.5f, c.argb, 0, tex_top },
-		{ 0, 0, 0.5f, c.argb, 0, tex_top },
-		{ 0, 0, 0.5f, c.argb, 0, tex_top + tex_height },
-		{ 0, 0, 0.5f, c.argb, 0, tex_top + tex_height }
-	};
+    f2dGraphics2DVertex renderVertex[4] = {
+        { 0, 0, 0.5f, c.argb, 0, tex_top },
+        { 0, 0, 0.5f, c.argb, 0, tex_top },
+        { 0, 0, 0.5f, c.argb, 0, tex_top + tex_height },
+        { 0, 0, 0.5f, c.argb, 0, tex_top + tex_height }
+    };
 
-	float tVecLength = 0;
-	for (size_t i = 0; i < m_Queue.Size() - 1; ++i)
-	{
-		LaserNode& cur = m_Queue[i];
-		LaserNode& next = m_Queue[i + 1];
+    float tVecLength = 0;
+    for (size_t i = 0; i < m_Queue.Size() - 1; ++i)
+    {
+        LaserNode& cur = m_Queue[i];
+        LaserNode& next = m_Queue[i + 1];
 
-		// === è®¡ç®—æœ€å·¦ä¾§çš„ä¸¤ä¸ªç‚¹ ===
-		// è®¡ç®—ä»curåˆ°nextçš„å‘é‡
-		fcyVec2 offsetA = cur.pos - next.pos;
-		float lenOffsetA = offsetA.Length();
-		if (lenOffsetA < 0.0001f && i + 1 != m_Queue.Size() - 1)
-			continue;
+        // === ¼ÆËã×î×ó²àµÄÁ½¸öµã ===
+        // ¼ÆËã´Ócurµ½nextµÄÏòÁ¿
+        fcyVec2 offsetA = cur.pos - next.pos;
+        float lenOffsetA = offsetA.Length();
+        if (lenOffsetA < 0.0001f && i + 1 != m_Queue.Size() - 1)
+            continue;
 
-		// è®¡ç®—å®½åº¦ä¸Šçš„æ‰©å±•é•¿åº¦(æ—‹è½¬270åº¦)
-		fcyVec2 expandVec = offsetA.GetNormalize();
-		std::swap(expandVec.x, expandVec.y);
-		expandVec.y = -expandVec.y;
+        // ¼ÆËã¿í¶ÈÉÏµÄÀ©Õ¹³¤¶È(Ğı×ª270¶È)
+        fcyVec2 expandVec = offsetA.GetNormalize();
+        std::swap(expandVec.x, expandVec.y);
+        expandVec.y = -expandVec.y;
 
-		if (i == 0)  // å¦‚æœæ˜¯ç¬¬ä¸€ä¸ªèŠ‚ç‚¹ï¼Œåˆ™å…¶å®½åº¦æ‰©å±•ä½¿ç”¨expandVecè®¡ç®—
-		{
-			float expX = expandVec.x * scale * cur.half_width;
-			float expY = expandVec.y * scale * cur.half_width;
-			renderVertex[0].x = cur.pos.x + expX;
-			renderVertex[0].y = cur.pos.y + expY;
-			renderVertex[0].u = tex_left;
-			renderVertex[3].x = cur.pos.x - expX;
-			renderVertex[3].y = cur.pos.y - expY;
-			renderVertex[3].u = tex_left;
-		}
-		else  // å¦åˆ™ï¼Œæ‹·è´1å’Œ2
-		{
-			renderVertex[0].x = renderVertex[1].x;
-			renderVertex[0].y = renderVertex[1].y;
-			renderVertex[0].u = renderVertex[1].u;
-			renderVertex[3].x = renderVertex[2].x;
-			renderVertex[3].y = renderVertex[2].y;
-			renderVertex[3].u = renderVertex[2].u;
-		}
+        if (i == 0)  // Èç¹ûÊÇµÚÒ»¸ö½Úµã£¬ÔòÆä¿í¶ÈÀ©Õ¹Ê¹ÓÃexpandVec¼ÆËã
+        {
+            float expX = expandVec.x * scale * cur.half_width;
+            float expY = expandVec.y * scale * cur.half_width;
+            renderVertex[0].x = cur.pos.x + expX;
+            renderVertex[0].y = cur.pos.y + expY;
+            renderVertex[0].u = tex_left;
+            renderVertex[3].x = cur.pos.x - expX;
+            renderVertex[3].y = cur.pos.y - expY;
+            renderVertex[3].u = tex_left;
+        }
+        else  // ·ñÔò£¬¿½±´1ºÍ2
+        {
+            renderVertex[0].x = renderVertex[1].x;
+            renderVertex[0].y = renderVertex[1].y;
+            renderVertex[0].u = renderVertex[1].u;
+            renderVertex[3].x = renderVertex[2].x;
+            renderVertex[3].y = renderVertex[2].y;
+            renderVertex[3].u = renderVertex[2].u;
+        }
 
-		// === è®¡ç®—æœ€å³ä¾§çš„ä¸¤ä¸ªç‚¹ ===
-		tVecLength += lenOffsetA;
-		if (i == m_Queue.Size() - 2)  // è¿™æ˜¯æœ€åä¸¤ä¸ªèŠ‚ç‚¹ï¼Œåˆ™å…¶å®½åº¦æ‰©å±•ä½¿ç”¨expandVecè®¡ç®—
-		{
-			float expX = expandVec.x * scale * next.half_width;
-			float expY = expandVec.y * scale * next.half_width;
-			renderVertex[1].x = next.pos.x + expX;
-			renderVertex[1].y = next.pos.y + expY;
-			renderVertex[1].u = tex_left + tex_width;
-			renderVertex[2].x = next.pos.x - expX;
-			renderVertex[2].y = next.pos.y - expY;
-			renderVertex[2].u = tex_left + tex_width;
-		}
-		else  // å¦åˆ™ï¼Œå‚è€ƒç¬¬ä¸‰ä¸ªç‚¹
-		{
-			float expX, expY;
-			LaserNode& afterNext = m_Queue[i + 2];
+        // === ¼ÆËã×îÓÒ²àµÄÁ½¸öµã ===
+        tVecLength += lenOffsetA;
+        if (i == m_Queue.Size() - 2)  // ÕâÊÇ×îºóÁ½¸ö½Úµã£¬ÔòÆä¿í¶ÈÀ©Õ¹Ê¹ÓÃexpandVec¼ÆËã
+        {
+            float expX = expandVec.x * scale * next.half_width;
+            float expY = expandVec.y * scale * next.half_width;
+            renderVertex[1].x = next.pos.x + expX;
+            renderVertex[1].y = next.pos.y + expY;
+            renderVertex[1].u = tex_left + tex_width;
+            renderVertex[2].x = next.pos.x - expX;
+            renderVertex[2].y = next.pos.y - expY;
+            renderVertex[2].u = tex_left + tex_width;
+        }
+        else  // ·ñÔò£¬²Î¿¼µÚÈı¸öµã
+        {
+            float expX, expY;
+            LaserNode& afterNext = m_Queue[i + 2];
 
-			// è®¡ç®—å‘é‡next->afterNextå¹¶è§„èŒƒåŒ–ï¼Œç›¸åŠ offsetAå’ŒoffsetBåå¾—è§’å¹³åˆ†çº¿
-			fcyVec2 offsetB = afterNext.pos - next.pos;
-			fcyVec2 angleBisect = offsetA.GetNormalize() + offsetB.GetNormalize();
-			float angleBisectLen = angleBisect.Length();
+            // ¼ÆËãÏòÁ¿next->afterNext²¢¹æ·¶»¯£¬Ïà¼ÓoffsetAºÍoffsetBºóµÃ½ÇÆ½·ÖÏß
+            fcyVec2 offsetB = afterNext.pos - next.pos;
+            fcyVec2 angleBisect = offsetA.GetNormalize() + offsetB.GetNormalize();
+            float angleBisectLen = angleBisect.Length();
 
-			if (angleBisectLen < 0.00002f || angleBisectLen > 1.99998f)  // å‡ ä¹åœ¨ä¸€æ¡ç›´çº¿ä¸Š
-			{
-				expX = expandVec.x * scale * next.half_width;
-				expY = expandVec.y * scale * next.half_width;
-			}
-			else // è®¡ç®—è§’å¹³åˆ†çº¿åˆ°è§’ä¸¤è¾¹è·ç¦»ä¸ºnext.half_width * scaleçš„åç§»é‡
-			{
-				angleBisect *= (1 / angleBisectLen);  // angleBisect.Normalize();
-				float t = angleBisect * offsetA.GetNormalize();
-				float l = scale * next.half_width;
-				float expandDelta = sqrt(l * l / (1.f - t * t));
-				expX = angleBisect.x * expandDelta;
-				expY = angleBisect.y * expandDelta;
-			}
-			
-			// è®¾ç½®é¡¶ç‚¹
-			float u = tex_left + tVecLength / m_fLength * tex_width;
-			renderVertex[1].x = next.pos.x + expX;
-			renderVertex[1].y = next.pos.y + expY;
-			renderVertex[1].u = u;
-			renderVertex[2].x = next.pos.x - expX;
-			renderVertex[2].y = next.pos.y - expY;
-			renderVertex[2].u = u;
+            if (angleBisectLen < 0.00002f || angleBisectLen > 1.99998f)  // ¼¸ºõÔÚÒ»ÌõÖ±ÏßÉÏ
+            {
+                expX = expandVec.x * scale * next.half_width;
+                expY = expandVec.y * scale * next.half_width;
+            }
+            else // ¼ÆËã½ÇÆ½·ÖÏßµ½½ÇÁ½±ß¾àÀëÎªnext.half_width * scaleµÄÆ«ÒÆÁ¿
+            {
+                angleBisect *= (1 / angleBisectLen);  // angleBisect.Normalize();
+                float t = angleBisect * offsetA.GetNormalize();
+                float l = scale * next.half_width;
+                float expandDelta = sqrt(l * l / (1.f - t * t));
+                expX = angleBisect.x * expandDelta;
+                expY = angleBisect.y * expandDelta;
+            }
+            
+            // ÉèÖÃ¶¥µã
+            float u = tex_left + tVecLength / m_fLength * tex_width;
+            renderVertex[1].x = next.pos.x + expX;
+            renderVertex[1].y = next.pos.y + expY;
+            renderVertex[1].u = u;
+            renderVertex[2].x = next.pos.x - expX;
+            renderVertex[2].y = next.pos.y - expY;
+            renderVertex[2].u = u;
 
-			// ä¿®æ­£äº¤å‰çš„æƒ…å†µ
-			float cross1 = fcyVec2(renderVertex[1].x - renderVertex[0].x, renderVertex[1].y - renderVertex[0].y) *
-				fcyVec2(renderVertex[2].x - renderVertex[3].x, renderVertex[2].y - renderVertex[3].y);
-			float cross2 = fcyVec2(renderVertex[2].x - renderVertex[0].x, renderVertex[2].y - renderVertex[0].y) *
-				fcyVec2(renderVertex[1].x - renderVertex[3].x, renderVertex[1].y - renderVertex[3].y);
-			if (cross2 > cross1)
-			{
-				std::swap(renderVertex[1].x, renderVertex[2].x);
-				std::swap(renderVertex[1].y, renderVertex[2].y);
-			}	
-		}
+            // ĞŞÕı½»²æµÄÇé¿ö
+            float cross1 = fcyVec2(renderVertex[1].x - renderVertex[0].x, renderVertex[1].y - renderVertex[0].y) *
+                fcyVec2(renderVertex[2].x - renderVertex[3].x, renderVertex[2].y - renderVertex[3].y);
+            float cross2 = fcyVec2(renderVertex[2].x - renderVertex[0].x, renderVertex[2].y - renderVertex[0].y) *
+                fcyVec2(renderVertex[1].x - renderVertex[3].x, renderVertex[1].y - renderVertex[3].y);
+            if (cross2 > cross1)
+            {
+                std::swap(renderVertex[1].x, renderVertex[2].x);
+                std::swap(renderVertex[1].y, renderVertex[2].y);
+            }    
+        }
 
-		// ç»˜åˆ¶è¿™ä¸€æ®µ
-		if (!LAPP.RenderTexture(pTex, blend, renderVertex))
-			return false;
-	}
-	return true;
+        // »æÖÆÕâÒ»¶Î
+        if (!LAPP.RenderTexture(pTex, blend, renderVertex))
+            return false;
+    }
+    return true;
 }
 
 bool GameObjectBentLaser::CollisionCheck(float x, float y, float rot, float a, float b, bool rect)LNOEXCEPT
 {
-	// å¿½ç•¥åªæœ‰ä¸€ä¸ªèŠ‚ç‚¹çš„æƒ…å†µ
-	if (m_Queue.Size() <= 1)
-		return false;
+    // ºöÂÔÖ»ÓĞÒ»¸ö½ÚµãµÄÇé¿ö
+    if (m_Queue.Size() <= 1)
+        return false;
 
-	GameObject testObjA;
-	testObjA.Reset();
-	testObjA.rot = 0.;
-	testObjA.rect = false;
+    GameObject testObjA;
+    testObjA.Reset();
+    testObjA.rot = 0.;
+    testObjA.rect = false;
 
-	GameObject testObjB;
-	testObjB.Reset();
-	testObjB.x = x;
-	testObjB.y = y;
-	testObjB.rot = rot;
-	testObjB.a = a;
-	testObjB.b = b;
-	testObjB.rect = rect;
-	testObjB.UpdateCollisionCirclrRadius();
+    GameObject testObjB;
+    testObjB.Reset();
+    testObjB.x = x;
+    testObjB.y = y;
+    testObjB.rot = rot;
+    testObjB.a = a;
+    testObjB.b = b;
+    testObjB.rect = rect;
+    testObjB.UpdateCollisionCirclrRadius();
 
-	for (size_t i = 0; i < m_Queue.Size(); ++i)
-	{
-		LaserNode& n = m_Queue[i];
-		testObjA.x = n.pos.x;
-		testObjA.y = n.pos.y;
-		testObjA.a = testObjA.b = n.half_width;
-		testObjA.UpdateCollisionCirclrRadius();
-		if (::CollisionCheck(&testObjA, &testObjB))
-			return true;
-	}
-	return false;
+    for (size_t i = 0; i < m_Queue.Size(); ++i)
+    {
+        LaserNode& n = m_Queue[i];
+        testObjA.x = n.pos.x;
+        testObjA.y = n.pos.y;
+        testObjA.a = testObjA.b = n.half_width;
+        testObjA.UpdateCollisionCirclrRadius();
+        if (::CollisionCheck(&testObjA, &testObjB))
+            return true;
+    }
+    return false;
 }
 
 bool GameObjectBentLaser::BoundCheck()LNOEXCEPT
 {
-	fcyRect tBound = LPOOL.GetBound();
-	for (size_t i = 0; i < m_Queue.Size(); ++i)
-	{
-		LaserNode& n = m_Queue[i];
-		if (n.pos.x >= tBound.a.x && n.pos.x <= tBound.b.x && n.pos.y <= tBound.a.y && n.pos.y >= tBound.b.y)
-			return true;
-	}
-	// è¶Šç•Œæ—¶è¿”å›falseï¼Œåªæœ‰å½“æ‰€æœ‰çš„å¼¹å¹•è¶Šç•Œæ‰è¿”å›false
-	return false;
+    fcyRect tBound = LPOOL.GetBound();
+    for (size_t i = 0; i < m_Queue.Size(); ++i)
+    {
+        LaserNode& n = m_Queue[i];
+        if (n.pos.x >= tBound.a.x && n.pos.x <= tBound.b.x && n.pos.y <= tBound.a.y && n.pos.y >= tBound.b.y)
+            return true;
+    }
+    // Ô½½çÊ±·µ»Øfalse£¬Ö»ÓĞµ±ËùÓĞµÄµ¯Ä»Ô½½ç²Å·µ»Øfalse
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -388,1059 +388,1059 @@ bool GameObjectBentLaser::BoundCheck()LNOEXCEPT
 ////////////////////////////////////////////////////////////////////////////////
 bool GameObject::ChangeResource(const char* res_name)
 {
-	LASSERT(!res);
+    LASSERT(!res);
 
-	fcyRefPointer<ResSprite> tSprite = LRES.FindSprite(res_name);
-	if (tSprite)
-	{
-		res = tSprite;
-		res->AddRef();
-		a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
-		b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
-		rect = tSprite->IsRectangle();
-		UpdateCollisionCirclrRadius();
-		return true;
-	}
+    fcyRefPointer<ResSprite> tSprite = LRES.FindSprite(res_name);
+    if (tSprite)
+    {
+        res = tSprite;
+        res->AddRef();
+        a = tSprite->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+        b = tSprite->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+        rect = tSprite->IsRectangle();
+        UpdateCollisionCirclrRadius();
+        return true;
+    }
 
-	fcyRefPointer<ResAnimation> tAnimation = LRES.FindAnimation(res_name);
-	if (tAnimation)
-	{
-		res = tAnimation;
-		res->AddRef();
-		a = tAnimation->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
-		b = tAnimation->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
-		rect = tAnimation->IsRectangle();
-		UpdateCollisionCirclrRadius();
-		return true;
-	}
+    fcyRefPointer<ResAnimation> tAnimation = LRES.FindAnimation(res_name);
+    if (tAnimation)
+    {
+        res = tAnimation;
+        res->AddRef();
+        a = tAnimation->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+        b = tAnimation->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+        rect = tAnimation->IsRectangle();
+        UpdateCollisionCirclrRadius();
+        return true;
+    }
 
-	fcyRefPointer<ResParticle> tParticle = LRES.FindParticle(res_name);
-	if (tParticle)
-	{
-		res = tParticle;
-		if (!(ps = tParticle->AllocInstance()))
-		{
-			res = nullptr;
-			LERROR("æ— æ³•æ„é€ ç²’å­æ± ï¼Œå†…å­˜ä¸è¶³");
-			return false;
-		}
-		ps->SetInactive();
-		ps->SetCenter(fcyVec2((float)x, (float)y));
-		ps->SetRotation((float)rot);
-		ps->SetActive();
+    fcyRefPointer<ResParticle> tParticle = LRES.FindParticle(res_name);
+    if (tParticle)
+    {
+        res = tParticle;
+        if (!(ps = tParticle->AllocInstance()))
+        {
+            res = nullptr;
+            LERROR("ÎŞ·¨¹¹ÔìÁ£×Ó³Ø£¬ÄÚ´æ²»×ã");
+            return false;
+        }
+        ps->SetInactive();
+        ps->SetCenter(fcyVec2((float)x, (float)y));
+        ps->SetRotation((float)rot);
+        ps->SetActive();
 
-		res->AddRef();
-		a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
-		b = tParticle->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
-		rect = tParticle->IsRectangle();
-		UpdateCollisionCirclrRadius();
-		return true;
-	}
+        res->AddRef();
+        a = tParticle->GetHalfSizeX() * LRES.GetGlobalImageScaleFactor();
+        b = tParticle->GetHalfSizeY() * LRES.GetGlobalImageScaleFactor();
+        rect = tParticle->IsRectangle();
+        UpdateCollisionCirclrRadius();
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 GameObjectPool::GameObjectPool(lua_State* pL)
-	: L(pL)
+    : L(pL)
 {
-	// åˆå§‹åŒ–ä¼ªå¤´éƒ¨æ•°æ®
-	memset(&m_pObjectListHeader, 0, sizeof(GameObject));
-	memset(&m_pRenderListHeader, 0, sizeof(GameObject));
-	memset(m_pCollisionListHeader, 0, sizeof(m_pCollisionListHeader));
-	memset(&m_pObjectListTail, 0, sizeof(GameObject));
-	memset(&m_pRenderListTail, 0, sizeof(GameObject));
-	memset(m_pCollisionListTail, 0, sizeof(m_pCollisionListTail));
-	m_pObjectListHeader.pObjectNext = &m_pObjectListTail;
-	m_pObjectListHeader.uid = numeric_limits<uint64_t>::min();
-	m_pObjectListTail.pObjectPrev = &m_pObjectListHeader;
-	m_pObjectListTail.uid = numeric_limits<uint64_t>::max();
-	m_pRenderListHeader.pRenderNext = &m_pRenderListTail;
-	m_pRenderListHeader.uid = numeric_limits<uint64_t>::min();
-	m_pRenderListHeader.layer = numeric_limits<lua_Number>::min();
-	m_pRenderListTail.pRenderPrev = &m_pRenderListHeader;
-	m_pRenderListTail.uid = numeric_limits<uint64_t>::max();
-	m_pRenderListTail.layer = numeric_limits<lua_Number>::max();
-	for (size_t i = 0; i < LGOBJ_GROUPCNT; ++i)
-	{
-		m_pCollisionListHeader[i].pCollisionNext = &m_pCollisionListTail[i];
-		m_pCollisionListTail[i].pCollisionPrev = &m_pCollisionListHeader[i];
-	}
+    // ³õÊ¼»¯Î±Í·²¿Êı¾İ
+    memset(&m_pObjectListHeader, 0, sizeof(GameObject));
+    memset(&m_pRenderListHeader, 0, sizeof(GameObject));
+    memset(m_pCollisionListHeader, 0, sizeof(m_pCollisionListHeader));
+    memset(&m_pObjectListTail, 0, sizeof(GameObject));
+    memset(&m_pRenderListTail, 0, sizeof(GameObject));
+    memset(m_pCollisionListTail, 0, sizeof(m_pCollisionListTail));
+    m_pObjectListHeader.pObjectNext = &m_pObjectListTail;
+    m_pObjectListHeader.uid = numeric_limits<uint64_t>::min();
+    m_pObjectListTail.pObjectPrev = &m_pObjectListHeader;
+    m_pObjectListTail.uid = numeric_limits<uint64_t>::max();
+    m_pRenderListHeader.pRenderNext = &m_pRenderListTail;
+    m_pRenderListHeader.uid = numeric_limits<uint64_t>::min();
+    m_pRenderListHeader.layer = numeric_limits<lua_Number>::min();
+    m_pRenderListTail.pRenderPrev = &m_pRenderListHeader;
+    m_pRenderListTail.uid = numeric_limits<uint64_t>::max();
+    m_pRenderListTail.layer = numeric_limits<lua_Number>::max();
+    for (size_t i = 0; i < LGOBJ_GROUPCNT; ++i)
+    {
+        m_pCollisionListHeader[i].pCollisionNext = &m_pCollisionListTail[i];
+        m_pCollisionListTail[i].pCollisionPrev = &m_pCollisionListHeader[i];
+    }
 
-	// åˆ›å»ºä¸€ä¸ªå…¨å±€è¡¨ç”¨äºå­˜æ”¾æ‰€æœ‰å¯¹è±¡
-	lua_pushlightuserdata(L, (void*)&LAPP);  // p(ä½¿ç”¨APPå®ä¾‹æŒ‡é’ˆä½œé”®ç”¨ä»¥é˜²æ­¢ç”¨æˆ·è®¿é—®)
-	lua_createtable(L, LGOBJ_MAXCNT, 0);  // p t(åˆ›å»ºè¶³å¤Ÿå¤§çš„tableç”¨äºå­˜æ”¾æ‰€æœ‰çš„æ¸¸æˆå¯¹è±¡åœ¨luaä¸­çš„å¯¹åº”å¯¹è±¡)
+    // ´´½¨Ò»¸öÈ«¾Ö±íÓÃÓÚ´æ·ÅËùÓĞ¶ÔÏó
+    lua_pushlightuserdata(L, (void*)&LAPP);  // p(Ê¹ÓÃAPPÊµÀıÖ¸Õë×÷¼üÓÃÒÔ·ÀÖ¹ÓÃ»§·ÃÎÊ)
+    lua_createtable(L, LGOBJ_MAXCNT, 0);  // p t(´´½¨×ã¹»´óµÄtableÓÃÓÚ´æ·ÅËùÓĞµÄÓÎÏ·¶ÔÏóÔÚluaÖĞµÄ¶ÔÓ¦¶ÔÏó)
 
-	// å–å‡ºlstg.GetAttrå’Œlstg.SetAttråˆ›å»ºå…ƒè¡¨
-	lua_newtable(L);  // ... t
-	lua_getglobal(L, "lstg");  // ... t t
-	lua_pushstring(L, "GetAttr");  // ... t t s
-	lua_gettable(L, -2);  // ... t t f(GetAttr)
-	lua_pushstring(L, "SetAttr");  // ... t t f(GetAttr) s
-	lua_gettable(L, -3);  // ... t t f(GetAttr) f(SetAttr)
-	LASSERT(lua_iscfunction(L, -1) && lua_iscfunction(L, -2));
-	lua_setfield(L, -4, "__newindex");  // ... t t f(GetAttr)
-	lua_setfield(L, -3, "__index");  // ... t t
-	lua_pop(L, 1);  // ... t(å°†è¢«ç”¨ä½œå…ƒè¡¨)
-	
-	// ä¿å­˜å…ƒè¡¨åˆ° register[app][mt]
-	lua_setfield(L, -2, METATABLE_OBJ);  // p t
-	lua_settable(L, LUA_REGISTRYINDEX);
+    // È¡³ölstg.GetAttrºÍlstg.SetAttr´´½¨Ôª±í
+    lua_newtable(L);  // ... t
+    lua_getglobal(L, "lstg");  // ... t t
+    lua_pushstring(L, "GetAttr");  // ... t t s
+    lua_gettable(L, -2);  // ... t t f(GetAttr)
+    lua_pushstring(L, "SetAttr");  // ... t t f(GetAttr) s
+    lua_gettable(L, -3);  // ... t t f(GetAttr) f(SetAttr)
+    LASSERT(lua_iscfunction(L, -1) && lua_iscfunction(L, -2));
+    lua_setfield(L, -4, "__newindex");  // ... t t f(GetAttr)
+    lua_setfield(L, -3, "__index");  // ... t t
+    lua_pop(L, 1);  // ... t(½«±»ÓÃ×÷Ôª±í)
+    
+    // ±£´æÔª±íµ½ register[app][mt]
+    lua_setfield(L, -2, METATABLE_OBJ);  // p t
+    lua_settable(L, LUA_REGISTRYINDEX);
 }
 
 GameObjectPool::~GameObjectPool()
 {
-	ResetPool();
+    ResetPool();
 }
 
 GameObject* GameObjectPool::freeObject(GameObject* p)LNOEXCEPT
 {
-	GameObject* pRet = p->pObjectNext;
+    GameObject* pRet = p->pObjectNext;
 
-	// ä»å¯¹è±¡é“¾è¡¨ç§»é™¤
-	LIST_REMOVE(p, Object);
+    // ´Ó¶ÔÏóÁ´±íÒÆ³ı
+    LIST_REMOVE(p, Object);
 
-	// ä»æ¸²æŸ“é“¾è¡¨ç§»é™¤
-	LIST_REMOVE(p, Render);
+    // ´ÓäÖÈ¾Á´±íÒÆ³ı
+    LIST_REMOVE(p, Render);
 
-	// ä»ç¢°æ’é“¾è¡¨ç§»é™¤
-	LIST_REMOVE(p, Collision);
+    // ´ÓÅö×²Á´±íÒÆ³ı
+    LIST_REMOVE(p, Collision);
 
-	// åˆ é™¤luaå¯¹è±¡è¡¨ä¸­å…ƒç´ 
-	GETOBJTABLE;  // ot
-	lua_pushnil(L);  // ot nil
-	lua_rawseti(L, -2, p->id + 1);  // ot
-	lua_pop(L, 1);
+    // É¾³ılua¶ÔÏó±íÖĞÔªËØ
+    GETOBJTABLE;  // ot
+    lua_pushnil(L);  // ot nil
+    lua_rawseti(L, -2, p->id + 1);  // ot
+    lua_pop(L, 1);
 
-	// é‡Šæ”¾å¼•ç”¨çš„èµ„æº
-	p->ReleaseResource();
+    // ÊÍ·ÅÒıÓÃµÄ×ÊÔ´
+    p->ReleaseResource();
 
-	// å›æ”¶åˆ°å¯¹è±¡æ± 
-	m_ObjectPool.Free(p->id);
+    // »ØÊÕµ½¶ÔÏó³Ø
+    m_ObjectPool.Free(p->id);
 
-	return pRet;
+    return pRet;
 }
 
 void GameObjectPool::DoFrame()LNOEXCEPT
 {
-	GETOBJTABLE;  // ot
-	
-	GameObject* p = m_pObjectListHeader.pObjectNext;
-	while (p && p != &m_pObjectListTail)
-	{
-		// æ ¹æ®idè·å–å¯¹è±¡çš„luaç»‘å®štableã€æ‹¿åˆ°classå†æ‹¿åˆ°framefunc
-		lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
-		lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
-		lua_rawgeti(L, -1, LGOBJ_CC_FRAME);  // ot t(object) t(class) f(frame)
-		lua_pushvalue(L, -3);  // ot t(object) t(class) f(frame) t(object)
-		lua_call(L, 1, 0);  // ot t(object) t(class) æ‰§è¡Œå¸§å‡½æ•°
-		lua_pop(L, 2);  // ot
+    GETOBJTABLE;  // ot
+    
+    GameObject* p = m_pObjectListHeader.pObjectNext;
+    while (p && p != &m_pObjectListTail)
+    {
+        // ¸ù¾İid»ñÈ¡¶ÔÏóµÄlua°ó¶¨table¡¢ÄÃµ½classÔÙÄÃµ½framefunc
+        lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
+        lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
+        lua_rawgeti(L, -1, LGOBJ_CC_FRAME);  // ot t(object) t(class) f(frame)
+        lua_pushvalue(L, -3);  // ot t(object) t(class) f(frame) t(object)
+        lua_call(L, 1, 0);  // ot t(object) t(class) Ö´ĞĞÖ¡º¯Êı
+        lua_pop(L, 2);  // ot
 
-		// æ›´æ–°å¯¹è±¡çŠ¶æ€
-		p->vx += p->ax;
-		p->vy += p->ay;
-		p->x += p->vx;
-		p->y += p->vy;
-		p->rot += p->omiga;
+        // ¸üĞÂ¶ÔÏó×´Ì¬
+        p->vx += p->ax;
+        p->vy += p->ay;
+        p->x += p->vx;
+        p->y += p->vy;
+        p->rot += p->omiga;
 
-		// æ›´æ–°ç²’å­ç³»ç»Ÿï¼ˆè‹¥æœ‰ï¼‰
-		if (p->res && p->res->GetType() == ResourceType::Particle)
-		{
-			float gscale = LRES.GetGlobalImageScaleFactor();
-			p->ps->SetRotation((float)p->rot);
-			if (p->ps->IsActived())  // å…¼å®¹æ€§å¤„ç†
-			{
-				p->ps->SetInactive();
-				p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
-				p->ps->SetActive();
-			}
-			else
-				p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
-			p->ps->Update(1.0f / 60.f);
-		}
+        // ¸üĞÂÁ£×ÓÏµÍ³£¨ÈôÓĞ£©
+        if (p->res && p->res->GetType() == ResourceType::Particle)
+        {
+            float gscale = LRES.GetGlobalImageScaleFactor();
+            p->ps->SetRotation((float)p->rot);
+            if (p->ps->IsActived())  // ¼æÈİĞÔ´¦Àí
+            {
+                p->ps->SetInactive();
+                p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
+                p->ps->SetActive();
+            }
+            else
+                p->ps->SetCenter(fcyVec2((float)p->x, (float)p->y));
+            p->ps->Update(1.0f / 60.f);
+        }
 
-		p = p->pObjectNext;
-	}
+        p = p->pObjectNext;
+    }
 
-	lua_pop(L, 1);
+    lua_pop(L, 1);
 }
 
 void GameObjectPool::DoRender()LNOEXCEPT
 {
-	GETOBJTABLE;  // ot
+    GETOBJTABLE;  // ot
 
-	GameObject* p = m_pRenderListHeader.pRenderNext;
-	LASSERT(p != nullptr);
-	while (p && p != &m_pRenderListTail)
-	{
-		if (!p->hide)  // åªæ¸²æŸ“å¯è§å¯¹è±¡
-		{
-			// æ ¹æ®idè·å–å¯¹è±¡çš„luaç»‘å®štableã€æ‹¿åˆ°classå†æ‹¿åˆ°renderfunc
-			lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
-			lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
-			lua_rawgeti(L, -1, LGOBJ_CC_RENDER);  // ot t(object) t(class) f(render)
-			lua_pushvalue(L, -3);  // ot t(object) t(class) f(render) t(object)
-			lua_call(L, 1, 0);  // ot t(object) t(class) æ‰§è¡Œæ¸²æŸ“å‡½æ•°
-			lua_pop(L, 2);  // ot
-		}
-		p = p->pRenderNext;
-	}
+    GameObject* p = m_pRenderListHeader.pRenderNext;
+    LASSERT(p != nullptr);
+    while (p && p != &m_pRenderListTail)
+    {
+        if (!p->hide)  // Ö»äÖÈ¾¿É¼û¶ÔÏó
+        {
+            // ¸ù¾İid»ñÈ¡¶ÔÏóµÄlua°ó¶¨table¡¢ÄÃµ½classÔÙÄÃµ½renderfunc
+            lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
+            lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
+            lua_rawgeti(L, -1, LGOBJ_CC_RENDER);  // ot t(object) t(class) f(render)
+            lua_pushvalue(L, -3);  // ot t(object) t(class) f(render) t(object)
+            lua_call(L, 1, 0);  // ot t(object) t(class) Ö´ĞĞäÖÈ¾º¯Êı
+            lua_pop(L, 2);  // ot
+        }
+        p = p->pRenderNext;
+    }
 
-	lua_pop(L, 1);
+    lua_pop(L, 1);
 }
 
 void GameObjectPool::BoundCheck()LNOEXCEPT
 {
-	GETOBJTABLE;  // ot
+    GETOBJTABLE;  // ot
 
-	GameObject* p = m_pObjectListHeader.pObjectNext;
-	while (p && p != &m_pObjectListTail)
-	{
-		if ((p->x < m_BoundLeft || p->x > m_BoundRight || p->y < m_BoundBottom || p->y > m_BoundTop) && p->bound)
-		{
-			// è¶Šç•Œè®¾ç½®ä¸ºDELçŠ¶æ€
-			p->status = STATUS_DEL;
+    GameObject* p = m_pObjectListHeader.pObjectNext;
+    while (p && p != &m_pObjectListTail)
+    {
+        if ((p->x < m_BoundLeft || p->x > m_BoundRight || p->y < m_BoundBottom || p->y > m_BoundTop) && p->bound)
+        {
+            // Ô½½çÉèÖÃÎªDEL×´Ì¬
+            p->status = STATUS_DEL;
 
-			// æ ¹æ®idè·å–å¯¹è±¡çš„luaç»‘å®štableã€æ‹¿åˆ°classå†æ‹¿åˆ°delfunc
-			lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
-			lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
-			lua_rawgeti(L, -1, LGOBJ_CC_DEL);  // ot t(object) t(class) f(del)
-			lua_pushvalue(L, -3);  // ot t(object) t(class) f(del) t(object)
-			lua_call(L, 1, 0);  // ot t(object) t(class)
-			lua_pop(L, 2);  // ot
-		}
-		p = p->pObjectNext;
-	}
+            // ¸ù¾İid»ñÈ¡¶ÔÏóµÄlua°ó¶¨table¡¢ÄÃµ½classÔÙÄÃµ½delfunc
+            lua_rawgeti(L, -1, p->id + 1);  // ot t(object)
+            lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
+            lua_rawgeti(L, -1, LGOBJ_CC_DEL);  // ot t(object) t(class) f(del)
+            lua_pushvalue(L, -3);  // ot t(object) t(class) f(del) t(object)
+            lua_call(L, 1, 0);  // ot t(object) t(class)
+            lua_pop(L, 2);  // ot
+        }
+        p = p->pObjectNext;
+    }
 
-	lua_pop(L, 1);
+    lua_pop(L, 1);
 }
 
 void GameObjectPool::CollisionCheck(size_t groupA, size_t groupB)LNOEXCEPT
 {
-	if (groupA >= LGOBJ_MAXCNT || groupB >= LGOBJ_MAXCNT)
-		luaL_error(L, "Invalid collision group.");
+    if (groupA >= LGOBJ_MAXCNT || groupB >= LGOBJ_MAXCNT)
+        luaL_error(L, "Invalid collision group.");
 
-	GETOBJTABLE;  // ot
+    GETOBJTABLE;  // ot
 
-	GameObject* pA = m_pCollisionListHeader[groupA].pCollisionNext;
-	GameObject* pATail = &m_pCollisionListTail[groupA];
-	GameObject* pBHeader = m_pCollisionListHeader[groupB].pCollisionNext;
-	GameObject* pBTail = &m_pCollisionListTail[groupB];
-	while (pA && pA != pATail)
-	{
-		GameObject* pB = pBHeader;
-		while (pB && pB != pBTail)
-		{
-			if (::CollisionCheck(pA, pB))
-			{
-				// æ ¹æ®idè·å–å¯¹è±¡çš„luaç»‘å®štableã€æ‹¿åˆ°classå†æ‹¿åˆ°collifunc
-				lua_rawgeti(L, -1, pA->id + 1);  // ot t(object)
-				lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
-				lua_rawgeti(L, -1, LGOBJ_CC_COLLI);  // ot t(object) t(class) f(colli)
-				lua_pushvalue(L, -3);  // ot t(object) t(class) f(colli) t(object)
-				lua_rawgeti(L, -5, pB->id + 1);  // ot t(object) t(class) f(colli) t(object) t(object)
-				lua_call(L, 2, 0);  // ot t(object) t(class)
-				lua_pop(L, 2);  // ot
-			}
-			pB = pB->pCollisionNext;
-		}
-		pA = pA->pCollisionNext;
-	}
+    GameObject* pA = m_pCollisionListHeader[groupA].pCollisionNext;
+    GameObject* pATail = &m_pCollisionListTail[groupA];
+    GameObject* pBHeader = m_pCollisionListHeader[groupB].pCollisionNext;
+    GameObject* pBTail = &m_pCollisionListTail[groupB];
+    while (pA && pA != pATail)
+    {
+        GameObject* pB = pBHeader;
+        while (pB && pB != pBTail)
+        {
+            if (::CollisionCheck(pA, pB))
+            {
+                // ¸ù¾İid»ñÈ¡¶ÔÏóµÄlua°ó¶¨table¡¢ÄÃµ½classÔÙÄÃµ½collifunc
+                lua_rawgeti(L, -1, pA->id + 1);  // ot t(object)
+                lua_rawgeti(L, -1, 1);  // ot t(object) t(class)
+                lua_rawgeti(L, -1, LGOBJ_CC_COLLI);  // ot t(object) t(class) f(colli)
+                lua_pushvalue(L, -3);  // ot t(object) t(class) f(colli) t(object)
+                lua_rawgeti(L, -5, pB->id + 1);  // ot t(object) t(class) f(colli) t(object) t(object)
+                lua_call(L, 2, 0);  // ot t(object) t(class)
+                lua_pop(L, 2);  // ot
+            }
+            pB = pB->pCollisionNext;
+        }
+        pA = pA->pCollisionNext;
+    }
 
-	lua_pop(L, 1);
+    lua_pop(L, 1);
 }
 
 void GameObjectPool::UpdateXY()LNOEXCEPT
 {
-	GameObject* p = m_pObjectListHeader.pObjectNext;
-	while (p && p != &m_pObjectListTail)
-	{
-		p->dx = p->x - p->lastx;
-		p->dy = p->y - p->lasty;
-		p->lastx = p->x;
-		p->lasty = p->y;
-		if (p->navi && (p->dx != 0 || p->dy != 0))
-			p->rot = atan2(p->dy, p->dx);
+    GameObject* p = m_pObjectListHeader.pObjectNext;
+    while (p && p != &m_pObjectListTail)
+    {
+        p->dx = p->x - p->lastx;
+        p->dy = p->y - p->lasty;
+        p->lastx = p->x;
+        p->lasty = p->y;
+        if (p->navi && (p->dx != 0 || p->dy != 0))
+            p->rot = atan2(p->dy, p->dx);
 
-		p = p->pObjectNext;
-	}
+        p = p->pObjectNext;
+    }
 }
 
 void GameObjectPool::AfterFrame()LNOEXCEPT
 {
-	GameObject* p = m_pObjectListHeader.pObjectNext;
-	while (p && p != &m_pObjectListTail)
-	{
-		p->timer++;
-		p->ani_timer++;
-		if (p->status != STATUS_DEFAULT)
-			p = freeObject(p);
-		else
-			p = p->pObjectNext;
-	}
+    GameObject* p = m_pObjectListHeader.pObjectNext;
+    while (p && p != &m_pObjectListTail)
+    {
+        p->timer++;
+        p->ani_timer++;
+        if (p->status != STATUS_DEFAULT)
+            p = freeObject(p);
+        else
+            p = p->pObjectNext;
+    }
 }
 
 int GameObjectPool::New(lua_State* L)LNOEXCEPT
 {
-	// æ£€æŸ¥å‚æ•°
-	if (!lua_istable(L, 1))
-		return luaL_error(L, "invalid argument #1, luastg object class required for 'New'.");
-	lua_getfield(L, 1, "is_class");  // t(class) ... b
-	if (!lua_toboolean(L, -1))
-		return luaL_error(L, "invalid argument #1, luastg object class required for 'New'.");
-	lua_pop(L, 1);  // t(class) ...
+    // ¼ì²é²ÎÊı
+    if (!lua_istable(L, 1))
+        return luaL_error(L, "invalid argument #1, luastg object class required for 'New'.");
+    lua_getfield(L, 1, "is_class");  // t(class) ... b
+    if (!lua_toboolean(L, -1))
+        return luaL_error(L, "invalid argument #1, luastg object class required for 'New'.");
+    lua_pop(L, 1);  // t(class) ...
 
-	// åˆ†é…ä¸€ä¸ªå¯¹è±¡
-	size_t id = 0;
-	if (!m_ObjectPool.Alloc(id))
-		return luaL_error(L, "can't alloc object, object pool may be full.");
-	
-	// è®¾ç½®å¯¹è±¡
-	GameObject* p = m_ObjectPool.Data(id);
-	LASSERT(p);
-	p->Reset();
-	p->status = STATUS_DEFAULT;
-	p->id = id;
-	p->uid = m_iUid++;
+    // ·ÖÅäÒ»¸ö¶ÔÏó
+    size_t id = 0;
+    if (!m_ObjectPool.Alloc(id))
+        return luaL_error(L, "can't alloc object, object pool may be full.");
+    
+    // ÉèÖÃ¶ÔÏó
+    GameObject* p = m_ObjectPool.Data(id);
+    LASSERT(p);
+    p->Reset();
+    p->status = STATUS_DEFAULT;
+    p->id = id;
+    p->uid = m_iUid++;
 
-	// æ’å…¥é“¾è¡¨åŸŸ
-	LIST_INSERT_BEFORE(&m_pObjectListTail, p, Object);  // Objecté“¾è¡¨åªä¸uidæœ‰å…³ï¼Œå› æ­¤æ€»åœ¨æœ«å°¾æ’å…¥
-	LIST_INSERT_BEFORE(&m_pRenderListTail, p, Render);  // Renderé“¾è¡¨åœ¨æ’å…¥åè¿˜éœ€è¦è¿›è¡Œæ’åº
-	LIST_INSERT_BEFORE(&m_pCollisionListTail[p->group], p, Collision);  // ä¸ºä¿è¯å…¼å®¹æ€§ï¼Œå¯¹Collisionä¹Ÿåšæ’åº
-	LIST_INSERT_SORT(p, Render, RenderListSortFunc);
-	LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);
+    // ²åÈëÁ´±íÓò
+    LIST_INSERT_BEFORE(&m_pObjectListTail, p, Object);  // ObjectÁ´±íÖ»ÓëuidÓĞ¹Ø£¬Òò´Ë×ÜÔÚÄ©Î²²åÈë
+    LIST_INSERT_BEFORE(&m_pRenderListTail, p, Render);  // RenderÁ´±íÔÚ²åÈëºó»¹ĞèÒª½øĞĞÅÅĞò
+    LIST_INSERT_BEFORE(&m_pCollisionListTail[p->group], p, Collision);  // Îª±£Ö¤¼æÈİĞÔ£¬¶ÔCollisionÒ²×öÅÅĞò
+    LIST_INSERT_SORT(p, Render, RenderListSortFunc);
+    LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);
 
-	GETOBJTABLE;  // t(class) ... ot
-	lua_createtable(L, 2, 0);  // t(class) ... ot t(object)
-	lua_pushvalue(L, 1);  // t(class) ... ot t(object) class
-	lua_rawseti(L, -2, 1);  // t(class) ... ot t(object)  è®¾ç½®class
-	lua_pushinteger(L, (lua_Integer)id);  // t(class) ... ot t(object) id
-	lua_rawseti(L, -2, 2);  // t(class) ... ot t(object)  è®¾ç½®id
-	lua_getfield(L, -2, METATABLE_OBJ);  // t(class) ... ot t(object) mt
-	lua_setmetatable(L, -2);  // t(class) ... ot t(object)  è®¾ç½®å…ƒè¡¨
-	lua_pushvalue(L, -1);  // t(class) ... ot t(object) t(object)
-	lua_rawseti(L, -3, id + 1);  // t(class) ... ot t(object)  è®¾ç½®åˆ°å…¨å±€è¡¨
-	lua_insert(L, 1);  // t(object) t(class) ... ot
-	lua_pop(L, 1);  // t(object) t(class) ...
-	lua_rawgeti(L, 2, LGOBJ_CC_INIT);  // t(object) t(class) ... f(init)
-	lua_insert(L, 3);  // t(object) t(class) f(init) ...
-	lua_pushvalue(L, 1);  // t(object) t(class) f(init) ... t(object)
-	lua_insert(L, 4);  // t(object) t(class) f(init) t(object) ...
-	lua_call(L, lua_gettop(L) - 3, 0);  // t(object) t(class)  æ‰§è¡Œæ„é€ å‡½æ•°
-	lua_pop(L, 1);  // t(object)
+    GETOBJTABLE;  // t(class) ... ot
+    lua_createtable(L, 2, 0);  // t(class) ... ot t(object)
+    lua_pushvalue(L, 1);  // t(class) ... ot t(object) class
+    lua_rawseti(L, -2, 1);  // t(class) ... ot t(object)  ÉèÖÃclass
+    lua_pushinteger(L, (lua_Integer)id);  // t(class) ... ot t(object) id
+    lua_rawseti(L, -2, 2);  // t(class) ... ot t(object)  ÉèÖÃid
+    lua_getfield(L, -2, METATABLE_OBJ);  // t(class) ... ot t(object) mt
+    lua_setmetatable(L, -2);  // t(class) ... ot t(object)  ÉèÖÃÔª±í
+    lua_pushvalue(L, -1);  // t(class) ... ot t(object) t(object)
+    lua_rawseti(L, -3, id + 1);  // t(class) ... ot t(object)  ÉèÖÃµ½È«¾Ö±í
+    lua_insert(L, 1);  // t(object) t(class) ... ot
+    lua_pop(L, 1);  // t(object) t(class) ...
+    lua_rawgeti(L, 2, LGOBJ_CC_INIT);  // t(object) t(class) ... f(init)
+    lua_insert(L, 3);  // t(object) t(class) f(init) ...
+    lua_pushvalue(L, 1);  // t(object) t(class) f(init) ... t(object)
+    lua_insert(L, 4);  // t(object) t(class) f(init) t(object) ...
+    lua_call(L, lua_gettop(L) - 3, 0);  // t(object) t(class)  Ö´ĞĞ¹¹Ôìº¯Êı
+    lua_pop(L, 1);  // t(object)
 
-	p->lastx = p->x;
-	p->lasty = p->y;
-	return 1;
+    p->lastx = p->x;
+    p->lasty = p->y;
+    return 1;
 }
 
 int GameObjectPool::Del(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-		return luaL_error(L, "invalid argument #1, luastg object required for 'Del'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ... id
-	GameObject* p = m_ObjectPool.Data((size_t)luaL_checknumber(L, -1));
-	lua_pop(L, 1);  // t(object) ...
-	if (!p)
-		return luaL_error(L, "invalid argument #1, invalid luastg object.");
-	
-	if (p->status == STATUS_DEFAULT)
-	{
-		p->status = STATUS_DEL;
+    if (!lua_istable(L, 1))
+        return luaL_error(L, "invalid argument #1, luastg object required for 'Del'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ... id
+    GameObject* p = m_ObjectPool.Data((size_t)luaL_checknumber(L, -1));
+    lua_pop(L, 1);  // t(object) ...
+    if (!p)
+        return luaL_error(L, "invalid argument #1, invalid luastg object.");
+    
+    if (p->status == STATUS_DEFAULT)
+    {
+        p->status = STATUS_DEL;
 
-		// è°ƒç”¨ç±»ä¸­çš„å›è°ƒæ–¹æ³•
-		lua_rawgeti(L, 1, 1);  // t(object) ... class
-		lua_rawgeti(L, -1, LGOBJ_CC_DEL);  // t(object) ... class f(del)
-		lua_insert(L, 1);  // f(del) t(object) ... class
-		lua_pop(L, 1);  // f(del) t(object) ...
-		lua_call(L, lua_gettop(L) - 1, 0);
-	}
-	return 0;
+        // µ÷ÓÃÀàÖĞµÄ»Øµ÷·½·¨
+        lua_rawgeti(L, 1, 1);  // t(object) ... class
+        lua_rawgeti(L, -1, LGOBJ_CC_DEL);  // t(object) ... class f(del)
+        lua_insert(L, 1);  // f(del) t(object) ... class
+        lua_pop(L, 1);  // f(del) t(object) ...
+        lua_call(L, lua_gettop(L) - 1, 0);
+    }
+    return 0;
 }
 
 int GameObjectPool::Kill(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-		return luaL_error(L, "invalid argument #1, luastg object required for 'Kill'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ... id
-	GameObject* p = m_ObjectPool.Data((size_t)luaL_checknumber(L, -1));
-	lua_pop(L, 1);  // t(object) ...
-	if (!p)
-		return luaL_error(L, "invalid argument #1, invalid luastg object.");
+    if (!lua_istable(L, 1))
+        return luaL_error(L, "invalid argument #1, luastg object required for 'Kill'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ... id
+    GameObject* p = m_ObjectPool.Data((size_t)luaL_checknumber(L, -1));
+    lua_pop(L, 1);  // t(object) ...
+    if (!p)
+        return luaL_error(L, "invalid argument #1, invalid luastg object.");
 
-	if (p->status == STATUS_DEFAULT)
-	{
-		p->status = STATUS_KILL;
+    if (p->status == STATUS_DEFAULT)
+    {
+        p->status = STATUS_KILL;
 
-		// è°ƒç”¨ç±»ä¸­çš„å›è°ƒæ–¹æ³•
-		lua_rawgeti(L, 1, 1);  // t(object) ... class
-		lua_rawgeti(L, -1, LGOBJ_CC_KILL);  // t(object) ... class f(kill)
-		lua_insert(L, 1);  // f(kill) t(object) ... class
-		lua_pop(L, 1);  // f(kill) t(object) ...
-		lua_call(L, lua_gettop(L) - 1, 0);
-	}
-	return 0;
+        // µ÷ÓÃÀàÖĞµÄ»Øµ÷·½·¨
+        lua_rawgeti(L, 1, 1);  // t(object) ... class
+        lua_rawgeti(L, -1, LGOBJ_CC_KILL);  // t(object) ... class f(kill)
+        lua_insert(L, 1);  // f(kill) t(object) ... class
+        lua_pop(L, 1);  // f(kill) t(object) ...
+        lua_call(L, lua_gettop(L) - 1, 0);
+    }
+    return 0;
 }
 
 int GameObjectPool::IsValid(lua_State* L)LNOEXCEPT
 {
-	if (lua_gettop(L) != 1)
-		return luaL_error(L, "invalid argument count, 1 argument required for 'IsValid'.");
-	if (!lua_istable(L, -1))
-	{
-		lua_pushboolean(L, 0);
-		return 1;
-	}
-	lua_rawgeti(L, -1, 2);  // t(object) id
-	if (!lua_isnumber(L, -1))
-	{
-		lua_pushboolean(L, 0);
-		return 1;
-	}
+    if (lua_gettop(L) != 1)
+        return luaL_error(L, "invalid argument count, 1 argument required for 'IsValid'.");
+    if (!lua_istable(L, -1))
+    {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+    lua_rawgeti(L, -1, 2);  // t(object) id
+    if (!lua_isnumber(L, -1))
+    {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
-	// åœ¨å¯¹è±¡æ± ä¸­æ£€æŸ¥
-	size_t id = (size_t)lua_tonumber(L, -1);
-	lua_pop(L, 1);  // t(object)
-	if (!m_ObjectPool.Data(id))
-	{
-		lua_pushboolean(L, 0);
-		return 1;
-	}
+    // ÔÚ¶ÔÏó³ØÖĞ¼ì²é
+    size_t id = (size_t)lua_tonumber(L, -1);
+    lua_pop(L, 1);  // t(object)
+    if (!m_ObjectPool.Data(id))
+    {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
 
-	GETOBJTABLE;  // t(object) ot
-	lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
-	if (lua_rawequal(L, -1, -3))
-		lua_pushboolean(L, 1);
-	else
-		lua_pushboolean(L, 0);
-	return 1;
+    GETOBJTABLE;  // t(object) ot
+    lua_rawgeti(L, -1, (lua_Integer)(id + 1));  // t(object) ot t(object)
+    if (lua_rawequal(L, -1, -3))
+        lua_pushboolean(L, 1);
+    else
+        lua_pushboolean(L, 0);
+    return 1;
 }
 
 bool GameObjectPool::Angle(size_t idA, size_t idB, double& out)LNOEXCEPT
 {
-	GameObject* pA = m_ObjectPool.Data(idA);
-	GameObject* pB = m_ObjectPool.Data(idB);
-	if (!pA || !pB)
-		return false;
-	out = LRAD2DEGREE * atan2(pB->y - pA->y, pB->x - pA->x);
-	return true;
+    GameObject* pA = m_ObjectPool.Data(idA);
+    GameObject* pB = m_ObjectPool.Data(idB);
+    if (!pA || !pB)
+        return false;
+    out = LRAD2DEGREE * atan2(pB->y - pA->y, pB->x - pA->x);
+    return true;
 }
 
 bool GameObjectPool::Dist(size_t idA, size_t idB, double& out)LNOEXCEPT
 {
-	GameObject* pA = m_ObjectPool.Data(idA);
-	GameObject* pB = m_ObjectPool.Data(idB);
-	if (!pA || !pB)
-		return false;
-	lua_Number dx = pB->x - pA->x;
-	lua_Number dy = pB->y - pA->y;
-	out = sqrt(dx*dx + dy*dy);
-	return true;
+    GameObject* pA = m_ObjectPool.Data(idA);
+    GameObject* pB = m_ObjectPool.Data(idB);
+    if (!pA || !pB)
+        return false;
+    lua_Number dx = pB->x - pA->x;
+    lua_Number dy = pB->y - pA->y;
+    out = sqrt(dx*dx + dy*dy);
+    return true;
 }
 
 bool GameObjectPool::GetV(size_t id, double& v, double& a)LNOEXCEPT
 {
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return false;
-	v = sqrt(p->vx * p->vx + p->vy * p->vy);
-	a = atan2(p->vy, p->vx) * LRAD2DEGREE;
-	return true;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return false;
+    v = sqrt(p->vx * p->vx + p->vy * p->vy);
+    a = atan2(p->vy, p->vx) * LRAD2DEGREE;
+    return true;
 }
 
 bool GameObjectPool::SetV(size_t id, double v, double a, bool updateRot)LNOEXCEPT
 {
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return false;
-	a *= LDEGREE2RAD;
-	p->vx = v*cos(a);
-	p->vy = v*sin(a);
-	if (updateRot)
-		p->rot = a;
-	return true;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return false;
+    a *= LDEGREE2RAD;
+    p->vx = v*cos(a);
+    p->vy = v*sin(a);
+    if (updateRot)
+        p->rot = a;
+    return true;
 }
 
 bool GameObjectPool::SetImgState(size_t id, BlendMode m, fcyColor c)LNOEXCEPT
 {
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return false;
-	if (p->res)
-	{
-		switch (p->res->GetType())
-		{
-		case ResourceType::Sprite:
-			static_cast<ResSprite*>(p->res)->SetBlendMode(m);
-			static_cast<ResSprite*>(p->res)->GetSprite()->SetColor(c);
-			break;
-		case ResourceType::Animation:
-			do {
-				ResAnimation* ani = static_cast<ResAnimation*>(p->res);
-				ani->SetBlendMode(m);
-				for (size_t i = 0; i < ani->GetCount(); ++i)
-					ani->GetSprite(i)->SetColor(c);
-			} while (false);
-			break;
-		default:
-			break;
-		}
-	}
-	return true;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return false;
+    if (p->res)
+    {
+        switch (p->res->GetType())
+        {
+        case ResourceType::Sprite:
+            static_cast<ResSprite*>(p->res)->SetBlendMode(m);
+            static_cast<ResSprite*>(p->res)->GetSprite()->SetColor(c);
+            break;
+        case ResourceType::Animation:
+            do {
+                ResAnimation* ani = static_cast<ResAnimation*>(p->res);
+                ani->SetBlendMode(m);
+                for (size_t i = 0; i < ani->GetCount(); ++i)
+                    ani->GetSprite(i)->SetColor(c);
+            } while (false);
+            break;
+        default:
+            break;
+        }
+    }
+    return true;
 }
 
 bool GameObjectPool::BoxCheck(size_t id, double left, double right, double top, double bottom, bool& ret)LNOEXCEPT
 {
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return false;
-	ret = (p->x > left) && (p->x < right) && (p->y > top) && (p->y < bottom);
-	return true;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return false;
+    ret = (p->x > left) && (p->x < right) && (p->y > top) && (p->y < bottom);
+    return true;
 }
 
 void GameObjectPool::ResetPool()LNOEXCEPT
 {
-	GameObject* p = m_pObjectListHeader.pObjectNext;
-	while (p != &m_pObjectListTail)
-		p = freeObject(p);
+    GameObject* p = m_pObjectListHeader.pObjectNext;
+    while (p != &m_pObjectListTail)
+        p = freeObject(p);
 }
 
 bool GameObjectPool::DoDefaultRender(size_t id)LNOEXCEPT
 {
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return false;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return false;
 
-	if (p->res)
-	{
-		switch (p->res->GetType())
-		{
-		case ResourceType::Sprite:
-			LAPP.Render(
-				static_cast<ResSprite*>(p->res),
-				static_cast<float>(p->x),
-				static_cast<float>(p->y),
-				static_cast<float>(p->rot),
-				static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
-				static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
-			);
-			break;
-		case ResourceType::Animation:
-			LAPP.Render(
-				static_cast<ResAnimation*>(p->res),
-				p->ani_timer,
-				static_cast<float>(p->x),
-				static_cast<float>(p->y),
-				static_cast<float>(p->rot),
-				static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
-				static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
-			);
-			break;
-		case ResourceType::Particle:
-			LAPP.Render(
-				p->ps,
-				static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
-				static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
-			);
-			break;
-		default:
-			break;
-		}
-	}
-	
-	return true;
+    if (p->res)
+    {
+        switch (p->res->GetType())
+        {
+        case ResourceType::Sprite:
+            LAPP.Render(
+                static_cast<ResSprite*>(p->res),
+                static_cast<float>(p->x),
+                static_cast<float>(p->y),
+                static_cast<float>(p->rot),
+                static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
+                static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
+            );
+            break;
+        case ResourceType::Animation:
+            LAPP.Render(
+                static_cast<ResAnimation*>(p->res),
+                p->ani_timer,
+                static_cast<float>(p->x),
+                static_cast<float>(p->y),
+                static_cast<float>(p->rot),
+                static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
+                static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
+            );
+            break;
+        case ResourceType::Particle:
+            LAPP.Render(
+                p->ps,
+                static_cast<float>(p->hscale * LRES.GetGlobalImageScaleFactor()),
+                static_cast<float>(p->vscale * LRES.GetGlobalImageScaleFactor())
+            );
+            break;
+        default:
+            break;
+        }
+    }
+    
+    return true;
 }
 
 int GameObjectPool::NextObject(int groupId, int id)LNOEXCEPT
 {
-	if (id < 0)
-		return -1;
+    if (id < 0)
+        return -1;
 
-	GameObject* p = m_ObjectPool.Data(static_cast<size_t>(id));
-	if (!p)
-		return -1;
+    GameObject* p = m_ObjectPool.Data(static_cast<size_t>(id));
+    if (!p)
+        return -1;
 
-	// å¦‚æœä¸æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„åˆ†ç»„ï¼Œåˆ™åœ¨æ•´ä¸ªå¯¹è±¡è¡¨ä¸­éå†
-	if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
-	{
-		p = p->pObjectNext;
-		if (p == &m_pObjectListTail)
-			return -1;
-		else
-			return static_cast<int>(p->id);
-	}
-	else
-	{
-		if (p->group != groupId)
-			return -1;
-		p = p->pCollisionNext;
-		if (p == &m_pCollisionListTail[groupId])
-			return -1;
-		else
-			return static_cast<int>(p->id);
-	}
+    // Èç¹û²»ÊÇÒ»¸öÓĞĞ§µÄ·Ö×é£¬ÔòÔÚÕû¸ö¶ÔÏó±íÖĞ±éÀú
+    if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
+    {
+        p = p->pObjectNext;
+        if (p == &m_pObjectListTail)
+            return -1;
+        else
+            return static_cast<int>(p->id);
+    }
+    else
+    {
+        if (p->group != groupId)
+            return -1;
+        p = p->pCollisionNext;
+        if (p == &m_pCollisionListTail[groupId])
+            return -1;
+        else
+            return static_cast<int>(p->id);
+    }
 }
 
 int GameObjectPool::NextObject(lua_State* L)LNOEXCEPT
 {
-	int g = luaL_checkinteger(L, 1);  // i(groupId)
-	int id = luaL_checkinteger(L, 2);  // id
-	if (id < 0)
-		return 0;
+    int g = luaL_checkinteger(L, 1);  // i(groupId)
+    int id = luaL_checkinteger(L, 2);  // id
+    if (id < 0)
+        return 0;
 
-	lua_pushinteger(L, NextObject(g, id));  // ??? i(next)
-	GETOBJTABLE;  // ??? i(next) ot
-	lua_rawgeti(L, -1, id + 1);  // ??? i(next) ot t(object)
-	lua_remove(L, -2);  // ??? i(next) t(object)
-	return 2;
+    lua_pushinteger(L, NextObject(g, id));  // ??? i(next)
+    GETOBJTABLE;  // ??? i(next) ot
+    lua_rawgeti(L, -1, id + 1);  // ??? i(next) ot t(object)
+    lua_remove(L, -2);  // ??? i(next) t(object)
+    return 2;
 }
 
 int GameObjectPool::FirstObject(int groupId)LNOEXCEPT
 {
-	GameObject* p;
+    GameObject* p;
 
-	// å¦‚æœä¸æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„åˆ†ç»„ï¼Œåˆ™åœ¨æ•´ä¸ªå¯¹è±¡è¡¨ä¸­éå†
-	if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
-	{
-		p = m_pObjectListHeader.pObjectNext;
-		if (p == &m_pObjectListTail)
-			return -1;
-		else
-			return static_cast<int>(p->id);
-	}
-	else
-	{
-		p = m_pCollisionListHeader[groupId].pCollisionNext;
-		if (p == &m_pCollisionListTail[groupId])
-			return -1;
-		else
-			return static_cast<int>(p->id);
-	}
+    // Èç¹û²»ÊÇÒ»¸öÓĞĞ§µÄ·Ö×é£¬ÔòÔÚÕû¸ö¶ÔÏó±íÖĞ±éÀú
+    if (groupId < 0 || groupId >= LGOBJ_GROUPCNT)
+    {
+        p = m_pObjectListHeader.pObjectNext;
+        if (p == &m_pObjectListTail)
+            return -1;
+        else
+            return static_cast<int>(p->id);
+    }
+    else
+    {
+        p = m_pCollisionListHeader[groupId].pCollisionNext;
+        if (p == &m_pCollisionListTail[groupId])
+            return -1;
+        else
+            return static_cast<int>(p->id);
+    }
 }
 
 int GameObjectPool::GetAttr(lua_State* L)LNOEXCEPT
 {
-	lua_rawgeti(L, 1, 2);  // t(object) s(key) ??? i(id)
-	size_t id = static_cast<size_t>(lua_tonumber(L, -1));
-	lua_pop(L, 1);  // t(object) s(key)
+    lua_rawgeti(L, 1, 2);  // t(object) s(key) ??? i(id)
+    size_t id = static_cast<size_t>(lua_tonumber(L, -1));
+    lua_pop(L, 1);  // t(object) s(key)
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for '__index' meta operation.");
-	
-	// æŸ¥è¯¢å±æ€§
-	const char* key = luaL_checkstring(L, 2);
-	
-	// å¯¹x,yä½œç‰¹åŒ–å¤„ç†
-	if (key[0] == 'x' && key[1] == '\0')
-	{
-		lua_pushnumber(L, p->x);
-		return 1;
-	}
-	else if (key[0] == 'y' && key[1] == '\0')
-	{
-		lua_pushnumber(L, p->y);
-		return 1;
-	}
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for '__index' meta operation.");
+    
+    // ²éÑ¯ÊôĞÔ
+    const char* key = luaL_checkstring(L, 2);
+    
+    // ¶Ôx,y×÷ÌØ»¯´¦Àí
+    if (key[0] == 'x' && key[1] == '\0')
+    {
+        lua_pushnumber(L, p->x);
+        return 1;
+    }
+    else if (key[0] == 'y' && key[1] == '\0')
+    {
+        lua_pushnumber(L, p->y);
+        return 1;
+    }
 
-	// ä¸€èˆ¬å±æ€§
-	switch (GameObjectPropertyHash(key))
-	{
-	case GameObjectProperty::DX:
-		lua_pushnumber(L, p->dx);
-		break;
-	case GameObjectProperty::DY:
-		lua_pushnumber(L, p->dy);
-		break;
-	case GameObjectProperty::ROT:
-		lua_pushnumber(L, p->rot * LRAD2DEGREE);
-		break;
-	case GameObjectProperty::OMIGA:
-		lua_pushnumber(L, p->omiga * LRAD2DEGREE);
-		break;
-	case GameObjectProperty::TIMER:
-		lua_pushinteger(L, p->timer);
-		break;
-	case GameObjectProperty::VX:
-		lua_pushnumber(L, p->vx);
-		break;
-	case GameObjectProperty::VY:
-		lua_pushnumber(L, p->vy);
-		break;
-	case GameObjectProperty::AX:
-		lua_pushnumber(L, p->ax);
-		break;
-	case GameObjectProperty::AY:
-		lua_pushnumber(L, p->ay);
-		break;
-	case GameObjectProperty::LAYER:
-		lua_pushnumber(L, p->layer);
-		break;
-	case GameObjectProperty::GROUP:
-		lua_pushinteger(L, p->group);
-		break;
-	case GameObjectProperty::HIDE:
-		lua_pushboolean(L, p->hide);
-		break;
-	case GameObjectProperty::BOUND:
-		lua_pushboolean(L, p->bound);
-		break;
-	case GameObjectProperty::NAVI:
-		lua_pushboolean(L, p->navi);
-		break;
-	case GameObjectProperty::COLLI:
-		lua_pushboolean(L, p->colli);
-		break;
-	case GameObjectProperty::STATUS:
-		switch (p->status)
-		{
-		case STATUS_DEFAULT:
-			lua_pushstring(L, "normal");
-			break;
-		case STATUS_KILL:
-			lua_pushstring(L, "kill");
-			break;
-		case STATUS_DEL:
-			lua_pushstring(L, "del");
-			break;
-		default:
-			LASSERT(false);
-			break;
-		}
-		break;
-	case GameObjectProperty::HSCALE:
-		lua_pushnumber(L, p->hscale);
-		break;
-	case GameObjectProperty::VSCALE:
-		lua_pushnumber(L, p->vscale);
-		break;
-	case GameObjectProperty::CLASS:
-		lua_rawgeti(L, 1, 1);
-		break;
-	case GameObjectProperty::A:
-		lua_pushnumber(L, p->a / LRES.GetGlobalImageScaleFactor());
-		break;
-	case GameObjectProperty::B:
-		lua_pushnumber(L, p->b / LRES.GetGlobalImageScaleFactor());
-		break;
-	case GameObjectProperty::RECT:
-		lua_pushboolean(L, p->rect);
-		break;
-	case GameObjectProperty::IMG:
-		if (p->res)
-			lua_pushstring(L, p->res->GetResName().c_str());
-		else
-			lua_pushnil(L);
-		break;
-	case GameObjectProperty::ANI:
-		lua_pushinteger(L, p->ani_timer);
-		break;
-	case GameObjectProperty::X:
-	case GameObjectProperty::Y:
-	default:
-		lua_pushnil(L);
-		break;
-	}
+    // Ò»°ãÊôĞÔ
+    switch (GameObjectPropertyHash(key))
+    {
+    case GameObjectProperty::DX:
+        lua_pushnumber(L, p->dx);
+        break;
+    case GameObjectProperty::DY:
+        lua_pushnumber(L, p->dy);
+        break;
+    case GameObjectProperty::ROT:
+        lua_pushnumber(L, p->rot * LRAD2DEGREE);
+        break;
+    case GameObjectProperty::OMIGA:
+        lua_pushnumber(L, p->omiga * LRAD2DEGREE);
+        break;
+    case GameObjectProperty::TIMER:
+        lua_pushinteger(L, p->timer);
+        break;
+    case GameObjectProperty::VX:
+        lua_pushnumber(L, p->vx);
+        break;
+    case GameObjectProperty::VY:
+        lua_pushnumber(L, p->vy);
+        break;
+    case GameObjectProperty::AX:
+        lua_pushnumber(L, p->ax);
+        break;
+    case GameObjectProperty::AY:
+        lua_pushnumber(L, p->ay);
+        break;
+    case GameObjectProperty::LAYER:
+        lua_pushnumber(L, p->layer);
+        break;
+    case GameObjectProperty::GROUP:
+        lua_pushinteger(L, p->group);
+        break;
+    case GameObjectProperty::HIDE:
+        lua_pushboolean(L, p->hide);
+        break;
+    case GameObjectProperty::BOUND:
+        lua_pushboolean(L, p->bound);
+        break;
+    case GameObjectProperty::NAVI:
+        lua_pushboolean(L, p->navi);
+        break;
+    case GameObjectProperty::COLLI:
+        lua_pushboolean(L, p->colli);
+        break;
+    case GameObjectProperty::STATUS:
+        switch (p->status)
+        {
+        case STATUS_DEFAULT:
+            lua_pushstring(L, "normal");
+            break;
+        case STATUS_KILL:
+            lua_pushstring(L, "kill");
+            break;
+        case STATUS_DEL:
+            lua_pushstring(L, "del");
+            break;
+        default:
+            LASSERT(false);
+            break;
+        }
+        break;
+    case GameObjectProperty::HSCALE:
+        lua_pushnumber(L, p->hscale);
+        break;
+    case GameObjectProperty::VSCALE:
+        lua_pushnumber(L, p->vscale);
+        break;
+    case GameObjectProperty::CLASS:
+        lua_rawgeti(L, 1, 1);
+        break;
+    case GameObjectProperty::A:
+        lua_pushnumber(L, p->a / LRES.GetGlobalImageScaleFactor());
+        break;
+    case GameObjectProperty::B:
+        lua_pushnumber(L, p->b / LRES.GetGlobalImageScaleFactor());
+        break;
+    case GameObjectProperty::RECT:
+        lua_pushboolean(L, p->rect);
+        break;
+    case GameObjectProperty::IMG:
+        if (p->res)
+            lua_pushstring(L, p->res->GetResName().c_str());
+        else
+            lua_pushnil(L);
+        break;
+    case GameObjectProperty::ANI:
+        lua_pushinteger(L, p->ani_timer);
+        break;
+    case GameObjectProperty::X:
+    case GameObjectProperty::Y:
+    default:
+        lua_pushnil(L);
+        break;
+    }
 
-	return 1;
+    return 1;
 }
 
 int GameObjectPool::SetAttr(lua_State* L)LNOEXCEPT
 {
-	lua_rawgeti(L, 1, 2);  // t(object) s(key) any(v) i(id)
-	size_t id = static_cast<size_t>(lua_tonumber(L, -1));
-	lua_pop(L, 1);  // t(object) s(key) any(v)
+    lua_rawgeti(L, 1, 2);  // t(object) s(key) any(v) i(id)
+    size_t id = static_cast<size_t>(lua_tonumber(L, -1));
+    lua_pop(L, 1);  // t(object) s(key) any(v)
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for '__newindex' meta operation.");
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for '__newindex' meta operation.");
 
-	// æŸ¥è¯¢å±æ€§
-	const char* key = luaL_checkstring(L, 2);
+    // ²éÑ¯ÊôĞÔ
+    const char* key = luaL_checkstring(L, 2);
 
-	// å¯¹x,yä½œç‰¹åŒ–å¤„ç†
-	if (key[0] == 'x' && key[1] == '\0')
-	{
-		p->x = luaL_checknumber(L, 3);
-		return 0;
-	}
-	else if (key[0] == 'y' && key[1] == '\0')
-	{
-		p->y = luaL_checknumber(L, 3);
-		return 0;
-	}	
+    // ¶Ôx,y×÷ÌØ»¯´¦Àí
+    if (key[0] == 'x' && key[1] == '\0')
+    {
+        p->x = luaL_checknumber(L, 3);
+        return 0;
+    }
+    else if (key[0] == 'y' && key[1] == '\0')
+    {
+        p->y = luaL_checknumber(L, 3);
+        return 0;
+    }    
 
-	// ä¸€èˆ¬å±æ€§
-	switch (GameObjectPropertyHash(key))
-	{
-	case GameObjectProperty::DX:
-		return luaL_error(L, "property 'dx' is readonly.");
-	case GameObjectProperty::DY:
-		return luaL_error(L, "property 'dy' is readonly.");
-	case GameObjectProperty::ROT:
-		p->rot = luaL_checknumber(L, 3) * LDEGREE2RAD;
-		break;
-	case GameObjectProperty::OMIGA:
-		p->omiga = luaL_checknumber(L, 3) * LDEGREE2RAD;
-		break;
-	case GameObjectProperty::TIMER:
-		p->timer = luaL_checkinteger(L, 3);
-		break;
-	case GameObjectProperty::VX:
-		p->vx = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::VY:
-		p->vy = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::AX:
-		p->ax = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::AY:
-		p->ay = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::LAYER:
-		p->layer = luaL_checknumber(L, 3);
-		LIST_INSERT_SORT(p, Render, RenderListSortFunc); // åˆ·æ–°pçš„æ¸²æŸ“å±‚çº§
-		LASSERT(m_pRenderListHeader.pRenderNext != nullptr);
-		LASSERT(m_pRenderListTail.pRenderPrev != nullptr);
-		break;
-	case GameObjectProperty::GROUP:
-		do
-		{
-			int group = luaL_checkinteger(L, 3);
-			if (group != p->group)
-			{
-				if (0 <= p->group && p->group < LGOBJ_GROUPCNT)
-					LIST_REMOVE(p, Collision);
-				p->group = group;
-				if (0 <= group && group < LGOBJ_GROUPCNT)
-				{
-					LIST_INSERT_BEFORE(&m_pCollisionListTail[group], p, Collision);
-					LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);  // åˆ·æ–°pçš„ç¢°æ’æ¬¡åº
-					LASSERT(m_pCollisionListHeader[group].pCollisionNext != nullptr);
-					LASSERT(m_pCollisionListTail[group].pCollisionPrev != nullptr);
-				}
-			}
-		} while (false);
-		break;
-	case GameObjectProperty::HIDE:
-		p->hide = lua_toboolean(L, 3) == 0 ? false : true;
-		break;
-	case GameObjectProperty::BOUND:
-		p->bound = lua_toboolean(L, 3) == 0 ? false : true;
-		break;
-	case GameObjectProperty::NAVI:
-		p->navi = lua_toboolean(L, 3) == 0 ? false : true;
-		break;
-	case GameObjectProperty::COLLI:
-		p->colli = lua_toboolean(L, 3) == 0 ? false : true;
-		break;
-	case GameObjectProperty::STATUS:
-		do {
-			const char* val = luaL_checkstring(L, 3);
-			if (strcmp(val, "normal") == 0)
-				p->status = STATUS_DEFAULT;
-			else if (strcmp(val, "del") == 0)
-				p->status = STATUS_DEL;
-			else if (strcmp(val, "kill") == 0)
-				p->status = STATUS_KILL;
-			else
-				return luaL_error(L, "invalid argument for property 'status'.");
-		} while (false);
-		break;
-	case GameObjectProperty::HSCALE:
-		p->hscale = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::VSCALE:
-		p->vscale = luaL_checknumber(L, 3);
-		break;
-	case GameObjectProperty::CLASS:
-		lua_rawseti(L, 1, 1);
-		break;
-	case GameObjectProperty::A:
-		p->a = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
-		p->UpdateCollisionCirclrRadius();
-		break;
-	case GameObjectProperty::B:
-		p->b = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
-		p->UpdateCollisionCirclrRadius();
-		break;
-	case GameObjectProperty::RECT:
-		p->rect = lua_toboolean(L, 3) == 0 ? false : true;
-		p->UpdateCollisionCirclrRadius();
-		break;
-	case GameObjectProperty::IMG:
-		do
-		{
-			const char* name = luaL_checkstring(L, 3);
-			if (!p->res || strcmp(name, p->res->GetResName().c_str()) != 0)
-			{
-				p->ReleaseResource();
-				if (!p->ChangeResource(name))
-					return luaL_error(L, "can't find resource '%s' in image/animation/particle pool.", luaL_checkstring(L, 3));
-			}
-		} while (false);
-		break;
-	case GameObjectProperty::ANI:
-		return luaL_error(L, "property 'ani' is readonly.");
-	case GameObjectProperty::X:
-	case GameObjectProperty::Y:
-		break;
-	default:
-		lua_rawset(L, 1);
-		break;
-	}
-	return 0;
+    // Ò»°ãÊôĞÔ
+    switch (GameObjectPropertyHash(key))
+    {
+    case GameObjectProperty::DX:
+        return luaL_error(L, "property 'dx' is readonly.");
+    case GameObjectProperty::DY:
+        return luaL_error(L, "property 'dy' is readonly.");
+    case GameObjectProperty::ROT:
+        p->rot = luaL_checknumber(L, 3) * LDEGREE2RAD;
+        break;
+    case GameObjectProperty::OMIGA:
+        p->omiga = luaL_checknumber(L, 3) * LDEGREE2RAD;
+        break;
+    case GameObjectProperty::TIMER:
+        p->timer = luaL_checkinteger(L, 3);
+        break;
+    case GameObjectProperty::VX:
+        p->vx = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::VY:
+        p->vy = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::AX:
+        p->ax = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::AY:
+        p->ay = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::LAYER:
+        p->layer = luaL_checknumber(L, 3);
+        LIST_INSERT_SORT(p, Render, RenderListSortFunc); // Ë¢ĞÂpµÄäÖÈ¾²ã¼¶
+        LASSERT(m_pRenderListHeader.pRenderNext != nullptr);
+        LASSERT(m_pRenderListTail.pRenderPrev != nullptr);
+        break;
+    case GameObjectProperty::GROUP:
+        do
+        {
+            int group = luaL_checkinteger(L, 3);
+            if (group != p->group)
+            {
+                if (0 <= p->group && p->group < LGOBJ_GROUPCNT)
+                    LIST_REMOVE(p, Collision);
+                p->group = group;
+                if (0 <= group && group < LGOBJ_GROUPCNT)
+                {
+                    LIST_INSERT_BEFORE(&m_pCollisionListTail[group], p, Collision);
+                    LIST_INSERT_SORT(p, Collision, ObjectListSortFunc);  // Ë¢ĞÂpµÄÅö×²´ÎĞò
+                    LASSERT(m_pCollisionListHeader[group].pCollisionNext != nullptr);
+                    LASSERT(m_pCollisionListTail[group].pCollisionPrev != nullptr);
+                }
+            }
+        } while (false);
+        break;
+    case GameObjectProperty::HIDE:
+        p->hide = lua_toboolean(L, 3) == 0 ? false : true;
+        break;
+    case GameObjectProperty::BOUND:
+        p->bound = lua_toboolean(L, 3) == 0 ? false : true;
+        break;
+    case GameObjectProperty::NAVI:
+        p->navi = lua_toboolean(L, 3) == 0 ? false : true;
+        break;
+    case GameObjectProperty::COLLI:
+        p->colli = lua_toboolean(L, 3) == 0 ? false : true;
+        break;
+    case GameObjectProperty::STATUS:
+        do {
+            const char* val = luaL_checkstring(L, 3);
+            if (strcmp(val, "normal") == 0)
+                p->status = STATUS_DEFAULT;
+            else if (strcmp(val, "del") == 0)
+                p->status = STATUS_DEL;
+            else if (strcmp(val, "kill") == 0)
+                p->status = STATUS_KILL;
+            else
+                return luaL_error(L, "invalid argument for property 'status'.");
+        } while (false);
+        break;
+    case GameObjectProperty::HSCALE:
+        p->hscale = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::VSCALE:
+        p->vscale = luaL_checknumber(L, 3);
+        break;
+    case GameObjectProperty::CLASS:
+        lua_rawseti(L, 1, 1);
+        break;
+    case GameObjectProperty::A:
+        p->a = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
+        p->UpdateCollisionCirclrRadius();
+        break;
+    case GameObjectProperty::B:
+        p->b = luaL_checknumber(L, 3) * LRES.GetGlobalImageScaleFactor();
+        p->UpdateCollisionCirclrRadius();
+        break;
+    case GameObjectProperty::RECT:
+        p->rect = lua_toboolean(L, 3) == 0 ? false : true;
+        p->UpdateCollisionCirclrRadius();
+        break;
+    case GameObjectProperty::IMG:
+        do
+        {
+            const char* name = luaL_checkstring(L, 3);
+            if (!p->res || strcmp(name, p->res->GetResName().c_str()) != 0)
+            {
+                p->ReleaseResource();
+                if (!p->ChangeResource(name))
+                    return luaL_error(L, "can't find resource '%s' in image/animation/particle pool.", luaL_checkstring(L, 3));
+            }
+        } while (false);
+        break;
+    case GameObjectProperty::ANI:
+        return luaL_error(L, "property 'ani' is readonly.");
+    case GameObjectProperty::X:
+    case GameObjectProperty::Y:
+        break;
+    default:
+        lua_rawset(L, 1);
+        break;
+    }
+    return 0;
 }
 
 int GameObjectPool::GetObjectTable(lua_State* L)LNOEXCEPT
 {
-	GETOBJTABLE;
-	return 1;
+    GETOBJTABLE;
+    return 1;
 }
 
 int GameObjectPool::ParticleStop(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-		return luaL_error(L, "invalid lstg object for 'ParticleStop'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ??? id
-	size_t id = (size_t)luaL_checkinteger(L, -1);
-	lua_pop(L, 1);
+    if (!lua_istable(L, 1))
+        return luaL_error(L, "invalid lstg object for 'ParticleStop'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ??? id
+    size_t id = (size_t)luaL_checkinteger(L, -1);
+    lua_pop(L, 1);
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for 'ParticleStop'.");
-	if (!p->res || p->res->GetType() != ResourceType::Particle)
-	{
-		LWARNING("ParticleStop: è¯•å›¾åœæ­¢ä¸€ä¸ªä¸å¸¦æœ‰ç²’å­å‘å°„å™¨çš„å¯¹è±¡çš„ç²’å­å‘å°„è¿‡ç¨‹(uid=%d)", m_iUid);
-		return 0;
-	}	
-	p->ps->SetInactive();
-	return 0;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for 'ParticleStop'.");
+    if (!p->res || p->res->GetType() != ResourceType::Particle)
+    {
+        LWARNING("ParticleStop: ÊÔÍ¼Í£Ö¹Ò»¸ö²»´øÓĞÁ£×Ó·¢ÉäÆ÷µÄ¶ÔÏóµÄÁ£×Ó·¢Éä¹ı³Ì(uid=%d)", m_iUid);
+        return 0;
+    }    
+    p->ps->SetInactive();
+    return 0;
 }
 
 int GameObjectPool::ParticleFire(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-	return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ??? id
-	size_t id = (size_t)luaL_checkinteger(L, -1);
-	lua_pop(L, 1);
+    if (!lua_istable(L, 1))
+    return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ??? id
+    size_t id = (size_t)luaL_checkinteger(L, -1);
+    lua_pop(L, 1);
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
-	if (!p->res || p->res->GetType() != ResourceType::Particle)
-	{
-		LWARNING("ParticleFire: è¯•å›¾å¯åŠ¨ä¸€ä¸ªä¸å¸¦æœ‰ç²’å­å‘å°„å™¨çš„å¯¹è±¡çš„ç²’å­å‘å°„è¿‡ç¨‹(uid=%d)", m_iUid);
-		return 0;
-	}	
-	p->ps->SetActive();
-	return 0;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
+    if (!p->res || p->res->GetType() != ResourceType::Particle)
+    {
+        LWARNING("ParticleFire: ÊÔÍ¼Æô¶¯Ò»¸ö²»´øÓĞÁ£×Ó·¢ÉäÆ÷µÄ¶ÔÏóµÄÁ£×Ó·¢Éä¹ı³Ì(uid=%d)", m_iUid);
+        return 0;
+    }    
+    p->ps->SetActive();
+    return 0;
 }
 
 int GameObjectPool::ParticleGetn(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-	return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ??? id
-	size_t id = (size_t)luaL_checkinteger(L, -1);
-	lua_pop(L, 1);
+    if (!lua_istable(L, 1))
+    return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ??? id
+    size_t id = (size_t)luaL_checkinteger(L, -1);
+    lua_pop(L, 1);
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
-	if (!p->res || p->res->GetType() != ResourceType::Particle)
-	{
-		lua_pushinteger(L, 0);
-		return 1;
-	}
-	lua_pushinteger(L, (int)p->ps->GetAliveCount());
-	return 1;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for 'ParticleFire'.");
+    if (!p->res || p->res->GetType() != ResourceType::Particle)
+    {
+        lua_pushinteger(L, 0);
+        return 1;
+    }
+    lua_pushinteger(L, (int)p->ps->GetAliveCount());
+    return 1;
 }
 
 int GameObjectPool::ParticleGetEmission(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-	return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ??? id
-	size_t id = (size_t)luaL_checkinteger(L, -1);
-	lua_pop(L, 1);
+    if (!lua_istable(L, 1))
+    return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ??? id
+    size_t id = (size_t)luaL_checkinteger(L, -1);
+    lua_pop(L, 1);
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
-	if (!p->res || p->res->GetType() != ResourceType::Particle)
-	{
-		LWARNING("ParticleGetEmission: è¯•å›¾è·å–ä¸€ä¸ªä¸å¸¦æœ‰ç²’å­å‘å°„å™¨çš„å¯¹è±¡çš„ç²’å­å‘å°„å¯†åº¦(uid=%d)", m_iUid);
-		lua_pushinteger(L, 0);
-		return 1;
-	}
-	lua_pushnumber(L, p->ps->GetEmission());
-	return 1;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
+    if (!p->res || p->res->GetType() != ResourceType::Particle)
+    {
+        LWARNING("ParticleGetEmission: ÊÔÍ¼»ñÈ¡Ò»¸ö²»´øÓĞÁ£×Ó·¢ÉäÆ÷µÄ¶ÔÏóµÄÁ£×Ó·¢ÉäÃÜ¶È(uid=%d)", m_iUid);
+        lua_pushinteger(L, 0);
+        return 1;
+    }
+    lua_pushnumber(L, p->ps->GetEmission());
+    return 1;
 }
 
 int GameObjectPool::ParticleSetEmission(lua_State* L)LNOEXCEPT
 {
-	if (!lua_istable(L, 1))
-	return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
-	lua_rawgeti(L, 1, 2);  // t(object) ??? id
-	size_t id = (size_t)luaL_checkinteger(L, -1);
-	lua_pop(L, 1);
+    if (!lua_istable(L, 1))
+    return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
+    lua_rawgeti(L, 1, 2);  // t(object) ??? id
+    size_t id = (size_t)luaL_checkinteger(L, -1);
+    lua_pop(L, 1);
 
-	GameObject* p = m_ObjectPool.Data(id);
-	if (!p)
-		return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
-	if (!p->res || p->res->GetType() != ResourceType::Particle)
-	{
-		LWARNING("ParticleSetEmission: è¯•å›¾è®¾ç½®ä¸€ä¸ªä¸å¸¦æœ‰ç²’å­å‘å°„å™¨çš„å¯¹è±¡çš„ç²’å­å‘å°„å¯†åº¦(uid=%d)", m_iUid);
-		return 0;
-	}
-	p->ps->SetEmission((float)::max(0., luaL_checknumber(L, 2)));
-	return 0;
+    GameObject* p = m_ObjectPool.Data(id);
+    if (!p)
+        return luaL_error(L, "invalid lstg object for 'ParticleGetEmission'.");
+    if (!p->res || p->res->GetType() != ResourceType::Particle)
+    {
+        LWARNING("ParticleSetEmission: ÊÔÍ¼ÉèÖÃÒ»¸ö²»´øÓĞÁ£×Ó·¢ÉäÆ÷µÄ¶ÔÏóµÄÁ£×Ó·¢ÉäÃÜ¶È(uid=%d)", m_iUid);
+        return 0;
+    }
+    p->ps->SetEmission((float)::max(0., luaL_checknumber(L, 2)));
+    return 0;
 }
 
 void GameObjectPool::DrawGroupCollider(f2dGraphics2D* graph, f2dGeometryRenderer* grender, int groupId, fcyColor fillColor)
 {
-	GameObject* p = m_pCollisionListHeader[groupId].pCollisionNext;
-	GameObject* pTail = &m_pCollisionListTail[groupId];
-	while (p && p != pTail)
-	{
-		if (p->colli)
-		{
-			if (p->rect)
-			{
-				fcyVec2 tHalfSize((float)p->a, (float)p->b);
+    GameObject* p = m_pCollisionListHeader[groupId].pCollisionNext;
+    GameObject* pTail = &m_pCollisionListTail[groupId];
+    while (p && p != pTail)
+    {
+        if (p->colli)
+        {
+            if (p->rect)
+            {
+                fcyVec2 tHalfSize((float)p->a, (float)p->b);
 
-				// è®¡ç®—å‡ºçŸ©å½¢çš„4ä¸ªé¡¶ç‚¹
-				f2dGraphics2DVertex tFinalPos[4] =
-				{
-					{ -tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 0.0f },
-					{ tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 1.0f },
-					{ tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 1.0f },
-					{ -tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 0.0f }
-				};
+                // ¼ÆËã³ö¾ØĞÎµÄ4¸ö¶¥µã
+                f2dGraphics2DVertex tFinalPos[4] =
+                {
+                    { -tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 0.0f },
+                    { tHalfSize.x, -tHalfSize.y, 0.5f, fillColor.argb, 0.0f, 1.0f },
+                    { tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 1.0f },
+                    { -tHalfSize.x, tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 0.0f }
+                };
 
-				// float tSin = sin(Angle), tCos = cos(Angle);
-				float tSin, tCos;
-				SinCos((float)p->rot, tSin, tCos);
+                // float tSin = sin(Angle), tCos = cos(Angle);
+                float tSin, tCos;
+                SinCos((float)p->rot, tSin, tCos);
 
-				// å˜æ¢
-				for (int i = 0; i < 4; i++)
-				{
-					fFloat tx = tFinalPos[i].x * tCos - tFinalPos[i].y * tSin,
-						ty = tFinalPos[i].x * tSin + tFinalPos[i].y * tCos;
-					tFinalPos[i].x = tx + (float)p->x; tFinalPos[i].y = ty + (float)p->y;
-				}
+                // ±ä»»
+                for (int i = 0; i < 4; i++)
+                {
+                    fFloat tx = tFinalPos[i].x * tCos - tFinalPos[i].y * tSin,
+                        ty = tFinalPos[i].x * tSin + tFinalPos[i].y * tCos;
+                    tFinalPos[i].x = tx + (float)p->x; tFinalPos[i].y = ty + (float)p->y;
+                }
 
-				graph->DrawQuad(nullptr, tFinalPos);
-			}
-			else
-			{
-				grender->FillCircle(graph, fcyVec2((float)p->x, (float)p->y), (float)p->col_r, fillColor, fillColor,
-					p->col_r < 10 ? 3 : (p->col_r < 20 ? 6 : 8));
-			}
-		}
+                graph->DrawQuad(nullptr, tFinalPos);
+            }
+            else
+            {
+                grender->FillCircle(graph, fcyVec2((float)p->x, (float)p->y), (float)p->col_r, fillColor, fillColor,
+                    p->col_r < 10 ? 3 : (p->col_r < 20 ? 6 : 8));
+            }
+        }
 
-		p = p->pCollisionNext;
-	}
+        p = p->pCollisionNext;
+    }
 }

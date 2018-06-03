@@ -112,7 +112,7 @@ void SplashWindow::createWindow()
 	tBlend.SourceConstantAlpha = 255;
 
 	POINT tZero = { 0, 0 };
-	SIZE tSize = { m_bkImage->GetWidth(), m_bkImage->GetHeight() };
+	SIZE tSize = { static_cast<LONG>(m_bkImage->GetWidth()), static_cast<LONG>(m_bkImage->GetHeight()) };
 
 	UpdateLayeredWindow(m_hHandle, dcDest, &tZero, &tSize, dcSrc, &tZero, 0, &tBlend, ULW_ALPHA);
 

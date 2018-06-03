@@ -208,15 +208,15 @@ public:
 		if (input >= 0x10000u)
 		{
 			input -= 0x10000u;
-			m_cBuf[0] = (input >> 10) | 0xD800u;    // 前导字节
-			m_cBuf[1] = (input & 0x3FFu) | 0xDC00u; // 后尾字节
+			m_cBuf[0] = static_cast<char16_t>((input >> 10) | 0xD800u);    // 前导字节
+			m_cBuf[1] = static_cast<char16_t>((input & 0x3FFu) | 0xDC00u); // 后尾字节
 			output = reinterpret_cast<uint8_t*>(m_cBuf);
 			size = 2 * sizeof(char16_t);
 			return true;
 		}
 		else
 		{
-			m_cBuf[0] = input;
+			m_cBuf[0] = static_cast<char16_t>(input);
 			output = reinterpret_cast<uint8_t*>(m_cBuf);
 			size = 1 * sizeof(char16_t);
 			return true;

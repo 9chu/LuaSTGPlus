@@ -157,19 +157,9 @@ bool LuaSTGPlus::OBBCircleHitTest(fcyVec2 P1, fcyVec2 Size, float Angle,
 
 	// 检查边碰撞
 	if (fabs(tCircleCenterProjValue[0] - tProjValue[0]) < tAxisLen[0] / 2.f)
-	{
-		if (fabs(tCircleCenterProjValue[1] - tProjValue[1]) < tAxisLen[1] / 2.f + R)
-			return true;
-		else
-			return false;
-	}
+		return (fabs(tCircleCenterProjValue[1] - tProjValue[1]) < tAxisLen[1] / 2.f + R);
 	else if (fabs(tCircleCenterProjValue[1] - tProjValue[1]) < tAxisLen[1] / 2.f)
-	{
-		if (fabs(tCircleCenterProjValue[0] - tProjValue[0]) < tAxisLen[0] / 2.f + R)
-			return true;
-		else
-			return false;
-	}
+		return (fabs(tCircleCenterProjValue[0] - tProjValue[0]) < tAxisLen[0] / 2.f + R);
 
 	// 检查四个角
 	float tDist2 = R;

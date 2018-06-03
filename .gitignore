@@ -156,3 +156,5 @@ $RECYCLE.BIN/
 .DS_Store
 /LuaSTGPlus.VC.db
 *.opendb
+
+.vs/
