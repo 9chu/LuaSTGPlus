@@ -13,10 +13,10 @@ namespace LuaSTGPlus
 
 	inline float VolumeFix(float v)
 	{
-		return -exp(-v * 6.f) + 1;  // ĞŞÕıÒôÁ¿¹ıĞ¡µÄÎÊÌâ
+		return -exp(-v * 6.f) + 1;  // ä¿®æ­£éŸ³é‡è¿‡å°çš„é—®é¢˜
 	}
 
-	/// @brief ×ÊÔ´ÀàĞÍ
+	/// @brief èµ„æºç±»å‹
 	enum class ResourceType
 	{
 		Texture = 1,
@@ -30,7 +30,7 @@ namespace LuaSTGPlus
 		FX
 	};
 
-	/// @brief ×ÊÔ´³ØÀàĞÍ
+	/// @brief èµ„æºæ± ç±»å‹
 	enum class ResourcePoolType
 	{
 		None = 0,
@@ -38,7 +38,7 @@ namespace LuaSTGPlus
 		Stage
 	};
 
-	/// @brief »ìºÏÄ£Ê½
+	/// @brief æ··åˆæ¨¡å¼
 	enum class BlendMode
 	{
 		AddAdd = 1,
@@ -51,7 +51,7 @@ namespace LuaSTGPlus
 		MulRev
 	};
 	
-	/// @brief ×ÊÔ´½Ó¿Ú
+	/// @brief èµ„æºæ¥å£
 	class Resource :
 		public fcyRefObjImpl<fcyRefObj>
 	{
@@ -69,7 +69,7 @@ namespace LuaSTGPlus
 			: m_Type(t), m_ResName(name) {}
 	};
 
-	/// @brief ÎÆÀí×ÊÔ´
+	/// @brief çº¹ç†èµ„æº
 	class ResTexture :
 		public Resource
 	{
@@ -83,7 +83,7 @@ namespace LuaSTGPlus
 			: Resource(ResourceType::Texture, name), m_Texture(tex) {}
 	};
 
-	/// @brief Í¼Ïñ×ÊÔ´
+	/// @brief å›¾åƒèµ„æº
 	class ResSprite :
 		public Resource
 	{
@@ -104,11 +104,11 @@ namespace LuaSTGPlus
 		ResSprite(const char* name, fcyRefPointer<f2dSprite> sprite, double hx, double hy, bool rect)
 			: Resource(ResourceType::Sprite, name), m_Sprite(sprite), m_HalfSizeX(hx), m_HalfSizeY(hy), m_bRectangle(rect)
 		{
-			m_Sprite->SetColor(0xFFFFFFFF);  // ÊÊÓ¦³Ë·¨
+			m_Sprite->SetColor(0xFFFFFFFF);  // é€‚åº”ä¹˜æ³•
 		}
 	};
 
-	/// @brief ¶¯»­×ÊÔ´
+	/// @brief åŠ¨ç”»èµ„æº
 	class ResAnimation :
 		public Resource
 	{
@@ -138,73 +138,73 @@ namespace LuaSTGPlus
 			int n, int m, int intv, double a, double b, bool rect = false);
 	};
 
-	/// @brief Á£×ÓÏµÍ³
-	/// @note HGEÁ£×ÓÏµÍ³µÄf2dÊµÏÖ
+	/// @brief ç²’å­ç³»ç»Ÿ
+	/// @note HGEç²’å­ç³»ç»Ÿçš„f2då®ç°
 	class ResParticle :
 		public Resource
 	{
 	public:
-		/// @brief Á£×ÓĞÅÏ¢
+		/// @brief ç²’å­ä¿¡æ¯
 		struct ParticleInfo
 		{
 			fuInt iBlendInfo;
 
-			int nEmission;  // Ã¿Ãë·¢Éä¸öÊı
-			float fLifetime;  // ÉúÃüÆÚ
-			float fParticleLifeMin;  // Á£×Ó×îĞ¡ÉúÃüÆÚ
-			float fParticleLifeMax;  // Á£×Ó×î´óÉúÃüÆÚ
-			float fDirection;  // ·¢Éä·½Ïò
-			float fSpread;  // Æ«ÒÆ½Ç¶È
-			bool bRelative;  // Ê¹ÓÃÏà¶ÔÖµ»¹ÊÇ¾ø¶ÔÖµ
+			int nEmission;  // æ¯ç§’å‘å°„ä¸ªæ•°
+			float fLifetime;  // ç”Ÿå‘½æœŸ
+			float fParticleLifeMin;  // ç²’å­æœ€å°ç”Ÿå‘½æœŸ
+			float fParticleLifeMax;  // ç²’å­æœ€å¤§ç”Ÿå‘½æœŸ
+			float fDirection;  // å‘å°„æ–¹å‘
+			float fSpread;  // åç§»è§’åº¦
+			bool bRelative;  // ä½¿ç”¨ç›¸å¯¹å€¼è¿˜æ˜¯ç»å¯¹å€¼
 
-			float fSpeedMin;  // ËÙ¶È×îĞ¡Öµ
-			float fSpeedMax;  // ËÙ¶È×î´óÖµ
+			float fSpeedMin;  // é€Ÿåº¦æœ€å°å€¼
+			float fSpeedMax;  // é€Ÿåº¦æœ€å¤§å€¼
 
-			float fGravityMin;  // ÖØÁ¦×îĞ¡Öµ
-			float fGravityMax;  // ÖØÁ¦×î´óÖµ
+			float fGravityMin;  // é‡åŠ›æœ€å°å€¼
+			float fGravityMax;  // é‡åŠ›æœ€å¤§å€¼
 
-			float fRadialAccelMin;  // ×îµÍÏß¼ÓËÙ¶È
-			float fRadialAccelMax;  // ×î¸ßÏß¼ÓËÙ¶È
+			float fRadialAccelMin;  // æœ€ä½çº¿åŠ é€Ÿåº¦
+			float fRadialAccelMax;  // æœ€é«˜çº¿åŠ é€Ÿåº¦
 
-			float fTangentialAccelMin;  // ×îµÍ½Ç¼ÓËÙ¶È
-			float fTangentialAccelMax;  // ×î¸ß½Ç¼ÓËÙ¶È
+			float fTangentialAccelMin;  // æœ€ä½è§’åŠ é€Ÿåº¦
+			float fTangentialAccelMax;  // æœ€é«˜è§’åŠ é€Ÿåº¦
 
-			float fSizeStart;  // ÆğÊ¼´óĞ¡
-			float fSizeEnd;  // ×îÖÕ´óĞ¡
-			float fSizeVar;  // ´óĞ¡¶¶¶¯Öµ
+			float fSizeStart;  // èµ·å§‹å¤§å°
+			float fSizeEnd;  // æœ€ç»ˆå¤§å°
+			float fSizeVar;  // å¤§å°æŠ–åŠ¨å€¼
 
-			float fSpinStart;  // ÆğÊ¼×ÔĞı
-			float fSpinEnd;  // ×îÖÕ×ÔĞı
-			float fSpinVar;  // ×ÔĞı¶¶¶¯Öµ
+			float fSpinStart;  // èµ·å§‹è‡ªæ—‹
+			float fSpinEnd;  // æœ€ç»ˆè‡ªæ—‹
+			float fSpinVar;  // è‡ªæ—‹æŠ–åŠ¨å€¼
 
-			float colColorStart[4];  // ÆğÊ¼ÑÕÉ«(rgba)
-			float colColorEnd[4];  // ×îÖÕÑÕÉ«
-			float fColorVar;  // ÑÕÉ«¶¶¶¯Öµ
-			float fAlphaVar;  // alpha¶¶¶¯Öµ
+			float colColorStart[4];  // èµ·å§‹é¢œè‰²(rgba)
+			float colColorEnd[4];  // æœ€ç»ˆé¢œè‰²
+			float fColorVar;  // é¢œè‰²æŠ–åŠ¨å€¼
+			float fAlphaVar;  // alphaæŠ–åŠ¨å€¼
 		};
-		/// @brief Á£×ÓÊµÀı
+		/// @brief ç²’å­å®ä¾‹
 		struct ParticleInstance
 		{
-			fcyVec2 vecLocation;  // Î»ÖÃ
-			fcyVec2 vecVelocity;  // ËÙ¶È
+			fcyVec2 vecLocation;  // ä½ç½®
+			fcyVec2 vecVelocity;  // é€Ÿåº¦
 
-			float fGravity;  // ÖØÁ¦
-			float fRadialAccel;  // Ïß¼ÓËÙ¶È
-			float fTangentialAccel;  // ½Ç¼ÓËÙ¶È
+			float fGravity;  // é‡åŠ›
+			float fRadialAccel;  // çº¿åŠ é€Ÿåº¦
+			float fTangentialAccel;  // è§’åŠ é€Ÿåº¦
 
-			float fSpin;  // ×ÔĞı
-			float fSpinDelta;  // ×ÔĞıÔöÁ¿
+			float fSpin;  // è‡ªæ—‹
+			float fSpinDelta;  // è‡ªæ—‹å¢é‡
 
-			float fSize;  // ´óĞ¡
-			float fSizeDelta;  // ´óĞ¡ÔöÁ¿
+			float fSize;  // å¤§å°
+			float fSizeDelta;  // å¤§å°å¢é‡
 
-			float colColor[4];  // ÑÕÉ«
-			float colColorDelta[4];  // ÑÕÉ«ÔöÁ¿
+			float colColor[4];  // é¢œè‰²
+			float colColorDelta[4];  // é¢œè‰²å¢é‡
 
-			float fAge;  // µ±Ç°´æ»îÊ±¼ä
-			float fTerminalAge;  // ÖÕÖ¹Ê±¼ä
+			float fAge;  // å½“å‰å­˜æ´»æ—¶é—´
+			float fTerminalAge;  // ç»ˆæ­¢æ—¶é—´
 		};
-		/// @brief Á£×Ó³Ø
+		/// @brief ç²’å­æ± 
 		class ParticlePool
 		{
 			friend class ResParticle;
@@ -215,17 +215,17 @@ namespace LuaSTGPlus
 				Sleep
 			};
 		private:
-			fcyRefPointer<ResParticle> m_pInstance;  // ĞÅÏ¢
+			fcyRefPointer<ResParticle> m_pInstance;  // ä¿¡æ¯
 
 			BlendMode m_BlendMode = BlendMode::MulAlpha;
-			Status m_iStatus = Status::Alive;  // ×´Ì¬
-			fcyVec2 m_vCenter;  // ÖĞĞÄ
-			fcyVec2 m_vPrevCenter;  // ÉÏÒ»¸öÖĞĞÄ
-			float m_fRotation = 0.f;  // ·½Ïò
-			size_t m_iAlive = 0;  // ´æ»îÊı
-			float m_fAge = 0.f;  // ÒÑ´æ»îÊ±¼ä
-			float m_fEmission = 0.f;  // Ã¿Ãë·¢ÉäÊı
-			float m_fEmissionResidue = 0.f;  // ²»×ãµÄÁ£×ÓÊı
+			Status m_iStatus = Status::Alive;  // çŠ¶æ€
+			fcyVec2 m_vCenter;  // ä¸­å¿ƒ
+			fcyVec2 m_vPrevCenter;  // ä¸Šä¸€ä¸ªä¸­å¿ƒ
+			float m_fRotation = 0.f;  // æ–¹å‘
+			size_t m_iAlive = 0;  // å­˜æ´»æ•°
+			float m_fAge = 0.f;  // å·²å­˜æ´»æ—¶é—´
+			float m_fEmission = 0.f;  // æ¯ç§’å‘å°„æ•°
+			float m_fEmissionResidue = 0.f;  // ä¸è¶³çš„ç²’å­æ•°
 			std::array<ParticleInstance, LPARTICLE_MAXCNT> m_ParticlePool;
 		public:
 			size_t GetAliveCount()const LNOEXCEPT { return m_iAlive; }
@@ -279,18 +279,18 @@ namespace LuaSTGPlus
 		ResParticle(const char* name, const ParticleInfo& pinfo, fcyRefPointer<f2dSprite> sprite, BlendMode bld, double a, double b, bool rect = false);
 	};
 
-	/// @brief ÎÆÀí×ÖÌå
+	/// @brief çº¹ç†å­—ä½“
 	class ResFont :
 		public Resource
 	{
 	public:
-		enum class FontAlignHorizontal  // Ë®Æ½¶ÔÆë
+		enum class FontAlignHorizontal  // æ°´å¹³å¯¹é½
 		{
 			Left,
 			Center,
 			Right
 		};
-		enum class FontAlignVertical  // ´¹Ö±¶ÔÆë
+		enum class FontAlignVertical  // å‚ç›´å¯¹é½
 		{
 			Top,
 			Middle,
@@ -330,7 +330,7 @@ namespace LuaSTGPlus
 		ResFont(const char* name, fcyRefPointer<f2dFontProvider> pFont);
 	};
 
-	/// @brief ÒôĞ§
+	/// @brief éŸ³æ•ˆ
 	class ResSound :
 		public Resource
 	{
@@ -379,26 +379,26 @@ namespace LuaSTGPlus
 			: Resource(ResourceType::SoundEffect, name), m_pBuffer(buffer) {}
 	};
 
-	/// @brief ±³¾°ÒôÀÖ
+	/// @brief èƒŒæ™¯éŸ³ä¹
 	class ResMusic :
 		public Resource
 	{
 	public:
-		// ¶ÔSoundDecoder×÷Ò»¸ö°ü×°À´±£³ÖBGMÑ­»·
-		// Ê¹ÓÃ¸ÃWrapperÖ®ºóSoundBufferµÄ²¥·Å²ÎÊı£¨Î»ÖÃ£©½«Ã»ÓĞÒâÒå
-		// ! ´Ófancystg£¨ÒÑ¿Ó£©ÖĞ³éÈ¡µÄÉÏ¹ÅÊ±ÆÚ´úÂë
+		// å¯¹SoundDecoderä½œä¸€ä¸ªåŒ…è£…æ¥ä¿æŒBGMå¾ªç¯
+		// ä½¿ç”¨è¯¥Wrapperä¹‹åSoundBufferçš„æ’­æ”¾å‚æ•°ï¼ˆä½ç½®ï¼‰å°†æ²¡æœ‰æ„ä¹‰
+		// ! ä»fancystgï¼ˆå·²å‘ï¼‰ä¸­æŠ½å–çš„ä¸Šå¤æ—¶æœŸä»£ç 
 		class BGMWrapper :
 			public fcyRefObjImpl<f2dSoundDecoder>
 		{
 		protected:
 			fcyRefPointer<f2dSoundDecoder> m_pDecoder;
 
-			// ×ªµ½²ÉÑùÎªµ¥Î»
+			// è½¬åˆ°é‡‡æ ·ä¸ºå•ä½
 			fuInt m_TotalSample;
 			fuInt m_pLoopStartSample;
-			fuInt m_pLoopEndSample; // ¼àÊÓÉÚ£¬=EndSample+1
+			fuInt m_pLoopEndSample; // ç›‘è§†å“¨ï¼Œ=EndSample+1
 		public:
-			// Ö±½Ó·µ»ØÔ­Ê¼²ÎÊı
+			// ç›´æ¥è¿”å›åŸå§‹å‚æ•°
 			fuInt GetBufferSize() { return m_pDecoder->GetBufferSize(); }
 			fuInt GetAvgBytesPerSec() { return m_pDecoder->GetAvgBytesPerSec(); }
 			fuShort GetBlockAlign() { return m_pDecoder->GetBlockAlign(); }
@@ -407,11 +407,11 @@ namespace LuaSTGPlus
 			fuShort GetFormatTag() { return m_pDecoder->GetFormatTag(); }
 			fuShort GetBitsPerSample() { return m_pDecoder->GetBitsPerSample(); }
 
-			// ²»×÷ÈÎºÎ´¦Àí
+			// ä¸ä½œä»»ä½•å¤„ç†
 			fLen GetPosition() { return m_pDecoder->GetPosition(); }
 			fResult SetPosition(F2DSEEKORIGIN Origin, fInt Offset) { return m_pDecoder->SetPosition(Origin, Offset); }
 
-			// ¶ÔRead×÷´¦Àí
+			// å¯¹Readä½œå¤„ç†
 			fResult Read(fData pBuffer, fuInt SizeToRead, fuInt* pSizeRead);
 		public:
 			BGMWrapper(fcyRefPointer<f2dSoundDecoder> pOrg, fDouble LoopStart, fDouble LoopEnd);
@@ -467,19 +467,19 @@ namespace LuaSTGPlus
 			: Resource(ResourceType::Music, name), m_pBuffer(buffer) {}
 	};
 
-	/// @brief shader°ü×°
+	/// @brief shaderåŒ…è£…
 	class ResFX :
 		public Resource
 	{
 	private:
 		fcyRefPointer<f2dEffect> m_pShader;
 
-		// ÌØÊâ¶ÔÏó°ó¶¨
+		// ç‰¹æ®Šå¯¹è±¡ç»‘å®š
 		std::vector<f2dEffectParamValue*> m_pBindingPostEffectTexture;  // POSTEFFECTTEXTURE
 		std::vector<f2dEffectParamValue*> m_pBindingViewport;  // VIEWPORT
 		std::vector<f2dEffectParamValue*> m_pBindingScreenSize;  // SCREENSIZE
 
-		// ±äÁ¿°ó¶¨
+		// å˜é‡ç»‘å®š
 		Dictionary<std::vector<f2dEffectParamValue*>> m_pBindingVar;
 	public:
 		f2dEffect* GetEffect()LNOEXCEPT { return m_pShader; }
@@ -489,13 +489,13 @@ namespace LuaSTGPlus
 		void SetScreenSize(fcyVec2 size)LNOEXCEPT;
 
 		void SetValue(const char* key, float val)LNOEXCEPT;
-		void SetValue(const char* key, fcyColor val)LNOEXCEPT;  // ÒÔfloat4½øĞĞ°ó¶¨
+		void SetValue(const char* key, fcyColor val)LNOEXCEPT;  // ä»¥float4è¿›è¡Œç»‘å®š
 		void SetValue(const char* key, f2dTexture2D* val)LNOEXCEPT;
 	public:
 		ResFX(const char* name, fcyRefPointer<f2dEffect> shader);
 	};
 
-	/// @brief ×ÊÔ´³Ø
+	/// @brief èµ„æºæ± 
 	class ResourcePool
 	{
 	private:
@@ -517,36 +517,36 @@ namespace LuaSTGPlus
 			switch (m_iType)
 			{
 			case ResourcePoolType::Global:
-				return L"È«¾Ö×ÊÔ´³Ø";
+				return L"å…¨å±€èµ„æºæ± ";
 			case ResourcePoolType::Stage:
-				return L"¹Ø¿¨×ÊÔ´³Ø";
+				return L"å…³å¡èµ„æºæ± ";
 			default:
 				return nullptr;
 			}
 		}
 		template <typename T>
-		void removeResource(Dictionary<fcyRefPointer<T>> pool, const char* name)
+		void removeResource(Dictionary<fcyRefPointer<T>>& pool, const char* name)
 		{
 			auto i = pool.find(name);
 			if (i == pool.end())
 			{
-				LWARNING("RemoveResource: ÊÔÍ¼ÒÆ³ıÒ»¸ö²»´æÔÚµÄ×ÊÔ´'%m'", name);
+				LWARNING("RemoveResource: è¯•å›¾ç§»é™¤ä¸€ä¸ªä¸å­˜åœ¨çš„èµ„æº'%m'", name);
 				return;
 			}	
 			pool.erase(i);
 #ifdef LSHOWRESLOADINFO
-			LINFO("RemoveResource: ×ÊÔ´'%m'ÒÑĞ¶ÔØ", name);
+			LINFO("RemoveResource: èµ„æº'%m'å·²å¸è½½", name);
 #endif
 		}
 	public:
-		/// @brief Çå¿Õ¶ÔÏó³Ø
+		/// @brief æ¸…ç©ºå¯¹è±¡æ± 
 		void Clear()LNOEXCEPT;
 
-		/// @brief ÒÆ³ıÄ³¸ö×ÊÔ´ÀàĞÍµÄ×ÊÔ´
+		/// @brief ç§»é™¤æŸä¸ªèµ„æºç±»å‹çš„èµ„æº
 		void RemoveResource(ResourceType t, const char* name)LNOEXCEPT;
 
-		/// @brief ¼ì²é×ÊÔ´ÊÇ·ñ´æÔÚ
-		/// @warning ×¢Òât¿ÉÒÔÊÇ·Ç·¨Ã¶¾ÙÁ¿
+		/// @brief æ£€æŸ¥èµ„æºæ˜¯å¦å­˜åœ¨
+		/// @warning æ³¨æ„tå¯ä»¥æ˜¯éæ³•æšä¸¾é‡
 		bool CheckResourceExists(ResourceType t, const std::string& name)const LNOEXCEPT
 		{
 			switch (t)
@@ -576,66 +576,66 @@ namespace LuaSTGPlus
 			return false;
 		}
 
-		/// @brief µ¼³ö×ÊÔ´±í
-		/// @note ÔÚLµÄ¶ÑÕ»ÉÏ·ÅÖÃÒ»¸ötableÓÃÒÔ´æ·ÅResourceTypeÖĞµÄ×ÊÔ´Ãû³Æ
-		/// @warning ×¢Òât¿ÉÒÔÊÇ·Ç·¨Ã¶¾ÙÁ¿
+		/// @brief å¯¼å‡ºèµ„æºè¡¨
+		/// @note åœ¨Lçš„å †æ ˆä¸Šæ”¾ç½®ä¸€ä¸ªtableç”¨ä»¥å­˜æ”¾ResourceTypeä¸­çš„èµ„æºåç§°
+		/// @warning æ³¨æ„tå¯ä»¥æ˜¯éæ³•æšä¸¾é‡
 		void ExportResourceList(lua_State* L, ResourceType t)const LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÆÀí
-		/// @param name Ãû³Æ
-		/// @param path Â·¾¶
-		/// @param mipmaps ÎÆÀíÁ´
+		/// @brief è£…è½½çº¹ç†
+		/// @param name åç§°
+		/// @param path è·¯å¾„
+		/// @param mipmaps çº¹ç†é“¾
 		bool LoadTexture(const char* name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÆÀí£¨UTF-8£©
+		/// @brief è£…è½½çº¹ç†ï¼ˆUTF-8ï¼‰
 		LNOINLINE bool LoadTexture(const char* name, const char* path, bool mipmaps = true)LNOEXCEPT;
 		
-		/// @brief ×°ÔØÍ¼Ïñ
+		/// @brief è£…è½½å›¾åƒ
 		LNOINLINE bool LoadImage(const char* name, const char* texname,
 			double x, double y, double w, double h, double a, double b, bool rect = false)LNOEXCEPT;
 
 		LNOINLINE bool LoadAnimation(const char* name, const char* texname,
 			double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false)LNOEXCEPT;
 
-		/// @brief ×°ÔØ±³¾°ÒôÀÖ
+		/// @brief è£…è½½èƒŒæ™¯éŸ³ä¹
 		bool LoadMusic(const char* name, const std::wstring& path, double start, double end)LNOEXCEPT;
 
 		LNOINLINE bool LoadMusic(const char* name, const char* path, double start, double end)LNOEXCEPT;
 
-		/// @brief ×°ÔØÒôĞ§
+		/// @brief è£…è½½éŸ³æ•ˆ
 		bool LoadSound(const char* name, const std::wstring& path)LNOEXCEPT;
 
 		LNOINLINE bool LoadSound(const char* name, const char* path)LNOEXCEPT;
 
-		/// @brief ×°ÔØÁ£×Ó
+		/// @brief è£…è½½ç²’å­
 		bool LoadParticle(const char* name, const std::wstring& path, const char* img_name, double a, double b, bool rect = false)LNOEXCEPT;
 
 		LNOINLINE bool LoadParticle(const char* name, const char* path, const char* img_name, double a, double b, bool rect = false)LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÆÀí×ÖÌå(HGE)
+		/// @brief è£…è½½çº¹ç†å­—ä½“(HGE)
 		bool LoadSpriteFont(const char* name, const std::wstring& path, bool mipmaps = true)LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÆÀí×ÖÌå(fancy2d)
+		/// @brief è£…è½½çº¹ç†å­—ä½“(fancy2d)
 		bool LoadSpriteFont(const char* name, const std::wstring& path, const std::wstring& tex_path, bool mipmaps = true)LNOEXCEPT;
 
 		LNOINLINE bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true)LNOEXCEPT;
 
 		LNOINLINE bool LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps = true)LNOEXCEPT;
 
-		/// @brief ×°ÔØTTF×ÖÌå
+		/// @brief è£…è½½TTFå­—ä½“
 		bool LoadTTFFont(const char* name, const std::wstring& path, float width, float height)LNOEXCEPT;
 
 		LNOINLINE bool LoadTTFFont(const char* name, const char* path, float width, float height)LNOEXCEPT;
 
-		/// @brief ×°ÔØFX
+		/// @brief è£…è½½FX
 		bool LoadFX(const char* name, const std::wstring& path)LNOEXCEPT;
 
 		LNOINLINE bool LoadFX(const char* name, const char* path)LNOEXCEPT;
 
-		/// @brief ¹¹ÔìRenderTarget
+		/// @brief æ„é€ RenderTarget
 		LNOINLINE bool CreateRenderTarget(const char* name)LNOEXCEPT;
 
-		/// @brief »ñÈ¡ÎÆÀí
+		/// @brief è·å–çº¹ç†
 		fcyRefPointer<ResTexture> GetTexture(const char* name)LNOEXCEPT
 		{
 			auto i = m_TexturePool.find(name);
@@ -645,7 +645,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡¾«Áé
+		/// @brief è·å–ç²¾çµ
 		fcyRefPointer<ResSprite> GetSprite(const char* name)LNOEXCEPT
 		{
 			auto i = m_SpritePool.find(name);
@@ -655,7 +655,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡¶¯»­
+		/// @brief è·å–åŠ¨ç”»
 		fcyRefPointer<ResAnimation> GetAnimation(const char* name)LNOEXCEPT
 		{
 			auto i = m_AnimationPool.find(name);
@@ -665,7 +665,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡±³¾°Òô
+		/// @brief è·å–èƒŒæ™¯éŸ³
 		fcyRefPointer<ResMusic> GetMusic(const char* name)LNOEXCEPT
 		{
 			auto i = m_MusicPool.find(name);
@@ -675,7 +675,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡ÒôĞ§
+		/// @brief è·å–éŸ³æ•ˆ
 		fcyRefPointer<ResSound> GetSound(const char* name)LNOEXCEPT
 		{
 			auto i = m_SoundSpritePool.find(name);
@@ -685,7 +685,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡Á£×ÓÏµÍ³
+		/// @brief è·å–ç²’å­ç³»ç»Ÿ
 		fcyRefPointer<ResParticle> GetParticle(const char* name)LNOEXCEPT
 		{
 			auto i = m_ParticlePool.find(name);
@@ -695,7 +695,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡ÎÆÀí×ÖÌå
+		/// @brief è·å–çº¹ç†å­—ä½“
 		fcyRefPointer<ResFont> GetSpriteFont(const char* name)LNOEXCEPT
 		{
 			auto i = m_SpriteFontPool.find(name);
@@ -705,7 +705,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡TTF×ÖÌå
+		/// @brief è·å–TTFå­—ä½“
 		fcyRefPointer<ResFont> GetTTFFont(const char* name)LNOEXCEPT
 		{
 			auto i = m_TTFFontPool.find(name);
@@ -715,7 +715,7 @@ namespace LuaSTGPlus
 				return i->second;
 		}
 
-		/// @brief »ñÈ¡FX
+		/// @brief è·å–FX
 		fcyRefPointer<ResFX> GetFX(const char* name)LNOEXCEPT
 		{
 			auto i = m_FXPool.find(name);
@@ -732,7 +732,7 @@ namespace LuaSTGPlus
 			: m_pMgr(mgr), m_iType(t) {}
 	};
 
-	/// @brief ×ÊÔ´°ü
+	/// @brief èµ„æºåŒ…
 	class ResourcePack
 	{
 	private:
@@ -742,26 +742,26 @@ namespace LuaSTGPlus
 
 		unzFile m_zipFile;
 	public:
-		/// @brief »ñµÃ×ÊÔ´°üµÄÊµ¼ÊÂ·¾¶
+		/// @brief è·å¾—èµ„æºåŒ…çš„å®é™…è·¯å¾„
 		const std::wstring& GetPath()const LNOEXCEPT { return m_Path; }
-		/// @brief »ñµÃ×ÊÔ´°üµÄÊµ¼ÊÂ·¾¶Ğ¡Ğ´Ãû³Æ
+		/// @brief è·å¾—èµ„æºåŒ…çš„å®é™…è·¯å¾„å°å†™åç§°
 		const std::wstring& GetPathLowerCase()const LNOEXCEPT { return m_PathLowerCase; }
-		/// @brief ³¢ÊÔÔÚ×ÊÔ´°üÖĞ¶¨Î»²¢¼ÓÔØÎÄ¼şµ½ÄÚ´æ
-		/// @param[in] path Ïà¶ÔÂ·¾¶
-		/// @param[out] outBuf µ¼³öµÄÎÄ¼şÊı¾İ
-		/// @return Ê§°Ü·µ»Øfalse£¬³É¹¦·µ»Øtrue
+		/// @brief å°è¯•åœ¨èµ„æºåŒ…ä¸­å®šä½å¹¶åŠ è½½æ–‡ä»¶åˆ°å†…å­˜
+		/// @param[in] path ç›¸å¯¹è·¯å¾„
+		/// @param[out] outBuf å¯¼å‡ºçš„æ–‡ä»¶æ•°æ®
+		/// @return å¤±è´¥è¿”å›falseï¼ŒæˆåŠŸè¿”å›true
 		bool LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 	protected:
 		ResourcePack& operator=(const ResourcePack&);
 		ResourcePack(const ResourcePack&);
 	public:
-		/// @brief ³¢ÊÔÔÚÖ¸¶¨Â·¾¶¼ÓÔØ×ÊÔ´°ü
-		/// @exception Ê§°ÜÅ×³öÒì³£
+		/// @brief å°è¯•åœ¨æŒ‡å®šè·¯å¾„åŠ è½½èµ„æºåŒ…
+		/// @exception å¤±è´¥æŠ›å‡ºå¼‚å¸¸
 		ResourcePack(const wchar_t* path, const char* passwd);
 		~ResourcePack();
 	};
 
-	/// @brief ×ÊÔ´¹ÜÀíÆ÷
+	/// @brief èµ„æºç®¡ç†å™¨
 	class ResourceMgr
 	{
 	private:
@@ -782,25 +782,25 @@ namespace LuaSTGPlus
 		float GetGlobalMusicVolume()const LNOEXCEPT{ return m_GlobalMusicVolume; }
 		void SetGlobalMusicVolume(float s)LNOEXCEPT{ m_GlobalMusicVolume = s; }
 
-		/// @brief »ñµÃµ±Ç°¼¤»îµÄ×ÊÔ´³ØÀàĞÍ
+		/// @brief è·å¾—å½“å‰æ¿€æ´»çš„èµ„æºæ± ç±»å‹
 		ResourcePoolType GetActivedPoolType()LNOEXCEPT
 		{
 			return m_ActivedPool;
 		}
 
-		/// @brief ÉèÖÃµ±Ç°¼¤»îµÄ×ÊÔ´³ØÀàĞÍ
+		/// @brief è®¾ç½®å½“å‰æ¿€æ´»çš„èµ„æºæ± ç±»å‹
 		void SetActivedPoolType(ResourcePoolType t)LNOEXCEPT
 		{
 			m_ActivedPool = t;
 		}
 
-		/// @brief »ñµÃµ±Ç°¼¤»îµÄ×ÊÔ´³Ø
+		/// @brief è·å¾—å½“å‰æ¿€æ´»çš„èµ„æºæ± 
 		ResourcePool* GetActivedPool()LNOEXCEPT
 		{
 			return GetResourcePool(m_ActivedPool);
 		}
 
-		/// @brief »ñµÃ×ÊÔ´³Ø
+		/// @brief è·å¾—èµ„æºæ± 
 		ResourcePool* GetResourcePool(ResourcePoolType t)LNOEXCEPT
 		{
 			switch (t)
@@ -814,51 +814,51 @@ namespace LuaSTGPlus
 			}
 		}
 
-		/// @brief ¼ÓÔØ×ÊÔ´°ü
-		/// @param[in] path Â·¾¶
-		/// @param[in] passwd ÃÜÂë
+		/// @brief åŠ è½½èµ„æºåŒ…
+		/// @param[in] path è·¯å¾„
+		/// @param[in] passwd å¯†ç 
 		bool LoadPack(const wchar_t* path, const char* passwd)LNOEXCEPT;
 
-		/// @brief Ğ¶ÔØ×ÊÔ´°ü
-		/// @param[in] path Â·¾¶
+		/// @brief å¸è½½èµ„æºåŒ…
+		/// @param[in] path è·¯å¾„
 		void UnloadPack(const wchar_t* path)LNOEXCEPT;
 
-		/// @brief Ğ¶ÔØËùÓĞ×ÊÔ´°ü
+		/// @brief å¸è½½æ‰€æœ‰èµ„æºåŒ…
 		void UnloadAllPack()LNOEXCEPT { m_ResPackList.clear(); }
 
-		/// @brief Ğ¶ÔØËùÓĞ×ÊÔ´²¢ÖØÖÃ×´Ì¬
+		/// @brief å¸è½½æ‰€æœ‰èµ„æºå¹¶é‡ç½®çŠ¶æ€
 		void ClearAllResource()LNOEXCEPT;
 
-		/// @brief ¼ÓÔØ×ÊÔ´°ü£¨UTF8£©
-		/// @param[in] path Â·¾¶
-		/// @param[in] passwd ÃÜÂë
+		/// @brief åŠ è½½èµ„æºåŒ…ï¼ˆUTF8ï¼‰
+		/// @param[in] path è·¯å¾„
+		/// @param[in] passwd å¯†ç 
 		LNOINLINE bool LoadPack(const char* path, const char* passwd)LNOEXCEPT;
 
-		/// @brief Ğ¶ÔØ×ÊÔ´°ü£¨UTF8£©
-		/// @param[in] path Â·¾¶
+		/// @brief å¸è½½èµ„æºåŒ…ï¼ˆUTF8ï¼‰
+		/// @param[in] path è·¯å¾„
 		LNOINLINE void UnloadPack(const char* path)LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÄ¼ş
-		/// @param[in] path Â·¾¶
-		/// @param[out] outBuf Êä³ö»º³å
+		/// @brief è£…è½½æ–‡ä»¶
+		/// @param[in] path è·¯å¾„
+		/// @param[out] outBuf è¾“å‡ºç¼“å†²
 		LNOINLINE bool LoadFile(const wchar_t* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 
-		/// @brief ×°ÔØÎÄ¼ş£¨UTF8£©
-		/// @param[in] path Â·¾¶
-		/// @param[out] outBuf Êä³ö»º³å
+		/// @brief è£…è½½æ–‡ä»¶ï¼ˆUTF8ï¼‰
+		/// @param[in] path è·¯å¾„
+		/// @param[out] outBuf è¾“å‡ºç¼“å†²
 		LNOINLINE bool LoadFile(const char* path, fcyRefPointer<fcyMemStream>& outBuf)LNOEXCEPT;
 
-		/// @brief ½âÑ¹×ÊÔ´ÎÄ¼ş
-		/// @param[in] path Â·¾¶
-		/// @param[in] target Ä¿µÄµØ
+		/// @brief è§£å‹èµ„æºæ–‡ä»¶
+		/// @param[in] path è·¯å¾„
+		/// @param[in] target ç›®çš„åœ°
 		bool ExtractRes(const wchar_t* path, const wchar_t* target)LNOEXCEPT;
 
-		/// @brief ½âÑ¹×ÊÔ´ÎÄ¼ş£¨UTF8£©
-		/// @param[in] path Â·¾¶
-		/// @param[in] target Ä¿µÄµØ
+		/// @brief è§£å‹èµ„æºæ–‡ä»¶ï¼ˆUTF8ï¼‰
+		/// @param[in] path è·¯å¾„
+		/// @param[in] target ç›®çš„åœ°
 		LNOINLINE bool ExtractRes(const char* path, const char* target)LNOEXCEPT;
 
-		/// @brief Ñ°ÕÒÎÆÀí
+		/// @brief å¯»æ‰¾çº¹ç†
 		fcyRefPointer<ResTexture> FindTexture(const char* texname)LNOEXCEPT
 		{
 			fcyRefPointer<ResTexture> tRet;
@@ -867,7 +867,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief »ñÈ¡ÎÆÀí´óĞ¡
+		/// @brief è·å–çº¹ç†å¤§å°
 		bool GetTextureSize(const char* texname, fcyVec2& out)LNOEXCEPT
 		{
 			fcyRefPointer<ResTexture> tRet = FindTexture(texname);
@@ -878,7 +878,7 @@ namespace LuaSTGPlus
 			return true;
 		}
 
-		/// @brief Ñ°ÕÒ¾«Áé
+		/// @brief å¯»æ‰¾ç²¾çµ
 		fcyRefPointer<ResSprite> FindSprite(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResSprite> tRet;
@@ -887,7 +887,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒ¶¯»­
+		/// @brief å¯»æ‰¾åŠ¨ç”»
 		fcyRefPointer<ResAnimation> FindAnimation(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResAnimation> tRet;
@@ -896,7 +896,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒÒôÀÖ
+		/// @brief å¯»æ‰¾éŸ³ä¹
 		fcyRefPointer<ResMusic> FindMusic(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResMusic> tRet;
@@ -905,7 +905,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒÒôĞ§
+		/// @brief å¯»æ‰¾éŸ³æ•ˆ
 		fcyRefPointer<ResSound> FindSound(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResSound> tRet;
@@ -914,7 +914,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒÁ£×Ó
+		/// @brief å¯»æ‰¾ç²’å­
 		fcyRefPointer<ResParticle> FindParticle(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResParticle> tRet;
@@ -923,7 +923,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒ×ÖÌå
+		/// @brief å¯»æ‰¾å­—ä½“
 		fcyRefPointer<ResFont> FindSpriteFont(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResFont> tRet;
@@ -932,7 +932,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒ×ÖÌå
+		/// @brief å¯»æ‰¾å­—ä½“
 		fcyRefPointer<ResFont> FindTTFFont(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResFont> tRet;
@@ -941,7 +941,7 @@ namespace LuaSTGPlus
 			return tRet;
 		}
 
-		/// @brief Ñ°ÕÒshader
+		/// @brief å¯»æ‰¾shader
 		fcyRefPointer<ResFX> FindFX(const char* name)LNOEXCEPT
 		{
 			fcyRefPointer<ResFX> tRet;
