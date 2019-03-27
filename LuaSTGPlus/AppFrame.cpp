@@ -1,4 +1,4 @@
-#include "AppFrame.h"
+ï»¿#include "AppFrame.h"
 #include "Utility.h"
 #include "LuaWrapper.h"
 
@@ -13,7 +13,7 @@
 #undef min
 #endif
 
-// ÄÚÖÃluaÀ©Õ¹
+// å†…ç½®luaæ‰©å±•
 extern "C" int luaopen_lfs(lua_State *L);
 extern "C" int luaopen_cjson(lua_State* L);
 
@@ -59,7 +59,7 @@ public:
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-/// VKCode F2DKeyCode ×ª»»±í
+/// VKCode F2DKeyCode è½¬æ¢è¡¨
 ////////////////////////////////////////////////////////////////////////////////
 const F2DINPUTKEYCODE VKCodeToF2DKeyCodeTable[256] =
 {
@@ -159,22 +159,22 @@ const F2DINPUTKEYCODE VKCodeToF2DKeyCodeTable[256] =
 	F2DINPUTKEYCODE_APPS,       // 93 VK_APPS
 	F2DINPUTKEYCODE_UNKNOWN,    // 94
 	F2DINPUTKEYCODE_SLEEP,      // 95 VK_SLEEP
-	F2DINPUTKEYCODE_NUMPAD0,    // 96 VK_NUMPAD0 = Ğ¡¼üÅÌ 0
-	F2DINPUTKEYCODE_NUMPAD1,    // 97 VK_NUMPAD1 = Ğ¡¼üÅÌ 1
-	F2DINPUTKEYCODE_NUMPAD2,    // 98 VK_NUMPAD2 = Ğ¡¼üÅÌ 2
-	F2DINPUTKEYCODE_NUMPAD3,    // 99 VK_NUMPAD3 = Ğ¡¼üÅÌ 3
-	F2DINPUTKEYCODE_NUMPAD4,    // 100 VK_NUMPAD4 = Ğ¡¼üÅÌ 4
-	F2DINPUTKEYCODE_NUMPAD5,    // 101 VK_NUMPAD5 = Ğ¡¼üÅÌ 5
-	F2DINPUTKEYCODE_NUMPAD6,    // 102 VK_NUMPAD6 = Ğ¡¼üÅÌ 6
-	F2DINPUTKEYCODE_NUMPAD7,    // 103 VK_NUMPAD7 = Ğ¡¼üÅÌ 7
-	F2DINPUTKEYCODE_NUMPAD8,    // 104 VK_NUMPAD8 = Ğ¡¼üÅÌ 8
-	F2DINPUTKEYCODE_NUMPAD9,    // 105 VK_NUMPAD9 = Ğ¡¼üÅÌ 9
-	F2DINPUTKEYCODE_MULTIPLY,   // 106 VK_MULTIPLY = Ğ¡¼üÅÌ *
-	F2DINPUTKEYCODE_ADD,        // 107 VK_ADD = Ğ¡¼üÅÌ +
-	F2DINPUTKEYCODE_NUMPADENTER,// 108 VK_SEPARATOR = Ğ¡¼üÅÌ Enter
-	F2DINPUTKEYCODE_SUBTRACT,   // 109 VK_SUBTRACT = Ğ¡¼üÅÌ -
-	F2DINPUTKEYCODE_DECIMAL,    // 110 VK_DECIMAL = Ğ¡¼üÅÌ .
-	F2DINPUTKEYCODE_DIVIDE,     // 111 VK_DIVIDE = Ğ¡¼üÅÌ /
+	F2DINPUTKEYCODE_NUMPAD0,    // 96 VK_NUMPAD0 = å°é”®ç›˜ 0
+	F2DINPUTKEYCODE_NUMPAD1,    // 97 VK_NUMPAD1 = å°é”®ç›˜ 1
+	F2DINPUTKEYCODE_NUMPAD2,    // 98 VK_NUMPAD2 = å°é”®ç›˜ 2
+	F2DINPUTKEYCODE_NUMPAD3,    // 99 VK_NUMPAD3 = å°é”®ç›˜ 3
+	F2DINPUTKEYCODE_NUMPAD4,    // 100 VK_NUMPAD4 = å°é”®ç›˜ 4
+	F2DINPUTKEYCODE_NUMPAD5,    // 101 VK_NUMPAD5 = å°é”®ç›˜ 5
+	F2DINPUTKEYCODE_NUMPAD6,    // 102 VK_NUMPAD6 = å°é”®ç›˜ 6
+	F2DINPUTKEYCODE_NUMPAD7,    // 103 VK_NUMPAD7 = å°é”®ç›˜ 7
+	F2DINPUTKEYCODE_NUMPAD8,    // 104 VK_NUMPAD8 = å°é”®ç›˜ 8
+	F2DINPUTKEYCODE_NUMPAD9,    // 105 VK_NUMPAD9 = å°é”®ç›˜ 9
+	F2DINPUTKEYCODE_MULTIPLY,   // 106 VK_MULTIPLY = å°é”®ç›˜ *
+	F2DINPUTKEYCODE_ADD,        // 107 VK_ADD = å°é”®ç›˜ +
+	F2DINPUTKEYCODE_NUMPADENTER,// 108 VK_SEPARATOR = å°é”®ç›˜ Enter
+	F2DINPUTKEYCODE_SUBTRACT,   // 109 VK_SUBTRACT = å°é”®ç›˜ -
+	F2DINPUTKEYCODE_DECIMAL,    // 110 VK_DECIMAL = å°é”®ç›˜ .
+	F2DINPUTKEYCODE_DIVIDE,     // 111 VK_DIVIDE = å°é”®ç›˜ /
 	F2DINPUTKEYCODE_F1,         // 112 VK_F1 = F1
 	F2DINPUTKEYCODE_F2,         // 113 VK_F2 = F2
 	F2DINPUTKEYCODE_F3,         // 114 VK_F3 = F3
@@ -343,12 +343,12 @@ AppFrame::~AppFrame()
 {
 	if (m_iStatus != AppStatus::NotInitialized && m_iStatus != AppStatus::Destroyed)
 	{
-		// ÈôÃ»ÓĞÏú»Ù¿ò¼Ü£¬ÔòÖ´ĞĞÏú»Ù
+		// è‹¥æ²¡æœ‰é”€æ¯æ¡†æ¶ï¼Œåˆ™æ‰§è¡Œé”€æ¯
 		Shutdown();
 	}
 }
 
-#pragma region ½Å±¾½Ó¿Ú
+#pragma region è„šæœ¬æ¥å£
 LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
 {
 	if (m_iStatus == AppStatus::Initializing)
@@ -357,7 +357,7 @@ LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
 		{
 			Gdiplus::Image* pImg = nullptr;
 
-			// ÈôÓĞÍ¼Æ¬£¬Ôò¼ÓÔØ
+			// è‹¥æœ‰å›¾ç‰‡ï¼Œåˆ™åŠ è½½
 			if (imgPath)
 			{
 				fcyRefPointer<fcyMemStream> tDataBuf;
@@ -365,23 +365,23 @@ LNOINLINE void AppFrame::ShowSplashWindow(const char* imgPath)LNOEXCEPT
 					pImg = SplashWindow::LoadImageFromMemory((fcData)tDataBuf->GetInternalBuffer(), (size_t)tDataBuf->GetLength());
 				
 				if (!pImg)
-					LERROR("ShowSplashWindow: ÎŞ·¨¼ÓÔØÍ¼Æ¬'%m'", imgPath);
+					LERROR("ShowSplashWindow: æ— æ³•åŠ è½½å›¾ç‰‡'%m'", imgPath);
 			}
 
-			// ÏÔÊ¾´°¿Ú
+			// æ˜¾ç¤ºçª—å£
 			m_SplashWindow.ShowSplashWindow(pImg);
 
 			FCYSAFEDEL(pImg);
 		}
 		catch (const bad_alloc&)
 		{
-			LERROR("ShowSplashWindow: ÄÚ´æ²»×ã");
+			LERROR("ShowSplashWindow: å†…å­˜ä¸è¶³");
 			return;
 		}
 		m_bSplashWindowEnabled = true;
 	}
 	else
-		LWARNING("ShowSplashWindow: ÎŞ·¨ÔÚ´ËÊ±×°ÔØ´°¿Ú");
+		LWARNING("ShowSplashWindow: æ— æ³•åœ¨æ­¤æ—¶è£…è½½çª—å£");
 }
 
 void AppFrame::SetWindowed(bool v)LNOEXCEPT
@@ -389,7 +389,7 @@ void AppFrame::SetWindowed(bool v)LNOEXCEPT
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionWindowed = v;
 	else if (m_iStatus == AppStatus::Running)
-		LWARNING("ÊÔÍ¼ÔÚÔËĞĞÊ±¸ü¸Ä´°¿Ú»¯Ä£Ê½");
+		LWARNING("è¯•å›¾åœ¨è¿è¡Œæ—¶æ›´æ”¹çª—å£åŒ–æ¨¡å¼");
 }
 
 void AppFrame::SetFPS(fuInt v)LNOEXCEPT
@@ -397,7 +397,7 @@ void AppFrame::SetFPS(fuInt v)LNOEXCEPT
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionFPSLimit = v;
 	else if (m_iStatus == AppStatus::Running)
-		LWARNING("ÊÔÍ¼ÔÚÔËĞĞÊ±¸ü¸ÄFPSÏŞÖÆ");
+		LWARNING("è¯•å›¾åœ¨è¿è¡Œæ—¶æ›´æ”¹FPSé™åˆ¶");
 }
 
 void AppFrame::SetVsync(bool v)LNOEXCEPT
@@ -405,7 +405,7 @@ void AppFrame::SetVsync(bool v)LNOEXCEPT
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionVsync = v;
 	else if (m_iStatus == AppStatus::Running)
-		LWARNING("ÊÔÍ¼ÔÚÔËĞĞÊ±¸ü¸Ä´¹Ö±Í¬²½Ä£Ê½");
+		LWARNING("è¯•å›¾åœ¨è¿è¡Œæ—¶æ›´æ”¹å‚ç›´åŒæ­¥æ¨¡å¼");
 }
 
 void AppFrame::SetResolution(fuInt width, fuInt height)LNOEXCEPT
@@ -413,7 +413,7 @@ void AppFrame::SetResolution(fuInt width, fuInt height)LNOEXCEPT
 	if (m_iStatus == AppStatus::Initializing)
 		m_OptionResolution.Set((float)width, (float)height);
 	else if (m_iStatus == AppStatus::Running)
-		LWARNING("ÊÔÍ¼ÔÚÔËĞĞÊ±¸ü¸Ä·Ö±æÂÊ");
+		LWARNING("è¯•å›¾åœ¨è¿è¡Œæ—¶æ›´æ”¹åˆ†è¾¨ç‡");
 }
 
 void AppFrame::SetSplash(bool v)LNOEXCEPT
@@ -433,7 +433,7 @@ LNOINLINE void AppFrame::SetTitle(const char* v)LNOEXCEPT
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("ĞŞ¸Ä´°¿Ú±êÌâÊ±ÎŞ·¨·ÖÅäÄÚ´æ");
+		LERROR("ä¿®æ”¹çª—å£æ ‡é¢˜æ—¶æ— æ³•åˆ†é…å†…å­˜");
 	}
 }
 
@@ -441,7 +441,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 {
 	if (m_iStatus == AppStatus::Initialized)
 	{
-		// ÇĞ»»µ½ĞÂµÄÊÓÆµÑ¡Ïî
+		// åˆ‡æ¢åˆ°æ–°çš„è§†é¢‘é€‰é¡¹
 		if (FCYOK(m_pRenderDev->SetBufferSize(
 			(fuInt)width,
 			(fuInt)height,
@@ -449,7 +449,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 			vsync,
 			F2DAALEVEL_NONE)))
 		{
-			LINFO("ÊÓÆµÄ£Ê½ÇĞ»»³É¹¦ (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
+			LINFO("è§†é¢‘æ¨¡å¼åˆ‡æ¢æˆåŠŸ (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
 				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed,
 				width, height, vsync, windowed);
 
@@ -457,7 +457,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 			m_OptionWindowed = windowed;
 			m_OptionVsync = vsync;
 
-			// ÇĞ»»´°¿Ú´óĞ¡
+			// åˆ‡æ¢çª—å£å¤§å°
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
 			m_pMainWindow->SetClientRect(
 				fcyRect(10.f, 10.f, 10.f + m_OptionResolution.x, 10.f + m_OptionResolution.y)
@@ -468,11 +468,11 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 		}
 		else
 		{
-			// ! µ±ÏÔÊ¾¼ÓÔØ´°¿Ú¶øÆô¶¯ÓÎÏ·ºó¸ÄÎªÈ«ÆÁÊ§°ÜÊ±Ôò½«´°¿ÚÄ£Ê½ÉèÎªtrue
+			// ! å½“æ˜¾ç¤ºåŠ è½½çª—å£è€Œå¯åŠ¨æ¸¸æˆåæ”¹ä¸ºå…¨å±å¤±è´¥æ—¶åˆ™å°†çª—å£æ¨¡å¼è®¾ä¸ºtrue
 			if (m_bSplashWindowEnabled)
 				m_OptionWindowed = true;
 
-			// ÇĞ»»´°¿Ú´óĞ¡
+			// åˆ‡æ¢çª—å£å¤§å°
 			m_pMainWindow->SetBorderType(m_OptionWindowed ? F2DWINBORDERTYPE_FIXED : F2DWINBORDERTYPE_NONE);
 			m_pMainWindow->SetClientRect(
 				fcyRect(10.f, 10.f, 10.f + m_OptionResolution.x, 10.f + m_OptionResolution.y)
@@ -480,7 +480,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 			m_pMainWindow->SetTopMost(!m_OptionWindowed);
 			m_pMainWindow->MoveToCenter();
 
-			LINFO("ÊÓÆµÄ£Ê½ÇĞ»»Ê§°Ü (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
+			LINFO("è§†é¢‘æ¨¡å¼åˆ‡æ¢å¤±è´¥ (%dx%d Vsync:%b Windowed:%b) -> (%dx%d Vsync:%b Windowed:%b)",
 				(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed,
 				width, height, vsync, windowed);
 		}
@@ -490,7 +490,7 @@ LNOINLINE bool AppFrame::ChangeVideoMode(int width, int height, bool windowed, b
 
 LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 {
-	LINFO("×°ÔØ½Å±¾'%m'", path);
+	LINFO("è£…è½½è„šæœ¬'%m'", path);
 	fcyRefPointer<fcyMemStream> tMemStream;
 	if (!m_ResourceMgr.LoadFile(path, tMemStream))
 	{
@@ -501,17 +501,18 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 	{
 		tMemStream = nullptr;
 		const char* tDetail = lua_tostring(L, -1);
-		LERROR("±àÒë½Å±¾'%m'Ê§°Ü: %m", path, tDetail);
+		LERROR("ç¼–è¯‘è„šæœ¬'%m'å¤±è´¥: %m", path, tDetail);
 		luaL_error(L, "failed to compile '%s': %s", path, tDetail);
 		return;
 	}
 	tMemStream = nullptr;
 	lua_call(L, 0, 0);
+	lua_call(L, 0, LUA_MULTRET);//ä¿è¯DoFileåæœ‰è¿”å›å€¼
 	/*
 	if (lua_pcall(L, 0, 0, 0))
 	{
 		const char* tDetail = lua_tostring(L, -1);
-		LERROR("Ö´ĞĞ½Å±¾'%m'Ê§°Ü", path);
+		LERROR("æ‰§è¡Œè„šæœ¬'%m'å¤±è´¥", path);
 		luaL_error(L, "failed to execute '%s':\n\t%s", path, tDetail);
 		return;
 	}
@@ -522,19 +523,19 @@ fBool AppFrame::GetKeyState(int VKCode)LNOEXCEPT
 {
 	if (VKCode > 0 && VKCode < _countof(m_KeyStateMap))
 	{
-		if (LJOYSTICK1_MAPPING_START <= VKCode && VKCode <= LJOYSTICK1_MAPPING_END)  // joystick1Ó³ÉäÇøÓò
+		if (LJOYSTICK1_MAPPING_START <= VKCode && VKCode <= LJOYSTICK1_MAPPING_END)  // joystick1æ˜ å°„åŒºåŸŸ
 		{
 			if (m_Joystick[0])
 			{
 				switch (VKCode)
 				{
-				case LJOYSTICK1_MAPPING_START:  // ÉÏ
+				case LJOYSTICK1_MAPPING_START:  // ä¸Š
 					return (m_Joystick[0]->GetYPosition() < LJOYSTICK_Y_MIN);
-				case LJOYSTICK1_MAPPING_START + 1:  // ÏÂ
+				case LJOYSTICK1_MAPPING_START + 1:  // ä¸‹
 					return (m_Joystick[0]->GetYPosition() > LJOYSTICK_Y_MAX);
-				case LJOYSTICK1_MAPPING_START + 2:  // ×ó
+				case LJOYSTICK1_MAPPING_START + 2:  // å·¦
 					return (m_Joystick[0]->GetXPosition() < LJOYSTICK_X_MIN);
-				case LJOYSTICK1_MAPPING_START + 3:  // ÓÒ
+				case LJOYSTICK1_MAPPING_START + 3:  // å³
 					return (m_Joystick[0]->GetXPosition() > LJOYSTICK_X_MAX);
 				default:
 					return m_Joystick[0]->IsButtonDown(VKCode - LJOYSTICK1_MAPPING_START - 4);
@@ -543,19 +544,19 @@ fBool AppFrame::GetKeyState(int VKCode)LNOEXCEPT
 			else
 				return false;
 		}
-		else if (LJOYSTICK2_MAPPING_START <= VKCode && VKCode <= LJOYSTICK2_MAPPING_END)  // joystick2Ó³ÉäÇøÓò
+		else if (LJOYSTICK2_MAPPING_START <= VKCode && VKCode <= LJOYSTICK2_MAPPING_END)  // joystick2æ˜ å°„åŒºåŸŸ
 		{
 			if (m_Joystick[1])
 			{
 				switch (VKCode)
 				{
-				case LJOYSTICK2_MAPPING_START:  // ÉÏ
+				case LJOYSTICK2_MAPPING_START:  // ä¸Š
 					return (m_Joystick[1]->GetYPosition() < LJOYSTICK_Y_MIN);
-				case LJOYSTICK2_MAPPING_START + 1:  // ÏÂ
+				case LJOYSTICK2_MAPPING_START + 1:  // ä¸‹
 					return (m_Joystick[1]->GetYPosition() > LJOYSTICK_Y_MAX);
-				case LJOYSTICK2_MAPPING_START + 2:  // ×ó
+				case LJOYSTICK2_MAPPING_START + 2:  // å·¦
 					return (m_Joystick[1]->GetXPosition() < LJOYSTICK_X_MIN);
-				case LJOYSTICK2_MAPPING_START + 3:  // ÓÒ
+				case LJOYSTICK2_MAPPING_START + 3:  // å³
 					return (m_Joystick[1]->GetXPosition() > LJOYSTICK_X_MAX);
 				default:
 					return m_Joystick[1]->IsButtonDown(VKCode - LJOYSTICK2_MAPPING_START - 4);
@@ -584,7 +585,7 @@ LNOINLINE int AppFrame::GetLastChar(lua_State* L)LNOEXCEPT
 		}
 		catch (const bad_alloc&)
 		{
-			LERROR("GetLastChar: ÄÚ´æ²»×ã");
+			LERROR("GetLastChar: å†…å­˜ä¸è¶³");
 			return 0;
 		}
 	}
@@ -597,7 +598,7 @@ bool AppFrame::BeginScene()LNOEXCEPT
 {
 	if (!m_bRenderStarted)
 	{
-		LERROR("²»ÄÜÔÚRenderFuncÒÔÍâµÄµØ·½Ö´ĞĞäÖÈ¾");
+		LERROR("ä¸èƒ½åœ¨RenderFuncä»¥å¤–çš„åœ°æ–¹æ‰§è¡Œæ¸²æŸ“");
 		return false;
 	}
 
@@ -605,7 +606,7 @@ bool AppFrame::BeginScene()LNOEXCEPT
 	{
 		if (FCYFAILED(m_Graph2D->Begin()))
 		{
-			LERROR("Ö´ĞĞf2dGraphics2D::BeginÊ§°Ü");
+			LERROR("æ‰§è¡Œf2dGraphics2D::Beginå¤±è´¥");
 			return false;
 		}
 	}
@@ -619,7 +620,7 @@ bool AppFrame::EndScene()LNOEXCEPT
 	{
 		if (FCYFAILED(m_Graph2D->End()))
 		{
-			LERROR("Ö´ĞĞf2dGraphics2D::EndÊ§°Ü");
+			LERROR("æ‰§è¡Œf2dGraphics2D::Endå¤±è´¥");
 			return false;
 		}
 	}
@@ -632,7 +633,7 @@ void AppFrame::SetFog(float start, float end, fcyColor color)
 	if (m_Graph2D->IsInRender())
 		m_Graph2D->Flush();
 
-	// ´Óf2dRenderDeviceÖĞÈ¡³öD3DÉè±¸
+	// ä»f2dRenderDeviceä¸­å–å‡ºD3Dè®¾å¤‡
 	IDirect3DDevice9* pDev = (IDirect3DDevice9*)m_pRenderDev->GetHandle();
 
 	if (start != end)
@@ -664,13 +665,13 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 {
 	if (m_GraphType != GraphicsType::Graph2D)
 	{
-		LERROR("RenderText: Ö»ÓĞ2DäÖÈ¾Æ÷¿ÉÒÔÖ´ĞĞ¸Ã·½·¨");
+		LERROR("RenderText: åªæœ‰2Dæ¸²æŸ“å™¨å¯ä»¥æ‰§è¡Œè¯¥æ–¹æ³•");
 		return false;
 	}
 
 	f2dFontProvider* pFontProvider = p->GetFontProvider();
 
-	// ×¼±¸äÖÈ¾×ÖÌå
+	// å‡†å¤‡æ¸²æŸ“å­—ä½“
 	m_FontRenderer->SetFontProvider(pFontProvider);
 	m_FontRenderer->SetScale(scale);
 #ifdef LSHOWFONTBASELINE
@@ -678,11 +679,11 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 	m_FontRenderer->SetListener(&tDebugger);
 #endif
 
-	// ÉèÖÃ»ìºÏºÍÑÕÉ«
+	// è®¾ç½®æ··åˆå’Œé¢œè‰²
 	updateGraph2DBlendMode(p->GetBlendMode());
 	m_FontRenderer->SetColor(p->GetBlendColor());
 
-	// µÚÒ»´Î±éÀú¼ÆËãÒªäÖÈ¾¶àÉÙĞĞ
+	// ç¬¬ä¸€æ¬¡éå†è®¡ç®—è¦æ¸²æŸ“å¤šå°‘è¡Œ
 	const wchar_t* pText = strBuf;
 	int iLineCount = 1;
 	float fLineWidth = 0.f;
@@ -697,11 +698,11 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 			if (FCYOK(pFontProvider->QueryGlyph(m_Graph2D, *pText, &tGlyphInfo)))
 			{
 				float adv = tGlyphInfo.Advance.x * scale.x;
-				if (bWordBreak && fLineWidth + adv > rect.GetWidth())  // ½Ø¶ÏÄ£Ê½
+				if (bWordBreak && fLineWidth + adv > rect.GetWidth())  // æˆªæ–­æ¨¡å¼
 				{
 					if (pText == strBuf || *(pText - 1) == L'\n')
 					{
-						++pText;  // ·ÀÖ¹Ò»¸ö×Ö·û¶¼²»äÖÈ¾µ¼ÖÂËÀÑ­»·
+						++pText;  // é˜²æ­¢ä¸€ä¸ªå­—ç¬¦éƒ½ä¸æ¸²æŸ“å¯¼è‡´æ­»å¾ªç¯
 						if (*pText == L'\0')
 							break;
 					}
@@ -720,7 +721,7 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 			++pText;
 	}
 	
-	// ¼ÆËãÆğ±ÊÎ»ÖÃ
+	// è®¡ç®—èµ·ç¬”ä½ç½®
 	float fTotalLineHeight = pFontProvider->GetLineHeight() * iLineCount * scale.y;
 	fcyVec2 vRenderPos;
 	switch (valign)
@@ -739,7 +740,7 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 	vRenderPos.x = rect.a.x;
 	vRenderPos.y -= pFontProvider->GetAscender() * scale.y;
 
-	// ÖğĞĞäÖÈ¾ÎÄ×Ö
+	// é€è¡Œæ¸²æŸ“æ–‡å­—
 	wchar_t* pScanner = strBuf;
 	wchar_t c = 0;
 	bool bEOS = false;
@@ -747,7 +748,7 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 	pText = pScanner;
 	while (!bEOS)
 	{
-		// Ñ°ÕÒ¶Ï¾äÎ»ÖÃ£¬»»ĞĞ¡¢EOF¡¢»òÕßĞĞÒç³ö
+		// å¯»æ‰¾æ–­å¥ä½ç½®ï¼Œæ¢è¡Œã€EOFã€æˆ–è€…è¡Œæº¢å‡º
 		while (*pScanner != L'\0' && *pScanner != '\n')
 		{
 			f2dGlyphInfo tGlyphInfo;
@@ -755,10 +756,10 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 			{
 				float adv = tGlyphInfo.Advance.x * scale.x;
 
-				// ¼ì²éµ±Ç°×Ö·ûäÖÈ¾ºó»á²»»áµ¼ÖÂĞĞÒç³ö
+				// æ£€æŸ¥å½“å‰å­—ç¬¦æ¸²æŸ“åä¼šä¸ä¼šå¯¼è‡´è¡Œæº¢å‡º
 				if (bWordBreak && fLineWidth + adv > rect.GetWidth())
 				{
-					if (pScanner == pText)  // ·ÀÖ¹Ò»¸ö×Ö·û¶¼²»äÖÈ¾µ¼ÖÂËÀÑ­»·
+					if (pScanner == pText)  // é˜²æ­¢ä¸€ä¸ªå­—ç¬¦éƒ½ä¸æ¸²æŸ“å¯¼è‡´æ­»å¾ªç¯
 						++pScanner;
 					break;
 				}
@@ -767,14 +768,14 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 			++pScanner;
 		}
 		
-		// ÔÚ¶Ï¾äÎ»ÖÃĞ´Èë\0
+		// åœ¨æ–­å¥ä½ç½®å†™å…¥\0
 		c = *pScanner;
 		if (c == L'\0')
 			bEOS = true;
 		else
 			*pScanner = L'\0';
 		
-		// äÖÈ¾´ÓpText~pScannerµÄÎÄ×Ö
+		// æ¸²æŸ“ä»pText~pScannerçš„æ–‡å­—
 		switch (halign)
 		{
 		case ResFont::FontAlignHorizontal::Right:
@@ -791,7 +792,7 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 			break;
 		}
 
-		// »Ö¸´¶Ï¾ä´¦×Ö·û
+		// æ¢å¤æ–­å¥å¤„å­—ç¬¦
 		*pScanner = c;
 		fLineWidth = 0.f;
 		if (c == L'\n')
@@ -799,7 +800,7 @@ bool AppFrame::RenderText(ResFont* p, wchar_t* strBuf, fcyRect rect, fcyVec2 sca
 		else
 			pText = pScanner;
 		
-		// ÒÆ¶¯yÖá
+		// ç§»åŠ¨yè½´
 		vRenderPos.y -= p->GetFontProvider()->GetLineHeight() * scale.y;
 	}
 
@@ -813,7 +814,7 @@ fcyVec2 AppFrame::CalcuTextSize(ResFont* p, const wchar_t* strBuf, fcyVec2 scale
 {
 	if (m_GraphType != GraphicsType::Graph2D)
 	{
-		LERROR("RenderText: Ö»ÓĞ2DäÖÈ¾Æ÷¿ÉÒÔÖ´ĞĞ¸Ã·½·¨");
+		LERROR("RenderText: åªæœ‰2Dæ¸²æŸ“å™¨å¯ä»¥æ‰§è¡Œè¯¥æ–¹æ³•");
 		return false;
 	}
 
@@ -848,11 +849,11 @@ LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, 
 	fcyRefPointer<ResFont> p = m_ResourceMgr.FindSpriteFont(name);
 	if (!p)
 	{
-		LERROR("RenderText: ÕÒ²»µ½ÎÄ×Ö×ÊÔ´'%m'", name);
+		LERROR("RenderText: æ‰¾ä¸åˆ°æ–‡å­—èµ„æº'%m'", name);
 		return false;
 	}
 
-	// ±àÂë×ª»»
+	// ç¼–ç è½¬æ¢
 	static std::wstring s_TempStringBuf;
 	try
 	{
@@ -860,11 +861,11 @@ LNOINLINE bool AppFrame::RenderText(const char* name, const char* str, float x, 
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("RenderText: ÄÚ´æ²»×ã");
+		LERROR("RenderText: å†…å­˜ä¸è¶³");
 		return false;
 	}
 
-	// ¼ÆËãäÖÈ¾Î»ÖÃ
+	// è®¡ç®—æ¸²æŸ“ä½ç½®
 	fcyVec2 tSize = CalcuTextSize(p, s_TempStringBuf.c_str(), fcyVec2(scale, scale));
 	switch (halign)
 	{
@@ -907,11 +908,11 @@ LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left
 	fcyRefPointer<ResFont> p = m_ResourceMgr.FindTTFFont(name);
 	if (!p)
 	{
-		LERROR("RenderTTF: ÕÒ²»µ½ÎÄ×Ö×ÊÔ´'%m'", name);
+		LERROR("RenderTTF: æ‰¾ä¸åˆ°æ–‡å­—èµ„æº'%m'", name);
 		return false;
 	}
 
-	// ±àÂë×ª»»
+	// ç¼–ç è½¬æ¢
 	static std::wstring s_TempStringBuf;
 	try
 	{
@@ -919,7 +920,7 @@ LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("RenderTTF: ÄÚ´æ²»×ã");
+		LERROR("RenderTTF: å†…å­˜ä¸è¶³");
 		return false;
 	}
 
@@ -946,7 +947,7 @@ LNOINLINE bool AppFrame::RenderTTF(const char* name, const char* str, float left
 		p,
 		const_cast<wchar_t*>(s_TempStringBuf.data()),
 		fcyRect(left, top, right, bottom),
-		fcyVec2(scale, scale) * 0.5f,  // Ëõ·ÅÏµÊı=0.5
+		fcyVec2(scale, scale) * 0.5f,  // ç¼©æ”¾ç³»æ•°=0.5
 		halign,
 		valign,
 		bWordBreak
@@ -964,15 +965,15 @@ LNOINLINE void AppFrame::SnapShot(const char* path)LNOEXCEPT
 		tOutputFile->SetLength(0);
 
 		if (FCYFAILED(m_pRenderDev->SaveScreen(tOutputFile)))
-			LERROR("Snapshot: ±£´æ½ØÍ¼µ½'%m'Ê§°Ü", path);
+			LERROR("Snapshot: ä¿å­˜æˆªå›¾åˆ°'%m'å¤±è´¥", path);
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("Snapshot: ÄÚ´æ²»×ã");
+		LERROR("Snapshot: å†…å­˜ä¸è¶³");
 	}
 	catch (const fcyException& e)
 	{
-		LERROR("Snapshot: ±£´æ½ØÍ¼Ê§°Ü (Òì³£ĞÅÏ¢'%m' Ô´'%m')", e.GetDesc(), e.GetSrc());
+		LERROR("Snapshot: ä¿å­˜æˆªå›¾å¤±è´¥ (å¼‚å¸¸ä¿¡æ¯'%m' æº'%m')", e.GetDesc(), e.GetSrc());
 	}
 }
 
@@ -997,7 +998,7 @@ bool AppFrame::PushRenderTarget(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT
 	fcyRect orgVP = m_pRenderDev->GetViewport();
 	if (FCYFAILED(m_pRenderDev->SetRenderTarget(rt)))
 	{
-		LERROR("PushRenderTarget: ÄÚ²¿´íÎó (f2dRenderDevice::SetRenderTarget failed.)");
+		LERROR("PushRenderTarget: å†…éƒ¨é”™è¯¯ (f2dRenderDevice::SetRenderTarget failed.)");
 		return false;
 	}
 	m_pRenderDev->SetViewport(orgVP);
@@ -1008,7 +1009,7 @@ bool AppFrame::PushRenderTarget(fcyRefPointer<f2dTexture2D> rt)LNOEXCEPT
 	}
 	catch (const std::bad_alloc&)
 	{
-		LERROR("PushRenderTarget: ÄÚ´æ²»×ã");
+		LERROR("PushRenderTarget: å†…å­˜ä¸è¶³");
 		if (m_stRenderTargetStack.empty())
 			m_pRenderDev->SetRenderTarget(nullptr);
 		else
@@ -1024,13 +1025,13 @@ LNOINLINE bool AppFrame::PushRenderTarget(ResTexture* rt)LNOEXCEPT
 {
 	if (!rt || !rt->IsRenderTarget())
 	{
-		assert(false);  // Õâ²»¸Ã·¢Éú
+		assert(false);  // è¿™ä¸è¯¥å‘ç”Ÿ
 		return false;
 	}
 
 	if (!m_bRenderStarted)
 	{
-		LERROR("PushRenderTarget: ·Ç·¨µ÷ÓÃ");
+		LERROR("PushRenderTarget: éæ³•è°ƒç”¨");
 		return false;
 	}
 
@@ -1041,13 +1042,13 @@ LNOINLINE bool AppFrame::PopRenderTarget()LNOEXCEPT
 {
 	if (!m_bRenderStarted)
 	{
-		LERROR("PopRenderTarget: ·Ç·¨µ÷ÓÃ");
+		LERROR("PopRenderTarget: éæ³•è°ƒç”¨");
 		return false;
 	}
 
 	if (m_stRenderTargetStack.empty())
 	{
-		LERROR("PopRenderTarget: RenderTargetÕ»Îª¿Õ");
+		LERROR("PopRenderTarget: RenderTargetæ ˆä¸ºç©º");
 		return false;
 	}
 
@@ -1069,18 +1070,18 @@ bool AppFrame::PostEffect(fcyRefPointer<f2dTexture2D> rt, ResFX* shader, BlendMo
 
 	if (!pTechnique)
 	{
-		LERROR("PostEffect: ÎŞĞ§µÄShaderÊı¾İ");
+		LERROR("PostEffect: æ— æ•ˆçš„Shaderæ•°æ®");
 		return false;
 	}
 
-	// ÎÆÀíÊ¹ÓÃ¼ì²é
+	// çº¹ç†ä½¿ç”¨æ£€æŸ¥
 	if (CheckRenderTargetInUse(rt))
 	{
-		LERROR("PostEffect: ÎŞ·¨ÔÚÒ»¸öRenderTargetÕıÔÚÊ¹ÓÃÊ±×÷Îªºó´¦ÀíÊäÈë");
+		LERROR("PostEffect: æ— æ³•åœ¨ä¸€ä¸ªRenderTargetæ­£åœ¨ä½¿ç”¨æ—¶ä½œä¸ºåå¤„ç†è¾“å…¥");
 		return false;
 	}
 
-	// ÖÕÖ¹äÖÈ¾¹ı³Ì
+	// ç»ˆæ­¢æ¸²æŸ“è¿‡ç¨‹
 	bool bRestartRenderPeriod = false;
 	switch (m_GraphType)
 	{
@@ -1100,28 +1101,28 @@ bool AppFrame::PostEffect(fcyRefPointer<f2dTexture2D> rt, ResFX* shader, BlendMo
 		break;
 	}
 
-	// ¸üĞÂäÖÈ¾×´Ì¬
+	// æ›´æ–°æ¸²æŸ“çŠ¶æ€
 	updateGraph3DBlendMode(blend);
 
-	// ¹Ø±Õfog
+	// å…³é—­fog
 	IDirect3DDevice9* pDev = (IDirect3DDevice9*)m_pRenderDev->GetHandle();
 	DWORD iFogEnabled = FALSE;
 	pDev->GetRenderState(D3DRS_FOGENABLE, &iFogEnabled);
 	if (iFogEnabled == TRUE)
 		pDev->SetRenderState(D3DRS_FOGENABLE, FALSE);
 
-	// ÉèÖÃeffect
+	// è®¾ç½®effect
 	shader->SetPostEffectTexture(rt);
 	shader->SetViewport(m_pRenderDev->GetViewport());
 	shader->SetScreenSize(fcyVec2((float)m_pRenderDev->GetBufferWidth(), (float)m_pRenderDev->GetBufferHeight()));
 	m_Graph3D->SetEffect(shader->GetEffect());
 	if (FCYFAILED(m_Graph3D->Begin()))
 	{
-		// £¡ Òì³£ÍË³ö²»¿É»Ö¸´äÖÈ¾¹ı³Ì
-		LERROR("PostEffect: ÄÚ²¿´íÎó (f2dGraphics3D::Begin failed)");
+		// ï¼ å¼‚å¸¸é€€å‡ºä¸å¯æ¢å¤æ¸²æŸ“è¿‡ç¨‹
+		LERROR("PostEffect: å†…éƒ¨é”™è¯¯ (f2dGraphics3D::Begin failed)");
 		return false;
 	}
-	// Ö´ĞĞËùÓĞµÄpass
+	// æ‰§è¡Œæ‰€æœ‰çš„pass
 	for (fuInt i = 0; i < pTechnique->GetPassCount(); ++i)
 	{
 		m_Graph3D->BeginPass(i);
@@ -1131,11 +1132,11 @@ bool AppFrame::PostEffect(fcyRefPointer<f2dTexture2D> rt, ResFX* shader, BlendMo
 	m_Graph3D->End();
 	shader->SetPostEffectTexture(NULL);
 
-	// ¼ì²éÊÇ·ñ¿ªÆôÁËÎí
+	// æ£€æŸ¥æ˜¯å¦å¼€å¯äº†é›¾
 	if (iFogEnabled == TRUE)
 		pDev->SetRenderState(D3DRS_FOGENABLE, TRUE);
 
-	// ÖØÆôäÖÈ¾¹ı³Ì
+	// é‡å¯æ¸²æŸ“è¿‡ç¨‹
 	if (bRestartRenderPeriod)
 	{
 		switch (m_GraphType)
@@ -1156,7 +1157,7 @@ LNOINLINE bool AppFrame::PostEffect(ResTexture* rt, ResFX* shader, BlendMode ble
 {
 	if (!m_bRenderStarted)
 	{
-		LERROR("PostEffect: ·Ç·¨µ÷ÓÃ");
+		LERROR("PostEffect: éæ³•è°ƒç”¨");
 		return false;
 	}
 
@@ -1167,7 +1168,7 @@ LNOINLINE bool AppFrame::PostEffectCapture()LNOEXCEPT
 {
 	if (!m_bRenderStarted || m_bPostEffectCaptureStarted)
 	{
-		LERROR("PostEffectCapture: ·Ç·¨µ÷ÓÃ (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
+		LERROR("PostEffectCapture: éæ³•è°ƒç”¨ (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
 		return false;
 	}
 
@@ -1181,19 +1182,19 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 {
 	if (!m_bRenderStarted || !m_bPostEffectCaptureStarted)
 	{
-		LERROR("PostEffectApply: ·Ç·¨µ÷ÓÃ (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
+		LERROR("PostEffectApply: éæ³•è°ƒç”¨ (RenderStarted=%d,PostEffectCaptureStarted=%d)", m_bRenderStarted, m_bPostEffectCaptureStarted);
 		return false;
 	}
 	
 	if (m_stRenderTargetStack.empty() || m_stRenderTargetStack.back() != m_PostEffectBuffer)
 	{
-		LERROR("PostEffectApply: ·Ç·¨µ÷ÓÃ£¬RenderTargetÕ»¿Õ»òÎ´Æ¥Åä");
+		LERROR("PostEffectApply: éæ³•è°ƒç”¨ï¼ŒRenderTargetæ ˆç©ºæˆ–æœªåŒ¹é…");
 		return false;
 	}
 
 	if (!PopRenderTarget())
 	{
-		LERROR("PostEffectApply: PopRenderTargetÊ§°Ü");
+		LERROR("PostEffectApply: PopRenderTargetå¤±è´¥");
 		return false;
 	}
 
@@ -1203,7 +1204,7 @@ LNOINLINE bool AppFrame::PostEffectApply(ResFX* shader, BlendMode blend)LNOEXCEP
 
 #pragma endregion
 
-#pragma region ¿ò¼Üº¯Êı
+#pragma region æ¡†æ¶å‡½æ•°
 static int StackTraceback(lua_State *L)
 {
 	lua_getfield(L, LUA_GLOBALSINDEX, "debug");  // errmsg t
@@ -1222,7 +1223,7 @@ static int StackTraceback(lua_State *L)
 	lua_pushinteger(L, 2);  // errmsg t f errmsg 2
 	if (0 != lua_pcall(L, 2, 1, 0))  // errmsg t 
 	{
-		LWARNING("Ö´ĞĞstacktraceÊ±·¢Éú´íÎó¡£(%m)", lua_tostring(L, -1));
+		LWARNING("æ‰§è¡Œstacktraceæ—¶å‘ç”Ÿé”™è¯¯ã€‚(%m)", lua_tostring(L, -1));
 		lua_pop(L, 2);
 	}	
 	return 1;
@@ -1232,49 +1233,49 @@ bool AppFrame::Init()LNOEXCEPT
 {
 	LASSERT(m_iStatus == AppStatus::NotInitialized);
 
-	LINFO("¿ªÊ¼³õÊ¼»¯ °æ±¾: %s", LVERSION);
+	LINFO("å¼€å§‹åˆå§‹åŒ– ç‰ˆæœ¬: %s", LVERSION);
 	m_iStatus = AppStatus::Initializing;
 
 	Scope tSplashWindowExit([this]() {
 		m_SplashWindow.HideSplashWindow();
 	});
 
-	//////////////////////////////////////// Lua³õÊ¼»¯²¿·Ö
-	LINFO("¿ªÊ¼³õÊ¼»¯LuaĞéÄâ»ú °æ±¾: %m", LVERSION_LUA);
+	//////////////////////////////////////// Luaåˆå§‹åŒ–éƒ¨åˆ†
+	LINFO("å¼€å§‹åˆå§‹åŒ–Luaè™šæ‹Ÿæœº ç‰ˆæœ¬: %m", LVERSION_LUA);
 	L = lua_open();
 	if (!L)
 	{
-		LERROR("ÎŞ·¨³õÊ¼»¯LuaĞéÄâ»ú");
+		LERROR("æ— æ³•åˆå§‹åŒ–Luaè™šæ‹Ÿæœº");
 		return false;
 	}
 	if (0 != luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
-		LWARNING("ÎŞ·¨Æô¶¯JITÄ£Ê½");
+		LWARNING("æ— æ³•å¯åŠ¨JITæ¨¡å¼");
 
-	lua_gc(L, LUA_GCSTOP, 0);  // ³õÊ¼»¯Ê±¹Ø±ÕGC
+	lua_gc(L, LUA_GCSTOP, 0);  // åˆå§‹åŒ–æ—¶å…³é—­GC
 
-	luaL_openlibs(L);  // ÄÚ½¨¿â
-	luaopen_lfs(L);  // ÎÄ¼şÏµÍ³¿â
-	luaopen_cjson(L);  // CJSON¿â
-	ColorWrapper::Register(L);  // ÑÕÉ«¶ÔÏó
-	RandomizerWrapper::Register(L);  // Ëæ»úÊı·¢ÉúÆ÷
-	BentLaserDataWrapper::Register(L);  // ÇúÏß¼¤¹â
-	BuiltInFunctionWrapper::Register(L);  // ÄÚ½¨º¯Êı¿â
+	luaL_openlibs(L);  // å†…å»ºåº“
+	luaopen_lfs(L);  // æ–‡ä»¶ç³»ç»Ÿåº“
+	luaopen_cjson(L);  // CJSONåº“
+	ColorWrapper::Register(L);  // é¢œè‰²å¯¹è±¡
+	RandomizerWrapper::Register(L);  // éšæœºæ•°å‘ç”Ÿå™¨
+	BentLaserDataWrapper::Register(L);  // æ›²çº¿æ¿€å…‰
+	BuiltInFunctionWrapper::Register(L);  // å†…å»ºå‡½æ•°åº“
 
-	lua_gc(L, LUA_GCRESTART, -1);  // ÖØÆôGC
+	lua_gc(L, LUA_GCRESTART, -1);  // é‡å¯GC
 
-	// Îª¶ÔÏó³Ø·ÖÅä¿Õ¼ä
-	LINFO("³õÊ¼»¯¶ÔÏó³Ø ÉÏÏŞ=%u", LGOBJ_MAXCNT);
+	// ä¸ºå¯¹è±¡æ± åˆ†é…ç©ºé—´
+	LINFO("åˆå§‹åŒ–å¯¹è±¡æ±  ä¸Šé™=%u", LGOBJ_MAXCNT);
 	try
 	{
 		m_GameObjectPool = make_unique<GameObjectPool>(L);
 	}
 	catch (const bad_alloc&)
 	{
-		LERROR("ÎŞ·¨Îª¶ÔÏó³Ø·ÖÅä×ã¹»ÄÚ´æ");
+		LERROR("æ— æ³•ä¸ºå¯¹è±¡æ± åˆ†é…è¶³å¤Ÿå†…å­˜");
 		return false;
 	}
 
-	// ÉèÖÃÃüÁîĞĞ²ÎÊı
+	// è®¾ç½®å‘½ä»¤è¡Œå‚æ•°
 	regex tDebuggerPattern("\\/debugger:(\\d+)");
 	lua_getglobal(L, "lstg");  // t
 	lua_newtable(L);  // t t
@@ -1284,7 +1285,7 @@ bool AppFrame::Init()LNOEXCEPT
 		if (regex_match(__argv[i], tMatch, tDebuggerPattern))
 		{
 #if (defined LDEVVERSION) || (defined LDEBUG)
-			// ´´½¨µ÷ÊÔÆ÷
+			// åˆ›å»ºè°ƒè¯•å™¨
 			if (!m_DebuggerClient)
 			{
 				fuShort tPort = atoi(tMatch[1].first);
@@ -1292,17 +1293,17 @@ bool AppFrame::Init()LNOEXCEPT
 				try
 				{
 					m_DebuggerClient = make_unique<RemoteDebuggerClient>(tPort);
-					LINFO("µ÷ÊÔÆ÷ÒÑ´´½¨£¬ÓÚ¶Ë¿Ú£º%d", (fuInt)tPort);
+					LINFO("è°ƒè¯•å™¨å·²åˆ›å»ºï¼Œäºç«¯å£ï¼š%d", (fuInt)tPort);
 				}
 				catch (const fcyException& e)
 				{
-					LERROR("´´½¨µ÷ÊÔÆ÷Ê§°Ü (ÏêÏ¸ĞÅÏ¢: %m)", e.GetDesc());
+					LERROR("åˆ›å»ºè°ƒè¯•å™¨å¤±è´¥ (è¯¦ç»†ä¿¡æ¯: %m)", e.GetDesc());
 				}
 			}
 			else
-				LWARNING("ÃüÁîĞĞ²ÎÊıÖĞ´øÓĞ¶à¸ö/debuggerÏî£¬ºöÂÔ¡£");
+				LWARNING("å‘½ä»¤è¡Œå‚æ•°ä¸­å¸¦æœ‰å¤šä¸ª/debuggeré¡¹ï¼Œå¿½ç•¥ã€‚");
 #endif
-			// ²»½«debuggerÏî´«ÈëÓÃ»§ÃüÁîĞĞ²ÎÊıÖĞ
+			// ä¸å°†debuggeré¡¹ä¼ å…¥ç”¨æˆ·å‘½ä»¤è¡Œå‚æ•°ä¸­
 			continue;
 		}
 		lua_pushinteger(L, c++);  // t t i
@@ -1312,23 +1313,23 @@ bool AppFrame::Init()LNOEXCEPT
 	lua_setfield(L, -2, "args");  // t
 	lua_pop(L, 1);
 
-	//////////////////////////////////////// ×°ÔØ³õÊ¼»¯½Å±¾
-	LINFO("×°ÔØ³õÊ¼»¯½Å±¾'%s'", LLAUNCH_SCRIPT);
+	//////////////////////////////////////// è£…è½½åˆå§‹åŒ–è„šæœ¬
+	LINFO("è£…è½½åˆå§‹åŒ–è„šæœ¬'%s'", LLAUNCH_SCRIPT);
 	fcyRefPointer<fcyMemStream> tMemStream;
 	if (!m_ResourceMgr.LoadFile(LLAUNCH_SCRIPT, tMemStream))
 		return false;
 	if (!SafeCallScript((fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), "launch"))
 		return false;
 	
-	//////////////////////////////////////// ³õÊ¼»¯fancy2dÒıÇæ
-	LINFO("³õÊ¼»¯fancy2d °æ±¾ %d.%d (·Ö±æÂÊ: %dx%d ´¹Ö±Í¬²½: %b ´°¿Ú»¯: %b)",
+	//////////////////////////////////////// åˆå§‹åŒ–fancy2då¼•æ“
+	LINFO("åˆå§‹åŒ–fancy2d ç‰ˆæœ¬ %d.%d (åˆ†è¾¨ç‡: %dx%d å‚ç›´åŒæ­¥: %b çª—å£åŒ–: %b)",
 		(F2DVERSION & 0xFFFF0000) >> 16, F2DVERSION & 0x0000FFFF,
 		(int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionVsync, m_OptionWindowed);
 	struct : public f2dInitialErrListener
 	{
 		void OnErr(fuInt TimeTick, fcStr Src, fcStr Desc)
 		{
-			LERROR("³õÊ¼»¯fancy2dÊ§°Ü (Òì³£ĞÅÏ¢'%m' Ô´'%m')", Desc, Src);
+			LERROR("åˆå§‹åŒ–fancy2då¤±è´¥ (å¼‚å¸¸ä¿¡æ¯'%m' æº'%m')", Desc, Src);
 		}
 	} tErrListener;
 
@@ -1347,22 +1348,22 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 	}
 
-	// »ñÈ¡×é¼ş
+	// è·å–ç»„ä»¶
 	m_pMainWindow = m_pEngine->GetMainWindow();
 	m_pRenderer = m_pEngine->GetRenderer();
 	m_pRenderDev = m_pRenderer->GetDevice();
 	m_pSoundSys = m_pEngine->GetSoundSys();
 	m_pInputSys = m_pEngine->GetInputSys();
 
-	// ´òÓ¡Éè±¸ĞÅÏ¢
+	// æ‰“å°è®¾å¤‡ä¿¡æ¯
 	f2dCPUInfo stCPUInfo = { 0 };
 	m_pEngine->GetCPUInfo(stCPUInfo);
 	LINFO("CPU %m %m / GPU %m", stCPUInfo.CPUBrandString, stCPUInfo.CPUString, m_pRenderDev->GetDeviceName());
 
-	// ´´½¨äÖÈ¾Æ÷
+	// åˆ›å»ºæ¸²æŸ“å™¨
 	if (FCYFAILED(m_pRenderDev->CreateGraphics2D(1024, 2048, &m_Graph2D)))
 	{
-		LERROR("ÎŞ·¨´´½¨äÖÈ¾Æ÷ (fcyRenderDevice::CreateGraphics2D failed)");
+		LERROR("æ— æ³•åˆ›å»ºæ¸²æŸ“å™¨ (fcyRenderDevice::CreateGraphics2D failed)");
 		return false;
 	}
 	m_Graph2DLastBlendMode = BlendMode::AddAlpha;
@@ -1370,69 +1371,69 @@ bool AppFrame::Init()LNOEXCEPT
 	m_Graph2DColorBlendState = m_Graph2D->GetColorBlendType();
 	m_bRenderStarted = false;
 
-	// ´´½¨ÎÄ×ÖäÖÈ¾Æ÷
+	// åˆ›å»ºæ–‡å­—æ¸²æŸ“å™¨
 	if (FCYFAILED(m_pRenderer->CreateFontRenderer(nullptr, &m_FontRenderer)))
 	{
-		LERROR("ÎŞ·¨´´½¨×ÖÌåäÖÈ¾Æ÷ (fcyRenderer::CreateFontRenderer failed)");
+		LERROR("æ— æ³•åˆ›å»ºå­—ä½“æ¸²æŸ“å™¨ (fcyRenderer::CreateFontRenderer failed)");
 		return false;
 	}
 	m_FontRenderer->SetZ(0.5f);
 
-	// ´´½¨Í¼ÔªäÖÈ¾Æ÷
+	// åˆ›å»ºå›¾å…ƒæ¸²æŸ“å™¨
 	if (FCYFAILED(m_pRenderer->CreateGeometryRenderer(&m_GRenderer)))
 	{
-		LERROR("ÎŞ·¨´´½¨Í¼ÔªäÖÈ¾Æ÷ (fcyRenderer::CreateGeometryRenderer failed)");
+		LERROR("æ— æ³•åˆ›å»ºå›¾å…ƒæ¸²æŸ“å™¨ (fcyRenderer::CreateGeometryRenderer failed)");
 		return false;
 	}
 
-	// ´´½¨3DäÖÈ¾Æ÷
+	// åˆ›å»º3Dæ¸²æŸ“å™¨
 	if (FCYFAILED(m_pRenderDev->CreateGraphics3D(nullptr, &m_Graph3D)))
 	{
-		LERROR("ÎŞ·¨´´½¨3DäÖÈ¾Æ÷ (fcyRenderDevice::CreateGraphics3D failed)");
+		LERROR("æ— æ³•åˆ›å»º3Dæ¸²æŸ“å™¨ (fcyRenderDevice::CreateGraphics3D failed)");
 		return false;
 	}
 	m_Graph3DLastBlendMode = BlendMode::AddAlpha;
 	m_Graph3DBlendState = m_Graph3D->GetBlendState();
 	
-	// ´´½¨PostEffect»º³å
+	// åˆ›å»ºPostEffectç¼“å†²
 	if (FCYFAILED(m_pRenderDev->CreateRenderTarget(
 		m_pRenderDev->GetBufferWidth(),
 		m_pRenderDev->GetBufferHeight(),
 		true,
 		&m_PostEffectBuffer)))
 	{
-		LERROR("ÎŞ·¨´´½¨POSTEFFECT»º³åÇø (fcyRenderDevice::CreateRenderTarget failed)");
+		LERROR("æ— æ³•åˆ›å»ºPOSTEFFECTç¼“å†²åŒº (fcyRenderDevice::CreateRenderTarget failed)");
 		return false;
 	}
 
-	// ´´½¨¼üÅÌÊäÈë
+	// åˆ›å»ºé”®ç›˜è¾“å…¥
 	m_pInputSys->CreateKeyboard(-1, false, &m_Keyboard);
 	if (!m_Keyboard)
-		LWARNING("ÎŞ·¨´´½¨¼üÅÌÉè±¸£¬½«Ê¹ÓÃ´°¿ÚÏûÏ¢×÷ÎªÊäÈëÔ´ (f2dInputSys::CreateKeyboard failed.)");
+		LWARNING("æ— æ³•åˆ›å»ºé”®ç›˜è®¾å¤‡ï¼Œå°†ä½¿ç”¨çª—å£æ¶ˆæ¯ä½œä¸ºè¾“å…¥æº (f2dInputSys::CreateKeyboard failed.)");
 	
-	// ´´½¨ÊÖ±úÊäÈë
+	// åˆ›å»ºæ‰‹æŸ„è¾“å…¥
 	fuInt iJoyStickCount = ::min(2U, m_pInputSys->GetDeviceCount(F2DINPUTDEVTYPE_GAMECTRL));
 	for (fuInt i = 0; i < iJoyStickCount; ++i)
 	{
-		LINFO("Õì²âµ½ÊÖ±ú Éè±¸Ãû£º%s ²úÆ·Ãû£º%s", m_pInputSys->GetDeviceName(F2DINPUTDEVTYPE_GAMECTRL, i), 
+		LINFO("ä¾¦æµ‹åˆ°æ‰‹æŸ„ è®¾å¤‡åï¼š%s äº§å“åï¼š%s", m_pInputSys->GetDeviceName(F2DINPUTDEVTYPE_GAMECTRL, i), 
 			m_pInputSys->GetDeviceProductName(F2DINPUTDEVTYPE_GAMECTRL, i));
 		if (FCYFAILED(m_pInputSys->CreateJoystick(i, false, &m_Joystick[i])))
-			LWARNING("ÎŞ·¨×°ÔØÊÖ±ú£¬ºöÂÔ¡£");
+			LWARNING("æ— æ³•è£…è½½æ‰‹æŸ„ï¼Œå¿½ç•¥ã€‚");
 	}
 
-	// luastg²»Ê¹ÓÃZBuffer£¬½«Æä¹Ø±Õ¡£
+	// luastgä¸ä½¿ç”¨ZBufferï¼Œå°†å…¶å…³é—­ã€‚
 	m_pRenderDev->SetZBufferEnable(false);
 	
-	// ÉèÖÃ´°¿ÚÍ¼±ê
+	// è®¾ç½®çª—å£å›¾æ ‡
 	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APPICON));
 	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)hIcon);
 	SendMessage((HWND)m_pMainWindow->GetHandle(), WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)hIcon);
 	DestroyIcon(hIcon);
 
-	// ÈôÃ»ÓĞÔØÈë´°¿Ú£¬ÔòÏÔÊ¾ÓÎÏ·´°¿Ú
+	// è‹¥æ²¡æœ‰è½½å…¥çª—å£ï¼Œåˆ™æ˜¾ç¤ºæ¸¸æˆçª—å£
 	if (!m_bSplashWindowEnabled)
 	{
-		// ÏÔÊ¾´°¿Ú
+		// æ˜¾ç¤ºçª—å£
 		m_pMainWindow->MoveToCenter();
 		m_pMainWindow->SetVisiable(true);
 	}
@@ -1442,8 +1443,8 @@ bool AppFrame::Init()LNOEXCEPT
 	::memset(m_KeyStateMap, 0, sizeof(m_KeyStateMap));
 	::memset(m_MouseState, 0, sizeof(m_MouseState));
 
-	//////////////////////////////////////// ×°ÔØºËĞÄ½Å±¾²¢Ö´ĞĞGameInit
-	LINFO("×°ÔØºËĞÄ½Å±¾'%s'", LCORE_SCRIPT);
+	//////////////////////////////////////// è£…è½½æ ¸å¿ƒè„šæœ¬å¹¶æ‰§è¡ŒGameInit
+	LINFO("è£…è½½æ ¸å¿ƒè„šæœ¬'%s'", LCORE_SCRIPT);
 	if (!m_ResourceMgr.LoadFile(LCORE_SCRIPT, tMemStream))
 		return false;
 	if (!SafeCallScript((fcStr)tMemStream->GetInternalBuffer(), (size_t)tMemStream->GetLength(), "core.lua"))
@@ -1452,17 +1453,17 @@ bool AppFrame::Init()LNOEXCEPT
 		return false;
 
 	m_iStatus = AppStatus::Initialized;
-	LINFO("³õÊ¼»¯³É¹¦Íê³É");
+	LINFO("åˆå§‹åŒ–æˆåŠŸå®Œæˆ");
 	return true;
 }
 
 void AppFrame::Shutdown()LNOEXCEPT
 {
 	m_GameObjectPool = nullptr;
-	LINFO("ÒÑÇå¿Õ¶ÔÏó³Ø");
+	LINFO("å·²æ¸…ç©ºå¯¹è±¡æ± ");
 
 	m_ResourceMgr.ClearAllResource();
-	LINFO("ÒÑÇå¿ÕËùÓĞ×ÊÔ´");
+	LINFO("å·²æ¸…ç©ºæ‰€æœ‰èµ„æº");
 
 	m_Joystick[0] = m_Joystick[1] = nullptr;
 	m_Keyboard = nullptr;
@@ -1477,25 +1478,25 @@ void AppFrame::Shutdown()LNOEXCEPT
 	m_pRenderer = nullptr;
 	m_pMainWindow = nullptr;
 	m_pEngine = nullptr;
-	LINFO("ÒÑĞ¶ÔØfancy2d");
+	LINFO("å·²å¸è½½fancy2d");
 
 	if (L)
 	{
 		lua_close(L);
 		L = nullptr;
-		LINFO("ÒÑĞ¶ÔØLuaĞéÄâ»ú");
+		LINFO("å·²å¸è½½Luaè™šæ‹Ÿæœº");
 	}
 	m_ResourceMgr.UnloadAllPack();
-	LINFO("ÒÑĞ¶ÔØËùÓĞ×ÊÔ´°ü");
+	LINFO("å·²å¸è½½æ‰€æœ‰èµ„æºåŒ…");
 
 	m_iStatus = AppStatus::Destroyed;
-	LINFO("¿ò¼ÜÏú»Ù");
+	LINFO("æ¡†æ¶é”€æ¯");
 }
 
 void AppFrame::Run()LNOEXCEPT
 {
 	LASSERT(m_iStatus == AppStatus::Initialized);
-	LINFO("¿ªÊ¼Ö´ĞĞÓÎÏ·Ñ­»·");
+	LINFO("å¼€å§‹æ‰§è¡Œæ¸¸æˆå¾ªç¯");
 
 	m_fFPS = 0.f;
 #if (defined LDEVVERSION) || (defined LDEBUG)
@@ -1509,29 +1510,29 @@ void AppFrame::Run()LNOEXCEPT
 	m_RenderTimerTotal = 0.f;
 #endif
 
-	if (m_bSplashWindowEnabled)  // ÏÔÊ¾¹ıÔØÈë´°¿Ú
+	if (m_bSplashWindowEnabled)  // æ˜¾ç¤ºè¿‡è½½å…¥çª—å£
 	{
-		// ÏÔÊ¾´°¿Ú
+		// æ˜¾ç¤ºçª—å£
 		m_pMainWindow->MoveToCenter();
 		m_pMainWindow->SetVisiable(true);
 
-		// ¸Ä±äÏÔÊ¾Ä£Ê½µ½È«ÆÁ
+		// æ”¹å˜æ˜¾ç¤ºæ¨¡å¼åˆ°å…¨å±
 		if (!m_OptionWindowed)
 			ChangeVideoMode((int)m_OptionResolution.x, (int)m_OptionResolution.y, m_OptionWindowed, m_OptionVsync);
 	}
 	m_bSplashWindowEnabled = false;
 
-	// ´°¿ÚÇ°ÒÆ¡¢ÏÔÊ¾¡¢Òş²ØÊó±êÖ¸Õë
-	SetActiveWindow((HWND)m_pMainWindow->GetHandle());  // È»²¢ÂÑ
+	// çª—å£å‰ç§»ã€æ˜¾ç¤ºã€éšè—é¼ æ ‡æŒ‡é’ˆ
+	SetActiveWindow((HWND)m_pMainWindow->GetHandle());  // ç„¶å¹¶åµ
 	// SetForegroundWindow((HWND)m_pMainWindow->GetHandle());
 	// BringWindowToTop((HWND)m_pMainWindow->GetHandle());
 	m_pMainWindow->SetHideIME(true);
 	m_pMainWindow->HideMouse(!m_OptionSplash);
 
-	// Æô¶¯ÓÎÏ·Ñ­»·
+	// å¯åŠ¨æ¸¸æˆå¾ªç¯
 	m_pEngine->Run(F2DENGTHREADMODE_MULTITHREAD, m_OptionFPSLimit);
 
-	LINFO("ÍË³öÓÎÏ·Ñ­»·");
+	LINFO("é€€å‡ºæ¸¸æˆå¾ªç¯");
 }
 
 bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)LNOEXCEPT
@@ -1543,22 +1544,22 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 		try
 		{
 			wstring tErrorInfo = StringFormat(
-				L"½Å±¾'%m'±àÒëÊ§°Ü: %m",
+				L"è„šæœ¬'%m'ç¼–è¯‘å¤±è´¥: %m",
 				desc,
 				lua_tostring(L, -1)
 			);
 
-			LERROR("½Å±¾´íÎó£º%s", tErrorInfo.c_str());
+			LERROR("è„šæœ¬é”™è¯¯ï¼š%s", tErrorInfo.c_str());
 			MessageBox(
 				m_pMainWindow ? (HWND)m_pMainWindow->GetHandle() : 0,
 				tErrorInfo.c_str(),
-				L"LuaSTGPlus½Å±¾´íÎó",
+				L"LuaSTGPlusè„šæœ¬é”™è¯¯",
 				MB_ICONERROR | MB_OK
 			);
 		}
 		catch (const bad_alloc&)
 		{
-			LERROR("³¢ÊÔĞ´³ö½Å±¾´íÎóÊ±·¢ÉúÄÚ´æ²»×ã´íÎó");
+			LERROR("å°è¯•å†™å‡ºè„šæœ¬é”™è¯¯æ—¶å‘ç”Ÿå†…å­˜ä¸è¶³é”™è¯¯");
 		}
 		
 		lua_pop(L, 2);
@@ -1570,22 +1571,22 @@ bool AppFrame::SafeCallScript(const char* source, size_t len, const char* desc)L
 		try
 		{
 			wstring tErrorInfo = StringFormat(
-				L"½Å±¾'%m'ÖĞ²úÉúÎ´´¦ÀíµÄÔËĞĞÊ±´íÎó:\n\t%m",
+				L"è„šæœ¬'%m'ä¸­äº§ç”Ÿæœªå¤„ç†çš„è¿è¡Œæ—¶é”™è¯¯:\n\t%m",
 				desc,
 				lua_tostring(L, -1)
 			);
 
-			LERROR("½Å±¾´íÎó£º%s", tErrorInfo.c_str());
+			LERROR("è„šæœ¬é”™è¯¯ï¼š%s", tErrorInfo.c_str());
 			MessageBox(
 				m_pMainWindow ? (HWND)m_pMainWindow->GetHandle() : 0,
 				tErrorInfo.c_str(),
-				L"LuaSTGPlus½Å±¾´íÎó",
+				L"LuaSTGPlusè„šæœ¬é”™è¯¯",
 				MB_ICONERROR | MB_OK
 			);
 		}
 		catch (const bad_alloc&)
 		{
-			LERROR("³¢ÊÔĞ´³ö½Å±¾´íÎóÊ±·¢ÉúÄÚ´æ²»×ã´íÎó");
+			LERROR("å°è¯•å†™å‡ºè„šæœ¬é”™è¯¯æ—¶å‘ç”Ÿå†…å­˜ä¸è¶³é”™è¯¯");
 		}
 
 		lua_pop(L, 2);
@@ -1607,22 +1608,22 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int retc)LNOEXCEPT
 		try
 		{
 			wstring tErrorInfo = StringFormat(
-				L"Ö´ĞĞº¯Êı'%m'Ê±²úÉúÎ´´¦ÀíµÄÔËĞĞÊ±´íÎó:\n\t%m",
+				L"æ‰§è¡Œå‡½æ•°'%m'æ—¶äº§ç”Ÿæœªå¤„ç†çš„è¿è¡Œæ—¶é”™è¯¯:\n\t%m",
 				name,
 				lua_tostring(L, -1)
 			);
 
-			LERROR("½Å±¾´íÎó£º%s", tErrorInfo.c_str());
+			LERROR("è„šæœ¬é”™è¯¯ï¼š%s", tErrorInfo.c_str());
 			MessageBox(
 				m_pMainWindow ? (HWND)m_pMainWindow->GetHandle() : 0,
 				tErrorInfo.c_str(),
-				L"LuaSTGPlus½Å±¾´íÎó",
+				L"LuaSTGPlusè„šæœ¬é”™è¯¯",
 				MB_ICONERROR | MB_OK
 			);
 		}
 		catch (const bad_alloc&)
 		{
-			LERROR("³¢ÊÔĞ´³ö½Å±¾´íÎóÊ±·¢ÉúÄÚ´æ²»×ã´íÎó");
+			LERROR("å°è¯•å†™å‡ºè„šæœ¬é”™è¯¯æ—¶å‘ç”Ÿå†…å­˜ä¸è¶³é”™è¯¯");
 		}
 
 		lua_pop(L, 2);
@@ -1634,7 +1635,7 @@ bool AppFrame::SafeCallGlobalFunction(const char* name, int retc)LNOEXCEPT
 }
 #pragma endregion
 
-#pragma region ÓÎÏ·Ñ­»·
+#pragma region æ¸¸æˆå¾ªç¯
 fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, f2dMsgPump* pMsgPump)
 {
 #if (defined LDEVVERSION) || (defined LDEBUG)
@@ -1646,14 +1647,14 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 	m_LastChar = 0;
 	m_LastKey = 0;
 
-	// ´¦ÀíÏûÏ¢
+	// å¤„ç†æ¶ˆæ¯
 	f2dMsg tMsg;
 	while (FCYOK(pMsgPump->GetMsg(&tMsg)))
 	{
 		switch (tMsg.Type)
 		{
 		case F2DMSG_WINDOW_ONCLOSE:
-			return false;  // ¹Ø±Õ´°¿ÚÊ±½áÊøÑ­»·
+			return false;  // å…³é—­çª—å£æ—¶ç»“æŸå¾ªç¯
 		case F2DMSG_WINDOW_ONGETFOCUS:
 			if (!SafeCallGlobalFunction(LFUNC_GAINFOCUS))
 				return false;
@@ -1664,13 +1665,13 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 			m_LastChar = (fCharW)tMsg.Param1;
 			break;
 		case F2DMSG_WINDOW_ONKEYDOWN:
-			// ctrl+enterÈ«ÆÁ
-			if (tMsg.Param1 == VK_RETURN && !m_KeyStateMap[VK_RETURN] && m_KeyStateMap[VK_CONTROL])  // ·ÀÖ¹·´¸´´¥·¢
+			// ctrl+enterå…¨å±
+			if (tMsg.Param1 == VK_RETURN && !m_KeyStateMap[VK_RETURN] && m_KeyStateMap[VK_CONTROL])  // é˜²æ­¢åå¤è§¦å‘
 				ChangeVideoMode((int)m_OptionResolution.x, (int)m_OptionResolution.y, !m_OptionWindowed, m_OptionVsync);
 
 			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap) &&
-				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1Ó³ÉäÇøÓò
-				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2Ó³ÉäÇøÓò
+				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1æ˜ å°„åŒºåŸŸ
+				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2æ˜ å°„åŒºåŸŸ
 			{
 				m_LastKey = (fInt)tMsg.Param1;
 				m_KeyStateMap[tMsg.Param1] = true;
@@ -1685,8 +1686,8 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 			if (m_LastKey == tMsg.Param1)
 				m_LastKey = 0;
 			if (0 < tMsg.Param1 && tMsg.Param1 < _countof(m_KeyStateMap) &&
-				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1Ó³ÉäÇøÓò
-				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2Ó³ÉäÇøÓò
+				!(LJOYSTICK1_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK1_MAPPING_END) &&  // joystick1æ˜ å°„åŒºåŸŸ
+				!(LJOYSTICK2_MAPPING_START <= tMsg.Param1 && tMsg.Param1 <= LJOYSTICK2_MAPPING_END))  // joystick2æ˜ å°„åŒºåŸŸ
 			{
 				m_KeyStateMap[tMsg.Param1] = false;
 			}
@@ -1711,7 +1712,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 			break;
 		case F2DMSG_WINDOW_ONMOUSEMOVE:
 			m_MousePosition.x = (float)static_cast<fInt>(tMsg.Param1);
-			m_MousePosition.y = m_OptionResolution.y - (float)static_cast<fInt>(tMsg.Param2);  // ! Ç±ÔÚ´óĞ¡²»Æ¥ÅäÎÊÌâ
+			m_MousePosition.y = m_OptionResolution.y - (float)static_cast<fInt>(tMsg.Param2);  // ! æ½œåœ¨å¤§å°ä¸åŒ¹é…é—®é¢˜
 			break;
 		case F2DMSG_JOYSTICK_ONXPOSCHANGE:
 			do
@@ -1719,7 +1720,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 				double tValue = *(double*)&tMsg.Param1;
 				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
 
-				if (tValue < LJOYSTICK_X_MIN)  // ×ó¼ü´¥·¢
+				if (tValue < LJOYSTICK_X_MIN)  // å·¦é”®è§¦å‘
 				{
 					fInt tVKCode;
 					if (pJoystick == m_Joystick[0])
@@ -1748,7 +1749,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 					m_KeyStateMap[tVKCode] = false;
 				}
 
-				if (tValue > LJOYSTICK_X_MAX)  // ÓÒ¼ü´¥·¢
+				if (tValue > LJOYSTICK_X_MAX)  // å³é”®è§¦å‘
 				{
 					fInt tVKCode;
 					if (pJoystick == m_Joystick[0])
@@ -1784,7 +1785,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 				double tValue = *(double*)&tMsg.Param1;
 				f2dInputJoystick* pJoystick = (f2dInputJoystick*)tMsg.Param2;
 
-				if (tValue < LJOYSTICK_Y_MIN)  // ÉÏ¼ü´¥·¢
+				if (tValue < LJOYSTICK_Y_MIN)  // ä¸Šé”®è§¦å‘
 				{
 					fInt tVKCode;
 					if (pJoystick == m_Joystick[0])
@@ -1813,7 +1814,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 					m_KeyStateMap[tVKCode] = false;
 				}
 
-				if (tValue > LJOYSTICK_Y_MAX)  // ÏÂ¼ü´¥·¢
+				if (tValue > LJOYSTICK_Y_MAX)  // ä¸‹é”®è§¦å‘
 				{
 					fInt tVKCode;
 					if (pJoystick == m_Joystick[0])
@@ -1890,14 +1891,14 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 		}
 	}
 
-	// Ö´ĞĞÖ¡º¯Êı
+	// æ‰§è¡Œå¸§å‡½æ•°
 	if (!SafeCallGlobalFunction(LFUNC_FRAME, 1))
 		return false;
 	bool tAbort = lua_toboolean(L, -1) == 0 ? false : true;
 	lua_pop(L, 1);
 
 #if (defined LDEVVERSION) || (defined LDEBUG)
-	// Ë¢ĞÂĞÔÄÜ¼ÆÊıÆ÷
+	// åˆ·æ–°æ€§èƒ½è®¡æ•°å™¨
 	m_PerformanceUpdateTimer += static_cast<float>(ElapsedTime);
 	m_PerformanceUpdateCounter += 1.f;
 	m_FPSTotal += static_cast<float>(m_fFPS);
@@ -1906,7 +1907,7 @@ fBool AppFrame::OnUpdate(fDouble ElapsedTime, f2dFPSController* pFPSController, 
 	m_RenderTimerTotal += m_RenderTimer;
 	if (m_PerformanceUpdateTimer > LPERFORMANCEUPDATETIMER)
 	{
-		// ·¢ËÍĞÔÄÜÍ³¼ÆĞÅÏ¢
+		// å‘é€æ€§èƒ½ç»Ÿè®¡ä¿¡æ¯
 		if (m_DebuggerClient)
 		{
 			m_DebuggerClient->SendPerformanceCounter(
@@ -1937,14 +1938,14 @@ fBool AppFrame::OnRender(fDouble ElapsedTime, f2dFPSController* pFPSController)
 
 	m_pRenderDev->Clear();
 
-	// Ö´ĞĞäÖÈ¾º¯Êı
+	// æ‰§è¡Œæ¸²æŸ“å‡½æ•°
 	m_bRenderStarted = true;
 	m_bPostEffectCaptureStarted = false;
 	if (!SafeCallGlobalFunction(LFUNC_RENDER, 0))
 		m_pEngine->Abort();
 	if (!m_stRenderTargetStack.empty())
 	{
-		LWARNING("OnRender: äÖÈ¾½áÊøÊ±Ã»ÓĞÍÆ³öËùÓĞµÄRenderTarget.");
+		LWARNING("OnRender: æ¸²æŸ“ç»“æŸæ—¶æ²¡æœ‰æ¨å‡ºæ‰€æœ‰çš„RenderTarget.");
 		while (!m_stRenderTargetStack.empty())
 			PopRenderTarget();
 	}
