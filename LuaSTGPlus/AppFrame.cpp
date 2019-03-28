@@ -506,7 +506,7 @@ LNOINLINE void AppFrame::LoadScript(const char* path)LNOEXCEPT
 		return;
 	}
 	tMemStream = nullptr;
-	lua_call(L, 0, 0);
+	//lua_call(L, 0, 0);
 	lua_call(L, 0, LUA_MULTRET);//保证DoFile后有返回值
 	/*
 	if (lua_pcall(L, 0, 0, 0))
