@@ -1,4 +1,4 @@
-#include "LuaWrapper.h"
+ï»¿#include "LuaWrapper.h"
 #include "AppFrame.h"
 
 #define TYPENAME_COLOR "lstgColor"
@@ -139,17 +139,17 @@ void ColorWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			lua_Number tFactor;
 			fcyColor *p = nullptr, *pResult = nullptr;
-			if (lua_isnumber(L, 1))  // arg1ÎªÊı×Ö£¬Ôòarg2±ØÎªlstgColor
+			if (lua_isnumber(L, 1))  // arg1ä¸ºæ•°å­—ï¼Œåˆ™arg2å¿…ä¸ºlstgColor
 			{
 				tFactor = luaL_checknumber(L, 1);
 				p = static_cast<fcyColor*>(luaL_checkudata(L, 2, TYPENAME_COLOR));
 			}
-			else if (lua_isnumber(L, 2))  // arg2ÎªÊı×Ö£¬Ôòarg1±ØÎªlstgColor
+			else if (lua_isnumber(L, 2))  // arg2ä¸ºæ•°å­—ï¼Œåˆ™arg1å¿…ä¸ºlstgColor
 			{
 				tFactor = luaL_checknumber(L, 2);
 				p = static_cast<fcyColor*>(luaL_checkudata(L, 1, TYPENAME_COLOR));
 			}
-			else  // arg1ºÍarg2¶¼±ØÎªlstgColor
+			else  // arg1å’Œarg2éƒ½å¿…ä¸ºlstgColor
 			{
 				fcyColor* pA = static_cast<fcyColor*>(luaL_checkudata(L, 1, TYPENAME_COLOR));
 				fcyColor* pB = static_cast<fcyColor*>(luaL_checkudata(L, 2, TYPENAME_COLOR));
@@ -202,14 +202,14 @@ void ColorWrapper::Register(lua_State* L)LNOEXCEPT
 	lua_rawset(L, -3);  // t mt (mt["__index"] = t)
 	lua_pushliteral(L, "__metatable");  // t mt s
 	lua_pushvalue(L, -3);  // t mt s t
-	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ±£»¤metatable²»±»ĞŞ¸Ä
+	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ä¿æŠ¤metatableä¸è¢«ä¿®æ”¹
 	lua_pop(L, 2);
 }
 
 fcyColor* ColorWrapper::CreateAndPush(lua_State* L)
 {
 	fcyColor* p = static_cast<fcyColor*>(lua_newuserdata(L, sizeof(fcyColor)));
-	new(p) fcyColor();  // ¹¹Ôì
+	new(p) fcyColor();  // æ„é€ 
 	luaL_getmetatable(L, TYPENAME_COLOR);
 	lua_setmetatable(L, -2);
 	return p;
@@ -287,14 +287,14 @@ void RandomizerWrapper::Register(lua_State* L)LNOEXCEPT
 	lua_rawset(L, -3);  // t mt (mt["__index"] = t)
 	lua_pushliteral(L, "__metatable");  // t mt s
 	lua_pushvalue(L, -3);  // t mt s t
-	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ±£»¤metatable²»±»ĞŞ¸Ä
+	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ä¿æŠ¤metatableä¸è¢«ä¿®æ”¹
 	lua_pop(L, 2);
 }
 
 fcyRandomWELL512* RandomizerWrapper::CreateAndPush(lua_State* L)
 {
 	fcyRandomWELL512* p = static_cast<fcyRandomWELL512*>(lua_newuserdata(L, sizeof(fcyRandomWELL512)));
-	new(p) fcyRandomWELL512();  // ¹¹Ôì
+	new(p) fcyRandomWELL512();  // æ„é€ 
 	luaL_getmetatable(L, TYPENAME_RANDGEN);
 	lua_setmetatable(L, -2);
 	return p;
@@ -420,7 +420,7 @@ void BentLaserDataWrapper::Register(lua_State* L)LNOEXCEPT
 	lua_rawset(L, -3);  // t mt (mt["__index"] = t)
 	lua_pushliteral(L, "__metatable");  // t mt s
 	lua_pushvalue(L, -3);  // t mt s t
-	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ±£»¤metatable²»±»ĞŞ¸Ä
+	lua_rawset(L, -3);  // t mt (mt["__metatable"] = t)  ä¿æŠ¤metatableä¸è¢«ä¿®æ”¹
 	lua_pop(L, 2);
 }
 
@@ -442,7 +442,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 {
 	struct WrapperImplement
 	{
-		// ¿ò¼Üº¯Êı
+		// æ¡†æ¶å‡½æ•°
 		static int SetWindowed(lua_State* L)LNOEXCEPT
 		{
 			LAPP.SetWindowed(lua_toboolean(L, 1) == 0 ? false : true);
@@ -494,7 +494,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int SystemLog(lua_State* L)LNOEXCEPT
 		{
-			LINFO("½Å±¾ÈÕÖ¾£º%m", luaL_checkstring(L, 1));
+			LINFO("è„šæœ¬æ—¥å¿—ï¼š%m", luaL_checkstring(L, 1));
 			return 0;
 		}
 		static int Print(lua_State* L)LNOEXCEPT
@@ -515,7 +515,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				const char* x = luaL_checkstring(L, -1);
 				lua_concat(L, 2); // ... f s
 			}
-			LINFO("½Å±¾ÈÕÖ¾£º%m", luaL_checkstring(L, -1));
+			LINFO("è„šæœ¬æ—¥å¿—ï¼š%m", luaL_checkstring(L, -1));
 			lua_pop(L, 2);
 			return 0;
 		}
@@ -545,8 +545,9 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int DoFile(lua_State* L)LNOEXCEPT
 		{
+			int args = lua_gettop(L);//è·å–æ­¤æ—¶æ ˆä¸Šçš„å€¼çš„æ•°é‡
 			LAPP.LoadScript(luaL_checkstring(L, 1));
-			return 0;
+			return (lua_gettop(L)- args);
 		}
 		static int ShowSplashWindow(lua_State* L)LNOEXCEPT
 		{
@@ -557,7 +558,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 
-		// ¶ÔÏó¿ØÖÆº¯Êı£¨ÕâĞ©·½·¨½«±»×ª·¢µ½¶ÔÏó³Ø£©
+		// å¯¹è±¡æ§åˆ¶å‡½æ•°ï¼ˆè¿™äº›æ–¹æ³•å°†è¢«è½¬å‘åˆ°å¯¹è±¡æ± ï¼‰
 		static int GetnObj(lua_State* L)LNOEXCEPT
 		{
 			lua_pushinteger(L, (lua_Integer)LPOOL.GetObjectCount());
@@ -565,7 +566,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int UpdateObjList(lua_State* L)LNOEXCEPT
 		{
-			// ! ¸Ãº¯ÊıÒÑ±»·ñ¾ö
+			// ! è¯¥å‡½æ•°å·²è¢«å¦å†³
 			return 0;
 		}
 		static int ObjFrame(lua_State* L)LNOEXCEPT
@@ -792,7 +793,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return LPOOL.ParticleSetEmission(L);
 		}
 
-		// ×ÊÔ´¿ØÖÆº¯Êı
+		// èµ„æºæ§åˆ¶å‡½æ•°
 		static int SetResourceStatus(lua_State* L)LNOEXCEPT
 		{
 			const char* s = luaL_checkstring(L, 1);
@@ -945,19 +946,19 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 
 			if (lua_gettop(L) == 2)
 			{
-				// HGE×ÖÌå mipmap=true
+				// HGEå­—ä½“ mipmap=true
 				bSucceed = pActivedPool->LoadSpriteFont(name, path);
 			}
 			else
 			{
 				if (lua_isboolean(L, 3))
 				{
-					// HGE×ÖÌå mipmap=user_defined
+					// HGEå­—ä½“ mipmap=user_defined
 					bSucceed = pActivedPool->LoadSpriteFont(name, path, lua_toboolean(L, 3) == 0 ? false : true);
 				}
 				else
 				{
-					// fancy2d×ÖÌå
+					// fancy2då­—ä½“
 					const char* texpath = luaL_checkstring(L, 3);
 					if (lua_gettop(L) == 4)
 						bSucceed = pActivedPool->LoadSpriteFont(name, path, texpath, lua_toboolean(L, 4) == 0 ? false : true);
@@ -1045,11 +1046,11 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 				{
 				case ResourcePoolType::Stage:
 					LRES.GetResourcePool(ResourcePoolType::Stage)->Clear();
-					LINFO("¹Ø¿¨×ÊÔ´³ØÒÑÇå¿Õ");
+					LINFO("å…³å¡èµ„æºæ± å·²æ¸…ç©º");
 					break;
 				case ResourcePoolType::Global:
 					LRES.GetResourcePool(ResourcePoolType::Global)->Clear();
-					LINFO("È«¾Ö×ÊÔ´³ØÒÑÇå¿Õ");
+					LINFO("å…¨å±€èµ„æºæ± å·²æ¸…ç©º");
 					break;
 				default:
 					break;
@@ -1079,7 +1080,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{
 			ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 1));
 			const char* tResourceName = luaL_checkstring(L, 2);
-			// ÏÈÔÚÈ«¾Ö³ØÖĞÑ°ÕÒÔÙµ½¹Ø¿¨³ØÖĞÕÒ
+			// å…ˆåœ¨å…¨å±€æ± ä¸­å¯»æ‰¾å†åˆ°å…³å¡æ± ä¸­æ‰¾
 			if (LRES.GetResourcePool(ResourcePoolType::Global)->CheckResourceExists(tResourceType, tResourceName))
 				lua_pushstring(L, "global");
 			else if (LRES.GetResourcePool(ResourcePoolType::Stage)->CheckResourceExists(tResourceType, tResourceName))
@@ -1188,7 +1189,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 
-		// »æÍ¼º¯Êı
+		// ç»˜å›¾å‡½æ•°
 		static int BeginScene(lua_State* L)LNOEXCEPT
 		{
 			if (!LAPP.BeginScene())
@@ -1380,7 +1381,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int RegTTF(lua_State* L)LNOEXCEPT
 		{
-			// ·ñ¾öµÄ·½·¨
+			// å¦å†³çš„æ–¹æ³•
 			return 0;
 		}
 		static int SetFog(lua_State* L)LNOEXCEPT
@@ -1425,18 +1426,18 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			const char* name = luaL_checkstring(L, 2);
 			BlendMode blend = TranslateBlendMode(L, 3);
 
-			// »ñÈ¡ÎÆÀí
+			// è·å–çº¹ç†
 			ResTexture* rt = LRES.FindTexture(luaL_checkstring(L, 1));
 			if (!rt)
 				return luaL_error(L, "texture '%s' not found.", texture);
 
-			// »ñÈ¡fx
+			// è·å–fx
 			ResFX* p = LRES.FindFX(name);
 			if (!p)
 				return luaL_error(L, "PostEffect: can't find effect '%s'.", name);
 			if (lua_istable(L, 4))
 			{
-				// ÉèÖÃtableÉÏµÄ²ÎÊıµ½fx
+				// è®¾ç½®tableä¸Šçš„å‚æ•°åˆ°fx
 				lua_pushnil(L);  // s s t ... nil
 				while (0 != lua_next(L, 4))
 				{
@@ -1478,13 +1479,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			const char* name = luaL_checkstring(L, 1);
 			BlendMode blend = TranslateBlendMode(L, 2);
 			
-			// »ñÈ¡fx
+			// è·å–fx
 			ResFX* p = LRES.FindFX(name);
 			if (!p)
 				return luaL_error(L, "PostEffectApply: can't find effect '%s'.", name);
 			if (lua_istable(L, 3))
 			{
-				// ÉèÖÃtableÉÏµÄ²ÎÊıµ½fx
+				// è®¾ç½®tableä¸Šçš„å‚æ•°åˆ°fx
 				lua_pushnil(L);  // s s t ... nil
 				while (0 != lua_next(L, 3))
 				{
@@ -1516,7 +1517,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 		
-		// ÉùÒô¿ØÖÆº¯Êı
+		// å£°éŸ³æ§åˆ¶å‡½æ•°
 		static int PlaySound(lua_State* L)LNOEXCEPT
 		{
 			const char* s = luaL_checkstring(L, 1);
@@ -1619,7 +1620,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		}
 		static int UpdateSound(lua_State* L)LNOEXCEPT
 		{
-			// ·ñ¾öµÄ·½·¨
+			// å¦å†³çš„æ–¹æ³•
 			return 0;
 		}
 		static int SetSEVolume(lua_State* L)LNOEXCEPT
@@ -1647,7 +1648,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 0;
 		}
 
-		// ÊäÈë¿ØÖÆº¯Êı
+		// è¾“å…¥æ§åˆ¶å‡½æ•°
 		static int GetKeyState(lua_State* L)LNOEXCEPT
 		{
 			lua_pushboolean(L, LAPP.GetKeyState(luaL_checkinteger(L, -1)));
@@ -1675,7 +1676,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 1;
 		}
 
-		// ÔÓÏî
+		// æ‚é¡¹
 		static int Snapshot(lua_State* L)LNOEXCEPT
 		{
 			LAPP.SnapShot(luaL_checkstring(L, 1));
@@ -1738,7 +1739,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 1;
 		}
 
-		// ÄÚÖÃÊıÑ§¿â
+		// å†…ç½®æ•°å­¦åº“
 		static int Sin(lua_State* L)LNOEXCEPT
 		{
 			lua_pushnumber(L, sin(luaL_checknumber(L, 1) * LDEGREE2RAD));
@@ -1775,13 +1776,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 			return 1;
 		}
 
-		// µ÷ÊÔº¯Êı
+		// è°ƒè¯•å‡½æ•°
 		static int ObjTable(lua_State* L)LNOEXCEPT
 		{
 			return LPOOL.GetObjectTable(L);
 		}
 
-		// ¶ÔÏó¹¹Ôìº¯Êı
+		// å¯¹è±¡æ„é€ å‡½æ•°
 		static int NewColor(lua_State* L)LNOEXCEPT
 		{
 			fcyColor c;
@@ -1813,7 +1814,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 
 	luaL_Reg tFunctions[] =
 	{
-		// ¿ò¼Üº¯Êı
+		// æ¡†æ¶å‡½æ•°
 		{ "SetWindowed", &WrapperImplement::SetWindowed },
 		{ "SetFPS", &WrapperImplement::SetFPS },
 		{ "GetFPS", &WrapperImplement::GetFPS },
@@ -1829,7 +1830,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "ExtractRes", &WrapperImplement::ExtractRes },
 		{ "DoFile", &WrapperImplement::DoFile },
 		{ "ShowSplashWindow", &WrapperImplement::ShowSplashWindow },
-		// ¶ÔÏó¿ØÖÆº¯Êı
+		// å¯¹è±¡æ§åˆ¶å‡½æ•°
 		{ "GetnObj", &WrapperImplement::GetnObj },
 		{ "UpdateObjList", &WrapperImplement::UpdateObjList },
 		{ "ObjFrame", &WrapperImplement::ObjFrame },
@@ -1860,7 +1861,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "ParticleGetn", &WrapperImplement::ParticleGetn },
 		{ "ParticleGetEmission", &WrapperImplement::ParticleGetEmission },
 		{ "ParticleSetEmission", &WrapperImplement::ParticleSetEmission },
-		// ×ÊÔ´¿ØÖÆº¯Êı
+		// èµ„æºæ§åˆ¶å‡½æ•°
 		{ "SetResourceStatus", &WrapperImplement::SetResourceStatus },
 		{ "LoadTexture", &WrapperImplement::LoadTexture },
 		{ "LoadImage", &WrapperImplement::LoadImage },
@@ -1884,7 +1885,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "SetAnimationState", &WrapperImplement::SetAnimationState },
 		{ "SetImageCenter", &WrapperImplement::SetImageCenter },
 		{ "SetAnimationCenter", &WrapperImplement::SetAnimationCenter },
-		// »æÍ¼º¯Êı
+		// ç»˜å›¾å‡½æ•°
 		{ "BeginScene", &WrapperImplement::BeginScene },
 		{ "EndScene", &WrapperImplement::EndScene },
 		{ "RenderClear", &WrapperImplement::RenderClear },
@@ -1903,7 +1904,7 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "PostEffect", &WrapperImplement::PostEffect },
 		{ "PostEffectCapture", &WrapperImplement::PostEffectCapture },
 		{ "PostEffectApply", &WrapperImplement::PostEffectApply },
-		// ÉùÒô¿ØÖÆº¯Êı
+		// å£°éŸ³æ§åˆ¶å‡½æ•°
 		{ "PlaySound", &WrapperImplement::PlaySound },
 		{ "StopSound", &WrapperImplement::StopSound },
 		{ "PauseSound", &WrapperImplement::PauseSound },
@@ -1917,13 +1918,13 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "UpdateSound", &WrapperImplement::UpdateSound },
 		{ "SetSEVolume", &WrapperImplement::SetSEVolume },
 		{ "SetBGMVolume", &WrapperImplement::SetBGMVolume },
-		// ÊäÈë¿ØÖÆº¯Êı
+		// è¾“å…¥æ§åˆ¶å‡½æ•°
 		{ "GetKeyState", &WrapperImplement::GetKeyState },
 		{ "GetLastKey", &WrapperImplement::GetLastKey },
 		{ "GetLastChar", &WrapperImplement::GetLastChar },
 		{ "GetMousePosition", &WrapperImplement::GetMousePosition },
 		{ "GetMouseState", &WrapperImplement::GetMouseState },
-		// ÄÚÖÃÊıÑ§º¯Êı
+		// å†…ç½®æ•°å­¦å‡½æ•°
 		{ "sin", &WrapperImplement::Sin },
 		{ "cos", &WrapperImplement::Cos },
 		{ "asin", &WrapperImplement::ASin },
@@ -1931,12 +1932,12 @@ void BuiltInFunctionWrapper::Register(lua_State* L)LNOEXCEPT
 		{ "tan", &WrapperImplement::Tan },
 		{ "atan", &WrapperImplement::ATan },
 		{ "atan2", &WrapperImplement::ATan2 },
-		// ÔÓÏî
+		// æ‚é¡¹
 		{ "Snapshot", &WrapperImplement::Snapshot },
 		{ "Execute", &WrapperImplement::Execute },
-		// µ÷ÊÔº¯Êı
+		// è°ƒè¯•å‡½æ•°
 		{ "ObjTable", &WrapperImplement::ObjTable },
-		// ¶ÔÏó¹¹Ôìº¯Êı
+		// å¯¹è±¡æ„é€ å‡½æ•°
 		{ "Color", &WrapperImplement::NewColor },
 		{ "Rand", &WrapperImplement::NewRand },
 		{ "BentLaserData", &WrapperImplement::BentLaserData },
