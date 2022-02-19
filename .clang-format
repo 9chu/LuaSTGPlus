@@ -1,0 +1,17 @@
+Language: Cpp
+BasedOnStyle: Microsoft
+ColumnLimit: 120
+
+# Custom rules
+DerivePointerAlignment: false
+PointerAlignment: Left
+AlwaysBreakTemplateDeclarations: Yes
+IndentCaseLabels: true
+NamespaceIndentation: All
+AccessModifierOffset: -4
+AlignEscapedNewlines: Left
+
+# Only sort headers in each include block
+SortIncludes: true
+IncludeBlocks: Preserve
+IndentPPDirectives: AfterHash
