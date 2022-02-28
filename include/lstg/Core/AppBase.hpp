@@ -36,8 +36,8 @@ namespace lstg
         /**
          * 获取窗口子系统
          */
-        [[nodiscard]] WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
-        [[nodiscard]] const WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
+        [[nodiscard]] Subsystem::WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
+        [[nodiscard]] const Subsystem::WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
 
         // </editor-fold>
         // <editor-fold desc="消息循环">
@@ -97,7 +97,7 @@ namespace lstg
 
     private:
         // 子系统
-        WindowSystem m_stWindowSystem;
+        Subsystem::WindowSystem m_stWindowSystem;
 
         // 帧率控制
         Timer m_stMainTaskTimer;

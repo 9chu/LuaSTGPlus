@@ -17,6 +17,7 @@
 
 using namespace std;
 using namespace lstg;
+using namespace lstg::Subsystem;
 
 LSTG_DEF_LOG_CATEGORY(WindowSystem);
 

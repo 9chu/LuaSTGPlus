@@ -11,48 +11,45 @@
 
 #include <SDL.h>
 
-namespace lstg
+namespace lstg::detail
 {
-    namespace detail
+    struct SDLDeleter
     {
-        struct SDLDeleter
-        {
-            template <typename T>
-            void operator()(T *p) const
-            {
-                if (p)
-                    ::SDL_free(p);
-            }
-        };
-
-        /**
-         * 用于托管SDL分配内存的智能指针
-         */
         template <typename T>
-        using SDLMemoryPtr = std::unique_ptr<T, SDLDeleter>;
-
-        /**
-         * 错误分类声明
-         */
-        class SDLErrorCategory : public std::error_category
+        void operator()(T *p) const
         {
-        public:
-            static const SDLErrorCategory& GetInstance() noexcept;
-
-        public:
-            const char* name() const noexcept override;
-            std::string message(int ev) const override;
-        };
-
-        /**
-         * 构造一个 SDL 错误码
-         * 事实上大部分情况下 ev 总是等于 -1。
-         * @param ev 错误码
-         * @return 包含 SDL 错误的错误码
-         */
-        inline std::error_code MakeSDLError(int ev) noexcept
-        {
-            return { ev, SDLErrorCategory::GetInstance() };
+            if (p)
+                ::SDL_free(p);
         }
+    };
+
+    /**
+     * 用于托管SDL分配内存的智能指针
+     */
+    template <typename T>
+    using SDLMemoryPtr = std::unique_ptr<T, SDLDeleter>;
+
+    /**
+     * 错误分类声明
+     */
+    class SDLErrorCategory : public std::error_category
+    {
+    public:
+        static const SDLErrorCategory& GetInstance() noexcept;
+
+    public:
+        const char* name() const noexcept override;
+        std::string message(int ev) const override;
+    };
+
+    /**
+     * 构造一个 SDL 错误码
+     * 事实上大部分情况下 ev 总是等于 -1。
+     * @param ev 错误码
+     * @return 包含 SDL 错误的错误码
+     */
+    inline std::error_code MakeSDLError(int ev) noexcept
+    {
+        return { ev, SDLErrorCategory::GetInstance() };
     }
 }

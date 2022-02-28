@@ -13,7 +13,7 @@
 
 struct SDL_Window;
 
-namespace lstg
+namespace lstg::Subsystem
 {
     LSTG_DEFINE_EXCEPTION(WindowInitializeFailedException);
 
@@ -115,4 +115,4 @@ namespace lstg
         SDL_Window* m_pWindow = nullptr;
         WindowFeatures m_iFeatures = static_cast<WindowFeatures>(0);
     };
-} // namespace lstg
+} // namespace lstg::Subsystem

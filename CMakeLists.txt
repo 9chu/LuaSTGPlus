@@ -40,6 +40,12 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
+    NAME zlib-ng
+    GITHUB_REPOSITORY zlib-ng/zlib-ng
+    VERSION 1.2.11
+)
+
+CPMAddPackage(
     NAME SDL
     GITHUB_REPOSITORY libsdl-org/SDL
     #GIT_TAG release-2.0.20

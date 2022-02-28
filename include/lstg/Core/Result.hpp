@@ -46,6 +46,8 @@ namespace lstg
         };
     } // namespace detail
 
+    struct OkTag {};
+
     /**
      * 一个返回错误码或者结果的包装类。
      * @tparam T 结果的类型，不能是 std::error_code
@@ -70,8 +72,19 @@ namespace lstg
          * @param obj 参数
          */
         template <typename P>
-        Result(typename std::enable_if<detail::IsNotResultNorErrorCode<P>::value, P&&>::type obj) noexcept
+        Result(P&& obj, typename std::enable_if<detail::IsNotResultNorErrorCode<P>::value, void*>::type = nullptr) noexcept
             : m_stValue(std::forward<P>(obj))
+        {
+        }
+
+        /**
+         * 构造结果
+         * @tparam P 参数类型
+         * @param obj 参数
+         */
+        template <typename P>
+        Result(OkTag, P&& obj) noexcept
+            : m_stValue(std::in_place_index_t<1>{}, std::forward<P>(obj))
         {
         }
 
