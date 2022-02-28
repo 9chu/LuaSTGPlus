@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <zlib.h>
+#include <zlib-ng.h>
 
 namespace lstg::Subsystem::VFS::detail
 {
@@ -27,14 +27,14 @@ namespace lstg::Subsystem::VFS::detail
         ~ZStream();
 
     public:
-        const ::z_stream* operator*() const noexcept { return &m_stZStream; }
-        ::z_stream* operator*() noexcept { return &m_stZStream; }
+        const ::zng_stream* operator*() const noexcept { return &m_stZStream; }
+        ::zng_stream* operator*() noexcept { return &m_stZStream; }
 
-        const ::z_stream* operator->() const noexcept { return &m_stZStream; }
-        ::z_stream* operator->() noexcept { return &m_stZStream; }
+        const ::zng_stream* operator->() const noexcept { return &m_stZStream; }
+        ::zng_stream* operator->() noexcept { return &m_stZStream; }
 
     private:
         bool m_bDeflateStream = false;
-        ::z_stream m_stZStream{};
+        ::zng_stream m_stZStream{};
     };
 }

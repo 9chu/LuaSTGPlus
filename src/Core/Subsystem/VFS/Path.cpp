@@ -6,6 +6,8 @@
  */
 #include <lstg/Core/Subsystem/VFS/Path.hpp>
 
+#include <cassert>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS;

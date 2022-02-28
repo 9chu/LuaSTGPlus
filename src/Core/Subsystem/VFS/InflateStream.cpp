@@ -97,7 +97,7 @@ Result<size_t> InflateStream::Read(uint8_t* buffer, size_t length) noexcept
             break;
 
         // 进行解压操作
-        auto ret = ::inflate(z, Z_NO_FLUSH);
+        auto ret = ::zng_inflate(z, Z_NO_FLUSH);
         switch (ret)
         {
             case Z_NEED_DICT:

@@ -39,11 +39,23 @@ CPMAddPackage(
         "SPDLOG_FMT_EXTERNAL ON"
 )
 
-CPMAddPackage(
-    NAME zlib-ng
-    GITHUB_REPOSITORY zlib-ng/zlib-ng
-    VERSION 1.2.11
-)
+if(EMSCRIPTEN)
+    # FIXME: 该 PR 尚未合入上游，在 zlib-ng 分支稳定后切换
+    CPMAddPackage(
+        NAME zlib-ng
+        GITHUB_REPOSITORY PiotrSikora/zlib-ng
+        GIT_TAG wasm32
+        OPTIONS
+            "BUILD_SHARED_LIBS OFF"
+            "CMAKE_C_COMPILER_TARGET wasm32"
+    )
+else()
+    CPMAddPackage(
+        NAME zlib-ng
+        GITHUB_REPOSITORY zlib-ng/zlib-ng
+        VERSION 2.0.0-RC2
+    )
+endif()
 
 CPMAddPackage(
     NAME SDL

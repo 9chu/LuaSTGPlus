@@ -30,38 +30,68 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS;
 
+#ifdef _WIN32
+namespace
+{
+    wstring Utf8StringToWideString(const std::string& str)
+    {
+        wstring ret;
+        auto length = ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), 0, 0);
+        ret.resize(length);
+        ::MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), ret.data(), length);
+        return ret;
+    }
+}
+#endif
+
 FileStream::FileStream(std::filesystem::path path, FileAccessMode access, FileOpenFlags openFlags)
     : m_stPath(std::move(path)), m_iAccess(access), m_iFlags(openFlags)
 {
-    // 决定打开的模式
+#ifdef _WIN32
+#define U(x) L##x
+    const wchar_t* mode = nullptr;
+#else
+#define U(x) x
     const char* mode = nullptr;
+#endif
+
+    // 决定打开的模式
     switch (access)
     {
         default:
             assert(false);
             [[fallthrough]];
         case FileAccessMode::Read:
-            mode = "rb";
+            mode = U("rb");
             break;
         case FileAccessMode::Write:
             if (openFlags & FileOpenFlags::Truncate)
-                mode = "wb";
+                mode = U("wb");
             else
-                mode = "r+b";  // a 模式下不能 seek，用 r+ 代替
+                mode = U("r+b");  // a 模式下不能 seek，用 r+ 代替
             break;
         case FileAccessMode::ReadWrite:
             if (openFlags & FileOpenFlags::Truncate)
-                mode = "w+b";
+                mode = U("w+b");
             else
-                mode = "r+b";
+                mode = U("r+b");
             break;
     }
 
+#undef U
+
     // 打开文件
     // FIXME: 考虑用 open / CreateFile 代替
+#ifdef _WIN32
+    auto wpath = Utf8StringToWideString(m_stPath.string());
+    m_pHandle = ::_wfopen(m_stPath.c_str(), mode);
+    if (!m_pHandle)
+        throw system_error(error_code(errno, generic_category()));
+#else
     m_pHandle = ::fopen(m_stPath.c_str(), mode);
     if (!m_pHandle)
         throw system_error(error_code(errno, generic_category()));
+#endif
 }
 
 FileStream::~FileStream()

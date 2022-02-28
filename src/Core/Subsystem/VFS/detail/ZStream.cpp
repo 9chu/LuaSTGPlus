@@ -18,7 +18,7 @@ ZStream::ZStream(DeflateInitTag, int compressionLevel)
     : m_bDeflateStream(true)
 {
     ::memset(&m_stZStream, 0, sizeof(m_stZStream));
-    auto ret = deflateInit(&m_stZStream, compressionLevel);
+    auto ret = ::zng_deflateInit(&m_stZStream, compressionLevel);
     if (ret != Z_OK)
         throw system_error(make_error_code(static_cast<ZLibError>(ret)));
 }
@@ -27,7 +27,7 @@ ZStream::ZStream(InflateInitTag)
     : m_bDeflateStream(false)
 {
     ::memset(&m_stZStream, 0, sizeof(m_stZStream));
-    auto ret = inflateInit(&m_stZStream);
+    auto ret = ::zng_inflateInit(&m_stZStream);
     if (ret != Z_OK)
         throw system_error(make_error_code(static_cast<ZLibError>(ret)));
 }
@@ -36,9 +36,9 @@ ZStream::~ZStream()
 {
     int ok = 0;
     if (m_bDeflateStream)
-        ok = ::deflateEnd(&m_stZStream);
+        ok = ::zng_deflateEnd(&m_stZStream);
     else
-        ok = ::inflateEnd(&m_stZStream);
+        ok = ::zng_inflateEnd(&m_stZStream);
     static_cast<void>(ok);
     assert(ok == Z_OK);
 }
