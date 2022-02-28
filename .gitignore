@@ -428,3 +428,6 @@ lint/tmp/
 
 # Old project files
 _bak/
+
+# ignore BlankApp
+src/BlankApp/*
