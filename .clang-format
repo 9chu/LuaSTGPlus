@@ -1,6 +1,6 @@
 Language: Cpp
 BasedOnStyle: Microsoft
-ColumnLimit: 120
+ColumnLimit: 140
 
 # Custom rules
 DerivePointerAlignment: false

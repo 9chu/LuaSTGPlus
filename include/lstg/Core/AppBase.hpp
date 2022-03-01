@@ -8,6 +8,7 @@
 #include "Timer.hpp"
 #include "PreciseSleeper.hpp"
 #include "Subsystem/WindowSystem.hpp"
+#include "Subsystem/VirtualFileSystem.hpp"
 
 union SDL_Event;
 
@@ -38,6 +39,12 @@ namespace lstg
          */
         [[nodiscard]] Subsystem::WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
         [[nodiscard]] const Subsystem::WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
+
+        /**
+         * 获取虚拟文件系统子系统
+         */
+        [[nodiscard]] Subsystem::VirtualFileSystem& GetVirtualFileSystem() noexcept { return m_stVirtualFileSystem; }
+        [[nodiscard]] const Subsystem::VirtualFileSystem& GetVirtualFileSystem() const noexcept { return m_stVirtualFileSystem; }
 
         // </editor-fold>
         // <editor-fold desc="消息循环">
@@ -98,6 +105,7 @@ namespace lstg
     private:
         // 子系统
         Subsystem::WindowSystem m_stWindowSystem;
+        Subsystem::VirtualFileSystem m_stVirtualFileSystem;
 
         // 帧率控制
         Timer m_stMainTaskTimer;

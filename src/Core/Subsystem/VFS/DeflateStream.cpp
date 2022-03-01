@@ -100,6 +100,7 @@ Result<void> DeflateStream::Write(const uint8_t* buffer, size_t length) noexcept
         z->avail_out = sizeof(m_stChunk);
         z->next_out = m_stChunk;
         auto ret = ::zng_deflate(z, Z_NO_FLUSH);
+        static_cast<void>(ret);
         assert(ret != Z_STREAM_ERROR);
 
         // 写出
