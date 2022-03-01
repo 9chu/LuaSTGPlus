@@ -54,7 +54,7 @@ Result<uint64_t> InflateStream::GetPosition() const noexcept
     return (**m_pZStream)->total_out;
 }
 
-Result<uint64_t> InflateStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
+Result<void> InflateStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
     return make_error_code(errc::not_supported);
 }

@@ -200,7 +200,7 @@ Result<uint64_t> FileStream::GetPosition() const noexcept
     return static_cast<size_t>(offset);
 }
 
-Result<uint64_t> FileStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
+Result<void> FileStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
     assert(m_pHandle);
 
@@ -220,9 +220,9 @@ Result<uint64_t> FileStream::Seek(int64_t offset, StreamSeekOrigins origin) noex
             assert(false);
             break;
     }
-    if (off == -1)
+    if (off < 0)
         return error_code(errno, generic_category());
-    return static_cast<uint64_t>(off);
+    return {};
 }
 
 Result<bool> FileStream::IsEof() const noexcept
@@ -253,6 +253,13 @@ Result<void> FileStream::Flush() noexcept
 Result<size_t> FileStream::Read(uint8_t* buffer, size_t length) noexcept
 {
     assert(m_pHandle);
+
+    if (length == 0)
+    {
+        if (::ferror(m_pHandle))
+            return make_error_code(errc::io_error);
+        return static_cast<size_t>(0u);
+    }
 
     auto ret = ::fread(buffer, 1, length, m_pHandle);
     if (ret <= 0)

@@ -66,7 +66,7 @@ Result<uint64_t> WindowedStream::GetPosition() const noexcept
     return m_ullPosition;
 }
 
-Result<uint64_t> WindowedStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
+Result<void> WindowedStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
     // 总是把绝对偏移转换到相对偏移
     if (origin == StreamSeekOrigins::End)  // 转换到 Begin 进行处理
@@ -114,7 +114,7 @@ Result<uint64_t> WindowedStream::Seek(int64_t offset, StreamSeekOrigins origin) 
         m_ullPosition += static_cast<uint64_t>(offset);
         assert(m_ullPosition <= m_ullLength);
     }
-    return m_ullPosition;
+    return {};
 }
 
 Result<bool> WindowedStream::IsEof() const noexcept

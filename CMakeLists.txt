@@ -5,7 +5,6 @@ project(LuaSTGPlus)
 # 请参照帮助定义下述选项
 
 option(LSTG_SHIPPING "Build shipping mode binary" ON)
-option(LSTG_BUILD_BLANK_APP "Build blank app for development purpose" OFF)
 set(LSTG_APP_NAME "default" CACHE STRING "Specific the app name, will be used as the folder name in AppData for user data storage")
 
 ## CPM 包管理器
@@ -122,6 +121,6 @@ endif()
 add_subdirectory(src/Core)
 add_subdirectory(src/GameApp)
 
-if(LSTG_BUILD_BLANK_APP)
-    add_subdirectory(src/BlankApp)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/DevApp/CMakeLists.txt")
+    add_subdirectory(src/DevApp)
 endif()

@@ -49,6 +49,7 @@ namespace
             auto readCount = std::min<size_t>(std::min<size_t>(maxSearch, kSearchBufferSize - available), searchOrigin);
 
             // 执行 memmove 调整缓冲区
+            assert(readCount + available <= kSearchBufferSize);
             ::memmove(buffer + readCount, buffer, available);
 
             // 发起读操作
@@ -81,7 +82,7 @@ namespace
                     // 找到匹配串，此时需要 Seek 到对应的位置
                     if (i != 0)
                     {
-                        seek = stream->Seek(static_cast<ssize_t>(searchOrigin + i), StreamSeekOrigins::Begin);
+                        seek = stream->Seek(static_cast<ssize_t>(searchOrigin + (at - buffer)), StreamSeekOrigins::Begin);
                         if (!seek)
                             return seek.GetError();
                     }
@@ -97,22 +98,45 @@ namespace
     {
         ::tm tm;
         ::memset(&tm, 0, sizeof(tm));
-        tm.tm_mday = (uint16_t)(dosDate & 0x1f);
+        tm.tm_mday = (uint16_t)(dosDate & 0x1F);
         tm.tm_mon = (uint16_t)(((dosDate & 0x1E0) / 0x20) - 1);
         tm.tm_year = (uint16_t)(((dosDate & 0x0FE00) / 0x0200) + 80);
         tm.tm_hour = (uint16_t)((dosTime & 0xF800) / 0x800);
         tm.tm_min = (uint16_t)((dosTime & 0x7E0) / 0x20);
-        tm.tm_sec = (uint16_t)(2 * (dosTime & 0x1f));
+        tm.tm_sec = (uint16_t)(2 * (dosTime & 0x1F));
         tm.tm_isdst = -1;
         return ::mktime(&tm);
     }
 
+    std::tuple<uint16_t, uint16_t> UnixTimestampToDosDateTime(time_t t) noexcept
+    {
+        ::tm tm;
+        ::memset(&tm, 0, sizeof(tm));
+
+#ifdef _MSC_VER
+        ::localtime_s(&t, &tm);
+#else
+        ::localtime_r(&t, &tm);
+#endif
+        uint16_t dosDate =
+            (tm.tm_mday & 0x1F) |
+            (((tm.tm_mon + 1) * 0x20) & 0x1E0) |
+            (((tm.tm_year - 80) * 0x0200) & 0x0FE00);
+        uint16_t dosTime =
+            ((tm.tm_hour * 0x800) & 0xF800) |
+            ((tm.tm_min * 0x20) & 0x7E0) |
+            ((tm.tm_sec / 2) & 0x1F);
+        return {dosTime, dosDate};
+    }
+
     uint16_t GenPkVerifier(uint32_t crc32) noexcept
     {
-//        // Info-ZIP 特殊格式
-//        if (((cd.Flags >> 3) & 1) == 1)
-//            return ((cd.LastModFileDate & 0xFF) << 8) | ((cd.LastModFileTime >> 8) & 0xFF);
         return ((crc32 >> 16) & 0xFF) << 8 | ((crc32 >> 24) & 0xFF);
+    }
+
+    uint16_t GenPkVerifier2(uint16_t dosTime, uint16_t dosDate) noexcept
+    {
+        return ((dosDate & 0xFF) << 8) | ((dosTime >> 8) & 0xFF);
     }
 }
 
@@ -120,8 +144,7 @@ ZipFile::ZipFile(StreamPtr stream)
     : m_pUnderlayStream(std::move(stream))
 {
     auto ret = LocateCentralDirectory();
-    if (!ret)
-        throw system_error(ret.GetError());
+    ret.ThrowIfError();
 }
 
 Result<void> ZipFile::ReadFileEntries(ZipFileEntryContainer& out) noexcept
@@ -147,8 +170,13 @@ Result<void> ZipFile::ReadFileEntries(ZipFileEntryContainer& out) noexcept
         // 校验标志位
         if (((cd.Flags >> 0) & 1) == 1)  // bit0: 加密
             entry.Flags |= ZipFileEntryFlags::Encrypted;
-        if (((cd.Flags >> 3) & 1) == 1)  // bit3: 延后放置 CRC32 和长度信息
+        if (((cd.Flags >> 3) & 1) == 1 && (cd.Crc32 == 0 || cd.CompressedSize == 0 || cd.UncompressedSize == 0))  // bit3: DataDescriptor
+        {
+            // FIXME: 在使用 DataDescriptor 的时候 大小信息和CRC校验信息会延后放置
+            // 在部分实现下，即便设置了 DataDescriptor 也会有 CRC32 和大小信息
+            // 因此这里偷懒处理
             return make_error_code(ZipFileReadError::DataDescriptorNotSupported);
+        }
         if (((cd.Flags >> 5) & 1) == 1)  // bit5: compressed patched data
             return make_error_code(ZipFileReadError::CompressedPatchedDataNotSupported);
         if (((cd.Flags >> 6) & 1) == 1)  // bit6: strong encryption
@@ -168,7 +196,7 @@ Result<void> ZipFile::ReadFileEntries(ZipFileEntryContainer& out) noexcept
 
         // 设置加解密数据
         if (entry.Flags & ZipFileEntryFlags::Encrypted)
-            entry.EncryptMethod = ZipEncryptMethods::PkWareTraditionalEncryption;
+            entry.EncryptMethod = (((cd.Flags >> 3) & 1) == 1) ? ZipEncryptMethods::ZipCrypto2 : ZipEncryptMethods::ZipCrypto;
 
         // 设置时间戳
         entry.LastModified = DosDateTimeToUnixTimestamp(cd.LastModFileTime, cd.LastModFileDate);
@@ -241,12 +269,12 @@ Result<StreamPtr> ZipFile::OpenEntry(const ZipFileEntry& entry, std::string_view
     StreamPtr stream = static_pointer_cast<IStream>(std::move(*clone));
 
     // 定位到范围
-    auto seek = stream->Seek(static_cast<int64_t>(entry.LocalFileHeaderOffset), StreamSeekOrigins::Begin);
-    if (!seek)
-        return seek.GetError();
+    auto ret = stream->Seek(static_cast<int64_t>(entry.LocalFileHeaderOffset), StreamSeekOrigins::Begin);
+    if (!ret)
+        return ret.GetError();
 
     // 读 LocalFileHeader
-    auto ret = SkipZipLocalFileHeader(stream.get());
+    ret = SkipZipLocalFileHeader(stream.get());
     if (!ret)
         return ret.GetError();
 
@@ -261,7 +289,17 @@ Result<StreamPtr> ZipFile::OpenEntry(const ZipFileEntry& entry, std::string_view
         // 是否有加密
         if (entry.Flags & ZipFileEntryFlags::Encrypted)
         {
-            auto decryptStream = make_shared<ZipPkDecryptStream>(std::move(stream), password, GenPkVerifier(entry.Crc32));
+            shared_ptr<ZipPkDecryptStream> decryptStream;
+            if (entry.EncryptMethod == ZipEncryptMethods::ZipCrypto)
+            {
+                decryptStream = make_shared<ZipPkDecryptStream>(std::move(stream), password, GenPkVerifier(entry.Crc32));
+            }
+            else
+            {
+                assert(entry.EncryptMethod == ZipEncryptMethods::ZipCrypto2);
+                auto [dosTime, dosDate] = UnixTimestampToDosDateTime(entry.LastModified);
+                decryptStream = make_shared<ZipPkDecryptStream>(std::move(stream), password, GenPkVerifier2(dosTime, dosDate));
+            }
             stream = static_pointer_cast<IStream>(std::move(decryptStream));
         }
 
@@ -294,6 +332,7 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
     Zip64EndOfCentralDirectoryLocator eocd64Locator;
 
     // 搜索 EOCD 的位置
+    m_pUnderlayStream->Seek(0, StreamSeekOrigins::End);
     auto found = ReverseSearchPattern(m_pUnderlayStream.get(), kMagic, 4, kMaxSearchDistance);
     if (!found)
         return found.GetError();
@@ -321,10 +360,10 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
         // 往前移动找到 EndOfCentralDirectoryLocator
         if (*eocdOffset < Zip64EndOfCentralDirectoryLocator::kSize)
             return make_error_code(ZipFileReadError::UnexpectedEndOfStream);
-        auto seek = m_pUnderlayStream->Seek(eocdOffset - Zip64EndOfCentralDirectoryLocator::kSize,
+        ret = m_pUnderlayStream->Seek(eocdOffset - Zip64EndOfCentralDirectoryLocator::kSize,
             StreamSeekOrigins::Begin);
-        if (!seek)
-            return seek.GetError();
+        if (!ret)
+            return ret.GetError();
 
         // 读取 Locator
         ret = Read(eocd64Locator, m_pUnderlayStream.get());
@@ -337,9 +376,9 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
 
         // 定位到 EndOfCentralDirectoryRecord
         // NOTE: 这里有个疑问，如果直接 Seek 到这个 Offset，意味着 Zip64 这种格式不能在前面直接追加数据，会导致找不到 EOCD64
-        seek = m_pUnderlayStream->Seek(eocd64Locator.RelativeOffsetOfEndOfCentralDirectory, StreamSeekOrigins::Begin);
-        if (!seek)
-            return seek.GetError();
+        ret = m_pUnderlayStream->Seek(eocd64Locator.RelativeOffsetOfEndOfCentralDirectory, StreamSeekOrigins::Begin);
+        if (!ret)
+            return ret.GetError();
 
         // 读取 Record64
         ret = Read(eocd64, m_pUnderlayStream.get());
@@ -379,8 +418,8 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
     }
 
     // 首先尝试用 Offset 定位 CentralDirectory
-    auto seek = m_pUnderlayStream->Seek(m_ullCentralDirectoryOffset, StreamSeekOrigins::Begin);
-    if (seek)
+    ret = m_pUnderlayStream->Seek(m_ullCentralDirectoryOffset, StreamSeekOrigins::Begin);
+    if (ret)
     {
         uint32_t signature = 0;
         ret = Read(signature, m_pUnderlayStream.get(), LittleEndianTag{});
@@ -391,7 +430,7 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
                 // 保证 CentralDirectory 总是在 EndOfCentralDirectory 之前
                 if (static_cast<uint64_t>(m_ullCentralDirectoryOffset) >= *eocdOffset)
                     return make_error_code(ZipFileReadError::CDLocationInvalid);
-                if (static_cast<uint64_t>(m_ullCentralDirectoryOffset + m_ullCentralDirectorySize) >= *eocdOffset)
+                if (static_cast<uint64_t>(m_ullCentralDirectoryOffset + m_ullCentralDirectorySize) > *eocdOffset)
                     return make_error_code(ZipFileReadError::CDLocationInvalid);
                 return {};
             }
@@ -402,9 +441,9 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
     if (*eocdOffset < static_cast<uint64_t>(m_ullCentralDirectorySize))
         return make_error_code(ZipFileReadError::CDLocationInvalid);
     auto realOffsetOfCD = static_cast<int64_t>(*eocdOffset - m_ullCentralDirectorySize);
-    seek = m_pUnderlayStream->Seek(realOffsetOfCD, StreamSeekOrigins::Begin);
-    if (!seek)
-        return seek.GetError();
+    ret = m_pUnderlayStream->Seek(realOffsetOfCD, StreamSeekOrigins::Begin);
+    if (!ret)
+        return ret.GetError();
 
     uint32_t signature = 0;
     ret = Read(signature, m_pUnderlayStream.get(), LittleEndianTag{});
@@ -420,7 +459,7 @@ Result<void> ZipFile::LocateCentralDirectory() noexcept
     // 保证 CentralDirectory 总是在 EndOfCentralDirectory 之前
     if (static_cast<uint64_t>(m_ullCentralDirectoryOffset) >= *eocdOffset)
         return make_error_code(ZipFileReadError::CDLocationInvalid);
-    if (static_cast<uint64_t>(m_ullCentralDirectoryOffset + m_ullCentralDirectorySize) >= *eocdOffset)
+    if (static_cast<uint64_t>(m_ullCentralDirectoryOffset + m_ullCentralDirectorySize) > *eocdOffset)
         return make_error_code(ZipFileReadError::CDLocationInvalid);
     return {};
 }

@@ -29,7 +29,8 @@ namespace lstg::Subsystem::VFS::detail
     enum class ZipEncryptMethods
     {
         None = 0,
-        PkWareTraditionalEncryption = 1,
+        ZipCrypto = 1,  // 使用 CRC 作为校验
+        ZipCrypto2 = 2,  // 使用 DOS 时间作为校验
     };
 
     /**

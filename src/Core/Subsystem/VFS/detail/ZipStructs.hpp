@@ -254,18 +254,18 @@ namespace lstg::Subsystem::VFS::detail
         if (signature != ZipLocalFileHeader::kSignature)
             return make_error_code(ZipFileReadError::BadLocalFileHeaderSignature);
 
-        auto seek = stream->Seek(ZipLocalFileHeader::kSize - 4 - 4, StreamSeekOrigins::Current);
-        if (!seek)
-            return seek.GetError();
+        ret = stream->Seek(ZipLocalFileHeader::kSize - 4 - 4, StreamSeekOrigins::Current);
+        if (!ret)
+            return ret.GetError();
 
         if (!(ret = Read(fileNameLength, stream, LittleEndianTag{})))
             return ret;
         if (!(ret = Read(extraFieldLength, stream, LittleEndianTag{})))
             return ret;
 
-        seek = stream->Seek(fileNameLength + extraFieldLength, StreamSeekOrigins::Current);
-        if (!seek)
-            return seek.GetError();
+        ret = stream->Seek(fileNameLength + extraFieldLength, StreamSeekOrigins::Current);
+        if (!ret)
+            return ret.GetError();
         return {};
     }
 

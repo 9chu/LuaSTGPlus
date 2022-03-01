@@ -83,8 +83,7 @@ ZipArchiveFileSystem::ZipArchiveFileSystem(StreamPtr underlayStream, std::string
     // 读取所有条目
     detail::ZipFileEntryContainer entries;
     auto ret = m_pZipFile->ReadFileEntries(entries);
-    if (!ret)
-        throw system_error(ret.GetError());
+    ret.ThrowIfError();
 
     // 构造文件树
     try

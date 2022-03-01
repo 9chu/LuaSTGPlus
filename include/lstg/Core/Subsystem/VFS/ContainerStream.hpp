@@ -120,7 +120,7 @@ namespace lstg::Subsystem::VFS
 
         Result<uint64_t> GetPosition() const noexcept override { return m_uPosition; }
 
-        Result<uint64_t> Seek(int64_t offset, StreamSeekOrigins origin) noexcept override
+        Result<void> Seek(int64_t offset, StreamSeekOrigins origin) noexcept override
         {
             switch (origin)
             {
@@ -158,7 +158,7 @@ namespace lstg::Subsystem::VFS
                     }
                     break;
             }
-            return m_uPosition;
+            return {};
         }
 
         Result<bool> IsEof() const noexcept override

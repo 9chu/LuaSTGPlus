@@ -429,5 +429,5 @@ lint/tmp/
 # Old project files
 _bak/
 
-# ignore BlankApp
-src/BlankApp/*
+# ignore DevApp
+src/DevApp/

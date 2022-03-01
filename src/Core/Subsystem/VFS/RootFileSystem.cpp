@@ -67,7 +67,7 @@ Result<void> RootFileSystem::CreateDirectory(Path path) noexcept
     auto [fs, postfix] = FindMountPoint(path);
 
     if (!fs)
-        return make_error_code(errc::not_supported);
+        return make_error_code(errc::no_such_device);
     return fs->CreateDirectory(postfix);
 }
 
@@ -76,7 +76,7 @@ Result<void> RootFileSystem::Remove(Path path) noexcept
     auto [fs, postfix] = FindMountPoint(path);
 
     if (!fs)
-        return make_error_code(errc::not_supported);
+        return make_error_code(errc::no_such_device);
     return fs->Remove(postfix);
 }
 
@@ -85,7 +85,7 @@ Result<FileAttribute> RootFileSystem::GetFileAttribute(Path path) noexcept
     auto [fs, postfix] = FindMountPoint(path);
 
     if (!fs)
-        return make_error_code(errc::not_supported);
+        return make_error_code(errc::no_such_device);
     return fs->GetFileAttribute(postfix);
 }
 
@@ -94,7 +94,7 @@ Result<DirectoryIteratorPtr> RootFileSystem::VisitDirectory(Path path) noexcept
     auto [fs, postfix] = FindMountPoint(path);
 
     if (!fs)
-        return make_error_code(errc::not_supported);
+        return make_error_code(errc::no_such_device);
     return fs->VisitDirectory(postfix);
 }
 
@@ -103,7 +103,7 @@ Result<StreamPtr> RootFileSystem::OpenFile(Path path, FileAccessMode access, Fil
     auto [fs, postfix] = FindMountPoint(path);
 
     if (!fs)
-        return make_error_code(errc::not_supported);
+        return make_error_code(errc::no_such_device);
     return fs->OpenFile(postfix, access, flags);
 }
 
@@ -125,12 +125,13 @@ std::tuple<FileSystemPtr, Path> RootFileSystem::FindMountPoint(const Path& path)
         if (it == mp->SubNodes.end())
             break;
 
+        mp = &(it->second);
+
         if (mp->FileSystem)
         {
             longest = mp;
             longestIndex = i;
         }
-        mp = &(it->second);
     }
 
     auto postfix = path.Slice(longestIndex + 1);

@@ -35,8 +35,7 @@ ZipPkDecryptStream::ZipPkDecryptStream(StreamPtr underlayStream, std::string_vie
     // 校验头
     uint8_t header[kPkCryptHeaderSize];
     auto ret = m_pUnderlayStream->Read(header, sizeof(header));
-    if (!ret)
-        throw system_error(ret.GetError());
+    ret.ThrowIfError();
     if (*ret != sizeof(header))
         throw system_error(ZipFileReadError::UnexpectedEndOfStream);
 
@@ -58,8 +57,7 @@ ZipPkDecryptStream::ZipPkDecryptStream(StreamPtr underlayStream, std::string_vie
 ZipPkDecryptStream::ZipPkDecryptStream(const ZipPkDecryptStream& org)
 {
     auto stream = org.m_pUnderlayStream->Clone();
-    if (!stream)
-        throw system_error(stream.GetError());
+    stream.ThrowIfError();
 
     m_pUnderlayStream = std::move(*stream);
     ::memcpy(m_uKeys, org.m_uKeys, sizeof(m_uKeys));
@@ -104,7 +102,7 @@ Result<uint64_t> ZipPkDecryptStream::GetPosition() const noexcept
     return m_uReadCount;
 }
 
-Result<uint64_t> ZipPkDecryptStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
+Result<void> ZipPkDecryptStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
     return make_error_code(errc::not_supported);
 }

@@ -28,7 +28,7 @@ namespace lstg::Subsystem::VFS
         Result<uint64_t> GetLength() const noexcept override;
         Result<void> SetLength(uint64_t length) noexcept override;
         Result<uint64_t> GetPosition() const noexcept override;
-        Result<uint64_t> Seek(int64_t offset, StreamSeekOrigins origin) noexcept override;
+        Result<void> Seek(int64_t offset, StreamSeekOrigins origin) noexcept override;
         Result<bool> IsEof() const noexcept override;
         Result<void> Flush() noexcept override;
         Result<size_t> Read(uint8_t* buffer, size_t length) noexcept override;

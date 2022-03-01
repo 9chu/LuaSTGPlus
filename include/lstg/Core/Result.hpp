@@ -156,6 +156,22 @@ namespace lstg
             return std::get<0>(m_stValue);
         }
 
+        /**
+         * 如果有错误则抛出 system_error 异常
+         */
+        const T& ThrowIfError() const
+        {
+            if (HasError())
+                throw std::system_error(GetError());
+            return std::get<1>(m_stValue);
+        }
+        T& ThrowIfError()
+        {
+            if (HasError())
+                throw std::system_error(GetError());
+            return std::get<1>(m_stValue);
+        }
+
     private:
         std::variant<std::error_code, T> m_stValue;
     };
@@ -202,6 +218,15 @@ namespace lstg
         std::error_code GetError() const noexcept
         {
             return m_stValue;
+        }
+
+        /**
+         * 如果有错误则抛出 system_error 异常
+         */
+        void ThrowIfError() const
+        {
+            if (HasError())
+                throw std::system_error(GetError());
         }
 
     private:

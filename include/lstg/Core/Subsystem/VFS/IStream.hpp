@@ -68,9 +68,9 @@ namespace lstg::Subsystem::VFS
          * 寻找读写位置
          * @param offset 偏移量
          * @param origin 起点
-         * @return 新的绝对读写位置
+         * @return 是否成功
          */
-        virtual Result<uint64_t> Seek(int64_t offset, StreamSeekOrigins origin) noexcept = 0;
+        virtual Result<void> Seek(int64_t offset, StreamSeekOrigins origin) noexcept = 0;
 
         /**
          * 检查是否到达结尾

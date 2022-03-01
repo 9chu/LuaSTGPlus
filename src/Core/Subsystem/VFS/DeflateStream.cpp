@@ -66,7 +66,7 @@ Result<uint64_t> DeflateStream::GetPosition() const noexcept
     return (**m_pZStream)->total_in;
 }
 
-Result<uint64_t> DeflateStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
+Result<void> DeflateStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
     return make_error_code(errc::not_supported);
 }
