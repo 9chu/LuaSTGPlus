@@ -76,6 +76,20 @@ CPMAddPackage(
         "SDL_MISC OFF"
 )
 
+if(EMSCRIPTEN)
+    CPMAddPackage(
+        NAME lua
+        GITHUB_REPOSITORY 9chu/lua
+        GIT_TAG lua-5.1-emscripten
+    )
+else()
+    CPMAddPackage(
+        NAME luajit
+        GITHUB_REPOSITORY 9chu/LuaJIT-cmake
+        GIT_TAG master
+    )
+endif()
+
 CPMAddPackage(
     NAME bgfx
     GITHUB_REPOSITORY bkaradzic/bgfx.cmake

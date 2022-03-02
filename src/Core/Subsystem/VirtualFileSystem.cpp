@@ -53,7 +53,7 @@ namespace
                 join.append(normalized[i]);
             }
 
-            return {join};
+            return VFS::Path {join};
         }
         catch (...)  // bad_alloc
         {

@@ -6,13 +6,15 @@ target_include_directories(LuaSTGPlusCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../
 ## 第三方库
 
 # FIXME: 暂时适配 PiotrSikora/zlib-ng 的改动
-if (EMSCRIPTEN)
+if(EMSCRIPTEN)
     set(ZLIB_LIBS zlib)
+    set(LUA_LIBS liblua_static)
 else()
     set(ZLIB_LIBS zlibstatic)
+    set(LUA_LIBS liblua-static)
 endif()
 
 target_link_libraries(LuaSTGPlusCore
-    PUBLIC fmt
+    PUBLIC fmt ${LUA_LIBS}
     PRIVATE spdlog SDL2-static ${ZLIB_LIBS}
 )
