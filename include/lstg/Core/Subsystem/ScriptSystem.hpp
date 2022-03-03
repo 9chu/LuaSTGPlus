@@ -6,16 +6,6 @@
  */
 #pragma once
 
-#ifdef __EMSCRIPTEN__
-// include lua5.1
-extern "C" {
-#include <lua.h>
-};
-#else
-// include luajit
-#include <lua.hpp>
-#endif
-
 namespace lstg::Subsystem
 {
     /**
