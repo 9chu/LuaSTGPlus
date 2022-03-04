@@ -276,7 +276,7 @@ namespace lstg::Subsystem::Script
 
             static int LuaGC(lua_State* L)  // obj
             {
-                auto p = static_cast<NativeObjectStorage<T>*>(luaL_checkudata(L, 1, detail::UniqueTypeName<T>().Name));
+                auto p = static_cast<NativeObjectStorage<T>*>(luaL_checkudata(L, 1, detail::UniqueTypeName<T>().Name.c_str()));
                 if (!p)
                 {
                     assert(false);
@@ -370,7 +370,7 @@ namespace lstg::Subsystem::Script
         template <typename T>
         struct NativeObjectRegisterImpl<0, T>
         {
-            void Register(LuaStack& st)
+            static void Register(LuaStack& st)
             {
                 // 栈顶一定是 metatable
                 assert(lua_istable(st, -1));
@@ -386,7 +386,7 @@ namespace lstg::Subsystem::Script
         template <typename T>
         struct NativeObjectRegisterImpl<1, T>
         {
-            void Register(LuaStack& st)
+            static void Register(LuaStack& st)
             {
                 // 注册 GC 方法
                 NativeObjectRegisterImpl<0, T>::Register(st);
@@ -439,7 +439,7 @@ namespace lstg::Subsystem::Script
         new (ud) TStorage((TClass*)p);
 
         // 注册元表
-        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name))
+        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name.c_str()))
             detail::NativeObjectRegister<TClass>::Register(stack);
         lua_setmetatable(stack, -2);
         return 1;
@@ -469,10 +469,10 @@ namespace lstg::Subsystem::Script
         }
 
         // 构造对象
-        new (ud) TStorage(static_pointer_cast<TClass>(std::move(p)));
+        new (ud) TStorage(std::static_pointer_cast<TClass>(std::move(p)));
 
         // 注册元表
-        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name))
+        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name.c_str()))
             detail::NativeObjectRegister<TClass>::Register(stack);
         lua_setmetatable(stack, -2);
         return 1;
@@ -505,7 +505,7 @@ namespace lstg::Subsystem::Script
         new (ud) TStorage(std::in_place_t{}, std::forward<T>(p));
 
         // 注册元表
-        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name))
+        if (luaL_newmetatable(stack, detail::GetUniqueTypeName<TClass>().Name.c_str()))
             detail::NativeObjectRegister<TClass>::Register(stack);
         lua_setmetatable(stack, -2);
         return 1;
@@ -612,7 +612,7 @@ namespace lstg::Subsystem::Script
 
                 // 获取对象指针
                 auto p = static_cast<detail::NativeObjectStorage<UqClass>*>(
-                    luaL_checkudata(L, 1, detail::GetUniqueTypeName<UqClass>().Name));
+                    luaL_checkudata(L, 1, detail::GetUniqueTypeName<UqClass>().Name.c_str()));
                 if (!p)
                 {
                     assert(false);

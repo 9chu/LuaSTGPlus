@@ -104,6 +104,27 @@ namespace lstg::Subsystem::Script
             }
         };
 
+#if defined(NDEBUG) || defined(LSTG_SHIPPING)
+        struct BalanceChecker
+        {
+            BalanceChecker(LuaStack&) {}
+        };
+#else
+        struct BalanceChecker
+        {
+            LuaStack& Stack;
+            int EnterTop;
+
+            BalanceChecker(LuaStack& stack)
+                : Stack(stack), EnterTop(stack.GetTop()) {}
+
+            ~BalanceChecker()
+            {
+                assert(Stack.GetTop() == EnterTop);
+            }
+        };
+#endif
+
     public:
         LuaStack() noexcept = default;
         LuaStack(lua_State* state) noexcept
@@ -193,7 +214,7 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline int PushValue(T&& arg)
         {
-            return Push(*this, std::forward<T>(arg));
+            return LuaPush(*this, std::forward<T>(arg));
         }
 
         /**

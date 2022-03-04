@@ -33,6 +33,15 @@ namespace lstg::Subsystem::VFS
     public:
         static const char kSeperator = '/';
 
+        /**
+         * 规格化路径
+         * 去除 '..' '.' 等特殊项目。
+         * 去除开头的 '/'。
+         * @param path 路径
+         * @return 规格化后路径
+         */
+        static Path Normalize(std::string_view path);
+
     private:
         struct PathSpan
         {

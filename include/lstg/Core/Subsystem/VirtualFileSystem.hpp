@@ -60,6 +60,14 @@ namespace lstg::Subsystem
             VFS::FileOpenFlags flags = VFS::FileOpenFlags::None) noexcept;
 
         /**
+         * 读取整个文件
+         * @param out 输出
+         * @param path 路径
+         * @return 读取的大小
+         */
+        Result<size_t> ReadFile(std::vector<uint8_t>& out, std::string_view path);
+
+        /**
          * 挂载文件系统
          * @param path 路径
          * @param fs 文件系统

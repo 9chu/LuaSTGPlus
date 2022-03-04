@@ -30,6 +30,7 @@ AppBase& AppBase::GetInstance() noexcept
 }
 
 AppBase::AppBase()
+    : m_stScriptSystem(m_stVirtualFileSystem)
 {
     assert(kGlobalInstance.load(memory_order_acquire) == nullptr);
     kGlobalInstance.store(this, memory_order_release);

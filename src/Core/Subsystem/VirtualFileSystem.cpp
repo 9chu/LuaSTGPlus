@@ -12,48 +12,11 @@ using namespace lstg::Subsystem;
 
 namespace
 {
-    /**
-     * 规格化路径
-     * 去掉 '.' 和 '..' 项目。
-     * @param path 路径
-     * @return 返回规格化后的结果
-     */
     Result<VFS::Path> NormalizePath(std::string_view path) noexcept
     {
         try
         {
-            VFS::Path temp(path);
-
-            // 过滤 '.' 和 '..'
-            vector<string> normalized;
-            normalized.reserve(temp.GetSegmentCount());
-            for (size_t i = 0; i < temp.GetSegmentCount(); ++i)
-            {
-                auto segment = temp[i];
-                assert(!segment.empty());
-
-                if (segment == ".")
-                    continue;
-                if (segment == "..")
-                {
-                    if (!normalized.empty())
-                        normalized.pop_back();
-                    continue;
-                }
-                normalized.emplace_back(segment);
-            }
-
-            // 合并路径
-            string join;
-            join.reserve(path.length());
-            for (size_t i = 0; i < normalized.size(); ++i)
-            {
-                if (!join.empty())
-                    join.append("/");
-                join.append(normalized[i]);
-            }
-
-            return VFS::Path {join};
+            return VFS::Path::Normalize(path);
         }
         catch (...)  // bad_alloc
         {
@@ -100,6 +63,49 @@ Result<VFS::StreamPtr> VirtualFileSystem::OpenFile(std::string_view path, VFS::F
     if (!npath)
         return npath.GetError();
     return m_stRootFileSystem.OpenFile(*npath, access, flags);
+}
+
+Result<size_t> VirtualFileSystem::ReadFile(std::vector<uint8_t>& out, std::string_view path)
+{
+    out.clear();
+
+    // 打开文件
+    auto stream = OpenFile(path, VFS::FileAccessMode::Read, VFS::FileOpenFlags::None);
+    if (!stream)
+        return stream.GetError();
+
+    // 发起读操作
+    static const unsigned kExpandSize = 16 * 1024;  // 16k
+
+    size_t readSize = 0;
+    try
+    {
+        while (true)
+        {
+            out.resize(readSize + kExpandSize);
+
+            auto input = (*stream)->Read(out.data() + readSize, kExpandSize);
+            if (!input)
+            {
+                out.clear();
+                return input.GetError();
+            }
+            assert(*input <= kExpandSize);
+            readSize += *input;
+
+            if (*input < kExpandSize)
+            {
+                out.resize(readSize);
+                break;
+            }
+        }
+    }
+    catch (...)  // bad_alloc
+    {
+        out.clear();
+        return make_error_code(errc::not_enough_memory);
+    }
+    return readSize;
 }
 
 Result<void> VirtualFileSystem::Mount(std::string_view path, VFS::FileSystemPtr fs) noexcept

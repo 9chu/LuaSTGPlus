@@ -200,3 +200,23 @@ namespace lstg
 
 #define LSTG_REF_LOG_CATEGORY(CATEGORY) \
     extern const lstg::detail::LogCategory kLogCategory##CATEGORY
+
+// 扩展 libfmt 对 error_code 的支持
+namespace fmt
+{
+    template <>
+    struct formatter<std::error_code>
+    {
+        template <typename ParseContext>
+        constexpr auto parse(ParseContext& ctx)
+        {
+            return ctx.begin();
+        }
+
+        template <typename FormatContext>
+        auto format(const std::error_code& ec, FormatContext& ctx)
+        {
+            return fmt::format_to(ctx.out(), "{0}:{1}({2})", ec.category().name(), ec.value(), ec.message());
+        }
+    };
+}

@@ -147,6 +147,44 @@ namespace
     }
 }
 
+Path Path::Normalize(std::string_view path)
+{
+    // FIXME: 优化效率
+
+    VFS::Path temp(path);
+
+    // 过滤 '.' 和 '..'
+    vector<string> normalized;
+    normalized.reserve(temp.GetSegmentCount());
+    for (size_t i = 0; i < temp.GetSegmentCount(); ++i)
+    {
+        auto segment = temp[i];
+        assert(!segment.empty());
+
+        if (segment == ".")
+            continue;
+        if (segment == "..")
+        {
+            if (!normalized.empty())
+                normalized.pop_back();
+            continue;
+        }
+        normalized.emplace_back(segment);
+    }
+
+    // 合并路径
+    string join;
+    join.reserve(path.length());
+    for (auto& e : normalized)
+    {
+        if (!join.empty())
+            join.append("/");
+        join.append(e);
+    }
+
+    return VFS::Path {join};
+}
+
 Path::Path(std::string_view path)
 {
     auto storage = CreatePathStorageFromString(path);

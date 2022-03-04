@@ -7,8 +7,9 @@
 #pragma once
 #include "Timer.hpp"
 #include "PreciseSleeper.hpp"
-#include "Subsystem/WindowSystem.hpp"
 #include "Subsystem/VirtualFileSystem.hpp"
+#include "Subsystem/ScriptSystem.hpp"
+#include "Subsystem/WindowSystem.hpp"
 
 union SDL_Event;
 
@@ -35,16 +36,22 @@ namespace lstg
         // <editor-fold desc="子系统">
 
         /**
-         * 获取窗口子系统
-         */
-        [[nodiscard]] Subsystem::WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
-        [[nodiscard]] const Subsystem::WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
-
-        /**
          * 获取虚拟文件系统子系统
          */
         [[nodiscard]] Subsystem::VirtualFileSystem& GetVirtualFileSystem() noexcept { return m_stVirtualFileSystem; }
         [[nodiscard]] const Subsystem::VirtualFileSystem& GetVirtualFileSystem() const noexcept { return m_stVirtualFileSystem; }
+
+        /**
+         * 获取脚本子系统
+         */
+        [[nodiscard]] Subsystem::ScriptSystem& GetScriptSystem() noexcept { return m_stScriptSystem; }
+        [[nodiscard]] const Subsystem::ScriptSystem& GetScriptSystem() const noexcept { return m_stScriptSystem; }
+
+        /**
+         * 获取窗口子系统
+         */
+        [[nodiscard]] Subsystem::WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
+        [[nodiscard]] const Subsystem::WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
 
         // </editor-fold>
         // <editor-fold desc="消息循环">
@@ -104,8 +111,9 @@ namespace lstg
 
     private:
         // 子系统
-        Subsystem::WindowSystem m_stWindowSystem;
         Subsystem::VirtualFileSystem m_stVirtualFileSystem;
+        Subsystem::ScriptSystem m_stScriptSystem;
+        Subsystem::WindowSystem m_stWindowSystem;
 
         // 帧率控制
         Timer m_stMainTaskTimer;
