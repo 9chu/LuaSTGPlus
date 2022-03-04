@@ -132,6 +132,11 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Wextra -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-noexcept-type")
 endif()
 
+if(EMSCRIPTEN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwasm-exceptions")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fwasm-exceptions")
+endif()
+
 add_subdirectory(tool/LuaAutoBridgeTool)
 
 add_subdirectory(src/Core)

@@ -11,6 +11,8 @@
 // include lua5.1
 extern "C" {
 #include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 };
 #else
 // include luajit

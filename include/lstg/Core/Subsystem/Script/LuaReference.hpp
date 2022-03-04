@@ -121,6 +121,12 @@ namespace lstg::Subsystem::Script
         int m_iRef = LUA_NOREF;
     };
 
+    inline int LuaPush(LuaStack& stack, LuaReference& ref)
+    {
+        ref.Push(stack);
+        return 1;
+    }
+
     inline int LuaPush(LuaStack& stack, const LuaReference& ref)
     {
         ref.Push(stack);

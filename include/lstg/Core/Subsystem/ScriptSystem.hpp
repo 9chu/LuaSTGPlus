@@ -36,7 +36,7 @@ namespace lstg::Subsystem
         /**
          * 加载脚本
          * 注意：不检查文件是否已经加载，沙箱模式会强制重新加载。
-         * @param path 路径
+         * @param path 路径，注意非沙箱情况会参考沙箱中设置的 BaseDirectory
          * @param sandbox 沙箱模式加载
          */
         Result<void> LoadScript(std::string_view path, bool sandbox = false) noexcept;

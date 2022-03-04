@@ -6,12 +6,15 @@
  */
 #include <lstg/v2/GameApp.hpp>
 
+#include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
+
+LSTG_DEF_LOG_CATEGORY(GameApp);
 
 extern void LuaModuleAutoBridge(Subsystem::Script::LuaStack&);
 
@@ -41,62 +44,46 @@ GameApp::GameApp(int argc, char** argv)
         // 挂载
         auto ret = GetVirtualFileSystem().Mount("assets", m_pAssetsFileSystem);
         ret.ThrowIfError();
+
+        // 设置脚本系统基准目录
+        GetScriptSystem().GetSandBox().SetBaseDirectory("assets");
     }
 
     // 初始化函数库
     {
         auto& state = GetScriptSystem().GetState();
+        Subsystem::Script::LuaStack::BalanceChecker stackChecker(state);
+
         lua_gc(state, LUA_GCSTOP, 0);  // 初始化时关闭GC
 
         // 调用自动生成的注册方法
         LuaModuleAutoBridge(state);
 
+        // 设置命令行参数
+        lua_getglobal(state, "lstg");  // t(lstg)
+        assert(lua_istable(state, -1));
+        lua_newtable(state);  // t(lstg) t
+        for (int i = 0, c = 1; i < argc; ++i)
+        {
+            lua_pushinteger(state, c++);  // t t i
+            lua_pushstring(state, argv[i]);  // t t i s
+            lua_settable(state, -3);  // t t
+        }
+        lua_setfield(state, -2, "args");  // t
+        lua_pop(state, 1);
+
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
-
-    // 设置命令行参数
-//    regex tDebuggerPattern("\\/debugger:(\\d+)");
-//    lua_getglobal(L, "lstg");  // t
-//    lua_newtable(L);  // t t
-//    for (int i = 0, c = 1; i < __argc; ++i)
-//    {
-//        cmatch tMatch;
-//        if (regex_match(__argv[i], tMatch, tDebuggerPattern))
-//        {
-//#if (defined LDEVVERSION) || (defined LDEBUG)
-//            // 创建调试器
-//			if (!m_DebuggerClient)
-//			{
-//				fuShort tPort = atoi(tMatch[1].first);
-//
-//				try
-//				{
-//					m_DebuggerClient = make_unique<RemoteDebuggerClient>(tPort);
-//					LINFO("调试器已创建，于端口：%d", (fuInt)tPort);
-//				}
-//				catch (const fcyException& e)
-//				{
-//					LERROR("创建调试器失败 (详细信息: %m)", e.GetDesc());
-//				}
-//			}
-//			else
-//				LWARNING("命令行参数中带有多个/debugger项，忽略。");
-//#endif
-//            // 不将debugger项传入用户命令行参数中
-//            continue;
-//        }
-//        lua_pushinteger(L, c++);  // t t i
-//        lua_pushstring(L, __argv[i]);  // t t i s
-//        lua_settable(L, -3);  // t t
-//    }
-//    lua_setfield(L, -2, "args");  // t
-//    lua_pop(L, 1);
 
     // 分配对象池
     // TODO
 
     // 执行 launch 脚本
-    // TODO
+    {
+        LSTG_LOG_INFO_CAT(GameApp, "Execute launch script");
+        auto ret = GetScriptSystem().LoadScript("launch");
+        ret.ThrowIfError();
+    }
 
     // PostInit，根据 launch 配置初始化框架
     // TODO

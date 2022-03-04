@@ -104,13 +104,11 @@ void AppBase::OnNativeEvent(const SDL_Event& event) noexcept
 void AppBase::OnUpdate(double elapsed) noexcept
 {
     // TODO
-    LSTG_LOG_INFO("Elapsed: {}s", elapsed);
 }
 
 void AppBase::OnRender(double elapsed) noexcept
 {
     // TODO
-    LSTG_LOG_INFO("Elapsed: {}s", elapsed);
 }
 
 #ifdef __EMSCRIPTEN__

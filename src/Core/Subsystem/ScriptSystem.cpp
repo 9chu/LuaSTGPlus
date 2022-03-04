@@ -79,7 +79,7 @@ namespace
      */
     void ExportImport(Script::LuaStack& stack, ScriptSystem* self)
     {
-        stack.PushValue(self);
+        stack.PushValue(static_cast<void*>(self));
         lua_pushcclosure(stack, [](lua_State* L) -> int {
             auto self = static_cast<ScriptSystem*>(lua_touserdata(L, lua_upvalueindex(1)));
             assert(self);
@@ -93,7 +93,7 @@ namespace
                 if (ret)
                 {
                     Script::LuaStack st(L);
-                    Script::LuaPush(st, *ret);
+                    st.PushValue(*ret);
                     return 1;
                 }
                 ec = ret.GetError();
@@ -141,9 +141,20 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
 
     Script::LuaStack::BalanceChecker stackChecker(m_stState);
 
+    // 生成完整路径
+    string fullPath;
+    try
+    {
+        fullPath = fmt::format("{}/{}", m_stSandBox.GetBaseDirectory(), path);
+    }
+    catch (...)  // bad_alloc
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+
     // 读取文件
     vector<uint8_t> buffer;
-    auto ret = GetSandBox().GetVirtualFileSystem().ReadFile(buffer, path);
+    auto ret = GetSandBox().GetVirtualFileSystem().ReadFile(buffer, fullPath);
     if (!ret)
         return ret.GetError();
 

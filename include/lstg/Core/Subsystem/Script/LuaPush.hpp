@@ -178,6 +178,11 @@ namespace lstg::Subsystem::Script
         lua_pushlstring(stack, v.data(), v.length());
         return 1;
     }
+    inline int LuaPush(LuaStack& stack, std::string&& v)
+    {
+        lua_pushlstring(stack, v.data(), v.length());
+        return 1;
+    }
 
     /**
      * 向栈上推入一个字符串视图
@@ -234,7 +239,14 @@ namespace lstg::Subsystem::Script
     {
         return std::apply([&](auto... args) {
             return stack.PushValues(args...);
-        }, v);
+        }, *static_cast<const std::tuple<TArgs...>*>(&v));
+    }
+    template <typename... TArgs>
+    inline int LuaPush(LuaStack& stack, Unpack<TArgs...>&& v)
+    {
+        return std::apply([&](auto... args) {
+            return stack.PushValues(args...);
+        }, std::move(*static_cast<std::tuple<TArgs...>*>(&v)));
     }
 
     namespace detail
@@ -411,7 +423,7 @@ namespace lstg::Subsystem::Script
 
         template <typename T>
         struct NativeObjectRegister :
-            public NativeObjectRegisterImpl<std::conditional<HasLuaRegister<T>::value, std::true_type, std::false_type>::type::value, T>
+            public NativeObjectRegisterImpl<2 - HasLuaRegister<T>::value, T>  // 如果没有 LuaRegister 还是不让自动注册吧
         {};
     }
 
@@ -595,6 +607,10 @@ namespace lstg::Subsystem::Script
         {
             TRet (TClass::*Pointer)(TArgs...) const volatile;
         };
+
+        // 用于生成释放方法
+        template <int Qualifier, typename TClass, typename TRet, typename... TArgs>
+        void LuaRegister(LuaClassRegister<MemberFunctionStorage<Qualifier, TClass, TRet, TArgs...>>&) {}
 
         template <typename StackIndices, int Qualifier, typename TClass, typename TRet, typename... TArgs>
         struct MemberFunctionCallHelper;

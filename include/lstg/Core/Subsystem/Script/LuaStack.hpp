@@ -113,7 +113,7 @@ namespace lstg::Subsystem::Script
         struct BalanceChecker
         {
             LuaStack& Stack;
-            int EnterTop;
+            unsigned EnterTop;
 
             BalanceChecker(LuaStack& stack)
                 : Stack(stack), EnterTop(stack.GetTop()) {}
@@ -228,7 +228,7 @@ namespace lstg::Subsystem::Script
         template <typename T, typename... TArgs>
         inline int PushValues(T&& arg, TArgs&&... args)
         {
-            auto l = Push(std::forward<T>(arg));
+            auto l = PushValue(std::forward<T>(arg));
             auto r = PushValues(std::forward<TArgs>(args)...);
             return l + r;
         }
