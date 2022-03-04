@@ -6,8 +6,9 @@
  */
 #pragma once
 #include <lstg/Core/AppBase.hpp>
+#include <lstg/Core/Subsystem/VFS/OverlayFileSystem.hpp>
 
-namespace lstg
+namespace lstg::v2
 {
     /**
      * 游戏程序实现
@@ -16,6 +17,9 @@ namespace lstg
         public AppBase
     {
     public:
-        using AppBase::AppBase;
+        GameApp(int argc, char** argv);
+
+    private:
+        std::shared_ptr<Subsystem::VFS::OverlayFileSystem> m_pAssetsFileSystem;
     };
 }

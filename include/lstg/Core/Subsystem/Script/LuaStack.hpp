@@ -236,7 +236,7 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline int PushValues(T&& arg)
         {
-            return LuaPush(std::forward<T>(arg));
+            return LuaPush(*this, std::forward<T>(arg));
         }
 
         /**

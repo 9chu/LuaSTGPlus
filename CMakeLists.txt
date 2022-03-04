@@ -132,8 +132,10 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Wextra -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-noexcept-type")
 endif()
 
+add_subdirectory(tool/LuaAutoBridgeTool)
+
 add_subdirectory(src/Core)
-add_subdirectory(src/GameApp)
+add_subdirectory(src/v2)
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/DevApp/CMakeLists.txt")
     add_subdirectory(src/DevApp)

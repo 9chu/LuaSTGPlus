@@ -27,6 +27,14 @@ namespace lstg::Subsystem::Script
     namespace detail
     {
         template <typename T>
+        struct IsUnpack :
+            public std::false_type {};
+
+        template <typename... TArgs>
+        struct IsUnpack<Unpack<TArgs...>> :
+            public std::true_type {};
+
+        template <typename T>
         struct CountArgs
         {
             static constexpr int Value = 1;
@@ -93,8 +101,8 @@ namespace lstg::Subsystem::Script
         struct MakeStackIndexSequence<StartIndex, T, Rest...>
         {
             using Sequence = typename StackIndexMerger<
-                    MakeStackIndexSequence<StartIndex, T>,
-                    MakeStackIndexSequence<StartIndex + CountArgs<T>::Value, Rest...>
+                    typename MakeStackIndexSequence<StartIndex, T>::Sequence,
+                    typename MakeStackIndexSequence<StartIndex + CountArgs<T>::Value, Rest...>::Sequence
                 >::Sequence;
         };
     }

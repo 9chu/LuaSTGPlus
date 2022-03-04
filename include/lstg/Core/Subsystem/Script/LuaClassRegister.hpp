@@ -9,6 +9,17 @@
 
 namespace lstg::Subsystem::Script
 {
+    namespace detail
+    {
+        template <typename T>
+        struct IsFunctionOrMemberFunction
+        {
+            enum {
+                value = std::is_function_v<std::remove_pointer_t<std::remove_reference_t<T>>> || std::is_member_function_pointer_v<T>
+            };
+        };
+    }
+
     /**
      * 类注册器
      * @tparam T 类型
@@ -30,7 +41,7 @@ namespace lstg::Subsystem::Script
         }
         
         template <typename P>
-        LuaClassRegister& Method(typename std::enable_if<std::is_invocable_v<P>, const char*>::type name, P&& func)
+        LuaClassRegister& Method(typename std::enable_if<detail::IsFunctionOrMemberFunction<P>::value, const char*>::type name, P&& func)
         {
             m_stStack.RawSet(m_stMetaTable, name, std::forward<P>(func));
             return *this;

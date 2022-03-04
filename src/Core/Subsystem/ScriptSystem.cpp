@@ -114,6 +114,12 @@ ScriptSystem::ScriptSystem(VirtualFileSystem& fs)
 {
     Script::LuaStack::BalanceChecker stackChecker(m_stState);
 
+#ifndef __EMSCRIPTEN__
+    // 打开 JIT
+    if (0 == luaJIT_setmode(m_stState, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
+        LSTG_LOG_WARN_CAT(ScriptSystem, "Unable to turn on JIT engine");
+#endif
+
     // 打开标准库
     m_stState.OpenStandardLibrary();
 

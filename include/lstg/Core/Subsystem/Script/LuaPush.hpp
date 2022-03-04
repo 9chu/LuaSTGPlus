@@ -6,6 +6,8 @@
  */
 #pragma once
 #include <memory>
+#include <variant>
+#include <optional>
 #include "LuaStack.hpp"
 
 namespace lstg::Subsystem::Script
@@ -129,7 +131,7 @@ namespace lstg::Subsystem::Script
             return 1;
         }
 
-        auto cnt = PushValues(std::forward<TArgs>(args)...);
+        auto cnt = stack.PushValues(std::forward<TArgs>(args)...);
         lua_pushcclosure(stack, v, cnt);
         return 1;
     }
@@ -360,7 +362,7 @@ namespace lstg::Subsystem::Script
             public std::false_type {};
 
         template <class T>
-        struct HasLuaRegister<T, std::void_t<decltype(LuaRegister(std::declval<LuaClassRegister<T>>()))>> :
+        struct HasLuaRegister<T, std::void_t<decltype(LuaRegister(std::declval<LuaClassRegister<T>&>()))>> :
             public std::true_type {};
 
         template <int RegisterMethod, typename T>
@@ -392,7 +394,8 @@ namespace lstg::Subsystem::Script
                 NativeObjectRegisterImpl<0, T>::Register(st);
 
                 // 调用 LuaRegister 注册方法
-                LuaRegister(LuaClassRegister<T>{st, LuaStack::AbsIndex(lua_gettop(st))});
+                LuaClassRegister<T> reg {st, LuaStack::AbsIndex(lua_gettop(st))};
+                LuaRegister(reg);
 
                 // 注册 __index 方法
                 lua_pushliteral(st, "__index");
@@ -521,9 +524,9 @@ namespace lstg::Subsystem::Script
         {
             static_assert(sizeof...(Indices) == sizeof...(TArgs));
 
-            int Wrapper(lua_State* L)
+            static int Wrapper(lua_State* L)
             {
-                auto func = static_cast<TRet(*)(TArgs...)>(lua_touserdata(L, lua_upvalueindex(1)));
+                auto func = reinterpret_cast<TRet(*)(TArgs...)>(lua_touserdata(L, lua_upvalueindex(1)));
                 assert(func);
 
                 LuaStack st(L);
@@ -561,7 +564,7 @@ namespace lstg::Subsystem::Script
             return 1;
         }
 
-        return LuaPush(stack, detail::FunctionCallHelper<StackIndices, TRet, TArgs...>::Wrapper, static_cast<void*>(v));
+        return LuaPush(stack, detail::FunctionCallHelper<StackIndices, TRet, TArgs...>::Wrapper, reinterpret_cast<void*>(v));
     }
 
     namespace detail
@@ -604,7 +607,7 @@ namespace lstg::Subsystem::Script
             using UqClass = detail::Unqualified<TClass>;
             using Storage = MemberFunctionStorage<Qualifier, UqClass, TRet, TArgs...>;
 
-            int Wrapper(lua_State* L)
+            static int Wrapper(lua_State* L)
             {
                 // 获得成员函数指针
                 auto storage = static_cast<Storage*>(lua_touserdata(L, lua_upvalueindex(1)));
@@ -758,5 +761,50 @@ namespace lstg::Subsystem::Script
         // 创建闭包
         lua_pushcclosure(stack, Wrapper::Wrapper, 1);
         return 1;
+    }
+
+    /**
+     * 推入一个可选值
+     * @tparam T 类型
+     * @param stack Lua 栈
+     * @param v 值
+     * @return 推入的元素个数
+     */
+    template <typename T>
+    inline int LuaPush(typename std::enable_if<!std::is_same_v<detail::Unqualified<T>, LuaStack>, LuaStack&>::type stack,
+        const std::optional<T>& v)
+    {
+        if (!v)
+        {
+            return stack.PushValue(nullptr);
+        }
+        else
+        {
+            // 总是保证只推入至多一个元素，否则元素的个数计算会出现问题
+            auto cnt = stack.PushValue(*v);
+            if (cnt > 1)
+                stack.Pop(cnt - 1);
+            return 1;
+        }
+    }
+
+    /**
+     * 推入一个变体
+     * @tparam TArgs 类型
+     * @param stack Lua 栈
+     * @param v 值
+     * @return 推入的元素个数
+     */
+    template <typename... TArgs>
+    inline int LuaPush(typename std::enable_if<!(std::is_same_v<detail::Unqualified<TArgs>, LuaStack> || ...), LuaStack&>::type stack,
+        const std::variant<TArgs...>& v)
+    {
+        return std::visit([&](auto&& arg) {
+            // 总是保证只推入至多一个元素，否则元素的个数计算会出现问题
+            auto cnt = stack.PushValue(arg);
+            if (cnt > 1)
+                stack.Pop(cnt - 1);
+            return 1;
+        }, v);
     }
 }

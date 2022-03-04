@@ -4,7 +4,7 @@
  * @date 2022/2/14
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
-#include <lstg/GameApp/GameApp.hpp>
+#include <lstg/v2/GameApp.hpp>
 
 #include <memory>
 #include <SDL.h>
@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace lstg;
+using namespace lstg::v2;
 
 extern "C" int main(int argc, char** argv)
 {
@@ -23,7 +24,7 @@ extern "C" int main(int argc, char** argv)
     std::unique_ptr<GameApp> app;
     try
     {
-        app = std::make_unique<GameApp>();
+        app = std::make_unique<GameApp>(argc, argv);
     }
     catch (const std::exception& ex)
     {
@@ -31,7 +32,7 @@ extern "C" int main(int argc, char** argv)
         return 1;
     }
 
-    app->GetWindowSystem().Show();
+    // 启动
     app->Run();
 
     return 0;

@@ -9,12 +9,14 @@ target_include_directories(LuaSTGPlusCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../
 if(EMSCRIPTEN)
     set(ZLIB_LIBS zlib)
     set(LUA_LIBS liblua_static)
+    set(GL_LIBS GL)
 else()
     set(ZLIB_LIBS zlibstatic)
     set(LUA_LIBS liblua-static)
+    set(GL_LIBS)
 endif()
 
 target_link_libraries(LuaSTGPlusCore
-    PUBLIC fmt ${LUA_LIBS}
+    PUBLIC fmt bx ${LUA_LIBS} ${GL_LIBS}
     PRIVATE spdlog SDL2-static ${ZLIB_LIBS}
 )
