@@ -21,7 +21,11 @@ extern "C" int main(int argc, char** argv)
     Logging::GetInstance();
 
     // 初始化 GameApp
+#ifdef __EMSCRIPTEN__
+    static std::unique_ptr<GameApp> app;  // 防止退出 main 后被析构
+#else
     std::unique_ptr<GameApp> app;
+#endif
     try
     {
         app = std::make_unique<GameApp>(argc, argv);
@@ -34,6 +38,8 @@ extern "C" int main(int argc, char** argv)
 
     // 启动
     app->Run();
+
+    // FIXME: emscripten 的情况下需要一个机制获知程序退出
 
     return 0;
 }

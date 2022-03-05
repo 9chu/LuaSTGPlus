@@ -9,6 +9,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
+#include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -31,6 +32,13 @@ GameApp::GameApp(int argc, char** argv)
         // assets 目录通过 OverlayFileSystem 实现
         // 最下面是 LocalFileSystem，这使得在其他 FileSystem 上搜索不到时会到本地文件系统进行搜寻
         m_pAssetsFileSystem = make_shared<Subsystem::VFS::OverlayFileSystem>();
+
+#ifdef __EMSCRIPTEN__
+        // WEB 下创建 WebFileSystem
+        // 在 LocalFileSystem (memfs) 中找不到才去 WebFileSystem 搜索
+        auto webFileSystem = make_shared<Subsystem::VFS::WebFileSystem>("");
+        m_pAssetsFileSystem->PushFileSystem(std::move(webFileSystem));
+#endif
 
         // 准备 LocalFileSystem
 #ifdef LSTG_SHIPPING

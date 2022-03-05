@@ -71,7 +71,7 @@ namespace lstg
         /**
          * 启动应用程序循环
          */
-        void Run() noexcept;
+        Result<void> Run() noexcept;
 
         /**
          * 通知应用程序终止

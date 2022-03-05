@@ -22,8 +22,13 @@ target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../
 target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main)
 if(EMSCRIPTEN)
     target_link_options(LuaSTGPlus2
+        PRIVATE "SHELL:-s FETCH=1"
+        PRIVATE "SHELL:-s FETCH_SUPPORT_INDEXEDDB=0"
+        PRIVATE "SHELL:-s USE_PTHREADS=1"
         PRIVATE "SHELL:-s MIN_WEBGL_VERSION=2"
         PRIVATE "SHELL:-s MAX_WEBGL_VERSION=2"
-        PRIVATE "SHELL:-s ENVIRONMENT=web"
-        PRIVATE "SHELL:-s ALLOW_MEMORY_GROWTH=1")
+        PRIVATE "SHELL:-s ENVIRONMENT=web,worker"
+        PRIVATE "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+        PRIVATE "SHELL:-s INITIAL_MEMORY=512mb"
+        PRIVATE "SHELL:-s PROXY_TO_PTHREAD=1")
 endif()

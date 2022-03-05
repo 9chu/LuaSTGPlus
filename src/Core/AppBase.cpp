@@ -56,7 +56,7 @@ void AppBase::SetFrameRate(double rate) noexcept
     m_dFrameInterval = 1. / std::max(1., rate);
 }
 
-void AppBase::Run() noexcept
+Result<void> AppBase::Run() noexcept
 {
     m_bShouldStop = false;
 
@@ -75,6 +75,7 @@ void AppBase::Run() noexcept
         // 睡眠
         m_stSleeper.Sleep(timeToSleep);
     }
+    return {};
 #else
     // 初始化逻辑定时器
     m_lTimeoutId = ::emscripten_set_timeout(OnWebLoopOnce, 0., this);
@@ -83,7 +84,11 @@ void AppBase::Run() noexcept
     // 初始化渲染循环
     // 当设置 fps = 0 时，使用 requestAnimationFrame 保证渲染不发生撕裂
     // 我们用这个方法来跑渲染循环
-    ::emscripten_set_main_loop_arg(OnWebRender, this, 0, true);
+    ::emscripten_set_main_loop_arg(OnWebRender, this, 0, false);
+
+    // EMSCRIPTEN 在启用异常后，如果 main_loop 模拟无限循环，会抛出异常，导致 unwind
+    // 因此我们不使用这个功能，在这里通过 interrupted 告诉外界
+    return make_error_code(errc::interrupted);
 #endif
 }
 

@@ -29,7 +29,7 @@ namespace lstg::Subsystem::VFS
     {
         FileType Type = FileType::Unknown;
         ::time_t LastModified = 0;
-        size_t Size = 0;
+        uint64_t Size = 0;
     };
 
     /**
