@@ -13,7 +13,7 @@
 
 #include "../../Result.hpp"
 #include "../../Span.hpp"
-#include "LuaErrorCode.hpp"
+#include "LuaError.hpp"
 #include "Unpack.hpp"
 
 #if defined(__clang__)

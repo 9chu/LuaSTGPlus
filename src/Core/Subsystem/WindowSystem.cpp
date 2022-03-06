@@ -48,8 +48,10 @@ namespace
     }
 }
 
-WindowSystem::WindowSystem()
+WindowSystem::WindowSystem(SubsystemContainer& container)
 {
+    static_cast<void>(container);
+
     // 初始化 SDL 视频子系统
     int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (ev < 0)

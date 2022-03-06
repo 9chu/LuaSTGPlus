@@ -6,10 +6,13 @@
  */
 #pragma once
 #include <lstg/Core/AppBase.hpp>
+#include <lstg/Core/Exception.hpp>
 #include <lstg/Core/Subsystem/VFS/OverlayFileSystem.hpp>
 
 namespace lstg::v2
 {
+    LSTG_DEFINE_EXCEPTION(AppInitializeFailedException);
+
     /**
      * 游戏程序实现
      */

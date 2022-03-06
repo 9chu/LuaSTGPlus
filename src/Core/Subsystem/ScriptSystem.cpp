@@ -8,6 +8,7 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/Script/LuaPush.hpp>
+#include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -94,8 +95,8 @@ namespace
     }
 }
 
-ScriptSystem::ScriptSystem(VirtualFileSystem& fs)
-    : m_stSandBox(fs, m_stState)
+ScriptSystem::ScriptSystem(SubsystemContainer& container)
+    : m_stSandBox(*(container.Get<VirtualFileSystem>()), m_stState)
 {
     Script::LuaStack::BalanceChecker stackChecker(m_stState);
 

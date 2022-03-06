@@ -7,9 +7,12 @@
 #include <lstg/v2/GameApp.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
+#include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
+#include <lstg/Core/Subsystem/Script/LuaStack.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -50,16 +53,17 @@ GameApp::GameApp(int argc, char** argv)
         m_pAssetsFileSystem->PushFileSystem(std::move(localFileSystem));
 
         // 挂载
-        auto ret = GetVirtualFileSystem().Mount("assets", m_pAssetsFileSystem);
-        ret.ThrowIfError();
+        auto ret = GetSubsystem<Subsystem::VirtualFileSystem>()->Mount("assets", m_pAssetsFileSystem);
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to mount \"assets\" virtual directory: {}", ret.GetError());
 
         // 设置脚本系统基准目录
-        GetScriptSystem().GetSandBox().SetBaseDirectory("assets");
+        GetSubsystem<Subsystem::ScriptSystem>()->GetSandBox().SetBaseDirectory("assets");
     }
 
     // 初始化函数库
     {
-        auto& state = GetScriptSystem().GetState();
+        auto& state = GetSubsystem<Subsystem::ScriptSystem>()->GetState();
         Subsystem::Script::LuaStack::BalanceChecker stackChecker(state);
 
         lua_gc(state, LUA_GCSTOP, 0);  // 初始化时关闭GC
@@ -89,8 +93,9 @@ GameApp::GameApp(int argc, char** argv)
     // 执行 launch 脚本
     {
         LSTG_LOG_INFO_CAT(GameApp, "Execute launch script");
-        auto ret = GetScriptSystem().LoadScript("launch");
-        ret.ThrowIfError();
+        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->LoadScript("launch");
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to execute \"launch\" script: {}", ret.GetError());
     }
 
     // PostInit，根据 launch 配置初始化框架

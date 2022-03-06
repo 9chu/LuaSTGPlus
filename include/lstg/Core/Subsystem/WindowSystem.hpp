@@ -10,6 +10,7 @@
 #include "../Flag.hpp"
 #include "../Result.hpp"
 #include "../Exception.hpp"
+#include "ISubsystem.hpp"
 
 struct SDL_Window;
 
@@ -40,13 +41,14 @@ namespace lstg::Subsystem
     /**
      * 窗口系统
      */
-    class WindowSystem
+    class WindowSystem :
+        public ISubsystem
     {
     public:
-        WindowSystem();
+        WindowSystem(SubsystemContainer& container);
         WindowSystem(const WindowSystem&) = delete;
         WindowSystem(WindowSystem&&)noexcept = delete;
-        ~WindowSystem();
+        ~WindowSystem() override;
 
     public:
         /**

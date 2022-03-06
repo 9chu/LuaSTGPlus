@@ -7,11 +7,8 @@
 #pragma once
 #include "Timer.hpp"
 #include "PreciseSleeper.hpp"
-#include "Subsystem/VirtualFileSystem.hpp"
-#include "Subsystem/ScriptSystem.hpp"
-#include "Subsystem/WindowSystem.hpp"
-
-union SDL_Event;
+#include "Result.hpp"
+#include "Subsystem/SubsystemContainer.hpp"
 
 namespace lstg
 {
@@ -35,23 +32,11 @@ namespace lstg
     public:
         // <editor-fold desc="子系统">
 
-        /**
-         * 获取虚拟文件系统子系统
-         */
-        [[nodiscard]] Subsystem::VirtualFileSystem& GetVirtualFileSystem() noexcept { return m_stVirtualFileSystem; }
-        [[nodiscard]] const Subsystem::VirtualFileSystem& GetVirtualFileSystem() const noexcept { return m_stVirtualFileSystem; }
-
-        /**
-         * 获取脚本子系统
-         */
-        [[nodiscard]] Subsystem::ScriptSystem& GetScriptSystem() noexcept { return m_stScriptSystem; }
-        [[nodiscard]] const Subsystem::ScriptSystem& GetScriptSystem() const noexcept { return m_stScriptSystem; }
-
-        /**
-         * 获取窗口子系统
-         */
-        [[nodiscard]] Subsystem::WindowSystem& GetWindowSystem() noexcept { return m_stWindowSystem; }
-        [[nodiscard]] const Subsystem::WindowSystem& GetWindowSystem() const noexcept { return m_stWindowSystem; }
+        template <typename T>
+        std::shared_ptr<T> GetSubsystem()
+        {
+            return m_stSubsystemContainer.Get<T>();
+        }
 
         // </editor-fold>
         // <editor-fold desc="消息循环">
@@ -82,10 +67,10 @@ namespace lstg
 
     protected:  // 框架事件
         /**
-         * 当收到系统消息时触发
-         * @param event 系统消息
+         * 当收到消息时触发
+         * @param event 消息
          */
-        virtual void OnNativeEvent(const SDL_Event& event) noexcept;
+        virtual void OnEvent(Subsystem::SubsystemEvent& event) noexcept;
 
         /**
          * 当更新逻辑时触发
@@ -111,9 +96,7 @@ namespace lstg
 
     private:
         // 子系统
-        Subsystem::VirtualFileSystem m_stVirtualFileSystem;
-        Subsystem::ScriptSystem m_stScriptSystem;
-        Subsystem::WindowSystem m_stWindowSystem;
+        Subsystem::SubsystemContainer m_stSubsystemContainer;
 
         // 帧率控制
         Timer m_stMainTaskTimer;

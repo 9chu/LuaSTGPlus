@@ -5,6 +5,7 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
+#include "ISubsystem.hpp"
 #include "VFS/RootFileSystem.hpp"
 
 namespace lstg::Subsystem
@@ -12,10 +13,11 @@ namespace lstg::Subsystem
     /**
      * 虚拟文件系统
      */
-    class VirtualFileSystem
+    class VirtualFileSystem :
+        public ISubsystem
     {
     public:
-        VirtualFileSystem() = default;
+        VirtualFileSystem(SubsystemContainer& container);
         VirtualFileSystem(const VirtualFileSystem&) = delete;
         VirtualFileSystem(VirtualFileSystem&&)noexcept = delete;
         ~VirtualFileSystem() = default;

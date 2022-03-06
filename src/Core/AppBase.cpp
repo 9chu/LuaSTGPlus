@@ -17,8 +17,16 @@
 #include <emscripten/html5.h>
 #endif
 
+// 所有子系统
+#include <lstg/Core/Subsystem/RenderSystem.hpp>
+#include <lstg/Core/Subsystem/ScriptSystem.hpp>
+#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
+#include <lstg/Core/Subsystem/WindowSystem.hpp>
+
 using namespace std;
 using namespace lstg;
+
+LSTG_DEF_LOG_CATEGORY(AppBase);
 
 static std::atomic<AppBase*> kGlobalInstance {};
 
@@ -30,7 +38,6 @@ AppBase& AppBase::GetInstance() noexcept
 }
 
 AppBase::AppBase()
-    : m_stScriptSystem(m_stVirtualFileSystem)
 {
     assert(kGlobalInstance.load(memory_order_acquire) == nullptr);
     kGlobalInstance.store(this, memory_order_release);
@@ -38,6 +45,15 @@ AppBase::AppBase()
     m_stFrameTask.SetCallback([this]() noexcept {
         Frame();
     });
+
+    // 注册子系统
+    LSTG_LOG_TRACE_CAT(AppBase, "Begin to initialize subsystem");
+    m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0);
+    m_stSubsystemContainer.ConstructAll();
+    LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 }
 
 AppBase::~AppBase()
@@ -97,20 +113,32 @@ void AppBase::Stop() noexcept
     m_bShouldStop = true;
 }
 
-void AppBase::OnNativeEvent(const SDL_Event& event) noexcept
+void AppBase::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 {
-    // TODO 冒泡消息传递
-    if (event.type == SDL_QUIT)
+    // 冒泡消息传递
+    m_stSubsystemContainer.BubbleEvent(event);
+
+    // 执行默认行为
+    if (event.IsDefaultPrevented())
     {
-        m_bShouldStop = true;
+        const auto& underlay = event.GetEvent();
+        if (underlay.index() == 0)
+        {
+            auto sdlEvent = std::get<0>(underlay);
+            assert(sdlEvent);
+
+            if (sdlEvent->type == SDL_QUIT)
+            {
+                LSTG_LOG_TRACE_CAT(AppBase, "SDL quit event received");
+                m_bShouldStop = true;
+            }
+        }
     }
 }
 
 void AppBase::OnUpdate(double elapsed) noexcept
 {
-    m_stScriptSystem.Update(elapsed);
-
-    // TODO
+    m_stSubsystemContainer.UpdateAll(elapsed);
 }
 
 void AppBase::OnRender(double elapsed) noexcept
@@ -163,7 +191,10 @@ void AppBase::Frame() noexcept
     // 更新消息
     SDL_Event event;
     while (::SDL_PollEvent(&event) != 0)
-        OnNativeEvent(event);
+    {
+        Subsystem::SubsystemEvent transformed(&event);
+        OnEvent(transformed);
+    }
 
     // 执行更新逻辑
     Update();

@@ -25,6 +25,11 @@ namespace
     }
 }
 
+VirtualFileSystem::VirtualFileSystem(SubsystemContainer& container)
+{
+    static_cast<void>(container);
+}
+
 Result<void> VirtualFileSystem::CreateDirectory(std::string_view path) noexcept
 {
     auto npath = NormalizePath(path);
