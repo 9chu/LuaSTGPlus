@@ -101,7 +101,10 @@ SubsystemPtr SubsystemContainer::FindByName(std::string_view name)
 {
     auto it = m_stSubsystems.find(name);
     if (it == m_stSubsystems.end())
-        return nullptr;
+    {
+        LSTG_LOG_ERROR_CAT(SubsystemContainer, "Dependent subsystem {} not found", name);
+        throw system_error(make_error_code(errc::no_such_file_or_directory));
+    }
     auto storage = it->second;
 
     // 如果对象没有构造，则触发构造
@@ -123,7 +126,10 @@ SubsystemPtr SubsystemContainer::FindById(size_t id)
 {
     auto it = m_stSubsystemById.find(id);
     if (it == m_stSubsystemById.end())
-        return nullptr;
+    {
+        LSTG_LOG_ERROR_CAT(SubsystemContainer, "Dependent subsystem #{} not found", id);
+        throw system_error(make_error_code(errc::no_such_file_or_directory));
+    }
     auto storage = it->second;
 
     // 如果对象没有构造，则触发构造

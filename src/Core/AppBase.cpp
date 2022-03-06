@@ -18,10 +18,11 @@
 #endif
 
 // 所有子系统
-#include <lstg/Core/Subsystem/RenderSystem.hpp>
-#include <lstg/Core/Subsystem/ScriptSystem.hpp>
-#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
+#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
+#include <lstg/Core/Subsystem/ScriptSystem.hpp>
+#include <lstg/Core/Subsystem/RenderSystem.hpp>
+#include <lstg/Core/Subsystem/DebugGUISystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -48,10 +49,11 @@ AppBase::AppBase()
 
     // 注册子系统
     LSTG_LOG_TRACE_CAT(AppBase, "Begin to initialize subsystem");
-    m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0);
-    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0);
-    m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0);
     m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::DebugGUISystem>("DebugGUISystem", 0);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 }
