@@ -288,7 +288,7 @@ namespace lstg::Subsystem::Script
             NativeObjectStorage(const NativeObjectStorage&) = delete;
             NativeObjectStorage(NativeObjectStorage&&) = delete;
 
-            static int LuaGC(lua_State* L)  // obj
+            static int LuaGC(lua_State* L) noexcept  // obj
             {
                 auto p = static_cast<NativeObjectStorage<T>*>(luaL_checkudata(L, 1, detail::UniqueTypeName<T>().Name.c_str()));
                 if (!p)
@@ -544,12 +544,26 @@ namespace lstg::Subsystem::Script
                 LuaStack st(L);
                 if constexpr (std::is_void_v<TRet>)
                 {
-                    func(st.ReadValue<TArgs>(Indices)...);
-                    return 0;
+                    try
+                    {
+                        func(st.ReadValue<TArgs>(Indices)...);
+                        return 0;
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        st.Error("%s", ex.what());
+                    }
                 }
                 else
                 {
-                    return st.PushValue(func(st.ReadValue<TArgs>(Indices)...));
+                    try
+                    {
+                        return st.PushValue(func(st.ReadValue<TArgs>(Indices)...));
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        st.Error("%s", ex.what());
+                    }
                 }
             }
         };
@@ -641,12 +655,26 @@ namespace lstg::Subsystem::Script
                 LuaStack st(L);
                 if constexpr (std::is_void_v<TRet>)
                 {
-                    (((TClass*)(p->Object))->*(storage->Pointer))(st.ReadValue<TArgs>(Indices + 1)...);
-                    return 0;
+                    try
+                    {
+                        (((TClass*)(p->Object))->*(storage->Pointer))(st.ReadValue<TArgs>(Indices + 1)...);
+                        return 0;
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        st.Error("%s", ex.what());
+                    }
                 }
                 else
                 {
-                    return st.PushValue((((TClass*)(p->Object))->*(storage->Pointer))(st.ReadValue<TArgs>(Indices + 1)...));
+                    try
+                    {
+                        return st.PushValue((((TClass*)(p->Object))->*(storage->Pointer))(st.ReadValue<TArgs>(Indices + 1)...));
+                    }
+                    catch(const std::exception& ex)
+                    {
+                        st.Error("%s", ex.what());
+                    }                    
                 }
             }
         };

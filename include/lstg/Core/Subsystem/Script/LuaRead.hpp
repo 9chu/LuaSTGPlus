@@ -26,6 +26,13 @@ namespace lstg::Subsystem::Script
         return 1;
     }
 
+    inline int LuaRead(LuaStack& stack, int idx, nullptr_t& out)
+    {
+        luaL_checktype(stack, idx, LUA_TNIL);
+        out = {};
+        return 1;
+    }
+
     /**
      * 读取一个布尔值
      * @param stack Lua 栈
@@ -39,13 +46,25 @@ namespace lstg::Subsystem::Script
         return 1;
     }
 
+    inline int LuaRead(LuaStack& stack, int idx, bool& out) noexcept
+    {
+        out = static_cast<bool>(lua_toboolean(stack, idx));
+        return 1;
+    }
+
 #define LSTG_DEF_LUA_VM_READ_INT(TYPE) \
     inline int LuaRead(LuaStack& stack, int idx, Result<TYPE>& out) noexcept \
     {                                                                        \
-        if (lua_isnumber(stack, idx))                                        \
-            out = static_cast<TYPE>(lua_tonumber(stack, idx));               \
-        else                                                                 \
+        auto i = lua_tointeger(stack, idx);                                  \
+        if (i == 0 && !lua_isnumber(stack, idx))                             \
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));    \
+        else                                                                 \
+            out = static_cast<TYPE>(i);                                      \
+        return 1;                                                            \
+    }                                                                        \
+    inline int LuaRead(LuaStack& stack, int idx, TYPE& out)                  \
+    {                                                                        \
+        out = static_cast<TYPE>(luaL_checkinteger(stack, idx));              \
         return 1;                                                            \
     }
 
@@ -77,6 +96,11 @@ namespace lstg::Subsystem::Script
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));
         return 1;
     }
+    inline int LuaRead(LuaStack& stack, int idx, float& out)
+    {
+        out = static_cast<float>(luaL_checknumber(stack, idx));
+        return 1;
+    }
 
     /**
      * 读取一个双精度浮点数
@@ -93,6 +117,11 @@ namespace lstg::Subsystem::Script
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));
         return 1;
     }
+    inline int LuaRead(LuaStack& stack, int idx, double& out)
+    {
+        out = luaL_checknumber(stack, idx);
+        return 1;
+    }
 
     /**
      * 读取一个 C 函数指针
@@ -101,12 +130,19 @@ namespace lstg::Subsystem::Script
      * @param out 输出结果
      * @return 读取的个数
      */
-    inline int LuaRead(LuaStack& stack, int idx, Result<lua_CFunction>& out)
+    inline int LuaRead(LuaStack& stack, int idx, Result<lua_CFunction>& out) noexcept
     {
         if (lua_iscfunction(stack, idx))
             out = lua_tocfunction(stack, idx);
         else
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        return 1;
+    }
+    inline int LuaRead(LuaStack& stack, int idx, lua_CFunction& out)
+    {
+        if (!lua_iscfunction(stack, idx))
+            stack.TypeError(idx, lua_typename(stack, LUA_TFUNCTION));
+        out = lua_tocfunction(stack, idx);
         return 1;
     }
 
@@ -121,6 +157,17 @@ namespace lstg::Subsystem::Script
     {
         size_t len = 0;
         auto str = lua_tolstring(stack, idx, &len);
+        if (!str)
+            out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        out = std::string(str, len);
+        return 1;
+    }
+    inline int LuaRead(LuaStack& stack, int idx, std::string& out)
+    {
+        size_t len = 0;
+        auto str = lua_tolstring(stack, idx, &len);
+        if (!str)
+            stack.TypeError(idx, lua_typename(stack, LUA_TSTRING));
         out = std::string(str, len);
         return 1;
     }
@@ -136,6 +183,17 @@ namespace lstg::Subsystem::Script
     {
         size_t len = 0;
         auto str = lua_tolstring(stack, idx, &len);
+        if (!str)
+            out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        out = std::string_view(str, len);
+        return 1;
+    }
+    inline int LuaRead(LuaStack& stack, int idx, std::string_view& out)
+    {
+        size_t len = 0;
+        auto str = lua_tolstring(stack, idx, &len);
+        if (!str)
+            luaL_typerror(stack, idx, lua_typename(stack, LUA_TSTRING));
         out = std::string_view(str, len);
         return 1;
     }
@@ -147,12 +205,19 @@ namespace lstg::Subsystem::Script
      * @param out 输出结果
      * @return 读取的个数
      */
-    inline int LuaRead(LuaStack& stack, int idx, Result<void*>& out)
+    inline int LuaRead(LuaStack& stack, int idx, Result<void*>& out) noexcept
     {
         if (lua_islightuserdata(stack, idx))
             out = lua_touserdata(stack, idx);
         else
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        return 1;
+    }
+    inline int LuaRead(LuaStack& stack, int idx, void*& out)
+    {
+        if (!lua_islightuserdata(stack, idx))
+            stack.TypeError(idx, lua_typename(stack, LUA_TLIGHTUSERDATA));
+        out = lua_touserdata(stack, idx);
         return 1;
     }
 
@@ -187,6 +252,16 @@ namespace lstg::Subsystem::Script
         out = make_error_code(static_cast<LuaBadArgumentError>(idx));
         return 1;
     }
+    template <typename T>
+    inline int LuaRead(typename std::enable_if<std::is_class_v<T>, LuaStack&>::type stack, int idx, T*& out)
+    {
+        using UqClass = detail::Unqualified<T>;
+
+        auto ud = luaL_checkudata(stack, idx, detail::GetUniqueTypeName<UqClass>().Name.c_str());
+        auto storage = static_cast<detail::NativeObjectStorage<UqClass>*>(ud);
+        out = storage->Object;
+        return 1;
+    }
 
     /**
      * 读取一个类
@@ -198,28 +273,15 @@ namespace lstg::Subsystem::Script
     template <typename T>
     inline int LuaRead(typename std::enable_if<std::is_class_v<T>, LuaStack&>::type stack, int idx, Result<T>& out)
     {
-        using UqClass = detail::Unqualified<T>;
-
-        auto ud = lua_touserdata(stack, idx);
-        if (ud)
-        {
-            if (lua_getmetatable(stack, idx))
-            {
-                lua_getfield(stack, LUA_REGISTRYINDEX, detail::GetUniqueTypeName<UqClass>().Name.c_str());
-                auto eq = lua_rawequal(stack, -1, -2);
-                lua_pop(stack, 2);
-                if (eq)
-                {
-                    auto storage = static_cast<detail::NativeObjectStorage<UqClass>*>(ud);
-                    out = *(storage->Object);
-                    return 1;
-                }
-            }
-        }
-        out = make_error_code(static_cast<LuaBadArgumentError>(idx));
-        return 1;
+        Result<T*> t;
+        auto ret = LuaRead(stack, idx, t);
+        if (!t)
+            out = t.GetError();
+        else
+            out = *(*t);
+        return ret;
     }
-
+    
     /**
      * 获取当前 Lua 栈
      * @param stack Lua 栈
@@ -227,31 +289,17 @@ namespace lstg::Subsystem::Script
      * @param out 输出结果
      * @return 读取的个数
      */
-    inline int LuaRead(LuaStack& stack, int idx, LuaStack& out)
+    inline int LuaRead(LuaStack& stack, int idx, LuaStack& out) noexcept
     {
         static_cast<void>(idx);
         out = stack;
         return 0;
     }
-
-    /**
-     * 读取值
-     * 如果读取失败，则赋值为默认值。
-     * @param stack Lua 栈
-     * @param idx 被读取值的起始索引
-     * @param out 输出结果
-     * @return 读取的个数
-     */
-    template <typename T>
-    inline int LuaRead(typename std::enable_if<!lstg::detail::IsResult<T>::value, LuaStack&>::type stack, int idx, T& out)
+    inline int LuaRead(LuaStack& stack, int idx, LuaStack* out) noexcept
     {
-        Result<T> o { make_error_code(std::errc::invalid_argument) };
-        auto ret = LuaRead(stack, idx, o);
-        if (!o)
-            out = T{};
-        else
-            out = std::move(*o);
-        return ret;
+        static_cast<void>(idx);
+        out = &stack;
+        return 0;
     }
 
     /**
@@ -272,9 +320,12 @@ namespace lstg::Subsystem::Script
         }
         else
         {
-            auto cnt = stack.ReadValue(idx, *out);
+            static_assert(!std::is_reference_v<T>);  // std::optional 不支持塞引用
+            T ret;
+            auto cnt = stack.ReadValue(idx, ret);
             static_cast<void>(cnt);
             assert(cnt == 1);
+            out = std::move(ret);
         }
         return 1;
     }

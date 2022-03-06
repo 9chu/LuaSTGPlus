@@ -108,6 +108,8 @@ Result<SandBox::ImportedFile*> SandBox::ModuleLocator(std::string_view modname, 
     if (!imported)
     {
         // 在受保护上下文创建一个环境表和一个透传函数
+        // 否则任何 lua 端错误都可能导致 stack unwind
+        // 在 emscripten 上可能触发 noexcept 导致 terminate()
         lua_checkstack(m_stMainThread, 3);
         lua_pushcfunction(m_stMainThread, [](lua_State* L) -> int {
             // 构造 ENV 表
@@ -194,7 +196,7 @@ Result<void> SandBox::ExecFile(ImportedFile& file)
     lua_setfenv(m_stMainThread, -2);
 
     // 执行脚本
-    auto exec = m_stMainThread.ProtectedCall(0, 0);
+    auto exec = m_stMainThread.ProtectedCallWithTraceback(0, 0);
     if (!exec)
     {
         LSTG_LOG_ERROR_CAT(SandBox, "Fail to exec file \"{}\": {}", file.Path.ToStringView(), lua_tostring(m_stMainThread, -1));

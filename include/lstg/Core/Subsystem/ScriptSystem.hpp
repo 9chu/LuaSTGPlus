@@ -41,6 +41,12 @@ namespace lstg::Subsystem
          */
         Result<void> LoadScript(std::string_view path, bool sandbox = false) noexcept;
 
+        /**
+         * 更新状态
+         * @param elapsedTime 流逝时间
+         */
+        void Update(double elapsedTime) noexcept;
+
     private:
         Script::LuaState m_stState;
         Script::SandBox m_stSandBox;

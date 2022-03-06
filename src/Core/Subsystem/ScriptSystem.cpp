@@ -49,23 +49,16 @@ namespace
             const char* chunkName = lua_pushfstring(L, "@%s", fullPath);
 
             // 读取文件
-            error_code ec;
-            char errorMsg[128];
+            vector<uint8_t> buffer;
+            auto ret = self->GetSandBox().GetVirtualFileSystem().ReadFile(buffer, path);
+            if (ret)
             {
-                vector<uint8_t> buffer;
-                auto ret = self->GetSandBox().GetVirtualFileSystem().ReadFile(buffer, path);
-                if (ret)
-                {
-                    // 编译
-                    luaL_loadbuffer(L, reinterpret_cast<const char*>(buffer.data()), buffer.size(), chunkName);
-                    return 1;
-                }
-                ec = ret.GetError();
+                // 编译
+                luaL_loadbuffer(L, reinterpret_cast<const char*>(buffer.data()), buffer.size(), chunkName);
+                return 1;
             }
-
-            ::memset(errorMsg, 0, sizeof(errorMsg));
-            fmt::format_to(errorMsg, "open file \"{}\" fail: {}", path, ec);
-            lua_pushstring(L, errorMsg);
+            
+            lua_pushfstring(L, "open file \"%s\" fail: %s", path, ret.GetError().message().c_str());
             return 1;
         }, 1);  // t t 1 f
         stack.RawSet(-3);  // t t
@@ -86,24 +79,16 @@ namespace
 
             const char* path = luaL_checkstring(L, 1);
 
-            error_code ec;
-            char errorMsg[128];
+            // 转发给 SandBox
+            Script::LuaStack st(L);
+            auto ret = self->GetSandBox().ImportScript(path);
+            if (ret)
             {
-                auto ret = self->GetSandBox().ImportScript(path);
-                if (ret)
-                {
-                    Script::LuaStack st(L);
-                    st.PushValue(*ret);
-                    return 1;
-                }
-                ec = ret.GetError();
+                st.PushValue(*ret);
+                return 1;
             }
-
-            ::memset(errorMsg, 0, sizeof(errorMsg));
-            fmt::format_to(errorMsg, "import file \"{}\" fail: {}", path, ec);
-            lua_pushstring(L, errorMsg);
-            lua_error(L);
-            return 0;
+            
+            st.Error("import file \"%s\" fail: %s", path, ret.GetError().message().c_str());
         }, 1);
         stack.SetGlobal("import");
     }
@@ -176,7 +161,7 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
     }
 
     // 执行
-    auto call = m_stState.ProtectedCall(0, 0);
+    auto call = m_stState.ProtectedCallWithTraceback(0, 0);
     if (!call)
     {
         LSTG_LOG_ERROR_CAT(ScriptSystem, "Fail to exec \"{}\": {}", path, lua_tostring(m_stState, -1));
@@ -186,4 +171,9 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
 
     LSTG_LOG_INFO_CAT(ScriptSystem, "File \"{}\" loaded", path);
     return {};
+}
+
+void ScriptSystem::Update(double elapsedTime) noexcept
+{
+    m_stSandBox.Update(elapsedTime);
 }

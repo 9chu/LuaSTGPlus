@@ -66,6 +66,9 @@ namespace lstg::Subsystem::Script
             static const UniqueTypeName<T> kTypeNameInstance;
             return kTypeNameInstance;
         }
+
+        // 转发到 debug.traceback
+        int PCallErrorHandler(lua_State* L);
     }
 
     /**
@@ -249,9 +252,20 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline T ReadValue(int idx)
         {
-            T out;
-            LuaRead(*this, idx, out);
-            return out;
+            if constexpr (std::is_reference_v<T>)
+            {
+                std::remove_reference_t<T>* out = nullptr;
+                LuaRead(*this, idx, out);
+                if (out == nullptr)
+                    TypeError(idx, detail::UniqueTypeName<T>().Name.c_str());
+                return *out;
+            }
+            else
+            {
+                T out;
+                LuaRead(*this, idx, out);
+                return out;
+            }
         }
 
         /**
@@ -486,7 +500,7 @@ namespace lstg::Subsystem::Script
          *
          * [-1, +0]
          */
-        inline void SetFunctionEnvironment(int idx)
+        inline void SetFunctionEnvironment(int idx) noexcept
         {
             lua_setfenv(m_pState, idx);
         }
@@ -510,10 +524,6 @@ namespace lstg::Subsystem::Script
 
         /**
          * 抛出一个错误
-         *
-         * 注意，Lua 默认采取 C 的 longjmp 进行错误抛出。
-         * 在 Linux 环境下需要注意 C++ unwind 可能不会正常调用从而造成内存泄漏。
-         *
          * @tparam TArgs 格式化参数类型
          * @param fmt 格式化文本
          * @param args 参数
@@ -522,8 +532,21 @@ namespace lstg::Subsystem::Script
         [[noreturn]] inline void Error(const char* fmt, TArgs&&... args)
         {
             luaL_error(m_pState, fmt, std::forward<TArgs>(args)...);
+            ::abort();
         }
 
+        /**
+         * 抛出一个类型错误
+         * @param idx 值索引
+         * @param tname 期望的类型名
+         */
+        [[noreturn]] inline void TypeError(int idx, const char* tname)
+        {
+            const char *msg = lua_pushfstring(m_pState, "%s expected, got %s", tname, luaL_typename(m_pState, idx));
+            luaL_argerror(m_pState, idx, msg);
+            ::abort();
+        }
+        
         /**
          * 调用函数
          * @param nargs 参数个数
@@ -558,7 +581,9 @@ namespace lstg::Subsystem::Script
                 auto nargs = PushValues(std::forward<TArgs>(args)...);
                 lua_call(m_pState, nargs, detail::CountArgs<T>::value);
 
+                // 读取返回值
                 {
+                    static_assert(!std::is_reference_v<T>);
                     T ret;
                     auto nret = ReadValue(-detail::CountArgs<T>::value, ret);
                     static_cast<void>(nret);
@@ -616,6 +641,7 @@ namespace lstg::Subsystem::Script
                 }
                 else
                 {
+                    static_assert(!std::is_reference_v<T>);
                     T retValue;
                     auto nret = ReadValue(-detail::CountArgs<T>::value, retValue);
                     static_cast<void>(nret);
@@ -623,6 +649,26 @@ namespace lstg::Subsystem::Script
                     return { OkTag {}, std::move(retValue) };
                 }
             }
+        }
+
+        /**
+         * 安全调用函数（带堆栈回溯）
+         * @param nargs 参数个数
+         * @param nrets 返回值个数
+         * @return 返回值
+         *
+         * [-(nargs + 1), +(nresults|1)]
+         */
+        Result<void> ProtectedCallWithTraceback(unsigned nargs, unsigned nrets) noexcept
+        {
+            auto base = lua_gettop(m_pState) - nargs;
+            lua_pushcfunction(m_pState, detail::PCallErrorHandler);
+            lua_insert(m_pState, base);
+            auto ret = lua_pcall(m_pState, static_cast<int>(nargs), static_cast<int>(nrets), base);
+            lua_remove(m_pState, base);
+            if (ret == 0)
+                return {};
+            return make_error_code(static_cast<LuaError>(ret));
         }
 
         /**

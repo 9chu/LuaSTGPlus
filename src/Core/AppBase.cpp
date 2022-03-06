@@ -108,6 +108,8 @@ void AppBase::OnNativeEvent(const SDL_Event& event) noexcept
 
 void AppBase::OnUpdate(double elapsed) noexcept
 {
+    m_stScriptSystem.Update(elapsed);
+
     // TODO
 }
 

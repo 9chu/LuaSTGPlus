@@ -58,10 +58,10 @@ LSTGColor BuiltInModule::NewColor(Subsystem::Script::LuaStack stack) noexcept
     if (stack.GetTop() == 1)
     {
         auto argb = luaL_checkinteger(stack, 1);
-        ret.RGBA32[0] = (argb & 0x00FF0000) >> 16;
-        ret.RGBA32[1] = (argb & 0x0000FF00) >> 8;
-        ret.RGBA32[2] = (argb & 0x000000FF);
-        ret.RGBA32[3] = (argb & 0xFF000000) >> 24;
+        ret.r((argb & 0x00FF0000) >> 16);
+        ret.g((argb & 0x0000FF00) >> 8);
+        ret.b(argb & 0x000000FF);
+        ret.a((argb & 0xFF000000) >> 24);
         return ret;
     }
 
@@ -69,10 +69,10 @@ LSTGColor BuiltInModule::NewColor(Subsystem::Script::LuaStack stack) noexcept
     auto r = luaL_checkinteger(stack, 2);
     auto g = luaL_checkinteger(stack, 3);
     auto b = luaL_checkinteger(stack, 4);
-    ret.RGBA32[0] = std::clamp<int>(r, 0, 255);
-    ret.RGBA32[1] = std::clamp<int>(g, 0, 255);
-    ret.RGBA32[2] = std::clamp<int>(b, 0, 255);
-    ret.RGBA32[3] = std::clamp<int>(a, 0, 255);
+    ret.r(std::clamp<int>(r, 0, 255));
+    ret.g(std::clamp<int>(g, 0, 255));
+    ret.b(std::clamp<int>(b, 0, 255));
+    ret.a(std::clamp<int>(a, 0, 255));
     return ret;
 }
 
