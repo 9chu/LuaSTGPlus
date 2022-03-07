@@ -51,7 +51,7 @@ namespace lstg::Subsystem::detail
             }
 
             lstg::Logging::GetInstance().Log(kLogCategoryRenderSystem.Name, LogLevel::Trace, lstg::detail::GetLogCurrentTime(),
-                {filePath, "", line}, "{}", buffer);
+                {filePath, "?", line}, "{}", buffer);
         }
 
         void profilerBegin(const char* name, uint32_t abgr, const char* filePath, uint16_t line) override
@@ -140,10 +140,13 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 {
     assert(m_pWindowSystem);
 
-#if BX_PLATFORM_OSX
     auto windowHandle = m_pWindowSystem->GetNativeHandle();
     assert(windowHandle);
 
+    // 设置渲染分辨率（总是和窗口大小一致）
+    m_stBackBufferResolution = m_pWindowSystem->GetRenderSize();
+
+#if BX_PLATFORM_OSX
     // MacOS 需要创建一个 Metal View 贴到 SDL 窗口上
     // see: https://github.com/bkaradzic/bgfx/issues/1773
     m_pMetalView = ::SDL_Metal_CreateView(windowHandle);
@@ -156,21 +159,6 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
     // 初始化 BGFX 回调
     m_pBgfxCallback = make_shared<detail::BgfxCallback>();
-
-    // 初始化 BGFX
-    Initialize();
-}
-
-RenderSystem::~RenderSystem()
-{
-    LSTG_LOG_TRACE_CAT(RenderSystem, "Calling bgfx::shutdown");
-    bgfx::shutdown();
-}
-
-void RenderSystem::Initialize()
-{
-    auto windowHandle = m_pWindowSystem->GetNativeHandle();
-    auto windowSize = m_pWindowSystem->GetSize();
 
     // 填充平台相关数据
     bgfx::PlatformData bgfxPlatformData;
@@ -209,12 +197,13 @@ void RenderSystem::Initialize()
     bgfxInit.debug = true;
 #endif
     bgfxInit.platformData = bgfxPlatformData;
-    bgfxInit.resolution.width = std::get<0>(windowSize);
-    bgfxInit.resolution.height = std::get<1>(windowSize);
+    bgfxInit.resolution.width = std::get<0>(m_stBackBufferResolution);
+    bgfxInit.resolution.height = std::get<1>(m_stBackBufferResolution);
     bgfxInit.resolution.reset = BGFX_RESET_NONE;
     bgfxInit.resolution.numBackBuffers = 1;
     bgfxInit.callback = m_pBgfxCallback.get();
 
+    // 初始化 BGFX
     LSTG_LOG_TRACE_CAT(RenderSystem, "Prepare to call bgfx::init, resolution {}x{}", bgfxInit.resolution.width,
         bgfxInit.resolution.height);
     if (!bgfx::init(bgfxInit))
@@ -223,5 +212,14 @@ void RenderSystem::Initialize()
         LSTG_THROW(RendererInitializeFailedException, "Fail to initialize bgfx");
     }
 
-    LSTG_LOG_INFO_CAT(RenderSystem, "Render backend: {}", detail::ToString(bgfx::getRendererType()));
+    // 一些信息
+    auto caps = bgfx::getCaps();
+    LSTG_LOG_INFO_CAT(RenderSystem, "Render backend: {}", detail::ToString(caps->rendererType));
+    LSTG_LOG_INFO_CAT(RenderSystem, "Selected GPU: {}-{}", caps->vendorId, caps->deviceId);
+}
+
+RenderSystem::~RenderSystem()
+{
+    LSTG_LOG_TRACE_CAT(RenderSystem, "Calling bgfx::shutdown");
+    bgfx::shutdown();
 }

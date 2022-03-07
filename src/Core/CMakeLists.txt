@@ -18,5 +18,5 @@ endif()
 
 target_link_libraries(LuaSTGPlusCore
     PUBLIC fmt bx ${LUA_LIBS} ${GL_LIBS}
-    PRIVATE spdlog SDL2-static bgfx ${ZLIB_LIBS}
+    PRIVATE spdlog SDL2-static bgfx imgui ${ZLIB_LIBS}
 )

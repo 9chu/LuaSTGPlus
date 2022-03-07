@@ -29,17 +29,20 @@ namespace lstg::Subsystem
         RenderSystem(RenderSystem&&) = delete;
         ~RenderSystem() override;
 
-    private:
-        void Initialize();
+    public:
+        /**
+         * 获取渲染分辨率
+         */
+        std::tuple<int, int> GetBackBufferResolution() const noexcept { return m_stBackBufferResolution; }
 
     private:
         std::shared_ptr<WindowSystem> m_pWindowSystem;
-
+        std::shared_ptr<detail::BgfxCallback> m_pBgfxCallback;
 #ifdef __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
         void* m_pMetalView = nullptr;
         void* m_pMetalViewLayer = nullptr;
 #endif
 
-        std::shared_ptr<detail::BgfxCallback> m_pBgfxCallback;
+        std::tuple<int, int> m_stBackBufferResolution;
     };
 }

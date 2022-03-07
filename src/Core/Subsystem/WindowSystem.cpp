@@ -127,6 +127,13 @@ void WindowSystem::SetSize(int width, int height) noexcept
     ::SDL_SetWindowPosition(m_pWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 }
 
+std::tuple<int, int> WindowSystem::GetRenderSize() const noexcept
+{
+    int w = 0, h = 0;
+    ::SDL_GL_GetDrawableSize(m_pWindow, &w, &h);
+    return { w, h };
+}
+
 void WindowSystem::Raise() noexcept
 {
     ::SDL_RaiseWindow(m_pWindow);
@@ -147,6 +154,18 @@ bool WindowSystem::IsFullScreen() const noexcept
     auto flag = ::SDL_GetWindowFlags(m_pWindow);
     return ((flag & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) ||
         ((flag & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN);
+}
+
+bool WindowSystem::IsMinimized() const noexcept
+{
+    auto flag = ::SDL_GetWindowFlags(m_pWindow);
+    return (flag & SDL_WINDOW_MINIMIZED) == SDL_WINDOW_MINIMIZED;
+}
+
+bool WindowSystem::HasFocus() const noexcept
+{
+    SDL_Window* focused = ::SDL_GetKeyboardFocus();
+    return (focused == m_pWindow) || ((::SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_INPUT_FOCUS) == SDL_WINDOW_INPUT_FOCUS);
 }
 
 Result<void> WindowSystem::ToggleFullScreen(bool fullscreen) noexcept

@@ -77,7 +77,7 @@ namespace lstg::Subsystem
         /**
          * 获取窗体大小
          */
-        std::tuple<int, int> GetSize() const noexcept;
+        [[nodiscard]] std::tuple<int, int> GetSize() const noexcept;
 
         /**
          * 设置窗体大小
@@ -85,6 +85,11 @@ namespace lstg::Subsystem
          * @param height 高度
          */
         void SetSize(int width, int height) noexcept;
+
+        /**
+         * 获取渲染大小
+         */
+        [[nodiscard]] std::tuple<int, int> GetRenderSize() const noexcept;
 
         /**
          * 窗口移到最顶上
@@ -105,6 +110,16 @@ namespace lstg::Subsystem
          * 是否全屏
          */
         bool IsFullScreen() const noexcept;
+
+        /**
+         * 是否最小化
+         */
+        bool IsMinimized() const noexcept;
+
+        /**
+         * 检查是否具备焦点
+         */
+        bool HasFocus() const noexcept;
 
         /**
          * 切换全屏/窗口模式
