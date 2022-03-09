@@ -10,7 +10,7 @@
 #include <thread>
 #include <lstg/Core/Pal.hpp>
 
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <timeapi.h>
@@ -25,14 +25,14 @@ using namespace lstg;
 PreciseSleeper::PreciseSleeper()
     : m_dFreq(static_cast<double>(Pal::GetTickFrequency()))
 {
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
     timeBeginPeriod(1);
 #endif
 }
 
 PreciseSleeper::~PreciseSleeper()
 {
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
     timeEndPeriod(1);
 #endif
 }

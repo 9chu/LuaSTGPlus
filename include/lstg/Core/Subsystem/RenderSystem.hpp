@@ -7,16 +7,10 @@
 #pragma once
 #include "ISubsystem.hpp"
 #include "WindowSystem.hpp"
+#include "Render/RenderDevice.hpp"
 
 namespace lstg::Subsystem
 {
-    LSTG_DEFINE_EXCEPTION(RendererInitializeFailedException);
-
-    namespace detail
-    {
-        class BgfxCallback;
-    }
-
     /**
      * 渲染子系统
      */
@@ -27,22 +21,16 @@ namespace lstg::Subsystem
         RenderSystem(SubsystemContainer& container);
         RenderSystem(const RenderSystem&) = delete;
         RenderSystem(RenderSystem&&) = delete;
-        ~RenderSystem() override;
+        ~RenderSystem() = default;
 
     public:
         /**
-         * 获取渲染分辨率
+         * 获取渲染设备
          */
-        std::tuple<int, int> GetBackBufferResolution() const noexcept { return m_stBackBufferResolution; }
+        [[nodiscard]] Render::RenderDevice* GetRenderDevice() const noexcept { return m_pRenderDevice.get(); }
 
     private:
         std::shared_ptr<WindowSystem> m_pWindowSystem;
-        std::shared_ptr<detail::BgfxCallback> m_pBgfxCallback;
-#ifdef __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
-        void* m_pMetalView = nullptr;
-        void* m_pMetalViewLayer = nullptr;
-#endif
-
-        std::tuple<int, int> m_stBackBufferResolution;
+        Render::RenderDevicePtr m_pRenderDevice;
     };
 }

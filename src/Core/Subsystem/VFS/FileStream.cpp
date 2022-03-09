@@ -6,11 +6,11 @@
  */
 #include <lstg/Core/Subsystem/VFS/FileStream.hpp>
 
-#ifndef _WIN32
+#ifndef LSTG_PLATFORM_WIN32
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#ifdef __APPLE__
+#ifdef LSTG_PLATFORM_APPLE
 #define off64_t off_t
 #define ftello64 ftello
 #define fseeko64 fseeko
@@ -30,7 +30,7 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS;
 
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
 namespace
 {
     wstring Utf8StringToWideString(const std::string& str)
@@ -47,7 +47,7 @@ namespace
 FileStream::FileStream(std::filesystem::path path, FileAccessMode access, FileOpenFlags openFlags)
     : m_stPath(std::move(path)), m_iAccess(access), m_iFlags(openFlags)
 {
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
 #define U(x) L##x
     const wchar_t* mode = nullptr;
 #else
@@ -82,7 +82,7 @@ FileStream::FileStream(std::filesystem::path path, FileAccessMode access, FileOp
 
     // 打开文件
     // FIXME: 考虑用 open / CreateFile 代替
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
     auto wpath = Utf8StringToWideString(m_stPath.string());
     m_pHandle = ::_wfopen(m_stPath.c_str(), mode);
     if (!m_pHandle)
@@ -150,7 +150,7 @@ Result<uint64_t> FileStream::GetLength() const noexcept
 {
     assert(m_pHandle);
 
-#ifndef _WIN32
+#ifndef LSTG_PLATFORM_WIN32
     struct ::stat64 buf {};
     if (-1 == ::fstat64(::fileno(m_pHandle), &buf))
         return error_code(errno, generic_category());
@@ -170,7 +170,7 @@ Result<void> FileStream::SetLength(uint64_t length) noexcept
 {
     assert(m_pHandle);
 
-#ifndef _WIN32
+#ifndef LSTG_PLATFORM_WIN32
     auto ret = ::ftruncate(::fileno(m_pHandle), length);
     if (ret == -1)
         return error_code(errno, generic_category());
@@ -242,7 +242,7 @@ Result<void> FileStream::Flush() noexcept
     if (0 != ::fflush(m_pHandle))
         return error_code(errno, generic_category());
 
-#ifndef _WIN32
+#ifndef LSTG_PLATFORM_WIN32
     if (-1 == ::fsync(::fileno(m_pHandle)))
         return error_code(errno, generic_category());
 #endif

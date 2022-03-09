@@ -32,7 +32,7 @@ namespace lstg::v2::Bridge
         static LSTGColor Multiply(std::variant<double, const LSTGColor*> lhs, std::variant<double, const LSTGColor*> rhs) noexcept;
 
         LSTG_METHOD(__tostring)
-        std::string ToString(Subsystem::Script::LuaStack st);
+        std::string ToString();
     };
 
     /**

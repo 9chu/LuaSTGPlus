@@ -113,7 +113,7 @@ namespace
         ::tm tm;
         ::memset(&tm, 0, sizeof(tm));
 
-#ifdef _MSC_VER
+#ifdef LSTG_PLATFORM_WIN32
         ::localtime_s(&t, &tm);
 #else
         ::localtime_r(&t, &tm);

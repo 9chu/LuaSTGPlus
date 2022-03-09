@@ -52,7 +52,7 @@ double BuiltInModule::ATan2(double y, double x) noexcept
 // </editor-fold>
 // <editor-fold desc="对象构造函数">
 
-LSTGColor BuiltInModule::NewColor(Subsystem::Script::LuaStack stack) noexcept
+LSTGColor BuiltInModule::NewColor(Subsystem::Script::LuaStack& stack) noexcept
 {
     LSTGColor ret {};
     if (stack.GetTop() == 1)

@@ -289,13 +289,7 @@ namespace lstg::Subsystem::Script
      * @param out 输出结果
      * @return 读取的个数
      */
-    inline int LuaRead(LuaStack& stack, int idx, LuaStack& out) noexcept
-    {
-        static_cast<void>(idx);
-        out = stack;
-        return 0;
-    }
-    inline int LuaRead(LuaStack& stack, int idx, LuaStack* out) noexcept
+    inline int LuaRead(LuaStack& stack, int idx, LuaStack*& out) noexcept
     {
         static_cast<void>(idx);
         out = &stack;

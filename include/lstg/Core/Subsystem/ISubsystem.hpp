@@ -30,6 +30,18 @@ namespace lstg::Subsystem
         virtual void OnUpdate(double elapsedTime) noexcept;
 
         /**
+         * 用户渲染操作之前
+         * @param elapsedTime 距离上次调用的流逝时间（秒）
+         */
+        virtual void OnBeforeRender(double elapsedTime) noexcept;
+
+        /**
+         * 用户渲染操作之后
+         * @param elapsedTime 距离上次调用的流逝时间（秒）
+         */
+        virtual void OnAfterRender(double elapsedTime) noexcept;
+
+        /**
          * 触发事件
          * 默认无行为。
          * @param event 事件

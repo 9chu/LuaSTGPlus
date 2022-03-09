@@ -9,6 +9,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
+#include <lstg/Core/Subsystem/WindowSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
@@ -36,7 +37,7 @@ GameApp::GameApp(int argc, char** argv)
         // 最下面是 LocalFileSystem，这使得在其他 FileSystem 上搜索不到时会到本地文件系统进行搜寻
         m_pAssetsFileSystem = make_shared<Subsystem::VFS::OverlayFileSystem>();
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
         // WEB 下创建 WebFileSystem
         // 在 LocalFileSystem (memfs) 中找不到才去 WebFileSystem 搜索
         auto webFileSystem = make_shared<Subsystem::VFS::WebFileSystem>("");
@@ -103,4 +104,6 @@ GameApp::GameApp(int argc, char** argv)
 
     // 执行 core.lua 脚本
     // TODO
+
+    GetSubsystem<Subsystem::WindowSystem>()->Show();
 }

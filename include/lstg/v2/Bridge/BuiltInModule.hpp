@@ -47,7 +47,7 @@ namespace lstg::v2::Bridge
         // <editor-fold desc="对象构造函数">
 
         LSTG_METHOD(Color)
-        static LSTGColor NewColor(Subsystem::Script::LuaStack stack) noexcept;
+        static LSTGColor NewColor(Subsystem::Script::LuaStack& stack) noexcept;
 
         // </editor-fold>
     };

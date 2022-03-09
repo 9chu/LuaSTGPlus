@@ -10,7 +10,7 @@
 #include <lstg/Core/Logging.hpp>
 #include "../detail/SDLHelper.hpp"
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
@@ -97,6 +97,9 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
         LSTG_LOG_CRITICAL_CAT(WindowSystem, "Create render window fail, SDL_GetError: {}", SDL_GetError());
         LSTG_THROW(WindowInitializeFailedException, "Create render window fail, SDL_GetError: {}", SDL_GetError());
     }
+
+    if (::SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_ALLOW_HIGHDPI)
+        m_iFeatures |= WindowFeatures::HighDPISupport;
 }
 
 WindowSystem::~WindowSystem()

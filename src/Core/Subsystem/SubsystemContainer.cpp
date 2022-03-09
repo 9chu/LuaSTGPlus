@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 
+#include <cassert>
 #include <lstg/Core/Logging.hpp>
 
 using namespace std;
@@ -24,13 +25,33 @@ void SubsystemContainer::ConstructAll()
     }
 }
 
-void SubsystemContainer::UpdateAll(double elapsedTime) noexcept
+void SubsystemContainer::Update(double elapsedTime) noexcept
 {
-    for (const auto& pair : m_stSubsystemByPriority)
+    for (const auto& pair : m_stSubsystemUpdateChain)
     {
         const auto& storage = pair.second;
         assert(storage->Instance && storage->Status == SubsystemStatus::Ready);
         storage->Instance->OnUpdate(elapsedTime);
+    }
+}
+
+void SubsystemContainer::BeforeRender(double elapsedTime) noexcept
+{
+    for (const auto& pair : m_stSubsystemRenderChain)
+    {
+        const auto& storage = pair.second;
+        assert(storage->Instance && storage->Status == SubsystemStatus::Ready);
+        storage->Instance->OnBeforeRender(elapsedTime);
+    }
+}
+
+void SubsystemContainer::AfterRender(double elapsedTime) noexcept
+{
+    for (const auto& pair : m_stSubsystemRenderChain)
+    {
+        const auto& storage = pair.second;
+        assert(storage->Instance && storage->Status == SubsystemStatus::Ready);
+        storage->Instance->OnAfterRender(elapsedTime);
     }
 }
 
@@ -39,7 +60,7 @@ void SubsystemContainer::BubbleEvent(SubsystemEvent& event) noexcept
     if (!event.IsBubbles())
         return;
 
-    for (const auto& pair : m_stSubsystemByPriority)
+    for (const auto& pair : m_stSubsystemEventChain)
     {
         const auto& storage = pair.second;
         assert(storage->Instance && storage->Status == SubsystemStatus::Ready);
@@ -61,7 +82,12 @@ void SubsystemContainer::Construct(const SubsystemStoragePtr& storage)
         assert(storage->Constructor);
         storage->Instance = storage->Constructor(*this);
         storage->Status = SubsystemStatus::Ready;
-        m_stSubsystemByPriority.emplace(storage->Priority, storage);
+        if (!(storage->Flags & SubsystemRegisterFlags::NoUpdate))
+            m_stSubsystemUpdateChain.emplace(storage->Priority, storage);
+        if (!(storage->Flags & SubsystemRegisterFlags::NoRender))
+            m_stSubsystemRenderChain.emplace(storage->Priority, storage);
+        if (!(storage->Flags & SubsystemRegisterFlags::NoEvent))
+            m_stSubsystemEventChain.emplace(storage->Priority, storage);
     }
     catch (const std::exception& ex)
     {

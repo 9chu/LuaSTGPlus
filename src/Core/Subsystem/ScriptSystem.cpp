@@ -100,7 +100,7 @@ ScriptSystem::ScriptSystem(SubsystemContainer& container)
 {
     Script::LuaStack::BalanceChecker stackChecker(m_stState);
 
-#ifndef __EMSCRIPTEN__
+#ifndef LSTG_PLATFORM_EMSCRIPTEN
     // 打开 JIT
     if (0 == luaJIT_setmode(m_stState, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
         LSTG_LOG_WARN_CAT(ScriptSystem, "Unable to turn on JIT engine");
@@ -174,7 +174,7 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
     return {};
 }
 
-void ScriptSystem::Update(double elapsedTime) noexcept
+void ScriptSystem::OnUpdate(double elapsedTime) noexcept
 {
     m_stSandBox.Update(elapsedTime);
 }

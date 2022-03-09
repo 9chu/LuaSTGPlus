@@ -21,7 +21,7 @@ extern "C" int main(int argc, char** argv)
     Logging::GetInstance();
 
     // 初始化 GameApp
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
     static std::unique_ptr<GameApp> app;  // 防止退出 main 后被析构
 #else
     std::unique_ptr<GameApp> app;

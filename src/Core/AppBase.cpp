@@ -12,7 +12,7 @@
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
@@ -26,6 +26,8 @@
 
 using namespace std;
 using namespace lstg;
+
+using SubsystemRegisterFlags = Subsystem::SubsystemRegisterFlags;
 
 LSTG_DEF_LOG_CATEGORY(AppBase);
 
@@ -49,13 +51,20 @@ AppBase::AppBase()
 
     // 注册子系统
     LSTG_LOG_TRACE_CAT(AppBase, "Begin to initialize subsystem");
-    m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0);
-    m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0);
-    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0);
-    m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0);
+    const auto kSubsystemNoInteractive =
+        SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
+    m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0, kSubsystemNoInteractive);
+    m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0, kSubsystemNoInteractive);
+    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0,
+        SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent);
+    m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0,
+        SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender);
     m_stSubsystemContainer.Register<Subsystem::DebugGUISystem>("DebugGUISystem", 0);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
+
+    // 持有渲染子系统指针
+    m_pRenderSystem = m_stSubsystemContainer.Get<Subsystem::RenderSystem>();
 }
 
 AppBase::~AppBase()
@@ -84,7 +93,7 @@ Result<void> AppBase::Run() noexcept
     m_stMainTaskTimer.Reset();
     m_stMainTaskTimer.Schedule(&m_stFrameTask, start + static_cast<uint64_t>(m_stSleeper.GetFrequency() * m_dFrameInterval));
 
-#ifndef __EMSCRIPTEN__
+#ifndef LSTG_PLATFORM_EMSCRIPTEN
     // 执行应用循环
     while (!m_bShouldStop)
     {
@@ -140,15 +149,15 @@ void AppBase::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 
 void AppBase::OnUpdate(double elapsed) noexcept
 {
-    m_stSubsystemContainer.UpdateAll(elapsed);
+    // 覆写该方法实现应用程序行为
 }
 
 void AppBase::OnRender(double elapsed) noexcept
 {
-    // TODO
+    // 覆写该方法实现应用程序行为
 }
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 void AppBase::OnWebLoopOnce(void* userdata) noexcept
 {
     auto self = static_cast<AppBase*>(userdata);
@@ -202,7 +211,7 @@ void AppBase::Frame() noexcept
     Update();
 
     // 执行渲染逻辑
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
     m_bRenderEmit = true;
 #else
     Render();
@@ -221,7 +230,10 @@ void AppBase::Update() noexcept
     m_ullLastUpdateTick = now;
 
     // 更新一帧
-    OnUpdate(elapsed);
+    {
+        m_stSubsystemContainer.Update(elapsed);
+        OnUpdate(elapsed);
+    }
 }
 
 void AppBase::Render() noexcept
@@ -232,5 +244,12 @@ void AppBase::Render() noexcept
     m_ullLastRenderTick = now;
 
     // 渲染一帧
-    OnRender(elapsed);
+    {
+        auto device = m_pRenderSystem->GetRenderDevice();
+        device->BeginRender();
+        m_stSubsystemContainer.BeforeRender(elapsed);
+        OnRender(elapsed);
+        m_stSubsystemContainer.AfterRender(elapsed);
+        device->EndRenderAndPresent();
+    }
 }

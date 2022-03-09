@@ -7,7 +7,7 @@
 #include <lstg/Core/Subsystem/VFS/WebFileStream.hpp>
 
 // 仅在 EMSCRIPTEN 下编译
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 
 #include <emscripten/fetch.h>
 #include <lstg/Core/Logging.hpp>

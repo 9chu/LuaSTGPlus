@@ -37,6 +37,7 @@ namespace lstg::Subsystem
 
     protected:  // ISubsystem
         void OnUpdate(double elapsedTime) noexcept override;
+        void OnAfterRender(double elapsedTime) noexcept override;
         void OnEvent(SubsystemEvent& event) noexcept override;
 
     private:

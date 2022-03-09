@@ -12,6 +12,11 @@
 
 namespace lstg
 {
+    namespace Subsystem
+    {
+        class RenderSystem;
+    }
+
     /**
      * 应用程序框架基类
      */
@@ -85,7 +90,7 @@ namespace lstg
         virtual void OnRender(double elapsed) noexcept;
 
     private:
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
         static void OnWebLoopOnce(void* userdata) noexcept;
         static void OnWebRender(void* userdata) noexcept;
 #endif
@@ -97,13 +102,14 @@ namespace lstg
     private:
         // 子系统
         Subsystem::SubsystemContainer m_stSubsystemContainer;
+        std::shared_ptr<Subsystem::RenderSystem> m_pRenderSystem;
 
         // 帧率控制
         Timer m_stMainTaskTimer;
         PreciseSleeper m_stSleeper;
         double m_dFrameInterval = 1. / 60.;
         TimerTask m_stFrameTask;
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
         long m_lTimeoutId = 0;  // 主逻辑循环定时器
         bool m_bRenderEmit = false;  // HTML下，渲染不跟随逻辑进行，通过标志位控制
 #endif

@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <functional>
 #include <type_traits>
+#include <lstg/Core/Flag.hpp>
 #include "ISubsystem.hpp"
 
 namespace lstg::Subsystem
@@ -26,6 +27,13 @@ namespace lstg::Subsystem
         }
     }
 
+    LSTG_FLAG_BEGIN(SubsystemRegisterFlags)
+        Default = 0,
+        NoUpdate = 1,
+        NoRender = 2,
+        NoEvent = 4,
+    LSTG_FLAG_END(SubsystemRegisterFlags)
+
     /**
      * 子系统容器
      * 提供简单的 IOC 构造机制
@@ -41,10 +49,11 @@ namespace lstg::Subsystem
          * @return 是否成功
          */
         template <typename T>
-        bool Register(std::string name, int priority)
+        bool Register(std::string name, int priority, SubsystemRegisterFlags flags = SubsystemRegisterFlags::Default)
         {
             // 构造 Storage
             auto storage = std::make_shared<SubsystemStorage>();
+            storage->Flags = flags;
             storage->Priority = priority;
             storage->UniqueId = detail::GetUniqueSubsystemId<T>();
             storage->Name = std::move(name);
@@ -86,7 +95,19 @@ namespace lstg::Subsystem
          * 更新所有子系统
          * @param elapsedTime 流逝时间
          */
-        void UpdateAll(double elapsedTime) noexcept;
+        void Update(double elapsedTime) noexcept;
+
+        /**
+         * 用户渲染操作之前
+         * @param elapsedTime 流逝时间
+         */
+        void BeforeRender(double elapsedTime) noexcept;
+
+        /**
+         * 用户渲染操作之后
+         * @param elapsedTime 流逝时间
+         */
+        void AfterRender(double elapsedTime) noexcept;
 
         /**
          * 冒泡事件
@@ -105,6 +126,7 @@ namespace lstg::Subsystem
         struct SubsystemStorage
         {
             SubsystemStatus Status = SubsystemStatus::NotInit;
+            SubsystemRegisterFlags Flags = SubsystemRegisterFlags::Default;
             int Priority = 0;
             size_t UniqueId = 0;
             std::string Name;
@@ -122,6 +144,8 @@ namespace lstg::Subsystem
     private:
         std::map<std::string, SubsystemStoragePtr, std::less<>> m_stSubsystems;
         std::unordered_map<size_t, SubsystemStoragePtr> m_stSubsystemById;
-        std::multimap<int, SubsystemStoragePtr> m_stSubsystemByPriority;
+        std::multimap<int, SubsystemStoragePtr> m_stSubsystemUpdateChain;
+        std::multimap<int, SubsystemStoragePtr> m_stSubsystemRenderChain;
+        std::multimap<int, SubsystemStoragePtr> m_stSubsystemEventChain;
     };
 }

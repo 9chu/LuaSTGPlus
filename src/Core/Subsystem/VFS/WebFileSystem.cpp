@@ -7,7 +7,7 @@
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 
 // 仅在 EMSCRIPTEN 下编译
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 
 #include <cstdlib>
 #include <charconv>

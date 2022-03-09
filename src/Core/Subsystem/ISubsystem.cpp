@@ -15,6 +15,16 @@ void ISubsystem::OnUpdate(double elapsedTime) noexcept
     static_cast<void>(elapsedTime);
 }
 
+void ISubsystem::OnBeforeRender(double elapsedTime) noexcept
+{
+    static_cast<void>(elapsedTime);
+}
+
+void ISubsystem::OnAfterRender(double elapsedTime) noexcept
+{
+    static_cast<void>(elapsedTime);
+}
+
 void ISubsystem::OnEvent(SubsystemEvent& event) noexcept
 {
     static_cast<void>(event);

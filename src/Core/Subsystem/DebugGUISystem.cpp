@@ -182,7 +182,7 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
 
     // 使得 Windows 环境 IME 可以正常跟踪光标位置
     // https://github.com/ocornut/imgui/blob/master/docs/FAQ.md
-#ifdef _WIN32
+#ifdef LSTG_PLATFORM_WIN32
     SDL_SysWMinfo systemWindowInfo;
     SDL_VERSION(&systemWindowInfo.version);
     if (::SDL_GetWindowWMInfo(m_pWindowSystem->GetNativeHandle(), &systemWindowInfo))
@@ -244,6 +244,11 @@ void DebugGUISystem::OnUpdate(double elapsedTime) noexcept
             }
         }
     }
+}
+
+void DebugGUISystem::OnAfterRender(double elapsedTime) noexcept
+{
+    // TODO
 }
 
 void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
@@ -361,7 +366,7 @@ void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
 void DebugGUISystem::AdjustViewSize(ImGuiIO& io) noexcept
 {
     auto windowSize = m_pWindowSystem->GetSize();
-    auto renderSize = m_pRenderSystem->GetBackBufferResolution();
+    auto renderSize = m_pWindowSystem->GetRenderSize();
     if (m_pWindowSystem->IsMinimized())
         windowSize = {0, 0};
 

@@ -48,7 +48,7 @@ LSTGColor LSTGColor::Multiply(std::variant<double, const LSTGColor*> lhs, std::v
     return LSTGColor {*std::get<1>(lhs) * *std::get<1>(rhs)};
 }
 
-std::string LSTGColor::ToString(Subsystem::Script::LuaStack st)
+std::string LSTGColor::ToString()
 {
     return fmt::format("lstg.Color({},{},{},{})", RGBA32Color::a(), RGBA32Color::r(), RGBA32Color::g(), RGBA32Color::b());
 }

@@ -60,7 +60,7 @@ namespace lstg::detail
                 assert(false);
             }
 
-#ifndef __EMSCRIPTEN__
+#ifndef LSTG_PLATFORM_EMSCRIPTEN
             try
             {
                 auto logFileName = Pal::GetUserStorageDirectory() / "log.txt";
@@ -121,7 +121,7 @@ namespace lstg::detail
                 if (m_pConsoleSink)
                     m_pConsoleSink->log(logMsg);
 
-#ifndef __EMSCRIPTEN__
+#ifndef LSTG_PLATFORM_EMSCRIPTEN
                 if (m_pFileSink)
                 {
                     m_pFileSink->log(logMsg);

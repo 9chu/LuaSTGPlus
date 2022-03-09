@@ -7,7 +7,7 @@
 #pragma once
 #include <system_error>
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 // include lua5.1
 extern "C" {
 #include <lua.h>

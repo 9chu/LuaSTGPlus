@@ -1,4 +1,5 @@
-# Lua 自动封装
+### 目标
+# Lua 自动封装代码
 file(GLOB_RECURSE LSTG_V2_BRIDGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/Bridge/*.hpp)
 lstg_gen_auto_bridge_cpp(
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/AutoBridge.gen.cpp"
@@ -7,20 +8,21 @@ lstg_gen_auto_bridge_cpp(
     NAMESPACE "lstg::v2::Bridge"
     FILES ${LSTG_V2_BRIDGE_SOURCES})
 
-# 目标
+# 跨平台源码
 file(GLOB_RECURSE LSTG_V2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
 list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/AutoBridge.gen.cpp")
 
+# 目标
 if(WIN32)
     add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES})
 else()
     add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
 endif()
 target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-
-# 第三方库
 target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main)
-if(EMSCRIPTEN)
+
+# 平台特定链接选项
+if(LSTG_PLATFORM_EMSCRIPTEN)
     target_link_options(LuaSTGPlus2
         PRIVATE "SHELL:-s FETCH=1"
         PRIVATE "SHELL:-s FETCH_SUPPORT_INDEXEDDB=0"

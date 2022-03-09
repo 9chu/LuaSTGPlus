@@ -9,7 +9,7 @@
 #include <charconv>
 #include <lstg/Core/Logging.hpp>
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 #include <emscripten/fetch.h>
 #endif
 
@@ -229,7 +229,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
     return ret;
 }
 
-#ifdef __EMSCRIPTEN__
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
 
 void FetchCloser::operator()(emscripten_fetch_t* fetch) noexcept
 {

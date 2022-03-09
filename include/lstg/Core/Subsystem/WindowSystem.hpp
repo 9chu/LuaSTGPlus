@@ -36,6 +36,11 @@ namespace lstg::Subsystem
          * 指示是否支持代码侧的大小调整
          */
         ProgrammingResizable = 2,
+
+        /**
+         * 指示是否启用 HighDPI
+         */
+        HighDPISupport = 3,
     LSTG_FLAG_END(WindowFeatures)
 
     /**
