@@ -63,11 +63,11 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
     // 获取窗体平台特性
     m_iFeatures = GetWindowFeatures();
 
-    // 初始化窗口，如果平台支持窗口化，则创建一个 640x320 的小窗口作为初始窗口
+    // 初始化窗口，如果平台支持窗口化，则创建一个 640x480 的小窗口作为初始窗口
     if (m_iFeatures & (WindowFeatures::SupportWindowMode | WindowFeatures::ProgrammingResizable))
     {
         static const int kInitialWidth = 640;
-        static const int kInitialHeight = 320;
+        static const int kInitialHeight = 480;
 
         m_pWindow = ::SDL_CreateWindow("LuaSTGPlus", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, kInitialWidth, kInitialHeight,
             SDL_WINDOW_HIDDEN);
