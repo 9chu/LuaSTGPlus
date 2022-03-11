@@ -47,12 +47,12 @@ namespace lstg::Subsystem::Render
         /**
          * 是否启用垂直同步
          */
-        [[nodiscard]] bool IsVerticalSyncEnabled() const noexcept;
+        [[nodiscard]] virtual bool IsVerticalSyncEnabled() const noexcept;
 
         /**
          * 设置是否启用垂直同步
          */
-        void SetVerticalSyncEnabled(bool enable) noexcept;
+        virtual void SetVerticalSyncEnabled(bool enable) noexcept;
 
         /**
          * 获取渲染画面宽度

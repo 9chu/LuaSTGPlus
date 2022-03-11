@@ -91,7 +91,7 @@ Result<void> AppBase::Run() noexcept
     m_ullLastUpdateTick = start;
     m_ullLastRenderTick = start;
     m_stMainTaskTimer.Reset();
-    m_stMainTaskTimer.Schedule(&m_stFrameTask, start + static_cast<uint64_t>(m_stSleeper.GetFrequency() * m_dFrameInterval));
+    m_stMainTaskTimer.Schedule(&m_stFrameTask, start + static_cast<uint64_t>(m_stSleeper.GetFrequency() * GetBestFrameInterval()));
 
 #ifndef LSTG_PLATFORM_EMSCRIPTEN
     // 执行应用循环
@@ -199,6 +199,8 @@ double AppBase::LoopOnce() noexcept
 
 void AppBase::Frame() noexcept
 {
+    auto now = Pal::GetCurrentTick();
+
     // 更新消息
     SDL_Event event;
     while (::SDL_PollEvent(&event) != 0)
@@ -218,8 +220,7 @@ void AppBase::Frame() noexcept
 #endif
 
     // 继续执行定时任务
-    auto now = Pal::GetCurrentTick();
-    m_stMainTaskTimer.Schedule(&m_stFrameTask, now + static_cast<uint64_t>(m_stSleeper.GetFrequency() * m_dFrameInterval));
+    m_stMainTaskTimer.Schedule(&m_stFrameTask, now + static_cast<uint64_t>(m_stSleeper.GetFrequency() * GetBestFrameInterval()));
 }
 
 void AppBase::Update() noexcept
@@ -252,4 +253,18 @@ void AppBase::Render() noexcept
         m_stSubsystemContainer.AfterRender(elapsed);
         device->EndRenderAndPresent();
     }
+}
+
+double AppBase::GetBestFrameInterval() noexcept
+{
+    // FIXME: 我们假设开启垂直同步时的刷新率是 60 hz
+    if (m_pRenderSystem->GetRenderDevice()->IsVerticalSyncEnabled())
+    {
+        // 如果帧率限制和垂直同步刷新率近似，会导致锁帧出现问题，我们多给一帧冗余
+        if (::fabs(m_dFrameInterval - 1 / 60.) <= std::numeric_limits<double>::epsilon())
+            return 1 / 60.5;
+    }
+
+    // 其他情况不管
+    return m_dFrameInterval;
 }

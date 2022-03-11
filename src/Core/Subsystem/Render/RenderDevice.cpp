@@ -72,9 +72,8 @@ void RenderDevice::BeginRender() noexcept
 
     // 清空 RT
     static const float kClearColor[4] = {};
-    m_pRenderContext->ClearRenderTarget(renderTargetView, kClearColor, Diligent::RESOURCE_STATE_TRANSITION_MODE_VERIFY);
-    m_pRenderContext->ClearDepthStencil(depthView, Diligent::CLEAR_DEPTH_FLAG | Diligent::CLEAR_STENCIL_FLAG, 1.0f, 0,
-        Diligent::RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+    m_pRenderContext->ClearRenderTarget(renderTargetView, kClearColor, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    m_pRenderContext->ClearDepthStencil(depthView, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 }
 
 void RenderDevice::EndRenderAndPresent() noexcept

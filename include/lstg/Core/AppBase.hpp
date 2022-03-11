@@ -98,6 +98,7 @@ namespace lstg
         void Frame() noexcept;
         void Update() noexcept;
         void Render() noexcept;
+        double GetBestFrameInterval() noexcept;
 
     private:
         // 子系统

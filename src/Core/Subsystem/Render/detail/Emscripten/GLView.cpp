@@ -18,9 +18,9 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::detail::Emscripten;
 
-LSTG_DEF_LOG_CATEGORY(EmscriptenGLView);
-
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
+
+LSTG_DEF_LOG_CATEGORY(EmscriptenGLView);
 
 GLView::GLView(const char* canvasId)
     : m_pCanvasId(canvasId)

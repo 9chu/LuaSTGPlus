@@ -26,6 +26,8 @@ namespace lstg::Subsystem::Render::detail
         RenderDeviceGL(WindowSystem* window);
 
     protected:  // RenderDevice
+        bool IsVerticalSyncEnabled() const noexcept override;
+        void SetVerticalSyncEnabled(bool enable) noexcept override;
         void Present() noexcept override;
 
     private:

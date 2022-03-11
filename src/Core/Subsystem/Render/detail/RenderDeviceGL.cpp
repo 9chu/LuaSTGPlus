@@ -67,6 +67,22 @@ RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
 #endif
 }
 
+bool RenderDeviceGL::IsVerticalSyncEnabled() const noexcept
+{
+#if defined(LSTG_PLATFORM_EMSCRIPTEN)
+    return true;
+#else
+    return RenderDevice::IsVerticalSyncEnabled();
+#endif
+}
+
+void RenderDeviceGL::SetVerticalSyncEnabled(bool enable) noexcept
+{
+#if !defined(LSTG_PLATFORM_EMSCRIPTEN)
+    RenderDevice::SetVerticalSyncEnabled(enable);
+#endif
+}
+
 void RenderDeviceGL::Present() noexcept
 {
 #if defined(LSTG_PLATFORM_MACOS)
