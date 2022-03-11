@@ -38,7 +38,7 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
 #elif defined(LSTG_PLATFORM_MACOS)
     // 创建 MetalView
     m_stView = make_unique<OSX::MetalView>(systemWindowInfo.info.cocoa.window, window->GetFeatures() & WindowFeatures::HighDPISupport);
-    nativeWindow = MacOSNativeWindow {m_stView->GetView()};
+    nativeWindow = MacOSNativeWindow {m_stView->GetLayer()};
 #else
     #error "Unsupported platform"
 #endif

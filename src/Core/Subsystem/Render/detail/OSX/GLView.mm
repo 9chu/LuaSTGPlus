@@ -79,3 +79,9 @@ GLView::~GLView()
     [m_pGLContext release];
     [m_pGLView release];
 }
+
+void GLView::Present() const noexcept
+{
+    [m_pGLContext makeCurrentContext];
+    [m_pGLContext flushBuffer];
+}

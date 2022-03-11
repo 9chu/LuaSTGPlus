@@ -29,6 +29,7 @@ namespace lstg::Subsystem::Render::detail::OSX
 
     public:
         [[nodiscard]] NSView* GetView() const noexcept { return m_pMetalView; }
+        [[nodiscard]] CAMetalLayer* GetLayer() const noexcept { return m_pMetalLayer; }
 
     private:
         NSView* m_pMetalView = nullptr;  // 仅持有指针

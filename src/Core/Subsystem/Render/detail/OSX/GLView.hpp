@@ -31,6 +31,7 @@ namespace lstg::Subsystem::Render::detail::OSX
 
     public:
         [[nodiscard]] NSOpenGLView* GetView() const noexcept { return m_pGLView; }
+        void Present() const noexcept;
 
     private:
         NSOpenGLView* m_pGLView = nullptr;

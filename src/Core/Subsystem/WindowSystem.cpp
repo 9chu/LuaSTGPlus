@@ -70,7 +70,7 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
         static const int kInitialHeight = 480;
 
         m_pWindow = ::SDL_CreateWindow("LuaSTGPlus", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, kInitialWidth, kInitialHeight,
-            SDL_WINDOW_HIDDEN);
+            SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI);
     }
     else
     {

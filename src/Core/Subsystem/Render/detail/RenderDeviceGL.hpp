@@ -12,6 +12,7 @@
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
 #include <lstg/Core/Subsystem/Render/RenderDevice.hpp>
 #include "OSX/GLView.hpp"
+#include "Emscripten/GLView.hpp"
 
 namespace lstg::Subsystem::Render::detail
 {
@@ -24,9 +25,15 @@ namespace lstg::Subsystem::Render::detail
     public:
         RenderDeviceGL(WindowSystem* window);
 
+    protected:  // RenderDevice
+        void Present() noexcept override;
+
     private:
 #ifdef LSTG_PLATFORM_MACOS
         std::unique_ptr<OSX::GLView> m_stView;
+#endif
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+        std::unique_ptr<Emscripten::GLView> m_stView;
 #endif
     };
 }

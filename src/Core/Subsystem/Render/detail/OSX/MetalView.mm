@@ -40,6 +40,13 @@ MetalView::MetalView(/* NSWindow* */ void* nsWindow, bool highDpi)
             LSTG_THROW(RenderDeviceInitializeFailedException, "CAMetalLayer returns nil");
         [m_pMetalView setLayer:m_pMetalLayer];
     }
+
+    // 计算 HighDPI 大小
+    NSSize size = m_pMetalView.bounds.size;
+    NSSize backingSize = size;
+    if (highDpi)
+        backingSize = [m_pMetalView convertSizeToBacking:size];
+    m_pMetalLayer.contentsScale = backingSize.height / size.height;
 }
 
 MetalView::~MetalView()

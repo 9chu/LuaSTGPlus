@@ -11,6 +11,7 @@
 #include <imgui.h>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
+#include "DebugGUI/detail/ImGuiRenderer.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -153,9 +154,12 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
 
     ImGuiIO& io = ImGui::GetIO();
     io.BackendPlatformUserData = this;
-    io.BackendPlatformName = "LSTGEngine";
+    io.BackendPlatformName = "LSTGPlus/SDL";
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+
+    // 构造渲染器
+    m_pRenderer = make_shared<lstg::Subsystem::DebugGUI::detail::ImGuiRenderer>(m_pRenderSystem->GetRenderDevice(), io);
 
     // 注册剪贴板方法
     io.ClipboardUserData = this;
@@ -199,7 +203,10 @@ DebugGUISystem::~DebugGUISystem()
 
     // 销毁所有鼠标指针
     for (auto p : m_stMouseCursors)
-        ::SDL_FreeCursor(p);
+    {
+        if (p)
+            ::SDL_FreeCursor(p);
+    }
 
     io.BackendPlatformUserData = nullptr;
     io.BackendPlatformName = nullptr;
@@ -239,7 +246,9 @@ void DebugGUISystem::OnUpdate(double elapsedTime) noexcept
             }
             else
             {
-                ::SDL_SetCursor(m_stMouseCursors[imGuiCursor] ? m_stMouseCursors[imGuiCursor] : m_stMouseCursors[ImGuiMouseCursor_Arrow]);
+                auto cursor = m_stMouseCursors[imGuiCursor] ? m_stMouseCursors[imGuiCursor] : m_stMouseCursors[ImGuiMouseCursor_Arrow];
+                if (cursor)
+                    ::SDL_SetCursor(cursor);
                 ::SDL_ShowCursor(SDL_TRUE);
             }
         }
@@ -248,7 +257,10 @@ void DebugGUISystem::OnUpdate(double elapsedTime) noexcept
 
 void DebugGUISystem::OnAfterRender(double elapsedTime) noexcept
 {
-    // TODO
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow(); // your drawing here
+    ImGui::Render();
+    m_pRenderer->RenderDrawData(ImGui::GetDrawData());
 }
 
 void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
@@ -365,16 +377,18 @@ void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
 
 void DebugGUISystem::AdjustViewSize(ImGuiIO& io) noexcept
 {
+    auto deviceBridge = m_pRenderSystem->GetRenderDevice();
     auto windowSize = m_pWindowSystem->GetSize();
-    auto renderSize = m_pWindowSystem->GetRenderSize();
+    auto renderSizeWidth = deviceBridge->GetRenderOutputWidth();
+    auto renderSizeHeight = deviceBridge->GetRenderOutputHeight();
     if (m_pWindowSystem->IsMinimized())
         windowSize = {0, 0};
 
-    io.DisplaySize = ImVec2(static_cast<float>(std::get<0>(renderSize)), static_cast<float>(std::get<1>(renderSize)));
+    io.DisplaySize = ImVec2(static_cast<float>(std::get<0>(windowSize)), static_cast<float>(std::get<1>(windowSize)));
     if (std::get<0>(windowSize) > 0 && std::get<1>(windowSize) > 0)
     {
-        io.DisplayFramebufferScale = ImVec2(io.DisplaySize.x / static_cast<float>(std::get<0>(windowSize)),
-            io.DisplaySize.y / static_cast<float>(std::get<1>(windowSize)));
+        io.DisplayFramebufferScale = ImVec2(renderSizeWidth / static_cast<float>(std::get<0>(windowSize)),
+            renderSizeHeight / static_cast<float>(std::get<1>(windowSize)));
     }
 }
 

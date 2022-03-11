@@ -24,6 +24,11 @@ namespace lstg::Subsystem
         LSTG_FLAG_END(MouseButtonState)
     }
 
+    namespace DebugGUI::detail
+    {
+        class ImGuiRenderer;
+    }
+
     /**
      * 调试 UI 系统
      * 基于 IMGUI 的调试用 UI 系统。
@@ -54,5 +59,7 @@ namespace lstg::Subsystem
         SDL_Cursor* m_stMouseCursors[9];
         detail::MouseButtonState m_iMouseButtonState = detail::MouseButtonState::None;
         int m_iLastMouseCursor = -2;
+
+        std::shared_ptr<DebugGUI::detail::ImGuiRenderer> m_pRenderer;
     };
 }

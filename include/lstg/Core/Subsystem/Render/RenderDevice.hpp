@@ -77,6 +77,9 @@ namespace lstg::Subsystem::Render
         void EndRenderAndPresent() noexcept;
 
     protected:
+        virtual void Present() noexcept;  // 部分平台需要定制的 Present 方法
+
+    protected:
         Diligent::IRenderDevice* m_pRenderDevice = nullptr;
         Diligent::IDeviceContext* m_pRenderContext = nullptr;
         Diligent::ISwapChain* m_pSwapChain = nullptr;

@@ -29,6 +29,9 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] Render::RenderDevice* GetRenderDevice() const noexcept { return m_pRenderDevice.get(); }
 
+    protected:  // ISubsystem
+        void OnEvent(SubsystemEvent& event) noexcept;
+
     private:
         std::shared_ptr<WindowSystem> m_pWindowSystem;
         Render::RenderDevicePtr m_pRenderDevice;

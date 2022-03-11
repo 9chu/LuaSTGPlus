@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/RenderSystem.hpp>
 
 #include <vector>
+#include <SDL.h>
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
@@ -59,12 +60,12 @@ namespace
      */
     void GetSupportedRenderDevice(std::vector<std::tuple<const char*, RenderDeviceConstructor>>& out)
     {
-#if VULKAN_SUPPORTED
+#if VULKAN_SUPPORTED == 1
         out.emplace_back("Vulkan", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDeviceVulkan>(windowSystem);
         });
 #endif
-#if GL_SUPPORTED
+#if GL_SUPPORTED == 1 || GLES_SUPPORTED == 1
         out.emplace_back("OpenGL", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDeviceGL>(windowSystem);
         });
@@ -101,4 +102,30 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
     }
     if (!m_pRenderDevice)
         LSTG_THROW(Render::RenderDeviceInitializeFailedException, "No available render device");
+}
+
+void RenderSystem::OnEvent(SubsystemEvent& event) noexcept
+{
+    const auto& underlay = event.GetEvent();
+    if (underlay.index() != 0)
+        return;
+
+    const SDL_Event* platformEvent = std::get<0>(underlay);
+
+    if (platformEvent->window.event == SDL_WINDOWEVENT_RESIZED)
+    {
+        auto renderSize = m_pWindowSystem->GetRenderSize();
+        auto newWidth = std::get<0>(renderSize);
+        auto newHeight = std::get<1>(renderSize);
+        if (newWidth > 0 && newHeight > 0)
+        {
+            auto swapChain = m_pRenderDevice->GetSwapChain();
+            const auto& desc = swapChain->GetDesc();
+            if (desc.Width != static_cast<uint32_t>(newWidth) || desc.Height != static_cast<uint32_t>(newHeight))
+            {
+                LSTG_LOG_INFO_CAT(RenderSystem, "Swap chain resize {}x{} -> {}x{}", desc.Width, desc.Height, newWidth, newHeight);
+                swapChain->Resize(newWidth, newHeight);
+            }
+        }
+    }
 }

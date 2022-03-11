@@ -116,11 +116,21 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
     auto rest = static_cast<size_t>(m_ullContentLength - m_ullFakeReadPosition);
     length = std::min<size_t>(length, rest);
 
+    bool fetchInProgress = true;
     ::emscripten_fetch_attr_t attr;
     ::emscripten_fetch_attr_init(&attr);
     strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS;
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
     attr.timeoutMSecs = m_stConfig.ReadRequestTimeout;
+    attr.userData = &fetchInProgress;
+    attr.onsuccess = [](emscripten_fetch_t* fetch) {
+        LSTG_LOG_TRACE_CAT(WebFileStream, "onsuccess");
+        *reinterpret_cast<bool*>(fetch->userData) = false;
+    };
+    attr.onerror = [](emscripten_fetch_t* fetch) {
+        LSTG_LOG_TRACE_CAT(WebFileStream, "onerror");
+        *reinterpret_cast<bool*>(fetch->userData) = false;
+    };
     if (!m_stConfig.UserName.empty() || !m_stConfig.Password.empty())
     {
         attr.userName = m_stConfig.UserName.c_str();
@@ -139,6 +149,11 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
     {
         LSTG_LOG_ERROR_CAT(WebFileStream, "emscripten_fetch returns NULL, url: {}", m_stUrl);
         return make_error_code(WebFileSystemError::ApiError);
+    }
+    while (fetchInProgress)
+    {
+        // 依赖 ASYNCIFY 进行忙等待
+        ::emscripten_sleep(0);
     }
 #if !(defined(NDEBUG) || defined(LSTG_SHIPPING))
     auto requestEnd = std::chrono::steady_clock::now();

@@ -23,14 +23,22 @@ target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main)
 
 # 平台特定链接选项
 if(LSTG_PLATFORM_EMSCRIPTEN)
-    target_link_options(LuaSTGPlus2
-        PRIVATE "SHELL:-s FETCH=1"
-        PRIVATE "SHELL:-s FETCH_SUPPORT_INDEXEDDB=0"
-        PRIVATE "SHELL:-s USE_PTHREADS=1"
-        PRIVATE "SHELL:-s MIN_WEBGL_VERSION=2"
-        PRIVATE "SHELL:-s MAX_WEBGL_VERSION=2"
-        PRIVATE "SHELL:-s ENVIRONMENT=web,worker"
-        PRIVATE "SHELL:-s ALLOW_MEMORY_GROWTH=1"
-        PRIVATE "SHELL:-s INITIAL_MEMORY=512mb"
-        PRIVATE "SHELL:-s PROXY_TO_PTHREAD=1")
+    set(LSTG_EMSCRIPTEN_LINK_OPTIONS
+        "SHELL:-s ASYNCIFY"
+        "SHELL:-s FETCH=1"
+        "SHELL:-s FETCH_SUPPORT_INDEXEDDB=0"
+        "SHELL:-s MIN_WEBGL_VERSION=2"
+        "SHELL:-s MAX_WEBGL_VERSION=3"
+        "SHELL:-s FULL_ES3=1"
+        "SHELL:-s ENVIRONMENT=web"
+        "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+        "SHELL:-s INITIAL_MEMORY=256mb")
+    if(NOT LSTG_SHIPPING)
+        list(APPEND LSTG_EMSCRIPTEN_LINK_OPTIONS
+            "SHELL:-s ASSERTIONS=1"
+            "SHELL:-s SAFE_HEAP=1"
+            "SHELL:-s DEMANGLE_SUPPORT=1")
+    endif()
+    message(STATUS "[LSTG] Emscripten link options: ${LSTG_EMSCRIPTEN_LINK_OPTIONS}")
+    target_link_options(LuaSTGPlus2 PRIVATE ${LSTG_EMSCRIPTEN_LINK_OPTIONS})
 endif()
