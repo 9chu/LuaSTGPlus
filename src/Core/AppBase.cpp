@@ -23,6 +23,7 @@
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/RenderSystem.hpp>
 #include <lstg/Core/Subsystem/DebugGUISystem.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -60,11 +61,13 @@ AppBase::AppBase()
     m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0,
         SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender);
     m_stSubsystemContainer.Register<Subsystem::DebugGUISystem>("DebugGUISystem", 0);
+    m_stSubsystemContainer.Register<Subsystem::ProfileSystem>("ProfileSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 
     // 持有渲染子系统指针
     m_pRenderSystem = m_stSubsystemContainer.Get<Subsystem::RenderSystem>();
+    m_pProfileSystem = m_stSubsystemContainer.Get<Subsystem::ProfileSystem>();
 }
 
 AppBase::~AppBase()
@@ -90,6 +93,9 @@ Result<void> AppBase::Run() noexcept
     auto start = Pal::GetCurrentTick();
     m_ullLastUpdateTick = start;
     m_ullLastRenderTick = start;
+    m_dFrameRateCounterTimer = 0;
+    m_uUpdateFramesInSecond = 0;
+    m_uRenderFramesInSecond = 0;
     m_stMainTaskTimer.Reset();
     m_stMainTaskTimer.Schedule(&m_stFrameTask, start + static_cast<uint64_t>(m_stSleeper.GetFrequency() * GetBestFrameInterval()));
 
@@ -199,14 +205,18 @@ double AppBase::LoopOnce() noexcept
 
 void AppBase::Frame() noexcept
 {
+    m_pProfileSystem->NewFrame();
     auto now = Pal::GetCurrentTick();
 
     // 更新消息
-    SDL_Event event;
-    while (::SDL_PollEvent(&event) != 0)
     {
-        Subsystem::SubsystemEvent transformed(&event);
-        OnEvent(transformed);
+        LSTG_PER_FRAME_PROFILE("EventDispatchTime");
+        SDL_Event event;
+        while (::SDL_PollEvent(&event) != 0)
+        {
+            Subsystem::SubsystemEvent transformed(&event);
+            OnEvent(transformed);
+        }
     }
 
     // 执行更新逻辑
@@ -225,6 +235,8 @@ void AppBase::Frame() noexcept
 
 void AppBase::Update() noexcept
 {
+    LSTG_PER_FRAME_PROFILE("UpdateTime");
+
     // 计算更新时间间隔
     auto now = Pal::GetCurrentTick();
     auto elapsed = static_cast<double>(now - m_ullLastUpdateTick) / m_stSleeper.GetFrequency();
@@ -235,10 +247,26 @@ void AppBase::Update() noexcept
         m_stSubsystemContainer.Update(elapsed);
         OnUpdate(elapsed);
     }
+    ++m_uUpdateFramesInSecond;
+
+    // 更新计时器
+    m_dFrameRateCounterTimer += elapsed;
+    if (m_dFrameRateCounterTimer >= 1.0)
+    {
+        auto logicRate = m_uUpdateFramesInSecond / m_dFrameRateCounterTimer;
+        auto renderRate = m_uRenderFramesInSecond / m_dFrameRateCounterTimer;
+        m_pProfileSystem->SetPerformanceCounter(Subsystem::PerformanceCounterTypes::RealTime, "LogicFps", logicRate);
+        m_pProfileSystem->SetPerformanceCounter(Subsystem::PerformanceCounterTypes::RealTime, "RenderFps", renderRate);
+        m_dFrameRateCounterTimer = 0;
+        m_uUpdateFramesInSecond = 0;
+        m_uRenderFramesInSecond = 0;
+    }
 }
 
 void AppBase::Render() noexcept
 {
+    LSTG_PER_FRAME_PROFILE("RenderTime");
+
     // 计算渲染时间间隔
     auto now = Pal::GetCurrentTick();
     auto elapsed = static_cast<double>(now - m_ullLastRenderTick) / m_stSleeper.GetFrequency();
@@ -253,6 +281,7 @@ void AppBase::Render() noexcept
         m_stSubsystemContainer.AfterRender(elapsed);
         device->EndRenderAndPresent();
     }
+    ++m_uRenderFramesInSecond;
 }
 
 double AppBase::GetBestFrameInterval() noexcept

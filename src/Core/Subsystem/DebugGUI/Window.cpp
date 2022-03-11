@@ -12,9 +12,14 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::DebugGUI;
 
-Window::Window(const char* name, DebugWindowFlags flags)
-    : m_stName(name), m_uFlags(flags)
+Window::Window(const char* name, const char* title, DebugWindowFlags flags)
+    : m_stName(name), m_stTitle(title), m_uFlags(flags)
 {
+}
+
+void Window::Update(double elapsedTime) noexcept
+{
+    OnUpdate(elapsedTime);
 }
 
 void Window::Render() noexcept
@@ -22,12 +27,26 @@ void Window::Render() noexcept
     if (!m_bVisible)
         return;
 
-    if (!ImGui::Begin(m_stName.c_str(), &m_bVisible, static_cast<int>(m_uFlags)))
+    OnPrepareWindow();
+
+    if (!ImGui::Begin(m_stTitle.c_str(), &m_bVisible, static_cast<int>(m_uFlags)))
+    {
         ImGui::End();
-    OnDraw();
+        return;
+    }
+    OnRender();
     ImGui::End();
 }
 
-void Window::OnDraw() noexcept
+void Window::OnPrepareWindow() noexcept
+{
+}
+
+void Window::OnUpdate(double elapsedTime) noexcept
+{
+    static_cast<void>(elapsedTime);
+}
+
+void Window::OnRender() noexcept
 {
 }

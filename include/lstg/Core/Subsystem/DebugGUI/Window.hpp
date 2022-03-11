@@ -44,7 +44,7 @@ namespace lstg::Subsystem::DebugGUI
     class Window
     {
     public:
-        Window(const char* name, DebugWindowFlags flags);
+        Window(const char* name, const char* title, DebugWindowFlags flags);
         virtual ~Window() = default;
 
     public:
@@ -80,9 +80,20 @@ namespace lstg::Subsystem::DebugGUI
         const std::string& GetName() const noexcept { return m_stName; }
 
         /**
-         * 设置名称
+         * 获取标题
          */
-        void SetName(std::string name) noexcept { m_stName = std::move(name); }
+        const std::string& GetTitle() const noexcept { return m_stTitle; }
+
+        /**
+         * 设置标题
+         */
+        void SetTitle(std::string title) noexcept { m_stTitle = std::move(title); }
+
+        /**
+         * 更新状态
+         * @param elapsedTime 流逝时间
+         */
+        void Update(double elapsedTime) noexcept;
 
         /**
          * 绘制
@@ -90,11 +101,14 @@ namespace lstg::Subsystem::DebugGUI
         void Render() noexcept;
 
     protected:  // 需要实现
-        virtual void OnDraw() noexcept;
+        virtual void OnPrepareWindow() noexcept;
+        virtual void OnUpdate(double elapsedTime) noexcept;
+        virtual void OnRender() noexcept;
 
     private:
         std::string m_stName;
-        bool m_bVisible = true;
+        std::string m_stTitle;
+        bool m_bVisible = false;  // 默认不可见
         DebugWindowFlags m_uFlags;
     };
 }

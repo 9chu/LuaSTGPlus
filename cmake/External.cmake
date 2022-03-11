@@ -105,6 +105,19 @@ if(${imgui_ADDED})
     target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
 endif()
 
+CPMAddPackage(
+    NAME implot
+    GITHUB_REPOSITORY epezent/implot
+    VERSION 0.13
+    DOWNLOAD_ONLY
+)
+if(${implot_ADDED})
+    file(GLOB implot_SOURCES ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp)
+    add_library(implot STATIC ${implot_SOURCES})
+    target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
+    target_link_libraries(implot PUBLIC imgui)
+endif()
+
 # DiligentCore
 CPMAddPackage(
     NAME DiligentCore

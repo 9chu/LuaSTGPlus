@@ -1,6 +1,6 @@
 ### 明确第三方库引用
 set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static)
-set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui zlib-ng)
+set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng)
 
 # 平台相关库
 if(LSTG_PLATFORM_MACOS)

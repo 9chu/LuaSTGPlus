@@ -9,8 +9,10 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <imgui.h>
+#include <implot.h>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include "DebugGUI/detail/ImGuiRenderer.hpp"
 
 using namespace std;
@@ -147,11 +149,18 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
     : m_pWindowSystem(container.Get<WindowSystem>()), m_pRenderSystem(container.Get<RenderSystem>())
 {
     assert(m_pWindowSystem && m_pRenderSystem);
+    container.Get<ProfileSystem>();  // 强制构造 ProfileSystem
 
     // 初始化 imgui
     LSTG_LOG_TRACE_CAT(DebugGUISystem, "Initialize ImGui");
     m_pImGuiContext = ImGui::CreateContext();
+    assert(m_pImGuiContext);
 
+    // 初始化 implot
+    m_pImPlotContext = ImPlot::CreateContext();
+    assert(m_pImPlotContext);
+
+    // 配置 IO
     ImGuiIO& io = ImGui::GetIO();
     io.BackendPlatformUserData = this;
     io.BackendPlatformName = "LSTGPlus/SDL";
@@ -195,6 +204,23 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
 
     // 告知 SDL 在获取焦点的瞬间也要发出一个鼠标点击事件
     ::SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+
+    // 默认工具窗口
+    {
+        m_pMiniStatusWindow = make_shared<DebugGUI::MiniStatusWindow>();
+        AppendWindow(m_pMiniStatusWindow);
+
+        m_pFrameTimeMonitor = make_shared<DebugGUI::FrameTimeMonitor>();
+        AppendWindow(m_pFrameTimeMonitor);
+
+        m_pConsoleWindow = make_shared<DebugGUI::ConsoleWindow>();
+        AppendWindow(m_pConsoleWindow);
+
+#ifdef LSTG_DEVELOPMENT
+        m_pMiniStatusWindow->Show();
+        m_pFrameTimeMonitor->Show();
+#endif
+    }
 }
 
 DebugGUISystem::~DebugGUISystem()
@@ -210,7 +236,25 @@ DebugGUISystem::~DebugGUISystem()
 
     io.BackendPlatformUserData = nullptr;
     io.BackendPlatformName = nullptr;
+    ImPlot::DestroyContext(m_pImPlotContext);
     ImGui::DestroyContext(m_pImGuiContext);
+}
+
+Result<bool> DebugGUISystem::AppendWindow(std::shared_ptr<DebugGUI::Window> window) noexcept
+{
+    assert(window);
+    if (m_stWindows.find(window->GetName()) != m_stWindows.end())
+        return false;
+    const auto& name = window->GetName();
+    try
+    {
+        m_stWindows.emplace(name, std::move(window));
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+    return true;
 }
 
 void DebugGUISystem::OnUpdate(double elapsedTime) noexcept
@@ -253,12 +297,20 @@ void DebugGUISystem::OnUpdate(double elapsedTime) noexcept
             }
         }
     }
+
+    // 更新子窗口
+    for (const auto& w : m_stWindows)
+        w.second->Update(elapsedTime);
 }
 
 void DebugGUISystem::OnAfterRender(double elapsedTime) noexcept
 {
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow(); // your drawing here
+
+    // 绘制所有窗口
+    for (const auto& w : m_stWindows)
+        w.second->Render();
+
     ImGui::Render();
     m_pRenderer->RenderDrawData(ImGui::GetDrawData());
 }
@@ -373,6 +425,17 @@ void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
     // 如果鼠标按下，则告知 OS 不要激活其他窗口
     if (platformEvent->type == SDL_MOUSEBUTTONDOWN || platformEvent->type == SDL_MOUSEBUTTONUP)
         SDL_CaptureMouse(m_iMouseButtonState != detail::MouseButtonState::None ? SDL_TRUE : SDL_FALSE);
+
+#ifdef LSTG_DEVELOPMENT
+    // 弹出 ConsoleWindow
+    if (platformEvent->type == SDL_KEYDOWN && platformEvent->key.keysym.sym == SDLK_BACKQUOTE)
+    {
+        if (m_pConsoleWindow->IsVisible())
+            m_pConsoleWindow->Hide();
+        else
+            m_pConsoleWindow->Show();
+    }
+#endif
 }
 
 void DebugGUISystem::AdjustViewSize(ImGuiIO& io) noexcept

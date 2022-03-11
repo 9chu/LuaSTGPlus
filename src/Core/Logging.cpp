@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Logging.hpp>
 
+#include <shared_mutex>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -118,25 +119,67 @@ namespace lstg::detail
 
             try
             {
+                // 终端
                 if (m_pConsoleSink)
                     m_pConsoleSink->log(logMsg);
 
 #ifndef LSTG_PLATFORM_EMSCRIPTEN
+                // 文件
                 if (m_pFileSink)
                 {
                     m_pFileSink->log(logMsg);
                     m_pFileSink->flush();
                 }
 #endif
+
+                // 用户自定义落地器
+                {
+                    shared_lock<shared_mutex> lock(m_stLock);
+                    for (const auto& sink : m_stCustomSinks)
+                        sink->Sink(message);
+                }
             }
             catch (...)
             {
             }
         }
 
+        Result<void> AddCustomSink(Logging::CustomSinkPtr sink) noexcept
+        {
+            try
+            {
+                unique_lock<shared_mutex> lock(m_stLock);
+                m_stCustomSinks.emplace_back(std::move(sink));
+            }
+            catch (...)
+            {
+                return make_error_code(errc::not_enough_memory);
+            }
+            return {};
+        }
+
+        bool RemoveCustomSink(Logging::ICustomSink* sink) noexcept
+        {
+            unique_lock<shared_mutex> lock(m_stLock);
+            auto it = m_stCustomSinks.begin();
+            while (it != m_stCustomSinks.end())
+            {
+                if (it->get() == sink)
+                {
+                    m_stCustomSinks.erase(it);
+                    return true;
+                }
+                ++it;
+            }
+            return false;
+        }
+
     private:
         spdlog::sink_ptr m_pConsoleSink;
         spdlog::sink_ptr m_pFileSink;
+
+        shared_mutex m_stLock;
+        vector<Logging::CustomSinkPtr> m_stCustomSinks;
     };
 }
 
@@ -229,6 +272,16 @@ LogLevel Logging::GetMaxLevel() const noexcept
 void Logging::SetMaxLevel(LogLevel level) noexcept
 {
     m_iMaxLevel.store(level, std::memory_order_relaxed);
+}
+
+Result<void> Logging::AddCustomSink(CustomSinkPtr sink) noexcept
+{
+    return m_pImpl->AddCustomSink(std::move(sink));
+}
+
+bool Logging::RemoveCustomSink(ICustomSink* sink) noexcept
+{
+    return m_pImpl->RemoveCustomSink(sink);
 }
 
 std::string& Logging::GetTlsBuffer() noexcept

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <string_view>
 #include <fmt/format.h>
+#include "Result.hpp"
 
 namespace lstg
 {
@@ -86,6 +87,26 @@ namespace lstg
          */
         static Logging& GetInstance() noexcept;
 
+    public:
+        /**
+         * 自定义 Sink
+         */
+        class ICustomSink
+        {
+        public:
+            virtual ~ICustomSink() = default;
+
+        public:
+            /**
+             * 落地日志
+             * @note 需要线程安全
+             * @param message 日志
+             */
+            virtual void Sink(const detail::LogMessage& message) noexcept = 0;
+        };
+
+        using CustomSinkPtr = std::shared_ptr<ICustomSink>;
+
     protected:
         Logging()noexcept;
         Logging(const Logging&) = delete;
@@ -118,6 +139,20 @@ namespace lstg
          * @param level 等级
          */
         void SetMaxLevel(LogLevel level) noexcept;
+
+        /**
+         * 追加自定义的落地器
+         * @param sink 落地器
+         * @return 是否成功
+         */
+        Result<void> AddCustomSink(CustomSinkPtr sink) noexcept;
+
+        /**
+         * 移除自定义的落地器
+         * @param sink 落地器
+         * @return 是否成功
+         */
+        bool RemoveCustomSink(ICustomSink* sink) noexcept;
 
         /**
          * 记录日志

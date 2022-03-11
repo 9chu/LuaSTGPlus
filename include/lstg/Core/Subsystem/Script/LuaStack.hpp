@@ -123,7 +123,9 @@ namespace lstg::Subsystem::Script
 
             ~BalanceChecker()
             {
-                assert(Stack.GetTop() == EnterTop);
+                auto top = Stack.GetTop();
+                static_cast<void>(top);
+                assert(top == EnterTop);
             }
         };
 #endif

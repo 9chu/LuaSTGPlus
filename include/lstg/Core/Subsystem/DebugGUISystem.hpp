@@ -5,12 +5,18 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
+#include <map>
 #include "RenderSystem.hpp"
 #include "WindowSystem.hpp"
+#include "DebugGUI/Window.hpp"
+#include "DebugGUI/MiniStatusWindow.hpp"
+#include "DebugGUI/FrameTimeMonitor.hpp"
+#include "DebugGUI/ConsoleWindow.hpp"
 
 struct SDL_Cursor;
 struct ImGuiIO;
 struct ImGuiContext;
+struct ImPlotContext;
 
 namespace lstg::Subsystem
 {
@@ -40,6 +46,29 @@ namespace lstg::Subsystem
         DebugGUISystem(SubsystemContainer& container);
         ~DebugGUISystem() override;
 
+    public:
+        /**
+         * 增加窗体
+         * @param window 窗口
+         * @return 是否已经存在
+         */
+        Result<bool> AppendWindow(std::shared_ptr<DebugGUI::Window> window) noexcept;
+
+        /**
+         * 获取迷你状态窗口
+         */
+        [[nodiscard]] const auto& GetMiniStatusWindow() const noexcept { return m_pMiniStatusWindow; }
+
+        /**
+         * 获取帧时间监视器窗口
+         */
+        [[nodiscard]] const auto& GetFrameTimeMonitor() const noexcept { return m_pFrameTimeMonitor; }
+
+        /**
+         * 获取控制台窗口
+         */
+        [[nodiscard]] const auto& GetConsoleWindow() const noexcept { return m_pConsoleWindow; }
+
     protected:  // ISubsystem
         void OnUpdate(double elapsedTime) noexcept override;
         void OnAfterRender(double elapsedTime) noexcept override;
@@ -54,12 +83,23 @@ namespace lstg::Subsystem
         std::shared_ptr<WindowSystem> m_pWindowSystem;
         std::shared_ptr<RenderSystem> m_pRenderSystem;
 
+        // ImGui 状态
         ImGuiContext* m_pImGuiContext = nullptr;
+        ImPlotContext* m_pImPlotContext = nullptr;
         std::string m_stClipboardText;
         SDL_Cursor* m_stMouseCursors[9];
         detail::MouseButtonState m_iMouseButtonState = detail::MouseButtonState::None;
         int m_iLastMouseCursor = -2;
 
+        // 渲染器
         std::shared_ptr<DebugGUI::detail::ImGuiRenderer> m_pRenderer;
+
+        // 子窗口
+        std::map<std::string, std::shared_ptr<DebugGUI::Window>> m_stWindows;
+
+        // 内建窗口
+        std::shared_ptr<DebugGUI::MiniStatusWindow> m_pMiniStatusWindow;
+        std::shared_ptr<DebugGUI::FrameTimeMonitor> m_pFrameTimeMonitor;
+        std::shared_ptr<DebugGUI::ConsoleWindow> m_pConsoleWindow;
     };
 }

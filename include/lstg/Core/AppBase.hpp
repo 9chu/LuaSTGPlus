@@ -15,6 +15,7 @@ namespace lstg
     namespace Subsystem
     {
         class RenderSystem;
+        class ProfileSystem;
     }
 
     /**
@@ -104,6 +105,7 @@ namespace lstg
         // 子系统
         Subsystem::SubsystemContainer m_stSubsystemContainer;
         std::shared_ptr<Subsystem::RenderSystem> m_pRenderSystem;
+        std::shared_ptr<Subsystem::ProfileSystem> m_pProfileSystem;
 
         // 帧率控制
         Timer m_stMainTaskTimer;
@@ -119,5 +121,8 @@ namespace lstg
         bool m_bShouldStop = false;
         uint64_t m_ullLastUpdateTick = 0;
         uint64_t m_ullLastRenderTick = 0;
+        double m_dFrameRateCounterTimer = 0;
+        unsigned m_uUpdateFramesInSecond = 0;
+        unsigned m_uRenderFramesInSecond = 0;
     };
 } // namespace lstg
