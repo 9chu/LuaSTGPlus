@@ -29,7 +29,7 @@ CPMAddPackage(
     GITHUB_REPOSITORY gabime/spdlog
     VERSION 1.9.2
     OPTIONS
-    "SPDLOG_FMT_EXTERNAL ON"
+        "SPDLOG_FMT_EXTERNAL ON"
 )
 
 # zlib-ng
@@ -39,10 +39,10 @@ if(LSTG_PLATFORM_EMSCRIPTEN)
         GITHUB_REPOSITORY 9chu/zlib-ng
         GIT_TAG patch_name_merge_wasm32
         OPTIONS
-        "ZLIB_ENABLE_TESTS OFF"
-        "BUILD_SHARED_LIBS OFF"
-        "CMAKE_C_COMPILER_TARGET wasm32"
-        "ZLIB_COMPAT OFF"
+            "ZLIB_ENABLE_TESTS OFF"
+            "BUILD_SHARED_LIBS OFF"
+            "CMAKE_C_COMPILER_TARGET wasm32"
+            "ZLIB_COMPAT OFF"
     )
 else()
     CPMAddPackage(
@@ -50,9 +50,9 @@ else()
         GITHUB_REPOSITORY 9chu/zlib-ng
         GIT_TAG patch_name_merge_wasm32
         OPTIONS
-        "ZLIB_ENABLE_TESTS OFF"
-        "BUILD_SHARED_LIBS OFF"
-        "ZLIB_COMPAT OFF"
+            "ZLIB_ENABLE_TESTS OFF"
+            "BUILD_SHARED_LIBS OFF"
+            "ZLIB_COMPAT OFF"
     )
 endif()
 
@@ -63,17 +63,17 @@ CPMAddPackage(
     #GIT_TAG release-2.0.20
     GIT_TAG main
     OPTIONS
-    "SDL2_DISABLE_UNINSTALL ON"
-    "SDL_ATOMIC OFF"
-    "SDL_AUDIO OFF"
-    "SDL_RENDER OFF"
-    "SDL_HAPTIC OFF"
-    "SDL_HIDAPI OFF"
-    "SDL_POWER OFF"
-    "SDL_CPUINFO OFF"
-    "SDL_SENSOR OFF"
-    "SDL_LOCALE OFF"
-    "SDL_MISC OFF"
+        "SDL2_DISABLE_UNINSTALL ON"
+        "SDL_ATOMIC OFF"
+        "SDL_AUDIO OFF"
+        "SDL_RENDER OFF"
+        "SDL_HAPTIC OFF"
+        "SDL_HIDAPI OFF"
+        "SDL_POWER OFF"
+        "SDL_CPUINFO OFF"
+        "SDL_SENSOR OFF"
+        "SDL_LOCALE OFF"
+        "SDL_MISC OFF"
 )
 
 # lua or luajit

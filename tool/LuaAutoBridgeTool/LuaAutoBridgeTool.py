@@ -50,11 +50,33 @@ class ClassDecl:
         self._setters[name] = (name, native_func)
 
 
+class EnumDecl:
+    def __init__(self, name, native_enum_name):
+        self._name = name
+        self._native_enum_name = native_enum_name
+        self._fields = {}
+
+    def get_name(self):
+        return self._name
+
+    def get_native_enum_name(self):
+        return self._native_enum_name
+
+    def get_fields(self):
+        return self._fields
+
+    def add_field(self, name, native_identifier):
+        if name in self._fields:
+            raise RuntimeError(f'Enum field {name} already defined')
+        self._fields[name] = (name, native_identifier)
+
+
 class ModuleDecl:
     def __init__(self, name, native_class_name, is_global):
         self._name = name
         self._native_class_name = native_class_name
         self._methods = {}
+        self._enums = {}
         self._is_global = is_global
 
     def get_name(self):
@@ -69,10 +91,22 @@ class ModuleDecl:
     def get_methods(self):
         return self._methods
 
+    def get_enums(self):
+        return self._enums
+
     def add_method(self, name, native_func):
         if name in self._methods:
             raise RuntimeError(f'Method {name} already defined')
+        if name in self._enums:
+            raise RuntimeError(f'Identifier {name} already taken by an enum')
         self._methods[name] = (name, native_func)
+
+    def add_enum(self, e: EnumDecl):
+        if e.get_name() in self._enums:
+            raise RuntimeError(f'Enum {e.get_name()} already defined')
+        if e.get_name() in self._methods:
+            raise RuntimeError(f'Identifier {e.get_name()} already taken by a method')
+        self._enums[e.get_name()] = e
 
 
 def _parse_native_method_name(line):
@@ -135,16 +169,23 @@ PARSE_STATE_CLASS_PARSE_SETTER_NAME = 14
 PARSE_STATE_MODULE_LOOK_FOR_CLASS_NAME = 20
 PARSE_STATE_MODULE_LOOK_FOR_METHOD = 21
 PARSE_STATE_MODULE_PARSE_METHOD_NAME = 22
+PARSE_STATE_MODULE_LOOK_FOR_ENUM_NAME = 23
+PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD = 24
+PARSE_STATE_MODULE_PARSE_ENUM_FIELD = 25
 
 
 class HeaderParser:
     REGEX_STRIP = re.compile(r'^\s*(.*?)\s*(//.*)?$')
     REGEX_CLASS_HINT = re.compile(r'^LSTG_CLASS(\(.*?\))?$')
-    REGEX_CLASS_NAME_MATCH = re.compile(r'^(class|struct)\s+([a-zA-Z0-9_]+)\s*')
-    REGEX_CLASS_METHOD_HINT = re.compile(r'LSTG_METHOD(\(\s*([a-zA-Z0-9_]+)?\s*\))?$')
-    REGEX_CLASS_GETTER_HINT = re.compile(r'LSTG_GETTER(\(\s*([a-zA-Z0-9_]+)?\s*\))?$')
-    REGEX_CLASS_SETTER_HINT = re.compile(r'LSTG_SETTER(\(\s*([a-zA-Z0-9_]+)?\s*\))?$')
-    REGEX_MODULE_HINT = re.compile(r'LSTG_MODULE(\(\s*([a-zA-Z0-9_]+)?\s*(,\s*([a-zA-Z0-9_]+))?\))?$')
+    REGEX_CLASS_NAME_MATCH = re.compile(r'^(class|struct)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*')
+    REGEX_CLASS_METHOD_HINT = re.compile(r'LSTG_METHOD(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_CLASS_GETTER_HINT = re.compile(r'LSTG_GETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_CLASS_SETTER_HINT = re.compile(r'LSTG_SETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_MODULE_HINT = re.compile(r'LSTG_MODULE(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*(,\s*([a-zA-Z0-9_]+))?\))?$')
+    REGEX_MODULE_ENUM_HINT = re.compile(r'LSTG_ENUM(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_ENUM_NAME_MATCH = re.compile(r'^(enum\s+class)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*')
+    REGEX_MODULE_ENUM_FIELD_HINT = re.compile(r'LSTG_FIELD(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_ENUM_FIELD_MATCH = re.compile(r'^,?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*')
 
     def __init__(self):
         self._state = PARSE_STATE_DEFAULT
@@ -152,6 +193,7 @@ class HeaderParser:
         self._modules = {}  # type: typing.Dict[str, ModuleDecl]
         self._current_class = None  # type: typing.Optional[ClassDecl]
         self._current_module = None  # type: typing.Optional[ModuleDecl]
+        self._current_enum = None  # type: typing.Optional[EnumDecl]
         self._current_hint_name = None
         self._current_flag = None
 
@@ -181,6 +223,7 @@ class HeaderParser:
         self._state = PARSE_STATE_DEFAULT
         self._current_class = None
         self._current_module = None
+        self._current_enum = None
         self._current_hint_name = None
         self._current_flag = None
 
@@ -190,6 +233,7 @@ class HeaderParser:
             raise RuntimeError('Bad class declaration')
         self._state = PARSE_STATE_CLASS_LOOK_FOR_CLASS_NAME
         self._current_module = None
+        self._current_enum = None
         self._current_flag = None
 
     def _on_parse_class_name(self, line):
@@ -236,6 +280,7 @@ class HeaderParser:
     def _on_module_decl(self, line):
         groups = self._parse_hint_name(line, HeaderParser.REGEX_MODULE_HINT, 2, PARSE_STATE_MODULE_LOOK_FOR_CLASS_NAME)
         self._current_class = None
+        self._current_enum = None
         if groups.group(4):
             self._current_flag = groups.group(4)
         else:
@@ -269,6 +314,34 @@ class HeaderParser:
         self._current_module.add_method(self._current_hint_name, native_name)
         self._state = PARSE_STATE_MODULE_LOOK_FOR_METHOD
 
+    def _on_module_enum_decl(self, line):
+        self._parse_hint_name(line, HeaderParser.REGEX_MODULE_ENUM_HINT, 2, PARSE_STATE_MODULE_LOOK_FOR_ENUM_NAME)
+        assert(self._current_module is not None)
+        self._current_class = None
+        self._current_flag = None
+
+    def _on_parse_module_enum_name(self, line):
+        groups = HeaderParser.REGEX_ENUM_NAME_MATCH.match(line)
+        if not groups:
+            raise RuntimeError('Cannot parse enum class declaration')
+        enum_name = groups.group(2) if self._current_hint_name is None else self._current_hint_name
+        self._current_enum = EnumDecl(enum_name, groups.group(2))
+        self._current_module.add_enum(self._current_enum)
+        self._state = PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD
+
+    def _on_enum_field(self, line):
+        self._parse_hint_name(line, HeaderParser.REGEX_MODULE_ENUM_FIELD_HINT, 2, PARSE_STATE_MODULE_PARSE_ENUM_FIELD)
+
+    def _on_parse_module_enum_field(self, line):
+        groups = HeaderParser.REGEX_ENUM_FIELD_MATCH.match(line)
+        if not groups:
+            raise RuntimeError('Cannot parse enum field declaration')
+        native_name = groups.group(1)
+        if self._current_hint_name is None:
+            self._current_hint_name = native_name
+        self._current_enum.add_field(self._current_hint_name, native_name)
+        self._state = PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD
+
     def get_classes(self):
         return self._classes
 
@@ -284,7 +357,7 @@ class HeaderParser:
         if line == '':
             return
         if self._state == PARSE_STATE_DEFAULT or self._state == PARSE_STATE_CLASS_LOOK_FOR_METHOD or \
-                self._state == PARSE_STATE_MODULE_LOOK_FOR_METHOD:
+                self._state == PARSE_STATE_MODULE_LOOK_FOR_METHOD or self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD:
             if line.startswith('LSTG_CLASS'):
                 self._on_class_decl(line)
             elif line.startswith('LSTG_MODULE'):
@@ -297,9 +370,13 @@ class HeaderParser:
                         self._on_class_getter_decl(line)
                     elif line.startswith('LSTG_SETTER'):
                         self._on_class_setter_decl(line)
-                elif self._state == PARSE_STATE_MODULE_LOOK_FOR_METHOD:
+                elif self._state == PARSE_STATE_MODULE_LOOK_FOR_METHOD or self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD:
                     if line.startswith('LSTG_METHOD'):
                         self._on_module_method_decl(line)
+                    elif line.startswith('LSTG_ENUM'):
+                        self._on_module_enum_decl(line)
+                    elif self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD and line.startswith('LSTG_FIELD'):
+                        self._on_enum_field(line)
         elif self._state == PARSE_STATE_CLASS_LOOK_FOR_CLASS_NAME:
             self._on_parse_class_name(line)
         elif self._state == PARSE_STATE_MODULE_LOOK_FOR_CLASS_NAME:
@@ -312,6 +389,10 @@ class HeaderParser:
             self._on_parse_class_setter_name(line)
         elif self._state == PARSE_STATE_MODULE_PARSE_METHOD_NAME:
             self._on_parse_module_method_name(line)
+        elif self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_NAME:
+            self._on_parse_module_enum_name(line)
+        elif self._state == PARSE_STATE_MODULE_PARSE_ENUM_FIELD:
+            self._on_parse_module_enum_field(line)
 
 
 def main():
@@ -375,20 +456,23 @@ def main():
             setters = cls.get_setters()
             f.write(f'void LuaRegister(LuaClassRegister<{name}>& register_)\n')
             f.write('{\n')
-            f.write(f'    register_\n')
-            for method_name in methods:
-                method = methods[method_name]
-                f.write(f'        .Method("{method[0]}", &{name}::{method[1]})\n')
-            for getter_name in getters:
-                getter = getters[getter_name]
-                if getter[0] in setters:
-                    f.write(f'        .GetterSetter("{getter[0]}", &{name}::{getter[1]}, {name}::{setters[1]})\n')
-                else:
-                    f.write(f'        .Getter("{getter[0]}", &{name}::{getter[1]})\n')
-            for setter_name in setters:
-                setter = setters[setter_name]
-                f.write(f'        .Setter("{setter[0]}", &{name}::{setter[1]})\n')
-            f.write(f'    ;\n')
+            if len(methods) == 0 and len(getters) == 0 and len(setters) == 0:
+                f.write(f'    static_cast<void>(register_);\n')
+            else:
+                f.write(f'    register_\n')
+                for method_name in methods:
+                    method = methods[method_name]
+                    f.write(f'        .Method("{method[0]}", &{name}::{method[1]})\n')
+                for getter_name in getters:
+                    getter = getters[getter_name]
+                    if getter[0] in setters:
+                        f.write(f'        .GetterSetter("{getter[0]}", &{name}::{getter[1]}, {name}::{setters[1]})\n')
+                    else:
+                        f.write(f'        .Getter("{getter[0]}", &{name}::{getter[1]})\n')
+                for setter_name in setters:
+                    setter = setters[setter_name]
+                    f.write(f'        .Setter("{setter[0]}", &{name}::{setter[1]})\n')
+                f.write(f'    ;\n')
             f.write('}\n')
         f.write('}\n')
         # Bridge 方法
@@ -399,8 +483,18 @@ def main():
             native_class = module.get_native_class_name()
             is_global = module.is_global()
             methods = module.get_methods()
+            enums = module.get_enums()
             f.write(f'    // Module register for {name}\n')
             f.write(f'    LuaModuleRegister(stack_, "{name}", {"true" if is_global else "false"})\n')
+            for enum_name in enums:
+                enum = enums[enum_name]  # type: EnumDecl
+                native_enum = f'{native_class}::{enum.get_native_enum_name()}'
+                enum_fields = enum.get_fields()
+                f.write(f'        .Enum("{enum.get_name()}")\n')
+                for field_name in enum_fields:
+                    field = enum_fields[field_name]
+                    f.write(f'            .Put("{field[0]}", {native_enum}::{field[1]})\n')
+                f.write(f'            .End()\n')
             for method_name in methods:
                 method = methods[method_name]
                 f.write(f'        .Put("{method[0]}", &{native_class}::{method[1]})\n')

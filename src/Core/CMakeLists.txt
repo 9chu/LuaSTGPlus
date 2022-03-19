@@ -24,8 +24,18 @@ message("[LSTG] Public libraries: ${LSTG_CORE_DEPS_PUBLIC}")
 message("[LSTG] Private libraries: ${LSTG_CORE_DEPS_PRIVATE}")
 
 ### 目标
+# Lua 自动封装代码
+file(GLOB_RECURSE LSTG_CORE_RENDER_EFFECT_LUA_BRIDGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge/*.hpp)
+lstg_gen_auto_bridge_cpp(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/RenderEffectLuaBridge.gen.cpp"
+    NAME "lstg::Subsystem::Render::Effect::detail::LuaBridge::RenderEffectLuaBridge"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge/"
+    NAMESPACE "lstg::Subsystem::Render::Effect::detail::LuaBridge"
+    FILES ${LSTG_CORE_RENDER_EFFECT_LUA_BRIDGE_SOURCES})
+
 # 跨平台源码
 file(GLOB_RECURSE LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/Core/*.hpp)
+list(APPEND LSTG_CORE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/RenderEffectLuaBridge.gen.cpp")
 
 # 平台定制代码
 if(LSTG_PLATFORM_MACOS)
@@ -35,7 +45,9 @@ endif()
 
 # 目标
 add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES})
-target_include_directories(LuaSTGPlusCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_include_directories(LuaSTGPlusCore
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge)
 target_link_libraries(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEPS_PUBLIC} PRIVATE ${LSTG_CORE_DEPS_PRIVATE})
 
 # 宏（公开的）

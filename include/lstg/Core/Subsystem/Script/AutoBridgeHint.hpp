@@ -12,3 +12,8 @@
 #define LSTG_SETTER(...)
 
 #define LSTG_MODULE(...)
+
+#define LSTG_ENUM(...)
+#define LSTG_FIELD(...)
+
+#define LSTG_AUTO_BRIDGE_HINT 0

@@ -212,6 +212,22 @@ namespace lstg::Subsystem::Script
     }
 
     /**
+     * 向栈中推入一个枚举
+     * @tparam T 类型
+     * @param stack 堆栈
+     * @param e 枚举
+     * @return 元素个数
+     *
+     * [-0, +1]
+     */
+    template <typename T>
+    inline int LuaPush(typename std::enable_if<std::is_enum_v<T>, LuaStack&>::type stack, T e) noexcept
+    {
+        lua_pushinteger(stack, static_cast<lua_Integer>(e));
+        return 1;
+    }
+
+    /**
      * 复制指定索引处的对象
      * @param stack Lua 栈
      * @param v 绝对索引
@@ -219,7 +235,7 @@ namespace lstg::Subsystem::Script
      *
      * [-0, +1]
      */
-    inline int LuaPush(LuaStack& stack, const LuaStack::AbsIndex& v) noexcept
+    inline int LuaPush(LuaStack& stack, LuaStack::AbsIndex v) noexcept
     {
         lua_pushvalue(stack, v);
         return 1;

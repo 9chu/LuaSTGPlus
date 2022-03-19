@@ -7,7 +7,9 @@
 #pragma once
 #include "ISubsystem.hpp"
 #include "WindowSystem.hpp"
+#include "VirtualFileSystem.hpp"
 #include "Render/RenderDevice.hpp"
+#include "Render/EffectFactory.hpp"
 
 namespace lstg::Subsystem
 {
@@ -29,11 +31,18 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] Render::RenderDevice* GetRenderDevice() const noexcept { return m_pRenderDevice.get(); }
 
+        /**
+         * 获取效果工厂
+         */
+        [[nodiscard]] Render::EffectFactory* GetEffectFactory() const noexcept { return m_pEffectFactory.get(); }
+
     protected:  // ISubsystem
         void OnEvent(SubsystemEvent& event) noexcept;
 
     private:
         std::shared_ptr<WindowSystem> m_pWindowSystem;
+        std::shared_ptr<VirtualFileSystem> m_pVirtualFileSystem;
         Render::RenderDevicePtr m_pRenderDevice;
+        Render::EffectFactoryPtr m_pEffectFactory;
     };
 }

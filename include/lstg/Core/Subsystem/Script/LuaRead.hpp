@@ -199,6 +199,30 @@ namespace lstg::Subsystem::Script
     }
 
     /**
+     * 读取一个字符串
+     * @param stack Lua 栈
+     * @param idx 被读取值的起始索引
+     * @param out 输出结果
+     * @return 读取的个数
+     */
+    inline int LuaRead(LuaStack& stack, int idx, Result<const char*>& out)
+    {
+        auto str = lua_tostring(stack, idx);
+        if (!str)
+            out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        out = str;
+        return 1;
+    }
+    inline int LuaRead(LuaStack& stack, int idx, const char*& out)
+    {
+        auto str = lua_tostring(stack, idx);
+        if (!str)
+            luaL_typerror(stack, idx, lua_typename(stack, LUA_TSTRING));
+        out = str;
+        return 1;
+    }
+
+    /**
      * 读取一个指针
      * @param stack Lua 栈
      * @param idx 被读取值的起始索引
@@ -218,6 +242,32 @@ namespace lstg::Subsystem::Script
         if (!lua_islightuserdata(stack, idx))
             stack.TypeError(idx, lua_typename(stack, LUA_TLIGHTUSERDATA));
         out = lua_touserdata(stack, idx);
+        return 1;
+    }
+
+    /**
+     * 读取一个枚举
+     * @tparam T 枚举类型
+     * @param stack Lua 栈
+     * @param idx 被读取值的起始索引
+     * @param out 输出结果
+     * @return 读取的个数
+     */
+    template <typename T>
+    inline int LuaRead(typename std::enable_if<std::is_enum_v<T>, LuaStack&>::type stack, int idx, Result<T>& out)
+    {
+        auto i = lua_tointeger(stack, idx);
+        if (i == 0 && !lua_isnumber(stack, idx))
+            out = make_error_code(static_cast<LuaBadArgumentError>(idx));
+        else
+            out = static_cast<T>(i);
+        return 1;
+    }
+    template <typename T>
+    inline int LuaRead(typename std::enable_if<std::is_enum_v<T>, LuaStack&>::type stack, int idx, T& out)
+    {
+        auto i = luaL_checkinteger(stack, idx);
+        out = static_cast<T>(i);
         return 1;
     }
 

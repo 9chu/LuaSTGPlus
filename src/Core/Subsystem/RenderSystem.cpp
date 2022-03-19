@@ -74,7 +74,7 @@ namespace
 }
 
 RenderSystem::RenderSystem(SubsystemContainer& container)
-    : m_pWindowSystem(container.Get<WindowSystem>())
+    : m_pWindowSystem(container.Get<WindowSystem>()), m_pVirtualFileSystem(container.Get<VirtualFileSystem>())
 {
     assert(m_pWindowSystem);
 
@@ -102,6 +102,9 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
     }
     if (!m_pRenderDevice)
         LSTG_THROW(Render::RenderDeviceInitializeFailedException, "No available render device");
+
+    // 初始化效果工厂
+    m_pEffectFactory = make_shared<Render::EffectFactory>(m_pVirtualFileSystem.get(), m_pRenderDevice.get());
 }
 
 void RenderSystem::OnEvent(SubsystemEvent& event) noexcept

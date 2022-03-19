@@ -65,6 +65,12 @@ namespace lstg::Subsystem::Script
         };
 
         template <>
+        struct CountArgs<LuaStack&>
+        {
+            static constexpr int Value = 0;
+        };
+
+        template <>
         struct CountArgs<const LuaStack&>
         {
             static constexpr int Value = 0;
