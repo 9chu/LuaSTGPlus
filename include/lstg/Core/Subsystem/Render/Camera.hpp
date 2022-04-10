@@ -82,7 +82,7 @@ namespace lstg::Subsystem::Render
         };
 
     public:
-        Camera() = default;
+        Camera();
 
     public:
         /**
@@ -141,7 +141,7 @@ namespace lstg::Subsystem::Render
         Viewport m_stViewport;
 
         // Dirty flags
-        bool m_bStateDirty = true;
+        bool m_bStateDirty = false;
     };
 
     using CameraPtr = std::shared_ptr<Camera>;

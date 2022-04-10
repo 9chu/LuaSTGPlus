@@ -377,10 +377,10 @@ Result<void> RenderSystem::Draw(Render::Mesh* mesh, size_t indexCount, size_t ve
         assert(indexOffset < mesh->GetIndexCount());
         Diligent::IBuffer* vertexBuffers[] = {mesh->m_pVertexBuffer};
         Uint64 vertexOffsets[] = {mesh->GetDefinition()->GetVertexStride() * vertexOffset};
-        context->SetIndexBuffer(mesh->m_pIndexBuffer, indexOffset * (mesh->Is32BitsIndex() ? 4 : 2),
-            Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         context->SetVertexBuffers(0, 1, vertexBuffers, vertexOffsets, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
             Diligent::SET_VERTEX_BUFFERS_FLAG_RESET);
+        context->SetIndexBuffer(mesh->m_pIndexBuffer, indexOffset * (mesh->Is32BitsIndex() ? 4 : 2),
+            Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     }
 
     // 依次渲染 Pass
@@ -488,6 +488,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
             vp.TopLeftY = viewport.Top;
             m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
             m_stCurrentViewport = viewport;
+            viewportChanged = true;
         }
         else
         {
@@ -504,9 +505,9 @@ Result<void> RenderSystem::CommitCamera() noexcept
                 vp.TopLeftY = targetViewport.Top;
                 m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
                 m_stCurrentViewport = viewport;
+                viewportChanged = true;
             }
         }
-        viewportChanged = true;
     }
 
     // 提交相机参数

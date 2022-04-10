@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/Render/Camera.hpp>
 
+#include <glm/ext.hpp>
 #include <TextureView.h>
 
 using namespace std;
@@ -72,6 +73,13 @@ Camera::OutputViews& Camera::OutputViews::operator=(OutputViews&& rhs) noexcept
 
 // </editor-fold>
 // <editor-fold desc="Camera">
+
+Camera::Camera()
+    : m_stViewMatrix(glm::identity<glm::mat4x4>()), m_stProjectMatrix(glm::identity<glm::mat4x4>()),
+    m_stProjectViewMatrix(glm::identity<glm::mat4x4>())
+{
+
+}
 
 void Camera::SetViewMatrix(const glm::mat4x4& mat) noexcept
 {

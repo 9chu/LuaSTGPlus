@@ -66,4 +66,5 @@ void RenderDevice::Present() noexcept
 {
     // 执行 Present
     m_pSwapChain->Present(m_bVerticalSync ? 1 : 0);
+    ++m_uPresentedCount;
 }
