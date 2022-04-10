@@ -124,3 +124,10 @@ CPMAddPackage(
     GITHUB_REPOSITORY DiligentGraphics/DiligentCore
     VERSION 2.5.1
 )
+
+# glm
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY g-truc/glm
+    GIT_TAG 0.9.9.8
+)

@@ -65,7 +65,7 @@ Result<Subsystem::VFS::Path> SandBox::MakeFullPath(std::string_view modname) noe
 {
     try
     {
-        return VFS::Path::Normalize(fmt::format("{}/{}", m_stBaseDirectory, modname));
+        return VFS::Path::Normalize(fmt::format("{}/{}", m_stFileSystem.GetAssetBaseDirectory(), modname));
     }
     catch (...)  // bad_alloc
     {

@@ -48,7 +48,7 @@ namespace lstg::Subsystem::Script
 
             UniqueTypeName()
             {
-                static const int kUniqueId = 0;
+                static int kUniqueId = 0;  // 不能用 const，防止有的编译器将其优化
                 Id = reinterpret_cast<size_t>(&kUniqueId);
 
 #ifdef LSTG_RTTI_ENABLED
@@ -535,6 +535,21 @@ namespace lstg::Subsystem::Script
         {
             luaL_error(m_pState, fmt, std::forward<TArgs>(args)...);
             ::abort();
+        }
+
+        /**
+         * 如果 Result 包含错误则抛出
+         * @tparam T 类型
+         * @param ret 错误
+         */
+        template <typename T>
+        inline void ThrowIfError(const Result<T>& ret)
+        {
+            if (!ret)
+            {
+                auto ec = ret.GetError();
+                luaL_error(m_pState, "%s:%d(%s)", ec.category().name(), ec.value(), ec.message().c_str());
+            }
         }
 
         /**

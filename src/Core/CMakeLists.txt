@@ -1,5 +1,5 @@
 ### 明确第三方库引用
-set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static)
+set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm)
 set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng)
 
 # 平台相关库
@@ -25,29 +25,29 @@ message("[LSTG] Private libraries: ${LSTG_CORE_DEPS_PRIVATE}")
 
 ### 目标
 # Lua 自动封装代码
-file(GLOB_RECURSE LSTG_CORE_RENDER_EFFECT_LUA_BRIDGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge/*.hpp)
+file(GLOB_RECURSE LSTG_CORE_RENDER_LUA_EFFECT_BUILDER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder/*.hpp)
 lstg_gen_auto_bridge_cpp(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/RenderEffectLuaBridge.gen.cpp"
-    NAME "lstg::Subsystem::Render::Effect::detail::LuaBridge::RenderEffectLuaBridge"
-    BASE "${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge/"
-    NAMESPACE "lstg::Subsystem::Render::Effect::detail::LuaBridge"
-    FILES ${LSTG_CORE_RENDER_EFFECT_LUA_BRIDGE_SOURCES})
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp"
+    NAME "lstg::Subsystem::Render::detail::LuaEffectBuilder::InitModule"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder/"
+    NAMESPACE "lstg::Subsystem::Render::detail::LuaEffectBuilder"
+    FILES ${LSTG_CORE_RENDER_LUA_EFFECT_BUILDER_SOURCES})
 
 # 跨平台源码
 file(GLOB_RECURSE LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/Core/*.hpp)
-list(APPEND LSTG_CORE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/RenderEffectLuaBridge.gen.cpp")
+list(APPEND LSTG_CORE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp")
 
 # 平台定制代码
 if(LSTG_PLATFORM_MACOS)
-    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/OSX/GLView.mm)
-    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/OSX/MetalView.mm)
+    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/GLView.mm)
+    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/MetalView.mm)
 endif()
 
 # 目标
 add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES})
 target_include_directories(LuaSTGPlusCore
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/Effect/detail/LuaBridge)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder)
 target_link_libraries(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEPS_PUBLIC} PRIVATE ${LSTG_CORE_DEPS_PRIVATE})
 
 # 宏（公开的）

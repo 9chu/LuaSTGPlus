@@ -62,31 +62,6 @@ uint32_t RenderDevice::GetRenderOutputHeight() const noexcept
     return m_pSwapChain->GetDesc().Height;
 }
 
-void RenderDevice::BeginRender() noexcept
-{
-    auto* renderTargetView = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* depthView = m_pSwapChain->GetDepthBufferDSV();
-
-    // 设置 RT
-    m_pRenderContext->SetRenderTargets(1, &renderTargetView, depthView, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-
-    // 清空 RT
-    static const float kClearColor[4] = {};
-    m_pRenderContext->ClearRenderTarget(renderTargetView, kClearColor, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    m_pRenderContext->ClearDepthStencil(depthView, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-}
-
-void RenderDevice::EndRenderAndPresent() noexcept
-{
-    auto* renderTargetView = m_pSwapChain->GetCurrentBackBufferRTV();
-    auto* depthView = m_pSwapChain->GetDepthBufferDSV();
-
-    // 再次设置 RT，防止渲染过程中的变动
-    m_pRenderContext->SetRenderTargets(1, &renderTargetView, depthView, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-
-    Present();
-}
-
 void RenderDevice::Present() noexcept
 {
     // 执行 Present

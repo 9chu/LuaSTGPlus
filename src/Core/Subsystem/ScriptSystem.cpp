@@ -46,7 +46,8 @@ namespace
 
             // 生成完整路径和块名称
             const char* path = luaL_checkstring(L, 1);
-            const char* fullPath = lua_pushfstring(L, "%s/%s.lua", self->GetSandBox().GetBaseDirectory().c_str(), path);
+            const char* fullPath = lua_pushfstring(L, "%s/%s.lua",
+                self->GetSandBox().GetVirtualFileSystem().GetAssetBaseDirectory().c_str(), path);
             const char* chunkName = lua_pushfstring(L, "@%s", fullPath);
 
             // 读取文件
@@ -131,7 +132,7 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
     string fullPath;
     try
     {
-        fullPath = fmt::format("{}/{}", m_stSandBox.GetBaseDirectory(), path);
+        fullPath = fmt::format("{}/{}", m_stSandBox.GetVirtualFileSystem().GetAssetBaseDirectory(), path);
     }
     catch (...)  // bad_alloc
     {

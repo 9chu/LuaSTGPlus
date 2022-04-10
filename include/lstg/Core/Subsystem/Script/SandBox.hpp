@@ -48,17 +48,6 @@ namespace lstg::Subsystem::Script
         void SetCheckInterval(double checkInterval) noexcept { m_dCheckInterval = checkInterval; }
 
         /**
-         * 获取基准目录
-         */
-        [[nodiscard]] const std::string& GetBaseDirectory() const noexcept { return m_stBaseDirectory; }
-
-        /**
-         * 设置基准目录
-         * @param dir 目录
-         */
-        void SetBaseDirectory(std::string dir) noexcept { m_stBaseDirectory = std::move(dir); }
-
-        /**
          * 加载文件
          * @param path 路径
          * @param force 强制加载，如果文件已经加载过了也进行加载
@@ -109,7 +98,6 @@ namespace lstg::Subsystem::Script
         VirtualFileSystem& m_stFileSystem;
         LuaStack m_stMainThread;
 
-        std::string m_stBaseDirectory;
         double m_dCheckInterval = 0;
 
         std::map<std::string, ImportedFile, std::less<>> m_stFiles;

@@ -274,12 +274,11 @@ void AppBase::Render() noexcept
 
     // 渲染一帧
     {
-        auto device = m_pRenderSystem->GetRenderDevice();
-        device->BeginRender();
+        m_pRenderSystem->BeginFrame();
         m_stSubsystemContainer.BeforeRender(elapsed);
         OnRender(elapsed);
         m_stSubsystemContainer.AfterRender(elapsed);
-        device->EndRenderAndPresent();
+        m_pRenderSystem->EndFrame();
     }
     ++m_uRenderFramesInSecond;
 }

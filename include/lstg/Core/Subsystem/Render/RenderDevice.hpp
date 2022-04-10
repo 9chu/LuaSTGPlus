@@ -67,22 +67,21 @@ namespace lstg::Subsystem::Render
         [[nodiscard]] uint32_t GetRenderOutputHeight() const noexcept;
 
         /**
-         * 开始渲染
+         * 获取已渲染的画面数量
          */
-        void BeginRender() noexcept;
+        [[nodiscard]] uint32_t GetPresentedFrameCount() const noexcept { return m_uPresentedCount; }
 
         /**
-         * 完成渲染和进行 Present 动作
+         * 呈现
+         * 默认转发到 SwapChain.Present()，不同平台存在特定行为可以通过覆写该方法实现。
          */
-        void EndRenderAndPresent() noexcept;
-
-    protected:
-        virtual void Present() noexcept;  // 部分平台需要定制的 Present 方法
+        virtual void Present() noexcept;
 
     protected:
         Diligent::IRenderDevice* m_pRenderDevice = nullptr;
         Diligent::IDeviceContext* m_pRenderContext = nullptr;
         Diligent::ISwapChain* m_pSwapChain = nullptr;
+        uint32_t m_uPresentedCount = 0;
         bool m_bVerticalSync = false;
     };
 

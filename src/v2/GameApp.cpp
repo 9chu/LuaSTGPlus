@@ -59,7 +59,7 @@ GameApp::GameApp(int argc, char** argv)
             LSTG_THROW(AppInitializeFailedException, "Fail to mount \"assets\" virtual directory: {}", ret.GetError());
 
         // 设置脚本系统基准目录
-        GetSubsystem<Subsystem::ScriptSystem>()->GetSandBox().SetBaseDirectory("assets");
+        GetSubsystem<Subsystem::VirtualFileSystem>()->SetAssetBaseDirectory("assets");
     }
 
     // 初始化函数库

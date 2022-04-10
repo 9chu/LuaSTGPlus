@@ -24,6 +24,19 @@ namespace lstg::Subsystem
 
     public:
         /**
+         * 获取资源基准目录
+         * @note VFS 接口总是基于 '/' 进行访问的，此接口供组件使用来定位素材路径
+         */
+        [[nodiscard]] const std::string& GetAssetBaseDirectory() const noexcept { return m_stAssetBaseDirectory; }
+
+        /**
+         * 设置资源基准目录
+         * @note VFS 接口总是基于 '/' 进行访问的，此接口供组件使用来定位素材路径
+         * @param path 路径
+         */
+        void SetAssetBaseDirectory(std::string_view path) { m_stAssetBaseDirectory = path; }
+
+        /**
          * 创建文件夹
          * @param path 路径
          * @return 是否成功
@@ -85,5 +98,6 @@ namespace lstg::Subsystem
 
     private:
         VFS::RootFileSystem m_stRootFileSystem;
+        std::string m_stAssetBaseDirectory;
     };
 }

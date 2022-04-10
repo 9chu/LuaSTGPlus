@@ -97,7 +97,7 @@ namespace lstg
     public:
         /**
          * 检查是否存在结果
-         * @return
+         * @return true 成功, false 失败
          */
         operator bool() const noexcept
         {

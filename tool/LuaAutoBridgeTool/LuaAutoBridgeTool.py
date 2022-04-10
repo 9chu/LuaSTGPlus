@@ -178,6 +178,7 @@ class HeaderParser:
     REGEX_STRIP = re.compile(r'^\s*(.*?)\s*(//.*)?$')
     REGEX_CLASS_HINT = re.compile(r'^LSTG_CLASS(\(.*?\))?$')
     REGEX_CLASS_NAME_MATCH = re.compile(r'^(class|struct)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*')
+    REGEX_CLASS_NAME_ALIAS_MATCH = re.compile(r'^(using)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=')
     REGEX_CLASS_METHOD_HINT = re.compile(r'LSTG_METHOD(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
     REGEX_CLASS_GETTER_HINT = re.compile(r'LSTG_GETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
     REGEX_CLASS_SETTER_HINT = re.compile(r'LSTG_SETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
@@ -239,7 +240,9 @@ class HeaderParser:
     def _on_parse_class_name(self, line):
         groups = HeaderParser.REGEX_CLASS_NAME_MATCH.match(line)
         if not groups:
-            raise RuntimeError('Cannot parse class declaration')
+            groups = HeaderParser.REGEX_CLASS_NAME_ALIAS_MATCH.match(line)
+            if not groups:
+                raise RuntimeError('Cannot parse class declaration')
         cls = ClassDecl(groups.group(2))
         if cls.get_name() in self._classes:
             raise RuntimeError('Class already defined (namespace is not supported yet)')
