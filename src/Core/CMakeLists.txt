@@ -1,6 +1,6 @@
 ### 明确第三方库引用
 set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm)
-set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng)
+set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb)
 
 # 平台相关库
 if(LSTG_PLATFORM_MACOS)
@@ -14,6 +14,7 @@ endif()
 get_supported_backends(DILIGENT_ENGINE_LIBRARIES "static")
 list(APPEND DILIGENT_ENGINE_LIBRARIES
     Diligent-Common
+    Diligent-GraphicsAccessories
     Diligent-GraphicsTools
     Diligent-TargetPlatform
     Diligent-PublicBuildSettings)

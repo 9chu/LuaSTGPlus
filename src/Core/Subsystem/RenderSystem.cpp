@@ -12,6 +12,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include <lstg/Core/Subsystem/Render/GraphicsDefinitionCache.hpp>
+#include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
@@ -124,6 +125,43 @@ namespace
         assert(def->GetFields()[6].Offset == offsetof(CameraState, ViewportHeight));
         return ret;
     }
+
+    Render::TexturePtr GenerateDefaultTexture2D(RenderSystem* self)
+    {
+        static const unsigned kWidth = 16;
+        static const unsigned kHeight = 16;
+        static const unsigned kBlockSize = 4;
+        Render::Texture2DData data(kWidth, kHeight, Render::Texture2DFormats::R8G8B8A8);
+        assert(data.GetStride() == kWidth * 4);
+        auto buffer = data.GetBuffer();
+        for (size_t i = 0; i < kHeight / kBlockSize; ++i)
+            for (size_t j = 0; j < kWidth / kBlockSize; ++j)
+            {
+                auto* start = &buffer[i * kBlockSize * kWidth * 4 + j * kBlockSize * 4];
+                start[0] = start[1] = start[2] = 0; start[3] = 0xFF;
+                start[4] = start[5] = start[6] = 0; start[7] = 0xFF;
+                start[8] = start[9] = start[10] = start[11] = 0xFF;
+                start[12] = start[13] = start[14] = start[15] = 0xFF;
+                start = &buffer[(i * kBlockSize + 1) * kWidth * 4 + j * kBlockSize * 4];
+                start[0] = start[1] = start[2] = 0; start[3] = 0xFF;
+                start[4] = start[5] = start[6] = 0; start[7] = 0xFF;
+                start[8] = start[9] = start[10] = start[11] = 0xFF;
+                start[12] = start[13] = start[14] = start[15] = 0xFF;
+                start = &buffer[(i * kBlockSize + 2) * kWidth * 4 + j * kBlockSize * 4];
+                start[0] = start[1] = start[2] = start[3] = 0xFF;
+                start[4] = start[5] = start[6] = start[7] = 0xFF;
+                start[8] = start[9] = start[10] = 0; start[11] = 0xFF;
+                start[12] = start[13] = start[14] = 0; start[15] = 0xFF;
+                start = &buffer[(i * kBlockSize + 3) * kWidth * 4 + j * kBlockSize * 4];
+                start[0] = start[1] = start[2] = start[3] = 0xFF;
+                start[4] = start[5] = start[6] = start[7] = 0xFF;
+                start[8] = start[9] = start[10] = 0; start[11] = 0xFF;
+                start[12] = start[13] = start[14] = 0; start[15] = 0xFF;
+            }
+        auto ret = self->CreateTexture2D(data);
+        ret.ThrowIfError();
+        return *ret;
+    }
 }
 
 RenderSystem::RenderSystem(SubsystemContainer& container)
@@ -162,8 +200,10 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
     // 创建内建 CBuffer
     m_pCameraStateCBuffer = CreateCameraStateConstantBuffer(*GetRenderDevice());
     auto ret = m_pEffectFactory->RegisterGlobalConstantBuffer(m_pCameraStateCBuffer);
-    assert(ret);
-    static_cast<void>(ret);
+    ret.ThrowIfError();
+
+    // 创建默认纹理
+    m_pDefaultTexture2D = GenerateDefaultTexture2D(this);
 }
 
 // <editor-fold desc="资源分配">
@@ -194,6 +234,19 @@ Result<Render::MaterialPtr> RenderSystem::CreateMaterial(const Render::GraphDef:
     {
         return make_error_code(errc::not_enough_memory);
     }
+}
+
+Result<Render::TexturePtr> RenderSystem::CreateTexture2D(const Render::Texture2DData& data) noexcept
+{
+    Diligent::TextureData texData;
+    texData.pContext = m_pRenderDevice->GetImmediateContext();
+    texData.NumSubresources = data.m_pImpl->m_stSubResources.size();
+    texData.pSubResources = data.m_pImpl->m_stSubResources.data();
+    Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    m_pRenderDevice->GetDevice()->CreateTexture(data.m_pImpl->m_stDesc, &texData, &texture);
+    if (!texture)
+        return make_error_code(errc::not_enough_memory);
+    return make_shared<Render::Texture>(texture);
 }
 
 Result<Render::MeshPtr> RenderSystem::CreateStaticMesh(const Render::GraphDef::MeshDefinition& def, Span<const uint8_t> vertexData,

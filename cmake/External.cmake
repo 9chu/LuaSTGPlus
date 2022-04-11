@@ -131,3 +131,16 @@ CPMAddPackage(
     GITHUB_REPOSITORY g-truc/glm
     GIT_TAG 0.9.9.8
 )
+
+# stb
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY
+)
+if(${stb_ADDED})
+    file(GLOB stb_SOURCES ${stb_SOURCE_DIR}/*.c)
+    add_library(stb STATIC ${stb_SOURCES})
+    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
+endif()

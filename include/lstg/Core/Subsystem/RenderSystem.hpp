@@ -16,6 +16,8 @@
 #include "Render/Material.hpp"
 #include "Render/GraphicsDefinitionCache.hpp"
 #include "Render/IEffectPassGroupSelector.hpp"
+#include "Render/Texture.hpp"
+#include "Render/Texture2DData.hpp"
 
 namespace lstg::Subsystem
 {
@@ -70,6 +72,8 @@ namespace lstg::Subsystem
             return CreateStaticMesh(def, vertexData, {reinterpret_cast<const uint8_t*>(indexData.data()), indexData.size() * 4}, true);
         }
 
+        // TODO: CreateDynamicMesh
+
         /**
          * 创建相机
          */
@@ -82,8 +86,12 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] Result<Render::MaterialPtr> CreateMaterial(const Render::GraphDef::ImmutableEffectDefinitionPtr& effect) noexcept;
 
-        // TODO: CreateDynamicMesh
-        // TODO: CreateTexture
+        /**
+         * 创建 2D 纹理
+         * @param data 纹理数据
+         * @return 纹理对象
+         */
+        [[nodiscard]] Result<Render::TexturePtr> CreateTexture2D(const Render::Texture2DData& data) noexcept;
 
     private:
         [[nodiscard]] Result<Render::MeshPtr> CreateStaticMesh(const Render::GraphDef::MeshDefinition& def, Span<const uint8_t> vertexData,
@@ -166,6 +174,9 @@ namespace lstg::Subsystem
 
         // 内建全局 CBuffer
         Render::ConstantBufferPtr m_pCameraStateCBuffer;
+
+        // 内建默认纹理
+        Render::TexturePtr m_pDefaultTexture2D;
 
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;
