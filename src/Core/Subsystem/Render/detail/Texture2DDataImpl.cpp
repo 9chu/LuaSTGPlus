@@ -170,10 +170,10 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
     m_stSubResources[0].Stride = stride;
     m_stSubResources[0].pData = m_stMipMaps[0].data();
     auto srcLineStride = x * channels;
+    auto srcLineStart = data.get();
+    auto destLineStart = m_stMipMaps[0].data();
     for (int h = 0; h < y; ++h)
     {
-        auto srcLineStart = data.get() + srcLineStride;
-        auto destLineStart = m_stMipMaps[0].data() + stride * h;
         if (componentSize == channels)
         {
             ::memcpy(destLineStart, srcLineStart, srcLineStride);
@@ -181,16 +181,20 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
         else
         {
             assert(channels == 3 && componentSize == 4);
+            auto dest = destLineStart;
+            auto src = srcLineStart;
             for (int w = 0; w < x; ++w)
             {
-                destLineStart[0] = srcLineStart[0];  // r
-                destLineStart[1] = srcLineStart[1];  // g
-                destLineStart[2] = srcLineStart[2];  // b
-                destLineStart[3] = 0xFF;  // a
-                destLineStart += componentSize;
-                srcLineStart += channels;
+                dest[0] = src[0];  // r
+                dest[1] = src[1];  // g
+                dest[2] = src[2];  // b
+                dest[3] = 0xFF;  // a
+                dest += componentSize;
+                src += channels;
             }
         }
+        srcLineStart += srcLineStride;
+        destLineStart += stride;
     }
 }
 
