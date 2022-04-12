@@ -7,8 +7,10 @@
 #include <lstg/Core/Subsystem/Render/Material.hpp>
 
 #include <Buffer.h>
+#include <Texture.h>
 #include <ShaderResourceBinding.h>
 #include <PipelineResourceSignature.h>
+#include <DeviceContext.h>
 #include <RefCntAutoPtr.hpp>
 #include <lstg/Core/Logging.hpp>
 
@@ -45,7 +47,8 @@ Material::PassInstance::~PassInstance()
 
 // <editor-fold desc="Material::Material">
 
-Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr definition)
+Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr definition, const TexturePtr& defaultTex2D)
+    : m_stRenderDevice(device)
 {
     assert(definition);
 
@@ -62,8 +65,6 @@ Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr 
             }
         }
     }
-
-    // TODO: 创建 Texture 绑定
 
     // 创建 Pass 实例
     for (const auto& passGroup : definition->GetGroups())
@@ -89,13 +90,13 @@ Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr 
             const GraphDef::ShaderDefinition* shaders[]{ pass->GetVertexShader().get(), pass->GetPixelShader().get() };
             for (auto shader: shaders)
             {
+                auto shaderStage = shader->GetType() == GraphDef::ShaderDefinition::ShaderTypes::VertexShader ?
+                    Diligent::SHADER_TYPE_VERTEX : Diligent::SHADER_TYPE_PIXEL;
+
                 // 全局 CBuffer 在 EffectFactory 完成静态绑定
                 // 这里只绑定 Material 级别的 CBuffer
                 for (const auto& cb: shader->GetConstantBuffers())
                 {
-                    auto shaderStage = shader->GetType() == GraphDef::ShaderDefinition::ShaderTypes::VertexShader ?
-                        Diligent::SHADER_TYPE_VERTEX : Diligent::SHADER_TYPE_PIXEL;
-
                     Diligent::IShaderResourceVariable* shaderVariable = binding->GetVariableByName(shaderStage, cb->GetName().c_str());
                     assert(shaderVariable);
 
@@ -106,8 +107,6 @@ Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr 
                 }
             }
 
-            // TODO: 绑定 Texture
-
             // 创建实例
             PassInstance inst;
             inst.ResourceBinding = binding;
@@ -116,7 +115,144 @@ Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr 
         }
     }
 
+    // 创建 Texture 绑定，需要 PassInstance 内存稳定后创建
+    for (const auto& passGroup: definition->GetGroups())
+    {
+        for (const auto& pass: passGroup->GetPasses())
+        {
+            assert(m_stPassInstances.find(pass.get()) != m_stPassInstances.end());
+            PassInstance* passInstance = &m_stPassInstances[pass.get()];
+
+            const GraphDef::ShaderDefinition* shaders[]{ pass->GetVertexShader().get(), pass->GetPixelShader().get() };
+            for (auto shader: shaders)
+            {
+                auto shaderStage = shader->GetType() == GraphDef::ShaderDefinition::ShaderTypes::VertexShader ?
+                    Diligent::SHADER_TYPE_VERTEX : Diligent::SHADER_TYPE_PIXEL;
+
+                for (const auto& v : shader->GetTextures())
+                {
+                    // FIXME: 暂时不支持 2D 纹理以外的类型
+                    if (v->GetType() != GraphDef::ShaderTextureDefinition::TextureTypes::Texture2D)
+                    {
+                        LSTG_LOG_ERROR_CAT(Material, "Texture {} with type {} is not supported yet", v->GetName(),
+                            static_cast<int>(v->GetType()));
+                        throw system_error(make_error_code(errc::not_supported));
+                    }
+
+                    // 查找纹理是否存在
+                    auto it = m_stTextureVariableInstances.find(v.get());
+                    if (it == m_stTextureVariableInstances.end())
+                    {
+                        auto e = m_stTextureVariableInstances.emplace(v.get(), TextureVariableState {});
+                        it = e.first;
+                    }
+                    assert(it != m_stTextureVariableInstances.end());
+                    auto jt = std::find_if(it->second.References.begin(), it->second.References.end(),
+                        [passInstance](const TextureVariableRef& ref) {
+                            return ref.Pass == passInstance;
+                        });
+                    if (jt == it->second.References.end())
+                    {
+                        it->second.References.emplace_back(TextureVariableRef{
+                            passInstance, nullptr, nullptr
+                        });
+                        jt = it->second.References.end() - 1;
+                    }
+                    assert(jt != it->second.References.end());
+                    auto var = passInstance->ResourceBinding->GetVariableByName(shaderStage, v->GetName().c_str());
+                    assert(var);
+                    if (shaderStage == Diligent::SHADER_TYPE_VERTEX)
+                    {
+                        jt->VertexShaderResource = var;
+                    }
+                    else
+                    {
+                        assert(shaderStage == Diligent::SHADER_TYPE_PIXEL);
+                        jt->PixelShaderResource = var;
+                    }
+                }
+            }
+        }
+    }
+
+    // 给所有 Texture 绑定默认的纹理
+    auto defaultTex2DView = defaultTex2D->m_pNativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+    assert(defaultTex2DView);
+    for (auto& p : m_stTextureVariableInstances)
+    {
+        assert(p.first->GetType() == GraphDef::ShaderTextureDefinition::TextureTypes::Texture2D);
+        p.second.BindingTexture = defaultTex2D;
+        for (auto& r : p.second.References)
+        {
+            if (r.VertexShaderResource)
+                r.VertexShaderResource->Set(defaultTex2DView);
+            if (r.PixelShaderResource)
+                r.PixelShaderResource->Set(defaultTex2DView);
+            r.Pass->BindingDirty = true;
+        }
+    }
+
     m_pDefinition = std::move(definition);
+}
+
+Result<void> Material::SetTexture(std::string_view symbol, const TexturePtr& texture) noexcept
+{
+    if (!texture)
+        return make_error_code(errc::invalid_argument);
+    auto* nativeHandler = texture->m_pNativeHandler;
+
+    // 获取符号定义
+    auto info = m_pDefinition->GetSymbol(symbol);
+    if (!info)
+        return make_error_code(GraphDef::DefinitionError::SymbolNotFound);
+    if (info->Type != GraphDef::ShaderDefinition::SymbolTypes::Texture)
+        return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+
+    // 检查类型
+    const auto& assoc = std::get<GraphDef::EffectDefinition::TextureOrSamplerSymbolInfo>(info->AssocInfo);
+    switch (assoc.Definition->GetType())
+    {
+        case GraphDef::ShaderTextureDefinition::TextureTypes::Texture1D:
+            if (nativeHandler->GetDesc().Type != Diligent::RESOURCE_DIM_TEX_1D)
+                return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+            break;
+        case GraphDef::ShaderTextureDefinition::TextureTypes::Texture2D:
+            if (nativeHandler->GetDesc().Type != Diligent::RESOURCE_DIM_TEX_2D)
+                return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+            break;
+        case GraphDef::ShaderTextureDefinition::TextureTypes::Texture3D:
+            if (nativeHandler->GetDesc().Type != Diligent::RESOURCE_DIM_TEX_3D)
+                return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+            break;
+        case GraphDef::ShaderTextureDefinition::TextureTypes::TextureCube:
+            if (nativeHandler->GetDesc().Type != Diligent::RESOURCE_DIM_TEX_CUBE)
+                return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+            break;
+        default:
+            assert(false);
+            return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
+    }
+
+    // 赋值
+    auto view = nativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+    if (!view)
+    {
+        LSTG_LOG_ERROR_CAT(Material, "GetDefaultView from texture {} fail", symbol);
+        return make_error_code(errc::io_error);
+    }
+    auto it = m_stTextureVariableInstances.find(assoc.Definition.get());
+    assert(it != m_stTextureVariableInstances.end());
+    it->second.BindingTexture = texture;
+    for (auto& r : it->second.References)
+    {
+        assert(r.VertexShaderResource || r.PixelShaderResource);
+        if (r.VertexShaderResource)
+            r.VertexShaderResource->Set(view);
+        if (r.PixelShaderResource)
+            r.PixelShaderResource->Set(view);
+        r.Pass->BindingDirty = true;
+    }
+    return {};
 }
 
 Result<void> Material::Commit(const GraphDef::EffectPassGroupDefinition* group) noexcept
@@ -125,6 +261,9 @@ Result<void> Material::Commit(const GraphDef::EffectPassGroupDefinition* group) 
 
     for (const auto& pass : group->GetPasses())
     {
+        assert(m_stPassInstances.find(pass.get()) != m_stPassInstances.end());
+        auto passInstance = m_stPassInstances[pass.get()];
+
         const GraphDef::ShaderDefinition* shaders[]{ pass->GetVertexShader().get(), pass->GetPixelShader().get() };
         for (auto shader: shaders)
         {
@@ -142,8 +281,14 @@ Result<void> Material::Commit(const GraphDef::EffectPassGroupDefinition* group) 
                     return ret.GetError();
                 }
             }
+        }
 
-            // TODO: 提交 Texture ?
+        // 提交纹理变量改动
+        if (passInstance.BindingDirty)
+        {
+            m_stRenderDevice.GetImmediateContext()->CommitShaderResources(passInstance.ResourceBinding,
+                Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            passInstance.BindingDirty = false;
         }
     }
     return {};

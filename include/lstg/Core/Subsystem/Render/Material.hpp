@@ -8,10 +8,12 @@
 #include <unordered_map>
 #include "EffectFactory.hpp"
 #include "ConstantBuffer.hpp"
+#include "Texture.hpp"
 
 namespace Diligent
 {
     struct IShaderResourceBinding;
+    struct IShaderResourceVariable;
 }
 
 namespace lstg::Subsystem
@@ -30,7 +32,7 @@ namespace lstg::Subsystem::Render
         friend class lstg::Subsystem::RenderSystem;
 
     public:
-        Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr definition);
+        Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr definition, const TexturePtr& defaultTex2D);
         Material(const Material&) = delete;
         Material(Material&&) = delete;
 
@@ -91,7 +93,13 @@ namespace lstg::Subsystem::Render
             return it->second->SetUniform(symbol, value);
         }
 
-        // TODO: 设置纹理
+        /**
+         * 设置纹理
+         * @param symbol 符号
+         * @param texture 纹理指针
+         * @return 是否成功
+         */
+        Result<void> SetTexture(std::string_view symbol, const TexturePtr& texture) noexcept;
 
     private:
         /**
@@ -103,6 +111,7 @@ namespace lstg::Subsystem::Render
     private:
         struct PassInstance
         {
+            bool BindingDirty = true;
             Diligent::IShaderResourceBinding* ResourceBinding = nullptr;
 
             PassInstance() = default;
@@ -111,9 +120,24 @@ namespace lstg::Subsystem::Render
             ~PassInstance();
         };
 
+        struct TextureVariableRef
+        {
+            PassInstance* Pass;
+            Diligent::IShaderResourceVariable* VertexShaderResource;
+            Diligent::IShaderResourceVariable* PixelShaderResource;
+        };
+
+        struct TextureVariableState
+        {
+            TexturePtr BindingTexture;
+            std::vector<TextureVariableRef> References;
+        };
+
+        RenderDevice& m_stRenderDevice;
         GraphDef::ImmutableEffectDefinitionPtr m_pDefinition;
 
         std::unordered_map<const GraphDef::ConstantBufferDefinition*, ConstantBufferPtr> m_stCBufferInstances;  // CBuffer 实例
+        std::unordered_map<const GraphDef::ShaderTextureDefinition*, TextureVariableState> m_stTextureVariableInstances;  // TexVar 实例
         std::unordered_map<const GraphDef::EffectPassDefinition*, PassInstance> m_stPassInstances;  // Pass 实例
     };
 

@@ -20,11 +20,17 @@ namespace lstg::Subsystem
 
 namespace lstg::Subsystem::Render
 {
+    class Material;
+}
+
+namespace lstg::Subsystem::Render
+{
     /**
      * 纹理
      */
     class Texture
     {
+        friend class lstg::Subsystem::Render::Material;
         friend class lstg::Subsystem::RenderSystem;
 
     public:

@@ -93,6 +93,11 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] Result<Render::TexturePtr> CreateTexture2D(const Render::Texture2DData& data) noexcept;
 
+        /**
+         * 获取默认的占位 2D 纹理
+         */
+        [[nodiscard]] const Render::TexturePtr& GetDefaultTexture2D() const noexcept { return m_pDefaultTexture2D; }
+
     private:
         [[nodiscard]] Result<Render::MeshPtr> CreateStaticMesh(const Render::GraphDef::MeshDefinition& def, Span<const uint8_t> vertexData,
             Span<const uint8_t> indexData, bool use32BitIndex) noexcept;

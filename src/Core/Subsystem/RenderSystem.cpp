@@ -224,7 +224,7 @@ Result<Render::MaterialPtr> RenderSystem::CreateMaterial(const Render::GraphDef:
 {
     try
     {
-        return make_shared<Render::Material>(*GetRenderDevice(), effect);
+        return make_shared<Render::Material>(*GetRenderDevice(), effect, m_pDefaultTexture2D);
     }
     catch (const system_error& ex)
     {
@@ -238,12 +238,15 @@ Result<Render::MaterialPtr> RenderSystem::CreateMaterial(const Render::GraphDef:
 
 Result<Render::TexturePtr> RenderSystem::CreateTexture2D(const Render::Texture2DData& data) noexcept
 {
+    Diligent::TextureDesc desc = data.m_pImpl->m_stDesc;
+    desc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
+    desc.Usage = Diligent::USAGE_IMMUTABLE;
     Diligent::TextureData texData;
     texData.pContext = m_pRenderDevice->GetImmediateContext();
     texData.NumSubresources = data.m_pImpl->m_stSubResources.size();
     texData.pSubResources = data.m_pImpl->m_stSubResources.data();
     Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
-    m_pRenderDevice->GetDevice()->CreateTexture(data.m_pImpl->m_stDesc, &texData, &texture);
+    m_pRenderDevice->GetDevice()->CreateTexture(desc, &texData, &texture);
     if (!texture)
         return make_error_code(errc::not_enough_memory);
     return make_shared<Render::Texture>(texture);
