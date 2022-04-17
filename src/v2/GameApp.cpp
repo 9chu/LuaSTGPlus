@@ -14,14 +14,13 @@
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include <lstg/v2/Bridge/BuiltInModules.hpp>
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
 
 LSTG_DEF_LOG_CATEGORY(GameApp);
-
-extern void LuaModuleAutoBridge(Subsystem::Script::LuaStack&);
 
 GameApp::GameApp(int argc, char** argv)
 {
@@ -58,7 +57,7 @@ GameApp::GameApp(int argc, char** argv)
         if (!ret)
             LSTG_THROW(AppInitializeFailedException, "Fail to mount \"assets\" virtual directory: {}", ret.GetError());
 
-        // 设置脚本系统基准目录
+        // 设置资源系统基准目录
         GetSubsystem<Subsystem::VirtualFileSystem>()->SetAssetBaseDirectory("assets");
     }
 
@@ -70,7 +69,7 @@ GameApp::GameApp(int argc, char** argv)
         lua_gc(state, LUA_GCSTOP, 0);  // 初始化时关闭GC
 
         // 调用自动生成的注册方法
-        LuaModuleAutoBridge(state);
+        Bridge::InitBuiltInModule(state);
 
         // 设置命令行参数
         lua_getglobal(state, "lstg");  // t(lstg)

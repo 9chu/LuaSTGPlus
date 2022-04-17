@@ -90,7 +90,10 @@ namespace lstg::Subsystem::Render
             auto cb = std::get<GraphDef::EffectDefinition::UniformSymbolInfo>(info->AssocInfo).Definition;
             auto it = m_stCBufferInstances.find(cb.get());
             assert(it != m_stCBufferInstances.end());
-            return it->second->SetUniform(symbol, value);
+            auto ret = it->second->SetUniform(symbol, value);
+            if (ret)
+                m_bCBufferDirty = true;
+            return ret;
         }
 
         /**
@@ -104,14 +107,13 @@ namespace lstg::Subsystem::Render
     private:
         /**
          * 提交数据
-         * @param group 关联的组
          */
-        Result<void> Commit(const GraphDef::EffectPassGroupDefinition* group) noexcept;
+        Result<void> Commit() noexcept;
 
     private:
         struct PassInstance
         {
-            bool BindingDirty = true;
+            bool SRBDirty = false;
             Diligent::IShaderResourceBinding* ResourceBinding = nullptr;
 
             PassInstance() = default;
@@ -136,6 +138,8 @@ namespace lstg::Subsystem::Render
         RenderDevice& m_stRenderDevice;
         GraphDef::ImmutableEffectDefinitionPtr m_pDefinition;
 
+        bool m_bCBufferDirty = false;
+        bool m_bSRBDirty = false;
         std::unordered_map<const GraphDef::ConstantBufferDefinition*, ConstantBufferPtr> m_stCBufferInstances;  // CBuffer 实例
         std::unordered_map<const GraphDef::ShaderTextureDefinition*, TextureVariableState> m_stTextureVariableInstances;  // TexVar 实例
         std::unordered_map<const GraphDef::EffectPassDefinition*, PassInstance> m_stPassInstances;  // Pass 实例

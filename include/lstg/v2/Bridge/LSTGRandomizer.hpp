@@ -31,7 +31,7 @@ namespace lstg::v2::Bridge
          * @return 种子
          */
         LSTG_METHOD()
-        uint32_t GetSeed() noexcept;
+        uint32_t GetSeed() const noexcept;
 
         /**
          * 返回 [low, upper] 上的整数随机数
@@ -64,6 +64,6 @@ namespace lstg::v2::Bridge
          * 对象转字符串表示
          */
         LSTG_METHOD(__tostring)
-        std::string ToString() noexcept;
+        std::string ToString() const;
     };
 }

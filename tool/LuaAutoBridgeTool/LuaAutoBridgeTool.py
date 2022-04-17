@@ -191,7 +191,7 @@ class HeaderParser:
     def __init__(self):
         self._state = PARSE_STATE_DEFAULT
         self._classes = {}  # type: typing.Dict[str, ClassDecl]
-        self._modules = {}  # type: typing.Dict[str, ModuleDecl]
+        self._modules = []  # type: typing.List[ModuleDecl]
         self._current_class = None  # type: typing.Optional[ClassDecl]
         self._current_module = None  # type: typing.Optional[ModuleDecl]
         self._current_enum = None  # type: typing.Optional[EnumDecl]
@@ -301,9 +301,11 @@ class HeaderParser:
             else:
                 raise RuntimeError(f'Unknown flag {self._current_flag}')
         mod = ModuleDecl(module_name, groups.group(2), is_global)
-        if mod.get_name() in self._modules:
-            raise RuntimeError('Module already defined')
-        self._modules[mod.get_name()] = mod
+        # 允许扩展同名 Module
+        # if mod.get_name() in self._modules:
+        #     raise RuntimeError('Module already defined')
+        # self._modules[mod.get_name()] = mod
+        self._modules.append(mod)
         self._current_module = mod
         self._state = PARSE_STATE_MODULE_LOOK_FOR_METHOD
 
@@ -481,8 +483,9 @@ def main():
         # Bridge 方法
         f.write(f'void {cmd_args.name}(LuaStack& stack_)\n')
         f.write('{\n')
-        for name in header_parser.get_modules():
-            module = header_parser.get_modules()[name]
+        for module in header_parser.get_modules():
+            # module = header_parser.get_modules()[name]
+            name = module.get_name()
             native_class = module.get_native_class_name()
             is_global = module.is_global()
             methods = module.get_methods()

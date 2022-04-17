@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/DebugGUI/ConsoleWindow.hpp>
 
+#include <atomic>
 #include <deque>
 #include <string>
 #include <mutex>
@@ -64,6 +65,12 @@ namespace lstg::Subsystem::DebugGUI::detail
         };
 
     public:
+        ConsoleLogSink()
+        {
+            SetErrorFlag(false);
+        }
+
+    public:
         LogItemAccessor AccessItems() const noexcept
         {
             return { m_stLock, m_stLogs };
@@ -90,6 +97,21 @@ namespace lstg::Subsystem::DebugGUI::detail
             m_stLogs.emplace_back(std::move(item));
         }
 
+        bool IsErrorFlagSet() const noexcept
+        {
+#ifdef LSTG_DEVELOPMENT
+            return m_bErrorSet.load(std::memory_order_relaxed);
+#endif
+            return false;
+        }
+
+        void SetErrorFlag(bool f) noexcept
+        {
+#ifdef LSTG_DEVELOPMENT
+            m_bErrorSet.store(f, std::memory_order_relaxed);
+#endif
+        }
+
     public:  // ICustomSink
         void Sink(const lstg::detail::LogMessage& message) noexcept override
         {
@@ -112,9 +134,11 @@ namespace lstg::Subsystem::DebugGUI::detail
                         break;
                     case LogLevel::Error:
                         color = kColorError;
+                        SetErrorFlag(true);
                         break;
                     case LogLevel::Critical:
                         color = kColorFatal;
+                        SetErrorFlag(true);
                         break;
                     default:
                         assert(false);
@@ -132,6 +156,10 @@ namespace lstg::Subsystem::DebugGUI::detail
     private:
         mutable mutex m_stLock;
         deque<LogItem> m_stLogs;
+
+#ifdef LSTG_DEVELOPMENT
+        std::atomic<bool> m_bErrorSet;
+#endif
     };
 }
 
@@ -273,6 +301,17 @@ void ConsoleWindow::OnPrepareWindow() noexcept
 void ConsoleWindow::OnUpdate(double elapsedTime) noexcept
 {
     static_cast<void>(elapsedTime);
+
+#ifdef LSTG_DEVELOPMENT
+    // 发生错误自动弹框
+    if (m_pConsoleLogSink->IsErrorFlagSet())
+    {
+        m_pConsoleLogSink->SetErrorFlag(false);
+
+        if (!IsVisible())
+            Show();
+    }
+#endif
 }
 
 void ConsoleWindow::OnRender() noexcept

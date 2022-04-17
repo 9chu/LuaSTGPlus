@@ -2,15 +2,15 @@
 # Lua 自动封装代码
 file(GLOB_RECURSE LSTG_V2_BRIDGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/Bridge/*.hpp)
 lstg_gen_auto_bridge_cpp(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/AutoBridge.gen.cpp"
-    NAME "LuaModuleAutoBridge"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp"
+    NAME "lstg::v2::Bridge::InitBuiltInModule"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/../../include/"
     NAMESPACE "lstg::v2::Bridge"
     FILES ${LSTG_V2_BRIDGE_SOURCES})
 
 # 跨平台源码
 file(GLOB_RECURSE LSTG_V2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
-list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/AutoBridge.gen.cpp")
+list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp")
 
 # 目标
 if(WIN32)

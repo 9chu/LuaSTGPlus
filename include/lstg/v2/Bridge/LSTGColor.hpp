@@ -5,7 +5,7 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
-#include <lstg/Core/Color.hpp>
+#include <lstg/Core/Subsystem/Render/ColorRGBA32.hpp>
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
 #include <lstg/Core/Subsystem/Script/AutoBridgeHint.hpp>
 
@@ -16,7 +16,7 @@ namespace lstg::v2::Bridge
      */
     LSTG_CLASS()
     class LSTGColor :
-        public RGBA32Color
+        public Subsystem::Render::ColorRGBA32
     {
     public:
         LSTG_METHOD(__eq)
@@ -32,7 +32,7 @@ namespace lstg::v2::Bridge
         static LSTGColor Multiply(std::variant<double, const LSTGColor*> lhs, std::variant<double, const LSTGColor*> rhs) noexcept;
 
         LSTG_METHOD(__tostring)
-        std::string ToString();
+        std::string ToString() const;
     };
 
     /**

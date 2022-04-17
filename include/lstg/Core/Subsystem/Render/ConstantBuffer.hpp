@@ -74,13 +74,13 @@ namespace lstg::Subsystem::Render
                 return make_error_code(GraphDef::DefinitionError::SymbolNotFound);
 
             // 类型检查
-            if (!GraphDef::detail::CBufferTypeChecker<T>{}(*field))
+            if (!GraphDef::detail::CBufferTypeChecker<T>{}(field->Type))
                 return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
 
             // 获取数据
             assert(field->Offset < m_stBuffer.size() && field->Offset + field->Size <= m_stBuffer.size());
             const uint8_t* memory = m_stBuffer.data() + field->Offset;
-            if constexpr (std::is_same_v<T, bool>)  // Bool 特殊处理
+            if constexpr (std::is_same_v<std::remove_cv_t<T>, bool>)  // Bool 特殊处理
             {
                 int32_t v = 0;
                 assert(field->Size == sizeof(v));
@@ -112,12 +112,12 @@ namespace lstg::Subsystem::Render
                 return make_error_code(GraphDef::DefinitionError::SymbolNotFound);
 
             // 类型检查
-            if (!GraphDef::detail::CBufferTypeChecker<T>{}(*field))
+            if (!GraphDef::detail::CBufferTypeChecker<T>{}(field->Type))
                 return make_error_code(GraphDef::DefinitionError::SymbolTypeMismatched);
 
             // 设置数据
             assert(field->Offset < m_stBuffer.size() && field->Offset + field->Size <= m_stBuffer.size());
-            if constexpr (std::is_same_v<T, bool>)  // Bool 特殊处理
+            if constexpr (std::is_same_v<std::remove_cv_t<T>, bool>)  // Bool 特殊处理
             {
                 int32_t val = v ? 1 : 0;
                 assert(field->Size == sizeof(val));
@@ -126,7 +126,7 @@ namespace lstg::Subsystem::Render
             else
             {
                 assert(field->Size == sizeof(v));
-                CopyFrom(&v, sizeof(v), field->Offset);
+                CopyFrom(const_cast<T*>(&v), sizeof(v), field->Offset);
             }
             return {};
         }

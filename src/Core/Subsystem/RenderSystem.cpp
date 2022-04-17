@@ -208,6 +208,53 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
 // <editor-fold desc="资源分配">
 
+Result<Render::MeshPtr> RenderSystem::CreateDynamicMesh(const Render::GraphDef::MeshDefinition& def, bool use32BitIndex) noexcept
+{
+    if (def.GetVertexElements().empty() || def.GetVertexStride() == 0)
+        return make_error_code(errc::invalid_argument);
+
+    try
+    {
+        // 生成定义
+        // MeshDefinition 必须 Cache，以获取全局唯一实例，用于加速查询 PSO Cache
+        auto sharedDef = m_stMeshDefCache.CreateDefinition(def);
+
+        // 创建 VertexBuffer
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> vertexBuffer;
+        {
+            Diligent::BufferDesc vertexBufferDesc;
+            vertexBufferDesc.BindFlags = Diligent::BIND_VERTEX_BUFFER;
+            vertexBufferDesc.Size = def.GetVertexStride();
+            vertexBufferDesc.Usage = Diligent::USAGE_DYNAMIC;
+            vertexBufferDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+            m_pRenderDevice->GetDevice()->CreateBuffer(vertexBufferDesc, nullptr, &vertexBuffer);
+            if (!vertexBuffer)
+                return make_error_code(errc::not_enough_memory);
+        }
+
+        // 创建 IndexBuffer
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> indexBuffer;
+        {
+            Diligent::BufferDesc indexBufferDesc;
+            indexBufferDesc.BindFlags = Diligent::BIND_INDEX_BUFFER;
+            indexBufferDesc.Size = use32BitIndex ? sizeof(uint32_t) : sizeof(uint16_t);
+            indexBufferDesc.Usage = Diligent::USAGE_DYNAMIC;
+            indexBufferDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+            m_pRenderDevice->GetDevice()->CreateBuffer(indexBufferDesc, nullptr, &indexBuffer);
+            if (!indexBuffer)
+                return make_error_code(errc::not_enough_memory);
+        }
+
+        // 创建 Mesh 对象
+        return make_shared<Render::Mesh>(*m_pRenderDevice, sharedDef, vertexBuffer, indexBuffer, use32BitIndex,
+            Render::Mesh::Usage::Dynamic);
+    }
+    catch (...)  // bad_alloc
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+}
+
 Result<Render::CameraPtr> RenderSystem::CreateCamera() noexcept
 {
     try
@@ -307,7 +354,8 @@ Result<Render::MeshPtr> RenderSystem::CreateStaticMesh(const Render::GraphDef::M
         }
 
         // 创建 Mesh 对象
-        return make_shared<Render::Mesh>(sharedDef, vertexBuffer, indexBuffer, use32BitIndex);
+        return make_shared<Render::Mesh>(*m_pRenderDevice, sharedDef, vertexBuffer, indexBuffer, use32BitIndex,
+            Render::Mesh::Usage::Static);
     }
     catch (...)  // bad_alloc
     {
@@ -376,29 +424,96 @@ void RenderSystem::EndFrame() noexcept
 
 void RenderSystem::SetCamera(Render::CameraPtr camera) noexcept
 {
-    assert(camera);
     if (camera == m_pCurrentCamera)
         return;
-    camera->m_bStateDirty = true;
+    if (camera)
+        camera->m_bStateDirty = true;
     m_pCurrentCamera = std::move(camera);
 }
 
 void RenderSystem::SetMaterial(Render::MaterialPtr material) noexcept
 {
-    assert(material);
     if (material == m_pCurrentMaterial)
         return;
     m_pCurrentMaterial = std::move(material);
     m_pCurrentPassGroup = nullptr;
 }
 
-void RenderSystem::SetEffectPassGroupSelector(Render::EffectPassGroupSelectorPtr selector) noexcept
+std::string_view RenderSystem::GetRenderTag(std::string_view key) const noexcept
 {
-    assert(selector);
-    if (selector == m_pCurrentSelector)
-        return;
-    m_pCurrentSelector = std::move(selector);
+    auto it = m_stEffectRenderTag.find(key);
+    if (it == m_stEffectRenderTag.end())
+        return {};
+    return it->second;
+}
+
+void RenderSystem::SetRenderTag(std::string_view key, std::string_view value)
+{
+    auto it = m_stEffectRenderTag.find(key);
+    if (it == m_stEffectRenderTag.end())
+    {
+        if (!value.empty())
+        {
+            m_stEffectRenderTag.emplace(key, string{value});
+            m_pCurrentPassGroup = nullptr;
+        }
+    }
+    else
+    {
+        if (value.empty())
+        {
+            m_stEffectRenderTag.erase(it);
+            m_pCurrentPassGroup = nullptr;
+        }
+        else if (value != it->second)
+        {
+            it->second = string{value};
+            m_pCurrentPassGroup = nullptr;
+        }
+    }
+}
+
+void RenderSystem::SetEffectGroupSelectCallback(EffectGroupSelectCallback selector) noexcept
+{
+    m_stCurrentEffectGroupSelector = std::move(selector);
     m_pCurrentPassGroup = nullptr;
+}
+
+Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, std::optional<float> clearZDepth,
+    std::optional<float> clearStencil) noexcept
+{
+    if (!m_pCurrentCamera)
+        return make_error_code(errc::invalid_argument);
+
+    // 先提交 Camera
+    auto ret = CommitCamera();
+    if (!ret)
+    {
+        LSTG_LOG_ERROR_CAT(RenderSystem, "Commit camera state fail: {}", ret.GetError());
+        return ret.GetError();
+    }
+
+    auto context = m_pRenderDevice->GetImmediateContext();
+    auto swapChain = m_pRenderDevice->GetSwapChain();
+    Diligent::ITextureView* renderTargetView = m_stCurrentOutputViews.ColorView ? m_stCurrentOutputViews.ColorView :
+        swapChain->GetCurrentBackBufferRTV();
+    Diligent::ITextureView* depthStencilView = m_stCurrentOutputViews.DepthStencilView ? m_stCurrentOutputViews.DepthStencilView :
+        swapChain->GetDepthBufferDSV();
+
+    if (clearColor)
+    {
+        const float color[4] = { clearColor->r() / 255.f, clearColor->g() / 255.f, clearColor->b() / 255.f, clearColor->a() / 255.f };
+        context->ClearRenderTarget(renderTargetView, color, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    }
+    if (clearZDepth || clearStencil)
+    {
+        auto flag = static_cast<Diligent::CLEAR_DEPTH_STENCIL_FLAGS>((clearZDepth ? Diligent::CLEAR_DEPTH_FLAG : 0) |
+            (clearStencil ? Diligent::CLEAR_STENCIL_FLAG : 0));
+        auto depth = clearZDepth ? *clearZDepth : 1.0f;
+        auto stencil = clearStencil ? *clearStencil : 0;
+        context->ClearDepthStencil(depthStencilView, flag, depth, stencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+    }
+    return {};
 }
 
 Result<void> RenderSystem::Draw(Render::Mesh* mesh, size_t indexCount, size_t vertexOffset, size_t indexOffset) noexcept
@@ -489,19 +604,16 @@ const Render::GraphDef::EffectPassGroupDefinition* RenderSystem::SelectPassGroup
     assert(!groups.empty());
 
     // 没有效果选择器，直接返回第一个
-    if (!m_pCurrentSelector)
+    if (!m_stCurrentEffectGroupSelector)
         return groups[0].get();
 
     // 通知选择器进行选择
-    m_pCurrentSelector->Reset();
-    for (const auto& g : groups)
-        m_pCurrentSelector->AddCandidate(g.get());
-    auto result = m_pCurrentSelector->GetSelectedPassGroup();
+    auto group = m_stCurrentEffectGroupSelector(def.get(), m_stEffectRenderTag);
 
     // 没有选出来，则 fallback 到第一个结果
-    if (!result)
+    if (!group)
         return groups[0].get();
-    return result;
+    return group;
 }
 
 Result<void> RenderSystem::CommitCamera() noexcept
@@ -600,7 +712,7 @@ Result<void> RenderSystem::CommitMaterial() noexcept
     assert(m_pCurrentPassGroup);
 
     // 提交数据
-    return m_pCurrentMaterial->Commit(m_pCurrentPassGroup);
+    return m_pCurrentMaterial->Commit();
 }
 
 Result<void> RenderSystem::PreparePipeline(const Render::GraphDef::EffectPassDefinition* pass,

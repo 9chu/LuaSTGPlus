@@ -131,6 +131,10 @@ CPMAddPackage(
     GITHUB_REPOSITORY g-truc/glm
     GIT_TAG 0.9.9.8
 )
+if(${glm_ADDED})
+    # 我们使用 DX 左手系，深度范围 [0, 1]，这里需要额外给 glm 设置编译选项
+    target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=1 GLM_FORCE_LEFT_HANDED=1)
+endif()
 
 # stb
 CPMAddPackage(

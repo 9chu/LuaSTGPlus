@@ -15,9 +15,9 @@
 #include "Render/Camera.hpp"
 #include "Render/Material.hpp"
 #include "Render/GraphicsDefinitionCache.hpp"
-#include "Render/IEffectPassGroupSelector.hpp"
 #include "Render/Texture.hpp"
 #include "Render/Texture2DData.hpp"
+#include "Render/ColorRGBA32.hpp"
 
 namespace lstg::Subsystem
 {
@@ -27,6 +27,11 @@ namespace lstg::Subsystem
     class RenderSystem :
         public ISubsystem
     {
+    public:
+        using TagContainer = std::map<std::string, std::string, std::less<>>;
+        using EffectGroupSelectCallback = std::function<const Render::GraphDef::EffectPassGroupDefinition*(
+            const Render::GraphDef::EffectDefinition*, const TagContainer&)>;
+
     public:
         RenderSystem(SubsystemContainer& container);
         RenderSystem(const RenderSystem&) = delete;
@@ -72,7 +77,13 @@ namespace lstg::Subsystem
             return CreateStaticMesh(def, vertexData, {reinterpret_cast<const uint8_t*>(indexData.data()), indexData.size() * 4}, true);
         }
 
-        // TODO: CreateDynamicMesh
+        /**
+         * 创建动态网格
+         * @param def 定义
+         * @param use32BitIndex 使用32位索引
+         * @return 网格指针
+         */
+        [[nodiscard]] Result<Render::MeshPtr> CreateDynamicMesh(const Render::GraphDef::MeshDefinition& def, bool use32BitIndex) noexcept;
 
         /**
          * 创建相机
@@ -138,15 +149,38 @@ namespace lstg::Subsystem
         void SetMaterial(Render::MaterialPtr material) noexcept;
 
         /**
+         * 获取渲染 Tag
+         * @param key 键
+         * @return 值
+         */
+        [[nodiscard]] std::string_view GetRenderTag(std::string_view key) const noexcept;
+
+        /**
+         * 设置渲染 Tag
+         * @param key 键
+         * @param value 值，若设置为空值则会清理对应的项
+         */
+        void SetRenderTag(std::string_view key, std::string_view value);
+
+        /**
          * 获取效果组选择器
          */
-        [[nodiscard]] Render::EffectPassGroupSelectorPtr GetEffectPassGroupSelector() const noexcept { return m_pCurrentSelector; }
+        [[nodiscard]] EffectGroupSelectCallback GetEffectGroupSelectCallback() const noexcept { return m_stCurrentEffectGroupSelector; }
 
         /**
          * 设置效果组选择器
-         * @param selector 选择器
+         * @param callback 回调
          */
-        void SetEffectPassGroupSelector(Render::EffectPassGroupSelectorPtr selector) noexcept;
+        void SetEffectGroupSelectCallback(EffectGroupSelectCallback selector) noexcept;
+
+        /**
+         * 清理视口
+         * @param clearColor 颜色
+         * @param clearZDepth 深度
+         * @param clearStencil 模板
+         */
+        Result<void> Clear(std::optional<Render::ColorRGBA32> clearColor, std::optional<float> clearZDepth = {},
+            std::optional<float> clearStencil = {}) noexcept;
 
         /**
          * 绘制网格
@@ -186,7 +220,8 @@ namespace lstg::Subsystem
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;
         Render::MaterialPtr m_pCurrentMaterial;
-        Render::EffectPassGroupSelectorPtr m_pCurrentSelector;
+        TagContainer m_stEffectRenderTag;
+        EffectGroupSelectCallback m_stCurrentEffectGroupSelector;
         const Render::GraphDef::EffectPassGroupDefinition* m_pCurrentPassGroup = nullptr;
         Render::Camera::Viewport m_stCurrentViewport;
         Render::Camera::OutputViews m_stCurrentOutputViews;

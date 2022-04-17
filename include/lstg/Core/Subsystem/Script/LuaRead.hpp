@@ -246,6 +246,20 @@ namespace lstg::Subsystem::Script
     }
 
     /**
+     * 读取一个 AbsIndex
+     * @param stack 栈
+     * @param idx 当前索引
+     * @param out 输出绝对索引
+     * @return 读取个数
+     */
+    inline int LuaRead(LuaStack& stack, int idx, LuaStack::AbsIndex& out)
+    {
+        auto abs = (idx > 0) ? idx : (idx <= LUA_REGISTRYINDEX) ? idx : (::lua_gettop(stack) + 1 + idx);
+        out = static_cast<unsigned>(abs);
+        return 1;
+    }
+
+    /**
      * 读取一个枚举
      * @tparam T 枚举类型
      * @param stack Lua 栈

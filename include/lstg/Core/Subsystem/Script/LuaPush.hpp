@@ -237,7 +237,10 @@ namespace lstg::Subsystem::Script
      */
     inline int LuaPush(LuaStack& stack, LuaStack::AbsIndex v) noexcept
     {
-        lua_pushvalue(stack, v);
+        if (v.Index == 0)
+            lua_pushnil(stack);
+        else
+            lua_pushvalue(stack, v);
         return 1;
     }
 

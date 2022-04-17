@@ -188,10 +188,10 @@ Material::Material(RenderDevice& device, GraphDef::ImmutableEffectDefinitionPtr 
                 r.VertexShaderResource->Set(defaultTex2DView);
             if (r.PixelShaderResource)
                 r.PixelShaderResource->Set(defaultTex2DView);
-            r.Pass->BindingDirty = true;
+            r.Pass->SRBDirty = true;
         }
     }
-
+    m_bSRBDirty = true;
     m_pDefinition = std::move(definition);
 }
 
@@ -250,46 +250,37 @@ Result<void> Material::SetTexture(std::string_view symbol, const TexturePtr& tex
             r.VertexShaderResource->Set(view);
         if (r.PixelShaderResource)
             r.PixelShaderResource->Set(view);
-        r.Pass->BindingDirty = true;
+        r.Pass->SRBDirty = true;
     }
+    m_bSRBDirty = true;
     return {};
 }
 
-Result<void> Material::Commit(const GraphDef::EffectPassGroupDefinition* group) noexcept
+Result<void> Material::Commit() noexcept
 {
-    assert(group);
-
-    for (const auto& pass : group->GetPasses())
+    if (m_bCBufferDirty)
     {
-        assert(m_stPassInstances.find(pass.get()) != m_stPassInstances.end());
-        auto passInstance = m_stPassInstances[pass.get()];
-
-        const GraphDef::ShaderDefinition* shaders[]{ pass->GetVertexShader().get(), pass->GetPixelShader().get() };
-        for (auto shader: shaders)
+        for (auto& buf : m_stCBufferInstances)
         {
-            // NOTE: GlobalConstantBuffer 由 Renderer 进行提交
+            auto ret = buf.second->Commit();
+            if (!ret)
+                return ret.GetError();
+        }
+        m_bCBufferDirty = false;
+    }
 
-            // 提交 ConstantBuffer
-            for (const auto& cBufferDef : shader->GetConstantBuffers())
+    if (m_bSRBDirty)
+    {
+        for (auto& pass : m_stPassInstances)
+        {
+            if (pass.second.SRBDirty)
             {
-                auto it = m_stCBufferInstances.find(cBufferDef.get());
-                assert(it != m_stCBufferInstances.end());
-                auto ret = it->second->Commit();
-                if (!ret)
-                {
-                    LSTG_LOG_ERROR_CAT(Material, "Commit constant buffer {} fail: {}", cBufferDef->GetName(), ret.GetError());
-                    return ret.GetError();
-                }
+                m_stRenderDevice.GetImmediateContext()->CommitShaderResources(pass.second.ResourceBinding,
+                    Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                pass.second.SRBDirty = false;
             }
         }
-
-        // 提交纹理变量改动
-        if (passInstance.BindingDirty)
-        {
-            m_stRenderDevice.GetImmediateContext()->CommitShaderResources(passInstance.ResourceBinding,
-                Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            passInstance.BindingDirty = false;
-        }
+        m_bSRBDirty = false;
     }
     return {};
 }

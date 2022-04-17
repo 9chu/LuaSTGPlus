@@ -81,6 +81,8 @@ namespace lstg::Subsystem::Script
         {
             unsigned Index = 0;
 
+            AbsIndex() = default;
+
             inline explicit AbsIndex(unsigned index) noexcept
                 : Index(index)
             {}
