@@ -436,6 +436,8 @@ def main():
         f.write(' */\n')
         # 头文件
         f.write(f'#include <lstg/Core/Subsystem/Script/LuaStack.hpp>\n')
+        f.write(f'#include <lstg/Core/Subsystem/Script/LuaPush.hpp>\n')
+        f.write(f'#include <lstg/Core/Subsystem/Script/LuaRead.hpp>\n')
         f.write(f'#include <lstg/Core/Subsystem/Script/LuaClassRegister.hpp>\n')
         f.write(f'#include <lstg/Core/Subsystem/Script/LuaModuleRegister.hpp>\n')
         for i in includes:

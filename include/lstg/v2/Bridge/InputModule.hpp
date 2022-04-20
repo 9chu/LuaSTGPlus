@@ -17,6 +17,10 @@ namespace lstg::v2::Bridge
     class InputModule
     {
     public:
+        template <typename... TArgs>
+        using Unpack = Subsystem::Script::Unpack<TArgs...>;
+
+    public:
         /**
          * 检查按键是否被按下
          * @note 手柄输入被映射到 0x92~0xB1 和 0xDF~0xFE（共2个手柄、32个按键）的位置上
@@ -45,7 +49,7 @@ namespace lstg::v2::Bridge
          * @return X, Y
          */
         LSTG_METHOD()
-        static Subsystem::Script::Unpack<double, double> GetMousePosition();
+        static Unpack<double, double> GetMousePosition();
 
         /**
          * 获取鼠标按键是否被按下

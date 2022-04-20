@@ -337,7 +337,7 @@ namespace lstg::Subsystem::Script
     template <typename T>
     inline int LuaRead(typename std::enable_if<std::is_class_v<T>, LuaStack&>::type stack, int idx, Result<T>& out)
     {
-        Result<T*> t;
+        Result<T*> t { nullptr };
         auto ret = LuaRead(stack, idx, t);
         if (!t)
             out = t.GetError();

@@ -15,8 +15,7 @@ LSTGBentLaserData::~LSTGBentLaserData()
     Release();
 }
 
-void LSTGBentLaserData::Update(Subsystem::Script::LuaStack& stack, Subsystem::Script::LuaStack::AbsIndex baseObject, uint32_t length,
-    uint32_t width)
+void LSTGBentLaserData::Update(LuaStack& stack, AbsIndex baseObject, uint32_t length, uint32_t width)
 {
     // TODO
 //    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));

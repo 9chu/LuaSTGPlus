@@ -18,6 +18,10 @@ namespace lstg::v2::Bridge
     class LSTGBentLaserData
     {
     public:
+        using LuaStack = Subsystem::Script::LuaStack;
+        using AbsIndex = LuaStack::AbsIndex;
+
+    public:
         LSTGBentLaserData() = default;
         ~LSTGBentLaserData();
 
@@ -30,7 +34,7 @@ namespace lstg::v2::Bridge
          * @param width 曲光宽度，同时用于影响碰撞
          */
         LSTG_METHOD()
-        void Update(Subsystem::Script::LuaStack& stack, Subsystem::Script::LuaStack::AbsIndex baseObject, uint32_t length, uint32_t width);
+        void Update(LuaStack& stack, AbsIndex baseObject, uint32_t length, uint32_t width);
 
         /**
          * 回收对象

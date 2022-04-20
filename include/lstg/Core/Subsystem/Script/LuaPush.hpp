@@ -271,6 +271,15 @@ namespace lstg::Subsystem::Script
     namespace detail
     {
         template <typename T>
+        struct IsSpecialClass : public std::false_type {};
+
+        template <typename T>
+        struct IsSpecialClass<std::optional<T>> : public std::true_type {};
+
+        template <typename... TArgs>
+        struct IsSpecialClass<std::variant<TArgs...>> : public std::true_type {};
+
+        template <typename T>
         struct NativeObject
         {
             T* Object = nullptr;
@@ -522,7 +531,8 @@ namespace lstg::Subsystem::Script
      * [-0, +1]
      */
     template <typename T>
-    inline int LuaPush(typename std::enable_if<std::is_class_v<detail::Unqualified<T>>, LuaStack&>::type stack, T&& p)
+    inline int LuaPush(typename std::enable_if<std::is_class_v<detail::Unqualified<T>> &&
+        !detail::IsSpecialClass<detail::Unqualified<T>>::value, LuaStack&>::type stack, T&& p)
     {
         using TClass = detail::Unqualified<T>;
         using TStorage = detail::NativeObjectStorage<TClass>;

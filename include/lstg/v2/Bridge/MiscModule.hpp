@@ -19,6 +19,13 @@ namespace lstg::v2::Bridge
     {
     public:
         /**
+         * 返回注册表
+         * @deprecated 已弃用方法
+         */
+        LSTG_METHOD(Registry)
+        static void Registry();
+
+        /**
          * 截图
          * @param path 保存路径
          */

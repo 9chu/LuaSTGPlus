@@ -6,9 +6,18 @@
  */
 #include <lstg/v2/Bridge/MiscModule.hpp>
 
+#include <lstg/Core/Logging.hpp>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
+
+LSTG_DEF_LOG_CATEGORY(MiscModule);
+
+void MiscModule::Registry()
+{
+    LSTG_LOG_WARN_CAT(MiscModule, "Registry is deprecated and has no effect anymore");
+}
 
 void MiscModule::CaptureSnapshot(const char* path)
 {
