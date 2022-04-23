@@ -44,6 +44,8 @@ namespace lstg::Subsystem::VFS
         Result<FileAttribute> GetFileAttribute(Path path) noexcept override;
         Result<DirectoryIteratorPtr> VisitDirectory(Path path) noexcept override;
         Result<StreamPtr> OpenFile(Path path, FileAccessMode access, FileOpenFlags flags) noexcept override;
+        const std::string& GetUserData() const noexcept override;
+        void SetUserData(std::string ud) noexcept override;
 
     private:
         [[nodiscard]] detail::ConstZipEntry LocatePath(const Path& path) const noexcept;
@@ -51,6 +53,7 @@ namespace lstg::Subsystem::VFS
         detail::ZipDirectoryEntry* CreateTree(const Path& path);
 
     private:
+        std::string m_stUserData;
         detail::ZipFile* m_pZipFile = nullptr;
         detail::ZipDirectoryEntry m_stRoot;
         std::string m_stPassword;

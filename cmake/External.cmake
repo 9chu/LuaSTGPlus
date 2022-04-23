@@ -91,6 +91,9 @@ else()
         GIT_TAG master
     )
 endif()
+get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
+get_target_property(LUA_BUILD_DIR liblua-static BINARY_DIR)
+list(JOIN LUA_INCLUDE_DIR "\\\\;" LUA_INCLUDE_DIR_ESCAPED)
 
 # imgui
 CPMAddPackage(
@@ -148,3 +151,15 @@ if(${stb_ADDED})
     add_library(stb STATIC ${stb_SOURCES})
     target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
 endif()
+
+# lua-cjson
+CPMAddPackage(
+    NAME lua-cjson
+    GITHUB_REPOSITORY 9chu/lua-cjson
+    GIT_TAG patch-static-link
+    OPTIONS
+        "STATIC_LINK ON"
+        "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_ESCAPED}"
+        "LUA_LIBRARY ${LUA_BUILD_DIR}"
+        "ENABLE_CJSON_GLOBAL ON"
+)

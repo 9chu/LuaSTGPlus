@@ -178,3 +178,19 @@ Result<void> WindowSystem::ToggleFullScreen(bool fullscreen) noexcept
         return detail::MakeSDLError(ev);
     return {};
 }
+
+Result<bool> WindowSystem::IsMouseCursorVisible() noexcept
+{
+    int ev = ::SDL_ShowCursor(SDL_QUERY);
+    if (ev < 0)
+        return detail::MakeSDLError(ev);
+    return ev == SDL_ENABLE;
+}
+
+Result<void> WindowSystem::SetMouseCursorVisible(bool shown) noexcept
+{
+    int ev = ::SDL_ShowCursor(shown ? SDL_ENABLE : SDL_DISABLE);
+    if (ev < 0)
+        return detail::MakeSDLError(ev);
+    return {};
+}

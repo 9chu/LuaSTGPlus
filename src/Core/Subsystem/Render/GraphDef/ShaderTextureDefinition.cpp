@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/Render/GraphDef/ShaderTextureDefinition.hpp>
 
+#include <cassert>
 #include <fmt/format.h>
 
 using namespace std;

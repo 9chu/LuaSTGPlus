@@ -34,9 +34,6 @@ namespace
         LogLevel level;
         switch (severity)
         {
-            case Diligent::DEBUG_MESSAGE_SEVERITY_INFO:
-                level = LogLevel::Info;
-                break;
             case Diligent::DEBUG_MESSAGE_SEVERITY_WARNING:
                 level = LogLevel::Warn;
                 break;
@@ -46,8 +43,9 @@ namespace
             case Diligent::DEBUG_MESSAGE_SEVERITY_FATAL_ERROR:
                 level = LogLevel::Critical;
                 break;
+            case Diligent::DEBUG_MESSAGE_SEVERITY_INFO:
             default:
-                level = LogLevel::Debug;
+                level = LogLevel::Trace;
                 break;
         }
 

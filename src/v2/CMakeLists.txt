@@ -19,7 +19,7 @@ else()
     add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
 endif()
 target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main)
+target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main cjson)
 
 # 平台特定链接选项
 if(LSTG_PLATFORM_EMSCRIPTEN)

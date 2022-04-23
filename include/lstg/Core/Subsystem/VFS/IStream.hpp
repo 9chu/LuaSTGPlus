@@ -145,8 +145,10 @@ namespace lstg::Subsystem::VFS
         if (r)                                                   \
         {                                                        \
             TYPE ret = 0;                                        \
-            ::memcpy(&ret, &(*r), sizeof(ret));                  \
-            return ret;                                          \
+            auto v = *r;                                         \
+            static_assert(sizeof(v) == sizeof(ret));             \
+            ::memcpy(&ret, &v, sizeof(ret));                     \
+            return { OkTag{}, ret };                             \
         }                                                        \
         return r.GetError();                                     \
     }                                                            \
@@ -156,8 +158,10 @@ namespace lstg::Subsystem::VFS
         if (r)                                                   \
         {                                                        \
             TYPE ret = 0;                                        \
-            ::memcpy(&ret, &(*r), sizeof(ret));                  \
-            return ret;                                          \
+            auto v = *r;                                         \
+            static_assert(sizeof(v) == sizeof(ret));             \
+            ::memcpy(&ret, &v, sizeof(ret));                     \
+            return { OkTag{}, ret };                             \
         }                                                        \
         return r.GetError();                                     \
     }                                                            \

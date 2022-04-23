@@ -139,3 +139,13 @@ std::tuple<FileSystemPtr, Path> RootFileSystem::FindMountPoint(const Path& path)
         postfix = Path(".");
     return make_tuple(longest->FileSystem, postfix);
 }
+
+const std::string& RootFileSystem::GetUserData() const noexcept
+{
+    return m_stUserData;
+}
+
+void RootFileSystem::SetUserData(std::string ud) noexcept
+{
+    m_stUserData = std::move(ud);
+}

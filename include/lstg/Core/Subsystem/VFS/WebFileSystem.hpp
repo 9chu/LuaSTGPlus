@@ -71,8 +71,11 @@ namespace lstg::Subsystem::VFS
         Result<FileAttribute> GetFileAttribute(Path path) noexcept override;
         Result<DirectoryIteratorPtr> VisitDirectory(Path path) noexcept override;
         Result<StreamPtr> OpenFile(Path path, FileAccessMode access, FileOpenFlags flags) noexcept override;
+        const std::string& GetUserData() const noexcept override;
+        void SetUserData(std::string ud) noexcept override;
 
     private:
+        std::string m_stUserData;
         std::string m_stBaseUrl;
         WebFileStream::FetchConfig m_stConfig;
         uint32_t m_uHeadRequestTimeout = 5 * 1000;

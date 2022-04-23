@@ -133,6 +133,17 @@ namespace lstg::Subsystem
          */
         Result<void> ToggleFullScreen(bool fullscreen) noexcept;
 
+        /**
+         * 鼠标是否可见
+         */
+        Result<bool> IsMouseCursorVisible() noexcept;
+
+        /**
+         * 设置鼠标光标是否可见
+         * @param shown 可见
+         */
+        Result<void> SetMouseCursorVisible(bool shown) noexcept;
+
     private:
         SDL_Window* m_pWindow = nullptr;
         WindowFeatures m_iFeatures = static_cast<WindowFeatures>(0);

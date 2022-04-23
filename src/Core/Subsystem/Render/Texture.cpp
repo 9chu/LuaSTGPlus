@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/Render/Texture.hpp>
 
+#include <cassert>
 #include <Texture.h>
 
 using namespace std;

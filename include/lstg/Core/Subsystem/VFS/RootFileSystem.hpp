@@ -40,6 +40,8 @@ namespace lstg::Subsystem::VFS
         Result<FileAttribute> GetFileAttribute(Path path) noexcept override;
         Result<DirectoryIteratorPtr> VisitDirectory(Path path) noexcept override;
         Result<StreamPtr> OpenFile(Path path, FileAccessMode access, FileOpenFlags flags) noexcept override;
+        const std::string& GetUserData() const noexcept override;
+        void SetUserData(std::string ud) noexcept override;
 
     private:
         struct MountingPoint
@@ -52,6 +54,7 @@ namespace lstg::Subsystem::VFS
         [[nodiscard]] std::tuple<FileSystemPtr, Path> FindMountPoint(const Path& path) const noexcept;
 
     private:
+        std::string m_stUserData;
         MountingPoint m_stRoot;
     };
 }

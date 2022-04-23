@@ -22,6 +22,27 @@ namespace lstg::v2
     public:
         GameApp(int argc, char** argv);
 
+    public:  // 框架控制方法
+        /**
+         * 加载资源包
+         * @param path 路径
+         * @param password 密码
+         * @return 是否成功
+         */
+        Result<void> MountAssetPack(const char* path, std::optional<std::string_view> password) noexcept;
+
+        /**
+         * 卸载资源包
+         * @param path 路径
+         * @return 是否成功
+         */
+        Result<void> UnmountAssetPack(const char* path) noexcept;
+
+    protected:  // 框架事件
+        void OnEvent(Subsystem::SubsystemEvent& event) noexcept override;
+        void OnUpdate(double elapsed) noexcept override;
+        void OnRender(double elapsed) noexcept override;
+
     private:
         std::shared_ptr<Subsystem::VFS::OverlayFileSystem> m_pAssetsFileSystem;
     };

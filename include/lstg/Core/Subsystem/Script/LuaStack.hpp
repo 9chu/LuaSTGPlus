@@ -246,6 +246,11 @@ namespace lstg::Subsystem::Script
             return LuaPush(*this, std::forward<T>(arg));
         }
 
+        inline int PushValues() noexcept
+        {
+            return 0;
+        }
+
         /**
          * 读取栈上的一个值
          * @param idx 索引（起始）

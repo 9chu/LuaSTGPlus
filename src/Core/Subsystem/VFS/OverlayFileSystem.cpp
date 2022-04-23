@@ -283,3 +283,13 @@ Result<StreamPtr> OverlayFileSystem::OpenFile(Path path, FileAccessMode access, 
     }
     return ec;
 }
+
+const std::string& OverlayFileSystem::GetUserData() const noexcept
+{
+    return m_stUserData;
+}
+
+void OverlayFileSystem::SetUserData(std::string ud) noexcept
+{
+    m_stUserData = std::move(ud);
+}

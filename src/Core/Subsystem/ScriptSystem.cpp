@@ -171,11 +171,16 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
         return call.GetError();
     }
 
-    LSTG_LOG_INFO_CAT(ScriptSystem, "File \"{}\" loaded", path);
+    LSTG_LOG_TRACE_CAT(ScriptSystem, "File \"{}\" loaded", path);
     return {};
 }
 
 void ScriptSystem::OnUpdate(double elapsedTime) noexcept
 {
     m_stSandBox.Update(elapsedTime);
+}
+
+void ScriptSystem::LogCallFail(const char* func, const char* what) noexcept
+{
+    LSTG_LOG_ERROR_CAT(ScriptSystem, "Fail to call \"{}\": {}", func, what);
 }

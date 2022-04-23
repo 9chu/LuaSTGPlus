@@ -51,7 +51,7 @@ namespace lstg::Subsystem
         void StopPropagation() noexcept;
 
     private:
-        bool m_bIsDefaultPrevented = true;
+        bool m_bIsDefaultPrevented = false;
         bool m_bIsBubbles = true;
         Event m_stEvent;
     };

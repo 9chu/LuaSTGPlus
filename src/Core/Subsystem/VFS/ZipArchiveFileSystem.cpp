@@ -212,6 +212,16 @@ Result<StreamPtr> ZipArchiveFileSystem::OpenFile(Path path, FileAccessMode acces
     }
 }
 
+const std::string& ZipArchiveFileSystem::GetUserData() const noexcept
+{
+    return m_stUserData;
+}
+
+void ZipArchiveFileSystem::SetUserData(std::string ud) noexcept
+{
+    m_stUserData = std::move(ud);
+}
+
 ConstZipEntry ZipArchiveFileSystem::LocatePath(const Path& path) const noexcept
 {
     // 空路径直接返回

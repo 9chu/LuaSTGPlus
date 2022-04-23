@@ -5,6 +5,7 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
+#include <vector>
 #include <lstg/Core/Subsystem/VFS/IStream.hpp>
 
 namespace lstg::Subsystem::VFS
@@ -46,5 +47,6 @@ namespace lstg::Subsystem::VFS
         const FetchConfig m_stConfig;
         uint64_t m_ullContentLength = 0;
         uint64_t m_ullFakeReadPosition = 0;
+        std::vector<uint8_t> m_stReadBuffer;
     };
 }

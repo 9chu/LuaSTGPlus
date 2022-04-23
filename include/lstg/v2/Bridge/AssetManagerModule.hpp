@@ -213,8 +213,8 @@ namespace lstg::v2::Bridge
          * @param mipmap 是否生成 mipmap
          */
         LSTG_METHOD(LoadFont)
-        static void LoadTexturedFont(const char* name, const char* path, std::optional<const char*> textureNamePath,
-            std::optional<bool> mipmap /* =true */);
+        static void LoadTexturedFont(const char* name, const char* path,
+            std::optional<std::variant<const char*, bool>> textureNamePathOrMipmap, std::optional<bool> mipmap /* =true */);
 
         /**
          * 设置字体颜色

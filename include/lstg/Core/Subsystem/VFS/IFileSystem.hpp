@@ -130,6 +130,17 @@ namespace lstg::Subsystem::VFS
          * @return 成功返回文件流，失败返回错误码
          */
         virtual Result<StreamPtr> OpenFile(Path path, FileAccessMode access, FileOpenFlags flags) noexcept = 0;
+
+        /**
+         * 获取用户关联数据
+         */
+        [[nodiscard]] virtual const std::string& GetUserData() const noexcept = 0;
+
+        /**
+         * 设置用户关联数据
+         * @param ud 数据
+         */
+        virtual void SetUserData(std::string ud) noexcept = 0;
     };
 
     using FileSystemPtr = std::shared_ptr<IFileSystem>;

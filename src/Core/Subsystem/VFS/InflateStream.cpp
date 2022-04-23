@@ -6,15 +6,18 @@
  */
 #include <lstg/Core/Subsystem/VFS/InflateStream.hpp>
 
+#include <lstg/Core/Logging.hpp>
 #include "detail/ZStream.hpp"
 #include "detail/ZLibError.hpp"
+
+LSTG_DEF_LOG_CATEGORY(InflateStream);
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS;
 
 InflateStream::InflateStream(StreamPtr underlayStream, std::optional<uint64_t> uncompressedSize)
-    : m_pZStream(std::make_shared<detail::ZStream>(detail::InflateInitTag{})), m_pUnderlayStream(std::move(underlayStream)),
+    : m_pZStream(std::make_shared<detail::ZStream>(detail::InflateInitTag{}, true)), m_pUnderlayStream(std::move(underlayStream)),
     m_stUncompressedSize(uncompressedSize)
 {
     assert(m_pUnderlayStream);
@@ -78,6 +81,7 @@ Result<size_t> InflateStream::Read(uint8_t* buffer, size_t length) noexcept
     z->avail_out = length;
     z->next_out = buffer;
 
+    bool eof = false;
     do
     {
         // 移动上一次没读完的数据
@@ -85,16 +89,16 @@ Result<size_t> InflateStream::Read(uint8_t* buffer, size_t length) noexcept
             ::memmove(m_stChunk, z->next_in, z->avail_in);
         z->next_in = m_stChunk;
 
-        // 填满输入缓冲区
-        auto fill = sizeof(m_stChunk) - z->avail_in;
-        auto count = m_pUnderlayStream->Read(m_stChunk + z->avail_in, fill);
-        if (!count)
-            return count.GetError();
-        z->avail_in += *count;
-
-        // 如果完全没有可用输入，则直接返回
-        if (z->avail_in == 0)
-            break;
+        // 如果还可以读数据，则填满输入缓冲区
+        if (!eof)
+        {
+            auto fill = sizeof(m_stChunk) - z->avail_in;
+            auto count = m_pUnderlayStream->Read(m_stChunk + z->avail_in, fill);
+            if (!count)
+                return count.GetError();
+            eof = (*count < fill);
+            z->avail_in += *count;
+        }
 
         // 进行解压操作
         auto ret = ::zng_inflate(z, Z_NO_FLUSH);
@@ -102,9 +106,13 @@ Result<size_t> InflateStream::Read(uint8_t* buffer, size_t length) noexcept
         {
             case Z_NEED_DICT:
             case Z_DATA_ERROR:
+                LSTG_LOG_ERROR_CAT(InflateStream, "zng_inflate error {}, {}", ret, z->msg);
                 return make_error_code(static_cast<detail::ZLibError>(ret));
             case Z_MEM_ERROR:
                 return make_error_code(errc::not_enough_memory);  // 转换到 errc
+            case Z_BUF_ERROR:
+                assert(z->avail_out == 0);
+                return length - z->avail_out;
             default:
                 assert(ret != Z_STREAM_ERROR);
                 break;
@@ -115,9 +123,6 @@ Result<size_t> InflateStream::Read(uint8_t* buffer, size_t length) noexcept
             m_bFinished = true;
             break;
         }
-
-        if (*count < fill)
-            return make_error_code(detail::ZLibError::DataError);
     }
     while (z->avail_out != 0);
 

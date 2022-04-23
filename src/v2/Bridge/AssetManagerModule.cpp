@@ -310,8 +310,8 @@ void AssetManagerModule::LoadParticle(const char* name, const char* path, const 
 //    return 0;
 }
 
-void AssetManagerModule::LoadTexturedFont(const char* name, const char* path, std::optional<const char*> textureNamePath,
-    std::optional<bool> mipmap /* =true */)
+void AssetManagerModule::LoadTexturedFont(const char* name, const char* path,
+    std::optional<std::variant<const char*, bool>> textureNamePathOrMipmap, std::optional<bool> mipmap /* =true */)
 {
     // TODO
 //    bool bSucceed = false;

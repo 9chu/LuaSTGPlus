@@ -19,6 +19,8 @@ using namespace lstg::Subsystem::VFS;
 
 using WebFileSystemError = lstg::Subsystem::VFS::detail::WebFileSystemError;
 
+static const size_t kBufferSize = 4 * 1024;  // 4k
+
 LSTG_DEF_LOG_CATEGORY(WebFileStream);
 
 WebFileStream::WebFileStream(std::string url, FetchConfig config, uint64_t contentLength)
@@ -58,42 +60,58 @@ Result<uint64_t> WebFileStream::GetPosition() const noexcept
 
 Result<void> WebFileStream::Seek(int64_t offset, StreamSeekOrigins origin) noexcept
 {
+    uint64_t newReadPosition;
+
     switch (origin)
     {
         case StreamSeekOrigins::Begin:
-            m_ullFakeReadPosition = static_cast<uint64_t>(std::max<int64_t>(0, offset));
-            m_ullFakeReadPosition = std::min<uint64_t>(m_ullFakeReadPosition, m_ullContentLength);
+            newReadPosition = static_cast<uint64_t>(std::max<int64_t>(0, offset));
+            newReadPosition = std::min<uint64_t>(newReadPosition, m_ullContentLength);
             break;
         case StreamSeekOrigins::Current:
             if (offset < 0)
             {
                 auto positive = static_cast<uint64_t>(-offset);
                 if (positive >= m_ullFakeReadPosition)
-                    m_ullFakeReadPosition = 0;
+                    newReadPosition = 0;
                 else
-                    m_ullFakeReadPosition -= positive;
+                    newReadPosition = m_ullFakeReadPosition - positive;
             }
             else
             {
-                m_ullFakeReadPosition += static_cast<uint64_t>(offset);
-                m_ullFakeReadPosition = std::min<uint64_t>(m_ullFakeReadPosition, m_ullContentLength);
+                newReadPosition = m_ullFakeReadPosition + static_cast<uint64_t>(offset);
+                newReadPosition = std::min<uint64_t>(newReadPosition, m_ullContentLength);
             }
             break;
         case StreamSeekOrigins::End:
             if (offset >= 0)
             {
-                m_ullFakeReadPosition = m_ullContentLength;
+                newReadPosition = m_ullContentLength;
             }
             else
             {
                 auto positive = static_cast<uint64_t>(-offset);
                 if (positive >= m_ullContentLength)
-                    m_ullFakeReadPosition = 0;
+                    newReadPosition = 0;
                 else
-                    m_ullFakeReadPosition -= positive;
+                    newReadPosition = m_ullFakeReadPosition - positive;
             }
             break;
     }
+
+    // 检查 Buffer 中可以复用的部分
+    if (newReadPosition > m_ullFakeReadPosition && newReadPosition - m_ullFakeReadPosition <= m_stReadBuffer.size())
+    {
+        auto popCount = newReadPosition - m_ullFakeReadPosition;
+        assert(popCount <= m_stReadBuffer.size());
+        m_stReadBuffer.erase(m_stReadBuffer.begin(), m_stReadBuffer.begin() + static_cast<ptrdiff_t>(popCount));
+    }
+    else
+    {
+        m_stReadBuffer.clear();
+    }
+
+    m_ullFakeReadPosition = newReadPosition;
     return {};
 }
 
@@ -112,10 +130,33 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
     if (length == 0)
         return static_cast<size_t>(0);
 
-    assert(m_ullFakeReadPosition <= m_ullContentLength);
-    auto rest = static_cast<size_t>(m_ullContentLength - m_ullFakeReadPosition);
-    length = std::min<size_t>(length, rest);
+    // 如果缓冲区有足够数据，即时返回
+    if (length <= m_stReadBuffer.size())
+    {
+        assert(m_ullFakeReadPosition + length <= m_ullContentLength);
+        ::memcpy(buffer, m_stReadBuffer.data(), length);
+        m_stReadBuffer.erase(m_stReadBuffer.begin(), m_stReadBuffer.begin() + length);
+        m_ullFakeReadPosition += length;
+        return static_cast<size_t>(length);
+    }
 
+    auto readStart = m_ullFakeReadPosition + m_stReadBuffer.size();
+    assert(readStart <= m_ullContentLength && length > m_stReadBuffer.size());
+    auto dataToRead = std::max(kBufferSize, length - m_stReadBuffer.size());  // 最少读取 kBufferSize 个字节
+    auto rest = static_cast<size_t>(m_ullContentLength - (m_ullFakeReadPosition + m_stReadBuffer.size()));
+    dataToRead = std::min<size_t>(dataToRead, rest);
+    if (dataToRead == 0)
+    {
+        // 此时已经没有数据可读
+        auto realRead = std::min<size_t>(length, m_stReadBuffer.size());
+        assert(m_ullFakeReadPosition + realRead <= m_ullContentLength);
+        ::memcpy(buffer, m_stReadBuffer.data(), realRead);
+        m_stReadBuffer.erase(m_stReadBuffer.begin(), m_stReadBuffer.begin() + realRead);
+        m_ullFakeReadPosition += realRead;
+        return realRead;
+    }
+
+    // 发起读操作
     bool fetchInProgress = true;
     ::emscripten_fetch_attr_t attr;
     ::emscripten_fetch_attr_init(&attr);
@@ -124,11 +165,11 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
     attr.timeoutMSecs = m_stConfig.ReadRequestTimeout;
     attr.userData = &fetchInProgress;
     attr.onsuccess = [](emscripten_fetch_t* fetch) {
-        LSTG_LOG_TRACE_CAT(WebFileStream, "onsuccess");
+//        LSTG_LOG_TRACE_CAT(WebFileStream, "onsuccess");
         *reinterpret_cast<bool*>(fetch->userData) = false;
     };
     attr.onerror = [](emscripten_fetch_t* fetch) {
-        LSTG_LOG_TRACE_CAT(WebFileStream, "onerror");
+//        LSTG_LOG_TRACE_CAT(WebFileStream, "onerror");
         *reinterpret_cast<bool*>(fetch->userData) = false;
     };
     if (!m_stConfig.UserName.empty() || !m_stConfig.Password.empty())
@@ -136,7 +177,7 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
         attr.userName = m_stConfig.UserName.c_str();
         attr.password = m_stConfig.Password.c_str();
     }
-    string range = fmt::format("bytes={}-{}", m_ullFakeReadPosition, m_ullFakeReadPosition + length - 1);
+    string range = fmt::format("bytes={}-{}", readStart, readStart + dataToRead - 1);
     const char* headers[] = {"Range", range.c_str(), nullptr};
     attr.requestHeaders = headers;
 
@@ -161,7 +202,8 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
 #else
     auto requestTime = -1;
 #endif
-    LSTG_LOG_TRACE_CAT(WebFileStream, "Server response {}, url: {}, cost: {}ms", fetch->status, m_stUrl, requestTime);
+    LSTG_LOG_TRACE_CAT(WebFileStream, "Server response {}, url: {}, cost: {}ms, try read: {}", fetch->status, m_stUrl, requestTime,
+        dataToRead);
 
     if (fetch->status != 200 && fetch->status != 206)
     {
@@ -178,17 +220,33 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
     else
     {
         // 获取数据
-        if (fetch->numBytes != length)
+        if (fetch->numBytes != dataToRead)
         {
-            LSTG_LOG_ERROR_CAT(WebFileStream, "Server response {} bytes, but {} bytes expected, url: {}", fetch->numBytes, length, m_stUrl);
+            LSTG_LOG_ERROR_CAT(WebFileStream, "Server response {} bytes, but {} bytes expected, url: {}", fetch->numBytes, dataToRead,
+                m_stUrl);
             return make_error_code(errc::io_error);
         }
 
         // 拷贝
-        ::memcpy(buffer, fetch->data, length);
+        auto orgSize = m_stReadBuffer.size();
+        try
+        {
+            m_stReadBuffer.resize(orgSize + dataToRead);
+        }
+        catch (...)
+        {
+            return make_error_code(errc::not_enough_memory);
+        }
+        assert(m_stReadBuffer.data() + orgSize + dataToRead <= m_stReadBuffer.data() + m_stReadBuffer.size());
+        assert(m_ullFakeReadPosition + orgSize + dataToRead <= m_ullContentLength);
+        ::memcpy(m_stReadBuffer.data() + orgSize, fetch->data, dataToRead);
 
-        m_ullFakeReadPosition += length;
-        return length;
+        auto realRead = std::min<size_t>(length, m_stReadBuffer.size());
+        assert(m_ullFakeReadPosition + realRead <= m_ullContentLength);
+        ::memcpy(buffer, m_stReadBuffer.data(), realRead);
+        m_stReadBuffer.erase(m_stReadBuffer.begin(), m_stReadBuffer.begin() + realRead);
+        m_ullFakeReadPosition += realRead;
+        return realRead;
     }
 }
 
@@ -201,7 +259,10 @@ Result<StreamPtr> WebFileStream::Clone() const noexcept
 {
     try
     {
-        return make_shared<WebFileStream>(m_stUrl, m_stConfig, m_ullContentLength);
+        auto ret = make_shared<WebFileStream>(m_stUrl, m_stConfig, m_ullContentLength);
+        ret->m_ullFakeReadPosition = m_ullFakeReadPosition;
+        ret->m_stReadBuffer = m_stReadBuffer;
+        return ret;
     }
     catch (...)  // bad_alloc
     {

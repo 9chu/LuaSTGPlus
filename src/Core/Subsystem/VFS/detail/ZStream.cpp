@@ -23,11 +23,11 @@ ZStream::ZStream(DeflateInitTag, int compressionLevel)
         throw system_error(make_error_code(static_cast<ZLibError>(ret)));
 }
 
-ZStream::ZStream(InflateInitTag)
+ZStream::ZStream(InflateInitTag, bool rawDeflateData)
     : m_bDeflateStream(false)
 {
     ::memset(&m_stZStream, 0, sizeof(m_stZStream));
-    auto ret = ::zng_inflateInit(&m_stZStream);
+    auto ret = ::zng_inflateInit2(&m_stZStream, rawDeflateData ? -MAX_WBITS : MAX_WBITS);
     if (ret != Z_OK)
         throw system_error(make_error_code(static_cast<ZLibError>(ret)));
 }

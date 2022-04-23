@@ -227,4 +227,14 @@ Result<StreamPtr> WebFileSystem::OpenFile(Path path, FileAccessMode access, File
     }
 }
 
+const std::string& WebFileSystem::GetUserData() const noexcept
+{
+    return m_stUserData;
+}
+
+void WebFileSystem::SetUserData(std::string ud) noexcept
+{
+    m_stUserData = std::move(ud);
+}
+
 #endif

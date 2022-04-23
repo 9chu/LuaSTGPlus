@@ -22,7 +22,7 @@ bool SubsystemEvent::IsDefaultPrevented() const noexcept
 
 void SubsystemEvent::PreventDefault() noexcept
 {
-    m_bIsDefaultPrevented = false;
+    m_bIsDefaultPrevented = true;
 }
 
 bool SubsystemEvent::IsBubbles() const noexcept

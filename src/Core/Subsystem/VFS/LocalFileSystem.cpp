@@ -192,6 +192,16 @@ Result<StreamPtr> LocalFileSystem::OpenFile(Path path, FileAccessMode access, Fi
     }
 }
 
+const std::string& LocalFileSystem::GetUserData() const noexcept
+{
+    return m_stUserData;
+}
+
+void LocalFileSystem::SetUserData(std::string ud) noexcept
+{
+    m_stUserData = std::move(ud);
+}
+
 std::filesystem::path LocalFileSystem::MakeLocalPath(const Path& path) const
 {
     return m_stRoot / filesystem::u8path(path.ToStringView());

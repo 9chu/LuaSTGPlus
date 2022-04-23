@@ -136,7 +136,7 @@ void AppBase::OnEvent(Subsystem::SubsystemEvent& event) noexcept
     m_stSubsystemContainer.BubbleEvent(event);
 
     // 执行默认行为
-    if (event.IsDefaultPrevented())
+    if (!event.IsDefaultPrevented())
     {
         const auto& underlay = event.GetEvent();
         if (underlay.index() == 0)

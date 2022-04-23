@@ -372,7 +372,7 @@ namespace lstg::Subsystem::Script
     inline int LuaRead(typename std::enable_if<!std::is_same_v<LuaStack, detail::Unqualified<T>> &&
         !detail::IsUnpack<detail::Unqualified<T>>::value, LuaStack&>::type stack, int idx, std::optional<T>& out)
     {
-        if (lua_isnil(stack, idx))
+        if (lua_isnoneornil(stack, idx))
         {
             out.reset();
         }
