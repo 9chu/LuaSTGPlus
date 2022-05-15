@@ -23,6 +23,16 @@ namespace lstg::Subsystem::Render::detail
 
     public:
         /**
+         * 从流获取图像信息
+         * @param[out] width 宽度
+         * @param[out] height 高度
+         * @param stream 流
+         * @return 是否成功
+         */
+        static Result<void> ReadImageInfoFromStream(uint32_t& width, uint32_t& height, VFS::StreamPtr stream) noexcept;
+
+    public:
+        /**
          * 从文件加载纹理
          * 支持 stb_image 所兼容格式
          * @param stream 数据流

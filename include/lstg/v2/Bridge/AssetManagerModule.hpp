@@ -56,7 +56,7 @@ namespace lstg::v2::Bridge
          * @param pool 池子类型，可取 global、stage 或者 none
          */
         LSTG_METHOD()
-        static void SetResourceStatus(const char* pool);
+        static void SetResourceStatus(LuaStack& stack, const char* pool);
 
         /**
          * 删除资产
@@ -66,7 +66,7 @@ namespace lstg::v2::Bridge
          * @param name 资产名称
          */
         LSTG_METHOD()
-        static void RemoveResource(const char* pool, std::optional<AssetTypes> type, std::optional<const char*> name);
+        static void RemoveResource(LuaStack& stack, const char* pool, std::optional<AssetTypes> type, std::optional<const char*> name);
 
         /**
          * 检查资产位于哪个池子
@@ -84,7 +84,7 @@ namespace lstg::v2::Bridge
          * @return 全局资源池资产名称, 关卡资源池资产名称: string[], string[]
          */
         LSTG_METHOD()
-        static Unpack<AbsIndex, AbsIndex> EnumRes(AssetTypes type);
+        static Unpack<AbsIndex, AbsIndex> EnumRes(LuaStack& stack, AssetTypes type);
 
         /**
          * 获取纹理的宽和高
@@ -92,7 +92,7 @@ namespace lstg::v2::Bridge
          * @return 宽和高
          */
         LSTG_METHOD()
-        static Unpack<double, double> GetTextureSize(const char* name);
+        static Unpack<double, double> GetTextureSize(LuaStack& stack, const char* name);
 
         /**
          * 加载纹理
@@ -101,7 +101,7 @@ namespace lstg::v2::Bridge
          * @param mipmap 是否生成 mipmap
          */
         LSTG_METHOD()
-        static void LoadTexture(const char* name, const char* path, std::optional<bool> mipmap /* = false */);
+        static void LoadTexture(LuaStack& stack, const char* name, const char* path, std::optional<bool> mipmap /* = false */);
 
         /**
          * 从纹理创建图像

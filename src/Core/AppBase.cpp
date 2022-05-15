@@ -24,6 +24,7 @@
 #include <lstg/Core/Subsystem/RenderSystem.hpp>
 #include <lstg/Core/Subsystem/DebugGUISystem.hpp>
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
+#include <lstg/Core/Subsystem/AssetSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -54,14 +55,15 @@ AppBase::AppBase()
     LSTG_LOG_TRACE_CAT(AppBase, "Begin to initialize subsystem");
     const auto kSubsystemNoInteractive =
         SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
+    const auto kSubsystemUpdateOnly = SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
     m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0, kSubsystemNoInteractive);
-    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0,
-        SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent);
+    m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0, kSubsystemUpdateOnly);
     m_stSubsystemContainer.Register<Subsystem::RenderSystem>("RenderSystem", 0,
         SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender);
     m_stSubsystemContainer.Register<Subsystem::DebugGUISystem>("DebugGUISystem", 0);
     m_stSubsystemContainer.Register<Subsystem::ProfileSystem>("ProfileSystem", 0, kSubsystemNoInteractive);
+    m_stSubsystemContainer.Register<Subsystem::AssetSystem>("AssetSystem", 0, kSubsystemUpdateOnly);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 

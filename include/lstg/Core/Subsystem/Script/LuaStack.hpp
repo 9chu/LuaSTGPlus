@@ -53,7 +53,8 @@ namespace lstg::Subsystem::Script
 
 #ifdef LSTG_RTTI_ENABLED
                 const auto& info = typeid(T);
-                Name = fmt::format("__{0}_{1}", info.name(), info.hash_code());
+                // Name = fmt::format("__{0}_{1}", info.name(), info.hash_code());
+                Name = fmt::format("__{0}", info.name());
 #else
                 Name = fmt::format("__{0}", Id);
 #endif

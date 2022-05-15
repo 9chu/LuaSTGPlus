@@ -25,7 +25,7 @@ namespace lstg::Subsystem::VFS
     {
     public:
         InflateStream(StreamPtr underlayStream, std::optional<uint64_t> uncompressedSize = {});
-        InflateStream(const InflateStream&) = delete;
+        InflateStream(const InflateStream& org);
 
     public:  // IStream
         bool IsReadable() const noexcept override;
@@ -58,6 +58,6 @@ namespace lstg::Subsystem::VFS
         StreamPtr m_pUnderlayStream;
         bool m_bFinished = false;
         std::optional<uint64_t> m_stUncompressedSize;
-        uint8_t m_stChunk[16 * 1024];  // 16k
+        uint8_t m_stChunk[4 * 1024];  // 4k
     };
 }

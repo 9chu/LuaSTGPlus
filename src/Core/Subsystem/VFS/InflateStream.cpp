@@ -25,6 +25,31 @@ InflateStream::InflateStream(StreamPtr underlayStream, std::optional<uint64_t> u
     (**m_pZStream)->avail_in = 0;
 }
 
+InflateStream::InflateStream(const InflateStream& org)
+    : m_pZStream(std::make_shared<detail::ZStream>(*org.m_pZStream)), m_bFinished(org.m_bFinished),
+    m_stUncompressedSize(org.m_stUncompressedSize)
+{
+    auto clone = org.m_pUnderlayStream->Clone();
+    clone.ThrowIfError();
+    m_pUnderlayStream = *clone;
+
+    // 拷贝后，校准输入缓冲区
+    auto zstream = (*m_pZStream);
+    if (zstream->next_in)
+    {
+        auto offset = zstream->next_in - org.m_stChunk;
+        assert(offset <= static_cast<long>(sizeof(m_stChunk)));
+        ::memcpy(m_stChunk, org.m_stChunk, sizeof(m_stChunk));
+        zstream->next_in = m_stChunk + offset;
+    }
+    else
+    {
+        zstream->next_in = m_stChunk;
+    }
+    zstream->next_out = nullptr;
+    zstream->avail_out = 0;
+}
+
 bool InflateStream::IsReadable() const noexcept
 {
     return true;
@@ -136,8 +161,18 @@ Result<void> InflateStream::Write(const uint8_t* buffer, size_t length) noexcept
 
 Result<StreamPtr> InflateStream::Clone() const noexcept
 {
-    // FIXME: ZStream 无法拷贝，但是可以考虑复制底层流然后一直读取到当前位置实现 Clone
-    return make_error_code(errc::not_supported);
+    try
+    {
+        return make_shared<InflateStream>(*this);
+    }
+    catch (const system_error& ex)
+    {
+        return ex.code();
+    }
+    catch (...)  // bad_alloc
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
 }
 
 Result<void> InflateStream::Reset() noexcept

@@ -27,6 +27,12 @@ ProfileSystem::ProfileSystem(SubsystemContainer& container)
     m_ullLastFrameTime = chrono::steady_clock::now();
 }
 
+ProfileSystem::~ProfileSystem()
+{
+    assert(s_pInstance == this);
+    s_pInstance = nullptr;
+}
+
 double ProfileSystem::GetPerformanceCounter(PerformanceCounterTypes type, std::string_view name) const noexcept
 {
     const auto& container = (type == PerformanceCounterTypes::PerFrame) ? m_stLastFramePerFrameCounter : m_stRealTimeCounter;

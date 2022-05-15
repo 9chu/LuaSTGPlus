@@ -7,130 +7,211 @@
 #include <lstg/v2/Bridge/AssetManagerModule.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/AssetSystem.hpp>
+#include <lstg/Core/Subsystem/Asset/TextureAsset.hpp>
+#include "detail/Global.hpp"
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
+using namespace lstg::Subsystem;
+using namespace lstg::Subsystem::Asset;
 
 LSTG_DEF_LOG_CATEGORY(AssetManagerModule);
 
-void AssetManagerModule::SetResourceStatus(const char* pool)
+static const size_t kAssetPrefixLength = 4;
+
+static const char* kAssetPrefix[] = {
+    "???$",
+    "tex$",  // Texture = 1
+    "img$",  // Image = 2
+    "ani$",  // Animation = 3
+    "bgm$",  // Music = 4
+    "snd$",  // Sound = 5
+    "par$",  // Particle = 6
+    "txf$",  // TexturedFont = 7
+    "ttf$",  // TrueTypeFont = 8,
+    "lfx$",  // Effect = 9,
+};
+
+namespace
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    if (strcmp(s, "global") == 0)
-//        LRES.SetActivedPoolType(ResourcePoolType::Global);
-//    else if (strcmp(s, "stage") == 0)
-//        LRES.SetActivedPoolType(ResourcePoolType::Stage);
-//    else if (strcmp(s, "none") == 0)
-//        LRES.SetActivedPoolType(ResourcePoolType::None);
-//    else
-//        return luaL_error(L, "invalid argument #1 for 'SetResourceStatus', requires 'stage', 'global' or 'none'.");
-//    return 0;
+    /**
+     * 转换资产类型到前缀
+     * @param t 资产类型
+     * @return 前缀
+     */
+    const char* AssetTypeToPrefix(AssetManagerModule::AssetTypes t) noexcept
+    {
+        auto idx = static_cast<uint32_t>(t);
+        if (idx >= std::extent_v<decltype(kAssetPrefix)>)
+            idx = 0;
+        return kAssetPrefix[idx];
+    }
+
+    /**
+     * 检查资产名是否与类型匹配
+     * @param name 名称
+     * @param t 类型
+     * @return 是否匹配
+     */
+    bool IsAssetNameMatchType(string_view name, AssetManagerModule::AssetTypes t) noexcept
+    {
+        auto prefix = AssetTypeToPrefix(t);
+        if (name.length() >= kAssetPrefixLength && name.substr(0, kAssetPrefixLength) == prefix)
+            return true;
+        return false;
+    }
+
+    /**
+     * 构造完整的资产名
+     * @param t 资产类型
+     * @param name 名称
+     * @return 完整资产名
+     */
+    string MakeFullAssetName(AssetManagerModule::AssetTypes t, string_view name)
+    {
+        auto prefix = AssetTypeToPrefix(t);
+        return fmt::format("{}{}", prefix, name);
+    }
+
+    /**
+     * 解出资产名
+     * @param name 完整资产名
+     * @return 脚本系统中所用资产名
+     */
+    string ExtractAssetName(string_view name)
+    {
+        assert(name.length() >= kAssetPrefixLength);
+        return string { name.substr(kAssetPrefixLength) };
+    }
 }
 
-void AssetManagerModule::RemoveResource(const char* pool, std::optional<AssetTypes> type, std::optional<const char*> name)
+void AssetManagerModule::SetResourceStatus(LuaStack& stack, const char* pool)
 {
-    // TODO
-//    ResourcePoolType t;
-//    const char* s = luaL_checkstring(L, 1);
-//    if (strcmp(s, "global") == 0)
-//        t = ResourcePoolType::Global;
-//    else if (strcmp(s, "stage") == 0)
-//        t = ResourcePoolType::Stage;
-//    else if (strcmp(s, "none") != 0)
-//        t = ResourcePoolType::None;
-//    else
-//        return luaL_error(L, "invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
-//
-//    if (lua_gettop(L) == 1)
-//    {
-//        switch (t)
-//        {
-//            case ResourcePoolType::Stage:
-//                LRES.GetResourcePool(ResourcePoolType::Stage)->Clear();
-//                LINFO("关卡资源池已清空");
-//                break;
-//            case ResourcePoolType::Global:
-//                LRES.GetResourcePool(ResourcePoolType::Global)->Clear();
-//                LINFO("全局资源池已清空");
-//                break;
-//            default:
-//                break;
-//        }
-//    }
-//    else
-//    {
-//        ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 2));
-//        const char* tResourceName = luaL_checkstring(L, 3);
-//
-//        switch (t)
-//        {
-//            case ResourcePoolType::Stage:
-//                LRES.GetResourcePool(ResourcePoolType::Stage)->RemoveResource(tResourceType, tResourceName);
-//                break;
-//            case ResourcePoolType::Global:
-//                LRES.GetResourcePool(ResourcePoolType::Global)->RemoveResource(tResourceType, tResourceName);
-//                break;
-//            default:
-//                break;
-//        }
-//    }
-//
-//    return 0;
+    if (::strcmp(pool, "global") == 0)
+        detail::GetGlobalApp().SetCurrentAssetPool(detail::GetGlobalApp().GetGlobalAssetPool());
+    else if (::strcmp(pool, "stage") == 0)
+        detail::GetGlobalApp().SetCurrentAssetPool(detail::GetGlobalApp().GetStageAssetPool());
+    else if (::strcmp(pool, "none") == 0)
+        detail::GetGlobalApp().SetCurrentAssetPool(nullptr);
+    else
+        stack.Error("invalid argument #1 for 'SetResourceStatus', requires 'stage', 'global' or 'none'.");
+}
+
+void AssetManagerModule::RemoveResource(LuaStack& stack, const char* pool, std::optional<AssetTypes> type, std::optional<const char*> name)
+{
+    AssetPool* assetPool = nullptr;
+    if (::strcmp(pool, "global") == 0)
+        assetPool = detail::GetGlobalApp().GetGlobalAssetPool().get();
+    else if (::strcmp(pool, "stage") == 0)
+        assetPool = detail::GetGlobalApp().GetStageAssetPool().get();
+    else if (::strcmp(pool, "none") == 0)
+        return;  // do nothing
+    else
+        stack.Error("invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
+
+    assert(assetPool);
+    if (type)
+    {
+        if (!name)
+            stack.Error("argument #3 must be specified");
+
+        auto fullName = MakeFullAssetName(*type, *name);
+        auto ret = assetPool->RemoveAsset(fullName);
+        if (!ret)
+            LSTG_LOG_WARN_CAT(AssetManagerModule, "Remove asset {} fail: {}", fullName, ret.GetError());
+    }
+    else
+    {
+        assetPool->Clear(AssetPool::AssetClearTypes::All);
+        if (assetPool == detail::GetGlobalApp().GetGlobalAssetPool().get())
+        {
+            LSTG_LOG_INFO_CAT(AssetManagerModule, "Global asset pool is clear");
+        }
+        else
+        {
+            assert(assetPool == detail::GetGlobalApp().GetStageAssetPool().get());
+            LSTG_LOG_INFO_CAT(AssetManagerModule, "Stage asset pool is clear");
+        }
+    }
 }
 
 std::optional<const char*> AssetManagerModule::CheckRes(AssetTypes type, const char* name)
 {
-    // TODO
-//    ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 1));
-//    const char* tResourceName = luaL_checkstring(L, 2);
-//    // 先在全局池中寻找再到关卡池中找
-//    if (LRES.GetResourcePool(ResourcePoolType::Global)->CheckResourceExists(tResourceType, tResourceName))
-//        lua_pushstring(L, "global");
-//    else if (LRES.GetResourcePool(ResourcePoolType::Stage)->CheckResourceExists(tResourceType, tResourceName))
-//        lua_pushstring(L, "stage");
-//    else
-//        lua_pushnil(L);
-//    return 1;
-    return nullptr_t {};
+    auto fullName = MakeFullAssetName(type, name);
+
+    // 先在全局池中寻找再到关卡池中找
+    // FIXME: 行为似乎不统一，这个应该改成先在关卡池找再去全局池找？
+    if (detail::GetGlobalApp().GetGlobalAssetPool()->ContainsAsset(fullName))
+        return "global";
+    else if (detail::GetGlobalApp().GetStageAssetPool()->ContainsAsset(fullName))
+        return "stage";
+    return nullopt;
 }
 
-AssetManagerModule::Unpack<AssetManagerModule::AbsIndex, AssetManagerModule::AbsIndex> AssetManagerModule::EnumRes(AssetTypes type)
+AssetManagerModule::Unpack<AssetManagerModule::AbsIndex, AssetManagerModule::AbsIndex> AssetManagerModule::EnumRes(LuaStack& stack,
+    AssetTypes type)
 {
-    // TODO
-//    ResourceType tResourceType = static_cast<ResourceType>(luaL_checkint(L, 1));
-//    LRES.GetResourcePool(ResourcePoolType::Global)->ExportResourceList(L, tResourceType);
-//    LRES.GetResourcePool(ResourcePoolType::Stage)->ExportResourceList(L, tResourceType);
-//    return 2;
-    return { {}, {} };
+    AssetPool* assetPools[] = {
+        detail::GetGlobalApp().GetGlobalAssetPool().get(),
+        detail::GetGlobalApp().GetStageAssetPool().get()
+    };
+
+    for (auto assetPool : assetPools)
+    {
+        size_t idx = 1;
+        lua_newtable(stack);
+        assetPool->Visit([&](const AssetPtr& asset) -> std::tuple<bool, monostate> {
+            if (IsAssetNameMatchType(asset->GetName(), type))
+                lua_setfield(stack, static_cast<int>(idx++), ExtractAssetName(asset->GetName()).c_str());
+            return { false, {} };
+        });
+    }
+    assert(stack.GetTop() == 2);
+    assert(stack.TypeOf(1) == LUA_TTABLE);
+    assert(stack.TypeOf(2) == LUA_TTABLE);
+    return { AbsIndex(1u), AbsIndex(2u) };
 }
 
-AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(const char* name)
+AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    fcyVec2 size;
-//    if (!LRES.GetTextureSize(name, size))
-//        return luaL_error(L, "texture '%s' not found.", name);
-//    lua_pushnumber(L, size.x);
-//    lua_pushnumber(L, size.y);
-//    return 2;
-    return {0, 0};
+    auto fullName = MakeFullAssetName(AssetTypes::Texture, name);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("texture '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == TextureAsset::GetAssetTypeIdStatic());
+
+    auto texAsset = static_pointer_cast<TextureAsset>(asset);
+    return {texAsset->GetWidth(), texAsset->GetHeight()};
 }
 
-void AssetManagerModule::LoadTexture(const char* name, const char* path, std::optional<bool> mipmap /* = false */)
+void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const char* path, std::optional<bool> mipmap /* = false */)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//    if (!pActivedPool->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
-//        return luaL_error(L, "can't load texture from file '%s'.", path);
-//    return 0;
+    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
+    if (!currentAssetPool)
+        stack.Error("can't load resource at this time.");
+    assert(currentAssetPool);
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Texture, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Texture \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<TextureAsset>(currentAssetPool, fullName, nlohmann::json {
+        {"path", path},
+        {"mipmaps", mipmap ? *mipmap : false},
+    });
+    if (!ret)
+        stack.Error("can't load texture from file '%s'.", path);
 }
 
 void AssetManagerModule::LoadImage(const char* name, const char* textureName, double x, double y, double w, double h,

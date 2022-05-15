@@ -163,3 +163,10 @@ CPMAddPackage(
         "LUA_LIBRARY ${LUA_BUILD_DIR}"
         "ENABLE_CJSON_GLOBAL ON"
 )
+
+# nlohmann/json
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.10.5
+)

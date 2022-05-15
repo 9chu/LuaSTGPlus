@@ -28,3 +28,15 @@ Texture::~Texture()
         m_pNativeHandler = nullptr;
     }
 }
+
+uint32_t Texture::GetWidth() const noexcept
+{
+    assert(m_pNativeHandler);
+    return m_pNativeHandler->GetDesc().GetWidth();
+}
+
+uint32_t Texture::GetHeight() const noexcept
+{
+    assert(m_pNativeHandler);
+    return m_pNativeHandler->GetDesc().GetHeight();
+}

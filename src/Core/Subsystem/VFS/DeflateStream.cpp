@@ -26,6 +26,21 @@ DeflateStream::DeflateStream(StreamPtr underlayStream, int compressionLevel)
     assert(m_pUnderlayStream);
 }
 
+DeflateStream::DeflateStream(const DeflateStream& org)
+    : m_pZStream(std::make_shared<detail::ZStream>(*org.m_pZStream)), m_bFinished(org.m_bFinished)
+{
+    auto clone = org.m_pUnderlayStream->Clone();
+    clone.ThrowIfError();
+    m_pUnderlayStream = *clone;
+
+    // Write 操作总是会消耗所有的输入输出
+    auto zstream = (*m_pZStream);
+    zstream->next_out = nullptr;
+    zstream->avail_out = 0;
+    zstream->next_in = nullptr;
+    zstream->avail_in = 0;
+}
+
 DeflateStream::~DeflateStream() {
     if (!m_bFinished)
     {
@@ -118,7 +133,18 @@ Result<void> DeflateStream::Write(const uint8_t* buffer, size_t length) noexcept
 
 Result<StreamPtr> DeflateStream::Clone() const noexcept
 {
-    return make_error_code(errc::not_supported);
+    try
+    {
+        return make_shared<DeflateStream>(*this);
+    }
+    catch (const system_error& ex)
+    {
+        return ex.code();
+    }
+    catch (...)  // bad_alloc
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
 }
 
 Result<void> DeflateStream::Finish() noexcept

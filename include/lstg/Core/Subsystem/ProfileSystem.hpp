@@ -41,6 +41,8 @@ namespace lstg::Subsystem
         ProfileSystem(const ProfileSystem&) = delete;
         ProfileSystem(ProfileSystem&&) = delete;
 
+        ~ProfileSystem() override;
+
     public:
         /**
          * 获取性能计数器

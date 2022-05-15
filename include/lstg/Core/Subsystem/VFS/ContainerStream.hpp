@@ -17,13 +17,13 @@ namespace lstg::Subsystem::VFS
         struct IsResizableContainer : std::false_type {};
 
         template <class T>
-        struct IsResizableContainer<T, std::void_t<decltype(std::declval<T&>.resize(0u))>> : std::true_type {};
+        struct IsResizableContainer<T, std::void_t<decltype(std::declval<T&>().resize(0u))>> : std::true_type {};
 
         template <class, class = void>
         struct IsReservableContainer : std::false_type {};
 
         template <class T>
-        struct IsReservableContainer<T, std::void_t<decltype(std::declval<T&>.reserve(0u))>> : std::true_type {};
+        struct IsReservableContainer<T, std::void_t<decltype(std::declval<T&>().reserve(0u))>> : std::true_type {};
     }  // namespace detail
 
     /**
@@ -60,7 +60,7 @@ namespace lstg::Subsystem::VFS
          * @param sz 初始化大小
          */
         template <typename P = T>
-        explicit ContainerStream(size_t sz, typename std::enable_if<detail::IsResizableContainer<P>::value>::type = {})
+        explicit ContainerStream(size_t sz, typename std::enable_if<detail::IsResizableContainer<P>::value, int>::type = {})
         {
             m_pContainer = std::make_shared<P>();
             m_pContainer->resize(sz);
@@ -73,7 +73,7 @@ namespace lstg::Subsystem::VFS
          */
         template <typename P = T>
         explicit ContainerStream(size_t sz, size_t preAllocate,
-            typename std::enable_if<detail::IsResizableContainer<P>::value && detail::IsReservableContainer<P>::value>::type = {})
+            typename std::enable_if<detail::IsResizableContainer<P>::value && detail::IsReservableContainer<P>::value, int>::type = {})
         {
             m_pContainer = std::make_shared<T>();
             m_pContainer->reserve(preAllocate);
@@ -102,7 +102,7 @@ namespace lstg::Subsystem::VFS
                 try
                 {
                     CopyIfRequired();
-                    assert(m_pContainer->use_count() == 1);
+                    assert(m_pContainer.use_count() == 1);
                     m_pContainer->resize(length);
                 }
                 catch (...)  // bad_alloc
@@ -265,7 +265,7 @@ namespace lstg::Subsystem::VFS
          * @param sz 大小
          */
         template <typename P = T>
-        void Reserve(size_t sz, typename std::enable_if<detail::IsReservableContainer<P>::value>::type = {})
+        void Reserve(size_t sz, typename std::enable_if<detail::IsReservableContainer<P>::value, int>::type = {})
         {
             CopyIfRequired();
             assert(m_pContainer.use_count() == 1);

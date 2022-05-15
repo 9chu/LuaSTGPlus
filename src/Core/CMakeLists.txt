@@ -1,5 +1,5 @@
 ### 明确第三方库引用
-set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm)
+set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm nlohmann_json)
 set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb)
 
 # 平台相关库

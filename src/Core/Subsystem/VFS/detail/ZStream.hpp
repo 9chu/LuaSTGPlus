@@ -21,6 +21,7 @@ namespace lstg::Subsystem::VFS::detail
         ZStream(DeflateInitTag, int compressionLevel = Z_DEFAULT_COMPRESSION);
         ZStream(InflateInitTag, bool rawDeflateData = false);
 
+        ZStream(const ZStream& org);
         ZStream(ZStream&&) = delete;
         ZStream& operator=(ZStream&&) = delete;
 

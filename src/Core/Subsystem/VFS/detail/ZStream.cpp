@@ -32,6 +32,18 @@ ZStream::ZStream(InflateInitTag, bool rawDeflateData)
         throw system_error(make_error_code(static_cast<ZLibError>(ret)));
 }
 
+ZStream::ZStream(const ZStream& org)
+    : m_bDeflateStream(org.m_bDeflateStream)
+{
+    int ret;
+    if (m_bDeflateStream)
+        ret = ::zng_deflateCopy(&m_stZStream, const_cast<zng_stream*>(&(org.m_stZStream)));
+    else
+        ret = ::zng_inflateCopy(&m_stZStream, const_cast<zng_stream*>(&(org.m_stZStream)));
+    if (ret != Z_OK)
+        throw system_error(make_error_code(static_cast<ZLibError>(ret)));
+}
+
 ZStream::~ZStream()
 {
     int ok = 0;

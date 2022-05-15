@@ -39,6 +39,17 @@ namespace lstg::Subsystem::Render
         Texture(Texture&&) noexcept = delete;
         ~Texture();
 
+    public:
+        /**
+         * 获取宽度
+         */
+        uint32_t GetWidth() const noexcept;
+
+        /**
+         * 获取高度
+         */
+        uint32_t GetHeight() const noexcept;
+
     private:
         Diligent::ITexture* m_pNativeHandler = nullptr;
     };

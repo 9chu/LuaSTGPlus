@@ -18,7 +18,7 @@ namespace lstg::Subsystem::VFS
     public:
         DeflateStream(StreamPtr underlayStream);
         DeflateStream(StreamPtr underlayStream, int compressionLevel);
-        DeflateStream(const DeflateStream&) = delete;
+        DeflateStream(const DeflateStream& org);
         ~DeflateStream() override;
 
     public:  // IStream
@@ -52,6 +52,6 @@ namespace lstg::Subsystem::VFS
         detail::ZStreamPtr m_pZStream;
         StreamPtr m_pUnderlayStream;
         bool m_bFinished = false;
-        uint8_t m_stChunk[16 * 1024];  // 16k
+        uint8_t m_stChunk[4 * 1024];  // 4k
     };
 }

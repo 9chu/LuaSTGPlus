@@ -10,6 +10,7 @@
 #include <GraphicsAccessories.hpp>
 #include <GraphicsUtilities.h>
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/VFS/ContainerStream.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -19,6 +20,59 @@ LSTG_DEF_LOG_CATEGORY(Texture2DDataImpl);
 
 namespace
 {
+    Result<Subsystem::VFS::StreamPtr> ConvertToSeekableStream(Subsystem::VFS::StreamPtr stream) noexcept
+    {
+        // 如果本身就是可以 Seek 的，就忽略
+        if (stream->IsSeekable())
+            return stream;
+
+        // 预分配
+        Subsystem::VFS::MemoryStreamPtr ret;
+        try
+        {
+            ret = make_shared<Subsystem::VFS::MemoryStream>();
+            auto length = stream->GetLength();
+            if (length)
+                ret->Reserve(*length);
+        }
+        catch (...)
+        {
+            return make_error_code(errc::not_enough_memory);
+        }
+
+        // 从当前位置开始读取所有的内容
+        const size_t kChunkSize = 16 * 1024;
+        size_t readLength = 0;
+        auto& container = ret->GetContainer();
+        while (true)
+        {
+            // 分配 kChunkSize 个数据
+            try
+            {
+                container.resize(readLength + kChunkSize);
+            }
+            catch (...)
+            {
+                return make_error_code(errc::not_enough_memory);
+            }
+
+            // 读取数据
+            auto cnt = stream->Read(container.data() + readLength, kChunkSize);
+            if (!cnt)
+                return cnt.GetError();
+
+            // 缩小实际大小
+            if (*cnt)
+            {
+                readLength += *cnt;
+                container.resize(readLength);
+            }
+            if (*cnt < kChunkSize)
+                break;
+        }
+        return ret;
+    }
+
     int StbImageReadStreamBridge(void* user, char* data, int size) noexcept
     {
         auto stream = static_cast<Subsystem::VFS::IStream*>(user);
@@ -118,9 +172,32 @@ namespace
 //    }
 }
 
+Result<void> Texture2DDataImpl::ReadImageInfoFromStream(uint32_t& width, uint32_t& height, VFS::StreamPtr stream) noexcept
+{
+    auto seekableStream = ConvertToSeekableStream(std::move(stream));
+    if (!seekableStream)
+        return seekableStream.GetError();
+
+    ::stbi_io_callbacks callbacks {
+        StbImageReadStreamBridge,
+        StbImageSkipStreamBridge,
+        StbImageIsEofStreamBridge,
+    };
+    int x, y, channels;
+    auto ret = ::stbi_info_from_callbacks(&callbacks, seekableStream->get(), &x, &y, &channels);
+    if (ret != 1)
+    {
+        LSTG_LOG_ERROR_CAT(Texture2DDataImpl, "stbi_load_from_callbacks fail: {}", ::stbi_failure_reason());
+        return make_error_code(errc::io_error);
+    }
+    return {};
+}
+
 Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
 {
     assert(stream);
+    auto seekableStream = ConvertToSeekableStream(std::move(stream));
+    seekableStream.ThrowIfError();
 
     // 解码图像
     int x, y, channels;
@@ -130,7 +207,7 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
         StbImageSkipStreamBridge,
         StbImageIsEofStreamBridge,
     };
-    data.reset(::stbi_load_from_callbacks(&callbacks, stream.get(), &x, &y, &channels, 0));
+    data.reset(::stbi_load_from_callbacks(&callbacks, seekableStream->get(), &x, &y, &channels, 0));
     if (!data)
     {
         LSTG_LOG_ERROR_CAT(Texture2DDataImpl, "stbi_load_from_callbacks fail: {}", ::stbi_failure_reason());
