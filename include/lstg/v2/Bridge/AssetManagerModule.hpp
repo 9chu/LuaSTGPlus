@@ -8,6 +8,7 @@
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
 #include <lstg/Core/Subsystem/Script/AutoBridgeHint.hpp>
 #include "LSTGColor.hpp"
+#include "../AssetNaming.hpp"
 
 namespace lstg::v2::Bridge
 {
@@ -24,6 +25,7 @@ namespace lstg::v2::Bridge
         using Unpack = Subsystem::Script::Unpack<TArgs...>;
 
     public:
+#if LSTG_AUTO_BRIDGE_HINT
         /**
          * 资产类型
          */
@@ -49,6 +51,9 @@ namespace lstg::v2::Bridge
             LSTG_FIELD()
             Effect = 9,
         };
+#else
+        using AssetTypes = v2::AssetTypes;
+#endif
 
     public:
         /**
@@ -116,8 +121,8 @@ namespace lstg::v2::Bridge
          * @param rect 是否为矩形判定
          */
         LSTG_METHOD()
-        static void LoadImage(const char* name, const char* textureName, double x, double y, double w, double h, std::optional<double> a,
-            std::optional<double> b, std::optional<bool> rect);
+        static void LoadImage(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
+            std::optional<double> a, std::optional<double> b, std::optional<bool> rect);
 
         /**
          * 设置图像状态
@@ -129,7 +134,7 @@ namespace lstg::v2::Bridge
          * @param vertexColor4 顶点4颜色
          */
         LSTG_METHOD()
-        static void SetImageState(const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
+        static void SetImageState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
             std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4);
 
         /**
@@ -139,7 +144,7 @@ namespace lstg::v2::Bridge
          * @param y 坐标Y
          */
         LSTG_METHOD()
-        static void SetImageCenter(const char* name, double x, double y);
+        static void SetImageCenter(LuaStack& stack, const char* name, double x, double y);
 
         /**
          * 设置全局图像缩放

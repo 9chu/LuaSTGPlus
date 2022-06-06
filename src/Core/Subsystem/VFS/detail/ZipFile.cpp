@@ -11,6 +11,12 @@
 #include <lstg/Core/Subsystem/VFS/InflateStream.hpp>
 #include "ZipPkDecryptStream.hpp"
 
+// http://stackoverflow.com/questions/22265610/why-ssize-t-in-visual-studio-2010-is-defined-as-unsigned
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS::detail;
@@ -114,7 +120,7 @@ namespace
         ::memset(&tm, 0, sizeof(tm));
 
 #ifdef LSTG_PLATFORM_WIN32
-        ::localtime_s(&t, &tm);
+        ::localtime_s(&tm, &t);
 #else
         ::localtime_r(&t, &tm);
 #endif

@@ -19,12 +19,12 @@ bool LSTGColor::Equals(const LSTGColor& lhs, const LSTGColor& rhs) noexcept
 
 LSTGColor LSTGColor::Add(const LSTGColor& lhs, const LSTGColor& rhs) noexcept
 {
-    return LSTGColor {lhs + rhs};
+    return {lhs + rhs};
 }
 
 LSTGColor LSTGColor::Substract(const LSTGColor& lhs, const LSTGColor& rhs) noexcept
 {
-    return LSTGColor {lhs - rhs};
+    return {lhs - rhs};
 }
 
 LSTGColor LSTGColor::Multiply(std::variant<double, const LSTGColor*> lhs, std::variant<double, const LSTGColor*> rhs) noexcept

@@ -69,6 +69,7 @@ namespace lstg::Subsystem::Asset
 
         /**
          * 更新内部状态
+         * @note 总是在主线程上调用
          */
         virtual void Update() noexcept = 0;
 

@@ -64,6 +64,28 @@ namespace
         Path m_stCurrentFileName;
         filesystem::directory_iterator m_stIterator;
     };
+
+    template <class TClock, class = void>
+    struct FileTimeConvertToTimeT
+    {
+        time_t operator()(typename TClock::time_point tp) noexcept
+        {
+            // http://stackoverflow.com/questions/61030383/how-to-convert-stdfilesystemfile-time-type-to-time-t
+            auto sctp = chrono::time_point_cast<chrono::system_clock::duration>(tp - TClock::now() + chrono::system_clock::now());
+            return chrono::system_clock::to_time_t(sctp);
+        }
+    };
+
+    template <class TClock>
+    struct FileTimeConvertToTimeT<TClock, std::void_t<decltype(TClock::to_time_t(std::declval<TClock::time_point>()))>>
+    {
+        time_t operator()(typename TClock::time_point tp) noexcept
+        {
+            // to_time_t is not portable until C++20
+            // see: http://en.cppreference.com/w/cpp/filesystem/file_time_type
+            return TClock::to_time_t(tp);
+        }
+    };
 }
 
 LocalFileSystem::LocalFileSystem(std::filesystem::path root) noexcept
@@ -130,7 +152,7 @@ Result<FileAttribute> LocalFileSystem::GetFileAttribute(Path path) noexcept
             ret.Type = FileType::RegularFile;
         else if (is_directory(stat))
             ret.Type = FileType::Directory;
-        ret.LastModified = filesystem::file_time_type::clock::to_time_t(mod);
+        ret.LastModified = FileTimeConvertToTimeT<filesystem::file_time_type::clock>{}(mod);
         ret.Size = size;
         return ret;
     }

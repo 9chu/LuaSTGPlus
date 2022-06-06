@@ -73,6 +73,7 @@ namespace lstg::Subsystem::Render::Drawing2D
             size_t TextureId = 0;  // 纹理ID
             size_t IndexStart = 0;  // Index起始下标
             size_t IndexCount = 0;  // Index个数
+            size_t BaseVertexIndex = 0;  // 基准顶点索引
         };
 
         using DrawCommandContainer = std::vector<DrawCommand>;
@@ -132,6 +133,12 @@ namespace lstg::Subsystem::Render::Drawing2D
         void SetGroupId(uint64_t id) noexcept;
 
         /**
+         * 设置观察矩阵
+         * @param matrix 矩阵
+         */
+        void SetView(glm::mat4x4 matrix) noexcept;
+
+        /**
          * 设置投影矩阵
          * @param matrix 矩阵
          */
@@ -170,6 +177,13 @@ namespace lstg::Subsystem::Render::Drawing2D
         Result<void> DrawQuad(TexturePtr tex2d, const Vertex (&arr)[4]) noexcept;
 
         /**
+         * 绘制四边形
+         * @param tex2d 关联的纹理
+         * @return 如果成功，返回四边形顶点指针，否则返回错误
+         */
+        Result<Span<Vertex>> DrawQuadInPlace(TexturePtr tex2d) noexcept;
+
+        /**
          * 清空颜色和 ZBuffer
          * @param color 颜色
          * @return 是否成功
@@ -191,12 +205,13 @@ namespace lstg::Subsystem::Render::Drawing2D
         {
             mutable std::optional<uint32_t> Hash;
 
+            glm::mat4x4 View;
             glm::mat4x4 Projection;
             Camera::Viewport Viewport;
 
             bool operator==(const CameraStateKey& rhs) const noexcept
             {
-                return Projection == rhs.Projection && Viewport == rhs.Viewport;
+                return View == rhs.View && Projection == rhs.Projection && Viewport == rhs.Viewport;
             }
         };
 
@@ -226,6 +241,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         std::map<Texture*, size_t> m_stTextureMapping;
 
         // 正在生成的图元
+        size_t m_uCurrentBaseVertexIndex = 0;
         std::vector<Vertex> m_stVertices;
         std::vector<uint16_t> m_stIndexes;
 
@@ -233,10 +249,11 @@ namespace lstg::Subsystem::Render::Drawing2D
         CommandGroupContainer m_stCommandGroups;
 
         // 当前状态
-        CommandGroupContainer::iterator m_stCurrentGroup;
-        CommandQueueContainer::iterator m_stCurrentQueue;
-        DrawCommandContainer::iterator m_stCurrentDrawCommand;
+        std::optional<CommandGroupContainer::iterator> m_stCurrentGroup;
+        std::optional<CommandQueueContainer::iterator> m_stCurrentQueue;
+        std::optional<DrawCommandContainer::iterator> m_stCurrentDrawCommand;
         uint64_t m_ullCurrentGroupId = 0;
+        glm::mat4x4 m_stCurrentView;
         glm::mat4x4 m_stCurrentProjection;
         Camera::Viewport m_stCurrentViewport;
         ColorBlendMode m_iCurrentColorBlendMode = ColorBlendMode::Alpha;

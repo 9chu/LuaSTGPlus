@@ -225,7 +225,11 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
 #undef APPEND_TO_BUFFER
 
     tm.tm_year -= 1900;
+#ifdef _MSC_VER
+    ret = _mkgmtime(&tm);
+#else
     ret = timegm(&tm);
+#endif
     return ret;
 }
 

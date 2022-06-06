@@ -182,7 +182,7 @@ namespace
             else
                 break;
         }
-        return {begin, static_cast<size_t>(end - begin)};
+        return {&*begin, static_cast<size_t>(end - begin)};
     }
 
     /**

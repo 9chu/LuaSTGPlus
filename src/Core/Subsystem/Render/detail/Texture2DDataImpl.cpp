@@ -383,9 +383,17 @@ Result<void> Texture2DDataImpl::GenerateMipmap(size_t count) noexcept
             newSubResources[m].Stride = mipLevelProps.RowSize;
 
             auto finerMipProps = GetMipLevelProperties(m_stDesc, m - 1);
-            Diligent::ComputeMipLevel(finerMipProps.LogicalWidth, finerMipProps.LogicalHeight, m_stDesc.Format,
-                newSubResources[m - 1].pData, static_cast<size_t>(newSubResources[m - 1].Stride), newMipMaps[m].data(),
-                static_cast<size_t>(newSubResources[m].Stride));
+
+            auto attr = Diligent::ComputeMipLevelAttribs {
+                m_stDesc.Format,
+                finerMipProps.LogicalWidth,
+                finerMipProps.LogicalHeight,
+                newSubResources[m - 1].pData,
+                static_cast<size_t>(newSubResources[m - 1].Stride),
+                newMipMaps[m].data(),
+                static_cast<size_t>(newSubResources[m].Stride),
+            };
+            Diligent::ComputeMipLevel(attr);
         }
         return {};
     }

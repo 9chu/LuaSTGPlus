@@ -123,6 +123,7 @@ namespace lstg::v2::Bridge
 
         /**
          * 渲染精灵
+         * @param stack 栈
          * @param imageName 图像名称
          * @param x 坐标X
          * @param y 坐标Y
@@ -132,11 +133,12 @@ namespace lstg::v2::Bridge
          * @param z Z轴
          */
         LSTG_METHOD()
-        static void Render(const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
+        static void Render(LuaStack& stack, const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
             std::optional<double> hscale /* =1 */, std::optional<double> vscale /* =1 */, std::optional<double> z /* =0.5 */);
 
         /**
          * 渲染精灵
+         * @param stack 栈
          * @note z = 0.5
          * @param imageName 图像名称
          * @param left 距离屏幕左边的距离
@@ -145,10 +147,11 @@ namespace lstg::v2::Bridge
          * @param top 距离屏幕顶边的距离
          */
         LSTG_METHOD()
-        static void RenderRect(const char* imageName, double left, double right, double bottom, double top);
+        static void RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top);
 
         /**
          * 渲染精灵
+         * @param stack 栈
          * @param imageName 图像名称
          * @param x1 顶点1 X坐标
          * @param y1 顶点1 Y坐标
@@ -164,8 +167,8 @@ namespace lstg::v2::Bridge
          * @param z4 顶点4 Z坐标
          */
         LSTG_METHOD(Render4V)
-        static void RenderVertex(const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2, double x3,
-            double y3, double z3, double x4, double y4, double z4);
+        static void RenderVertex(LuaStack& stack, const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2,
+            double x3, double y3, double z3, double x4, double y4, double z4);
 
         /**
          * 直接渲染纹理
@@ -178,8 +181,8 @@ namespace lstg::v2::Bridge
          * @param vertex4 顶点坐标4
          */
         LSTG_METHOD()
-        static void RenderTexture(LuaStack& stack, const char* textureName, const char* blend, AbsIndex vertex1, AbsIndex vertex2,
-            AbsIndex vertex3, AbsIndex vertex4);
+        static void RenderTexture(LuaStack& stack, const char* textureName, const char* blend, AbsIndex vertex1,
+            AbsIndex vertex2, AbsIndex vertex3, AbsIndex vertex4);
 
         /**
          * 使用纹理字体渲染文本

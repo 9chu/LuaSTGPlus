@@ -6,161 +6,176 @@
  */
 #include <lstg/v2/Bridge/RenderModule.hpp>
 
+#include <lstg/Core/Logging.hpp>
+#include <lstg/v2/AssetNaming.hpp>
+#include <lstg/v2/Asset/SpriteAsset.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/SpriteDrawing.hpp>
+#include "detail/Helper.hpp"
+#include <glm/ext.hpp>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
 
+LSTG_DEF_LOG_CATEGORY(RenderModule);
+
 void RenderModule::BeginScene()
 {
-    // TODO
-//    if (!LAPP.BeginScene())
-//        return luaL_error(L, "can't invoke 'BeginScene'.");
-//    return 0;
+    // DO NOTHING
 }
 
 void RenderModule::EndScene()
 {
-    // TODO
-//    if (!LAPP.EndScene())
-//        return luaL_error(L, "can't invoke 'EndScene'.");
-//    return 0;
+    // DO NOTHING
 }
 
 void RenderModule::RenderClear(LSTGColor* color)
 {
-    // TODO
-//    fcyColor* c = static_cast<fcyColor*>(luaL_checkudata(L, 1, TYPENAME_COLOR));
-//    LAPP.ClearScreen(*c);
-//    return 0;
+    detail::GetGlobalApp().GetCommandBuffer().Clear(*color);
 }
 
 void RenderModule::SetViewport(double left, double right, double bottom, double top)
 {
-    // TODO
-//    if (!LAPP.SetViewport(
-//        luaL_checknumber(L, 1),
-//        luaL_checknumber(L, 2),
-//        luaL_checknumber(L, 3),
-//        luaL_checknumber(L, 4)
-//    ))
-//    {
-//        return luaL_error(L, "invalid arguments for 'SetViewport'.");
-//    }
-//    return 0;
+    auto& app = detail::GetGlobalApp();
+    auto bound = app.GetViewportBound();
+    auto scale = bound.Width() / detail::GetGlobalApp().GetDesiredResolution().x;
+    WindowRectangle desiredViewport = {
+        bound.Left() + left * scale,
+        bound.Top() + top * scale,
+        std::abs(right - left) * scale,
+        std::abs(top - bottom) * scale
+    };
+    app.GetCommandBuffer().SetViewport(
+        static_cast<float>(desiredViewport.Left()),
+        static_cast<float>(desiredViewport.Top()),
+        static_cast<float>(desiredViewport.Width()),
+        static_cast<float>(desiredViewport.Height()));
 }
 
 void RenderModule::SetOrtho(double left, double right, double bottom, double top)
 {
-    // TODO
-//    LAPP.SetOrtho(
-//        static_cast<float>(luaL_checknumber(L, 1)),
-//        static_cast<float>(luaL_checknumber(L, 2)),
-//        static_cast<float>(luaL_checknumber(L, 3)),
-//        static_cast<float>(luaL_checknumber(L, 4))
-//    );
-//    return 0;
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+    cmdBuffer.SetView(glm::identity<glm::mat4x4>());
+    cmdBuffer.SetProjection(glm::ortho(left, right, bottom, top));
 }
 
 void RenderModule::SetPerspective(double eyeX, double eyeY, double eyeZ, double atX, double atY, double atZ, double upX, double upY,
     double upZ, double fovy, double aspect, double zn, double zf)
 {
-    // TODO
-//    LAPP.SetPerspective(
-//        static_cast<float>(luaL_checknumber(L, 1)),
-//        static_cast<float>(luaL_checknumber(L, 2)),
-//        static_cast<float>(luaL_checknumber(L, 3)),
-//        static_cast<float>(luaL_checknumber(L, 4)),
-//        static_cast<float>(luaL_checknumber(L, 5)),
-//        static_cast<float>(luaL_checknumber(L, 6)),
-//        static_cast<float>(luaL_checknumber(L, 7)),
-//        static_cast<float>(luaL_checknumber(L, 8)),
-//        static_cast<float>(luaL_checknumber(L, 9)),
-//        static_cast<float>(luaL_checknumber(L, 10)),
-//        static_cast<float>(luaL_checknumber(L, 11)),
-//        static_cast<float>(luaL_checknumber(L, 12)),
-//        static_cast<float>(luaL_checknumber(L, 13))
-//    );
-//    return 0;
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+    cmdBuffer.SetView(glm::lookAt<float, glm::defaultp>({eyeX, eyeY, eyeZ}, {atX, atY, atZ}, {upX, upY, upZ}));
+    cmdBuffer.SetProjection(glm::perspective(fovy, aspect, zn, zf));
 }
 
 void RenderModule::SetFog(std::optional<double> near, std::optional<double> far, std::optional<LSTGColor*> color /* =0xFFFFFF00 (RGBA) */)
 {
-    // TODO
-//    if (lua_gettop(L) == 3)
-//        LAPP.SetFog(
-//            static_cast<float>(luaL_checknumber(L, 1)),
-//            static_cast<float>(luaL_checknumber(L, 2)),
-//            *(static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)))
-//        );
-//    else if (lua_gettop(L) == 2)
-//        LAPP.SetFog(
-//            static_cast<float>(luaL_checknumber(L, 1)),
-//            static_cast<float>(luaL_checknumber(L, 2)),
-//            0xFF000000
-//        );
-//    else
-//        LAPP.SetFog(0.0f, 0.0f, 0x00FFFFFF);
-//    return 0;
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+
+    if (!near || !far)
+    {
+        cmdBuffer.SetFog(Subsystem::Render::Drawing2D::FogTypes::Disabled, {}, 0, 0);
+    }
+    else
+    {
+        auto fogNear = *near;
+        auto fogFar = *far;
+        auto fogColor = color ? **color : LSTGColor(255, 255, 255, 0);
+        if (fogNear == -1.f)
+        {
+            cmdBuffer.SetFog(Subsystem::Render::Drawing2D::FogTypes::Exp, fogColor, static_cast<float>(fogFar), 0.f);
+        }
+        else if (fogNear == -2.f)
+        {
+            cmdBuffer.SetFog(Subsystem::Render::Drawing2D::FogTypes::Exp2, fogColor, static_cast<float>(fogFar), 0.f);
+        }
+        else
+        {
+            cmdBuffer.SetFog(Subsystem::Render::Drawing2D::FogTypes::Linear, fogColor, static_cast<float>(fogNear),
+                static_cast<float>(fogFar));
+        }
+    }
 }
 
-void RenderModule::Render(const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
+void RenderModule::Render(LuaStack& stack, const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
     std::optional<double> hscale /* =1 */, std::optional<double> vscale /* =1 */, std::optional<double> z /* =0.5 */)
 {
-    // TODO
-//    if (!LAPP.Render(
-//        luaL_checkstring(L, 1),
-//        static_cast<float>(luaL_checknumber(L, 2)),
-//        static_cast<float>(luaL_checknumber(L, 3)),
-//        static_cast<float>(luaL_optnumber(L, 4, 0.) * LDEGREE2RAD),
-//        static_cast<float>(luaL_optnumber(L, 5, 1.) * LRES.GetGlobalImageScaleFactor()),
-//        static_cast<float>(luaL_optnumber(L, 6, luaL_optnumber(L, 5, 1.)) * LRES.GetGlobalImageScaleFactor()),
-//        static_cast<float>(luaL_optnumber(L, 7, 0.5))
-//    ))
-//    {
-//        return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
-//    }
-//    return 0;
+    // 获取精灵对象
+    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("image '%s' not found", imageName);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
+
+    auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
+    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
+    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
+
+    // 准备渲染
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+    cmdBuffer.SetColorBlendMode(colorBlendMode);
+
+    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
+    if (!ret)
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
+    auto& drawing = *ret;
+    drawing.Transform(rot ? static_cast<float>(*rot) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
+        vscale ? static_cast<float>(*vscale) : 1.f);
 }
 
-void RenderModule::RenderRect(const char* imageName, double left, double right, double bottom, double top)
+void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)
 {
-    // TODO
-//    if (!LAPP.RenderRect(
-//        luaL_checkstring(L, 1),
-//        static_cast<float>(luaL_checknumber(L, 2)),
-//        static_cast<float>(luaL_checknumber(L, 5)),
-//        static_cast<float>(luaL_checknumber(L, 3)),
-//        static_cast<float>(luaL_checknumber(L, 4))
-//    ))
-//    {
-//        return luaL_error(L, "can't render '%m'", luaL_checkstring(L, 1));
-//    }
-//    return 0;
+    // 获取精灵对象
+    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("image '%s' not found", imageName);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
+
+    auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
+    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
+    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
+
+    // 准备渲染
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+    cmdBuffer.SetColorBlendMode(colorBlendMode);
+
+    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
+    if (!ret)
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
+    auto& drawing = *ret;
+    drawing.Vertices(glm::vec2(left, top), glm::vec2(right, top), glm::vec2(right, bottom), glm::vec2(left, bottom));
 }
 
-void RenderModule::RenderVertex(const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2, double x3,
-    double y3, double z3, double x4, double y4, double z4)
+void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2,
+    double x3, double y3, double z3, double x4, double y4, double z4)
 {
-    // TODO
-//    if (!LAPP.Render4V(
-//        luaL_checkstring(L, 1),
-//        static_cast<float>(luaL_checknumber(L, 2)),
-//        static_cast<float>(luaL_checknumber(L, 3)),
-//        static_cast<float>(luaL_checknumber(L, 4)),
-//        static_cast<float>(luaL_checknumber(L, 5)),
-//        static_cast<float>(luaL_checknumber(L, 6)),
-//        static_cast<float>(luaL_checknumber(L, 7)),
-//        static_cast<float>(luaL_checknumber(L, 8)),
-//        static_cast<float>(luaL_checknumber(L, 9)),
-//        static_cast<float>(luaL_checknumber(L, 10)),
-//        static_cast<float>(luaL_checknumber(L, 11)),
-//        static_cast<float>(luaL_checknumber(L, 12)),
-//        static_cast<float>(luaL_checknumber(L, 13))
-//    ))
-//    {
-//        return luaL_error(L, "can't render '%m'.", luaL_checkstring(L, 1));
-//    }
-//    return 0;
+    // 获取精灵对象
+    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("image '%s' not found", imageName);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
+
+    auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
+    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
+    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
+
+    // 准备渲染
+    auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
+    cmdBuffer.SetColorBlendMode(colorBlendMode);
+
+    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
+    if (!ret)
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
+    auto& drawing = *ret;
+    drawing.Vertices(
+        glm::vec3(static_cast<float>(x1), static_cast<float>(y1), static_cast<float>(z1)),
+        glm::vec3(static_cast<float>(x2), static_cast<float>(y2), static_cast<float>(z2)),
+        glm::vec3(static_cast<float>(x3), static_cast<float>(y3), static_cast<float>(z3)),
+        glm::vec3(static_cast<float>(x4), static_cast<float>(y4), static_cast<float>(z4)));
 }
 
 void RenderModule::RenderTexture(LuaStack& stack, const char* textureName, const char* blend, AbsIndex vertex1, AbsIndex vertex2,

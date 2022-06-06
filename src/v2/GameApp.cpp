@@ -7,7 +7,9 @@
 #include <lstg/v2/GameApp.hpp>
 
 #include <SDL.h>
+
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/AssetSystem.hpp>
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
@@ -15,6 +17,10 @@
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+
+#include <lstg/v2/Asset/TextureAssetFactory.hpp>
+#include <lstg/v2/Asset/SpriteAssetFactory.hpp>
+
 #include <lstg/v2/Bridge/BuiltInModules.hpp>
 
 using namespace std;
@@ -35,6 +41,7 @@ static const char* kEventOnRender = "RenderFunc";
 extern "C" int luaopen_cjson(lua_State* L);
 
 GameApp::GameApp(int argc, char** argv)
+    : m_stDesiredSolution(640, 480), m_stCommandExecutor(*GetSubsystem<Subsystem::RenderSystem>())
 {
     // 初始化文件系统
     //  - assets
@@ -73,6 +80,14 @@ GameApp::GameApp(int argc, char** argv)
         GetSubsystem<Subsystem::VirtualFileSystem>()->SetAssetBaseDirectory("assets");
     }
 
+    // 初始化渲染参数
+    {
+        auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
+        assert(renderDevice);
+        m_stNativeSolution = { renderDevice->GetRenderOutputWidth(), renderDevice->GetRenderOutputHeight() };
+        AdjustViewport();
+    }
+
     // 初始化函数库
     {
         auto& state = GetSubsystem<Subsystem::ScriptSystem>()->GetState();
@@ -102,6 +117,11 @@ GameApp::GameApp(int argc, char** argv)
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
+
+    // 注册内置资源类型
+    auto assetSystem = GetSubsystem<Subsystem::AssetSystem>();
+    assetSystem->RegisterAssetFactory(make_shared<Asset::TextureAssetFactory>());
+    assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteAssetFactory>());
 
     // 初始化资源池
     m_pGlobalAssetPool = make_shared<Subsystem::Asset::AssetPool>();
@@ -214,6 +234,51 @@ Subsystem::Asset::AssetPtr GameApp::FindAsset(std::string_view name) const noexc
     return ret;
 }
 
+Vec2 GameApp::GetNativeResolution() const noexcept
+{
+    return m_stNativeSolution;
+}
+
+Vec2 GameApp::GetDesiredResolution() const noexcept
+{
+    return m_stDesiredSolution;
+}
+
+WindowRectangle GameApp::GetViewportBound() const noexcept
+{
+    return m_stViewportBound;
+}
+
+void GameApp::ChangeDesiredResolution(uint32_t width, uint32_t height) noexcept
+{
+    m_stDesiredSolution = { std::max(1u, width), std::max(1u, height) };
+    AdjustViewport();
+}
+
+void GameApp::ToggleFullScreen(bool fullscreen) noexcept
+{
+    auto windowSystem = GetSubsystem<Subsystem::WindowSystem>();
+    auto currentFullscreen = windowSystem->IsFullScreen();
+
+    // 切换到窗口模式
+    if (currentFullscreen && !fullscreen)
+    {
+        if (windowSystem->GetFeatures() & Subsystem::WindowFeatures::SupportWindowMode)
+            windowSystem->ToggleFullScreen(false);
+        else
+            LSTG_LOG_WARN_CAT(GameApp, "Toggle to window mode is not supported");
+    }
+
+    // 切换到全屏模式
+    if (!currentFullscreen && fullscreen)
+        windowSystem->ToggleFullScreen(true);
+}
+
+Subsystem::Render::Drawing2D::CommandBuffer& GameApp::GetCommandBuffer() noexcept
+{
+    return m_stCommandBuffer;
+}
+
 void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 {
     AppBase::OnEvent(event);
@@ -228,7 +293,17 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 
             if (sdlEvent->type == SDL_WINDOWEVENT)
             {
-                if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                if (sdlEvent->window.event == SDL_WINDOWEVENT_RESIZED)
+                {
+                    // 获取渲染系统的分辨率
+                    auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
+                    assert(renderDevice);
+                    auto renderWidth = renderDevice->GetRenderOutputWidth();
+                    auto renderHeight = renderDevice->GetRenderOutputHeight();
+                    m_stNativeSolution = { renderWidth, renderHeight };
+                    AdjustViewport();
+                }
+                else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
                 {
                     // 执行框架 FocusGainFunc 方法
                     LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGainFocus);
@@ -266,8 +341,42 @@ void GameApp::OnUpdate(double elapsed) noexcept
 
 void GameApp::OnRender(double elapsed) noexcept
 {
+    // 启动场景
+    m_stCommandBuffer.Begin();
+    m_stCommandBuffer.SetViewport(m_stViewportBound.Left(), m_stViewportBound.Top(), m_stViewportBound.Width(), m_stViewportBound.Height());
+
     // 执行框架 RenderFunc 方法
     auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnRender);
     if (!ret)
         LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnRender, ret.GetError());
+
+    // 结束场景
+    auto drawData = m_stCommandBuffer.End();
+
+    // 渲染
+    m_stCommandExecutor.Execute(drawData);
+}
+
+void GameApp::AdjustViewport() noexcept
+{
+    // 计算 Scale
+    // 例如 NativeSolution = 1280x720，DesiredSolution = 640x480
+    // 则 1280/640 = 2, 720/480 = 1.5
+    // 取 scale = 1.5，则 vp = 1.5 * 640 x 1.5 * 480 = 960x720
+    // 例如 NativeSolution = 480x320，DesiredSolution = 640x480
+    // 则 480/640 = 0.75, 320/480 = 0.667
+    // 取 scale = 0.667，则 vp = 0.667 * 640 x 0.667 * 480 = 427x320
+    auto scale = std::min(m_stNativeSolution.x / m_stDesiredSolution.x, m_stNativeSolution.y / m_stDesiredSolution.y);
+    auto halfWidth = m_stDesiredSolution.x * scale / 2.;
+    auto halfHeight = m_stDesiredSolution.y * scale / 2.;
+    auto centerX = m_stNativeSolution.x / 2.;
+    auto centerY = m_stNativeSolution.y / 2.;
+    m_stViewportBound = {
+        std::max(0., std::ceil(centerX - halfWidth)),
+        std::max(0., std::ceil(centerY - halfHeight)),
+        std::ceil(halfWidth * 2.),
+        std::ceil(halfHeight * 2.)
+    };
+    LSTG_LOG_DEBUG_CAT(GameApp, "Adjust viewport to {}x{}-{}x{}", m_stViewportBound.Left(), m_stViewportBound.Top(),
+        m_stViewportBound.GetBottomRight().x, m_stViewportBound.GetBottomRight().y);
 }

@@ -460,7 +460,7 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
             LSTG_LOG_ERROR_CAT(CommandExecutor, "Set MainTexture fail: {}", ret.GetError());
 
         // 绘制
-        ret = m_stRenderSystem.Draw(m_pMesh.get(), cmd.IndexCount, 0, cmd.IndexStart);
+        ret = m_stRenderSystem.Draw(m_pMesh.get(), cmd.IndexCount, cmd.BaseVertexIndex, cmd.IndexStart);
         if (!ret)
             LSTG_LOG_ERROR_CAT(CommandExecutor, "Draw index={}, start={} fail: {}", cmd.IndexCount, cmd.IndexStart, ret.GetError());
     }

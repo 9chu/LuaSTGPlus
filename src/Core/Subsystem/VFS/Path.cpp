@@ -96,7 +96,7 @@ namespace
                     {
                         curSpanEnd = buffer.length();
                         assert(curSpanBegin < curSpanEnd);
-                        spans.emplace_back<tuple<int, int>>({curSpanBegin, curSpanEnd - curSpanBegin});
+                        spans.emplace_back<tuple<size_t, size_t>>({curSpanBegin, curSpanEnd - curSpanBegin});
 
                         // 如果后面还有数据，说明这不是最后一个路径构成元素，我们加入一个分隔符
                         if (ch != '\0')

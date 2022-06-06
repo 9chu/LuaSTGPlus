@@ -21,6 +21,8 @@ namespace lstg::Subsystem::Asset
         LoadingCancelled = 4,
         AssetFactoryAlreadyRegistered = 5,
         AssetFactoryNotRegistered = 6,
+        InvalidState = 7,
+        DependentAssetNotFound = 8,
     };
 
     /**

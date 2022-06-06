@@ -16,6 +16,7 @@
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
+#include "Render/detail/RenderDevice/RenderDeviceD3D11.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -61,6 +62,11 @@ namespace
      */
     void GetSupportedRenderDevice(std::vector<std::tuple<const char*, RenderDeviceConstructor>>& out)
     {
+#if D3D11_SUPPORTED == 1
+        out.emplace_back("D3D11", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+            return make_shared<Render::detail::RenderDevice::RenderDeviceD3D11>(windowSystem);
+        });
+#endif
 #if VULKAN_SUPPORTED == 1
         out.emplace_back("Vulkan", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceVulkan>(windowSystem);

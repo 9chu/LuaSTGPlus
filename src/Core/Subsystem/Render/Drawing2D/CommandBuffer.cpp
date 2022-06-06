@@ -13,10 +13,10 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::Drawing2D;
 
-LSTG_DEF_LOG_CATEGORY(CommandBuffer);
+// LSTG_DEF_LOG_CATEGORY(CommandBuffer);
 
 CommandBuffer::CommandBuffer()
-    : m_stCurrentProjection(glm::identity<glm::mat4x4>())
+    : m_stCurrentView(glm::identity<glm::mat4x4>()), m_stCurrentProjection(glm::identity<glm::mat4x4>())
 {
 }
 
@@ -27,6 +27,7 @@ void CommandBuffer::Begin() noexcept
     m_stCameraMapping.clear();
     m_stTextureReferences.clear();
     m_stTextureMapping.clear();
+    m_uCurrentBaseVertexIndex = 0;
     m_stVertices.clear();
     m_stIndexes.clear();
     m_stCommandGroups.clear();
@@ -64,6 +65,14 @@ void CommandBuffer::SetGroupId(uint64_t id) noexcept
         return;
     PrepareNewGroup();
     m_ullCurrentGroupId = id;
+}
+
+void CommandBuffer::SetView(glm::mat4x4 matrix) noexcept
+{
+    if (matrix == m_stCurrentView)
+        return;
+    PrepareNewQueue();
+    m_stCurrentView = matrix;
 }
 
 void CommandBuffer::SetProjection(glm::mat4x4 matrix) noexcept
@@ -104,6 +113,18 @@ void CommandBuffer::SetFog(FogTypes fog, ColorRGBA32 fogColor, float arg1, float
 
 Result<void> CommandBuffer::DrawQuad(TexturePtr tex2d, const Vertex (&arr)[4]) noexcept
 {
+    static_assert(is_trivially_copyable_v<Vertex>);
+
+    auto ret = DrawQuadInPlace(std::move(tex2d));
+    if (!ret)
+        return ret.GetError();
+    assert(ret->GetSize() == 4);
+    ::memcpy(ret->GetData(), arr, sizeof(arr));
+    return {};
+}
+
+Result<Span<Vertex>> CommandBuffer::DrawQuadInPlace(TexturePtr tex2d) noexcept
+{
     // 创建纹理
     auto texId = AllocTexture(std::move(tex2d));
     if (!texId)
@@ -114,29 +135,25 @@ Result<void> CommandBuffer::DrawQuad(TexturePtr tex2d, const Vertex (&arr)[4]) n
     if (!ret)
         return ret.GetError();
 
-    if (m_stCurrentDrawCommand->TextureId == static_cast<size_t>(-1))
+    if ((*m_stCurrentDrawCommand)->TextureId == static_cast<size_t>(-1))
     {
         // 此时是新创建的命令，直接设置 TextureId
-        assert(m_stCurrentDrawCommand->IndexCount == 0);
-        m_stCurrentDrawCommand->TextureId = *texId;
+        assert((*m_stCurrentDrawCommand)->IndexCount == 0);
+        (*m_stCurrentDrawCommand)->TextureId = *texId;
     }
-    else if (m_stCurrentDrawCommand->TextureId != *texId)
+    else if ((*m_stCurrentDrawCommand)->TextureId != *texId)
     {
         // 此时需要创建新的 Command
         PrepareNewCommand();
         ret = InstantialCommand();
         if (!ret)
             return ret.GetError();
-        assert(m_stCurrentDrawCommand->TextureId == static_cast<size_t>(-1));
-        m_stCurrentDrawCommand->TextureId = *texId;
+        assert((*m_stCurrentDrawCommand)->TextureId == static_cast<size_t>(-1));
+        (*m_stCurrentDrawCommand)->TextureId = *texId;
     }
 
-    // 写顶点和索引
-    if (m_stVertices.size() + 4 > std::numeric_limits<uint16_t>::max())
-    {
-        LSTG_LOG_ERROR_CAT(CommandBuffer, "Vertex count reaches limitation");
-        return make_error_code(errc::not_enough_memory);
-    }
+    // 防止索引越界
+    assert(m_stVertices.size() + 4 - m_uCurrentBaseVertexIndex <= std::numeric_limits<uint16_t>::max());
 
     // 分配内存
     try
@@ -149,15 +166,14 @@ Result<void> CommandBuffer::DrawQuad(TexturePtr tex2d, const Vertex (&arr)[4]) n
         return make_error_code(errc::not_enough_memory);
     }
 
-    // 拷贝顶点
+    // 分配顶点
     auto vertexStartIndex = m_stVertices.size() - 4;
     auto vertexStart = m_stVertices.data() + vertexStartIndex;
+    vertexStartIndex -= m_uCurrentBaseVertexIndex;  // 基于 BaseVertexIndex 的偏移
 //    vertexStart[0] = arr[0];
 //    vertexStart[1] = arr[1];
 //    vertexStart[2] = arr[2];
 //    vertexStart[3] = arr[3];
-    static_assert(sizeof(arr) == sizeof(Vertex) * 4);
-    ::memcpy(vertexStart, arr, sizeof(arr));
 
     // 生成索引
     // 0 -- 1
@@ -172,8 +188,8 @@ Result<void> CommandBuffer::DrawQuad(TexturePtr tex2d, const Vertex (&arr)[4]) n
     indexStart[4] = vertexStartIndex + 2;
     indexStart[5] = vertexStartIndex + 3;
 
-    m_stCurrentDrawCommand->IndexCount += 6;
-    return {};
+    (*m_stCurrentDrawCommand)->IndexCount += 6;
+    return Span<Vertex> { vertexStart, 4 };
 }
 
 Result<void> CommandBuffer::Clear(ColorRGBA32 color) noexcept
@@ -185,8 +201,8 @@ Result<void> CommandBuffer::Clear(ColorRGBA32 color) noexcept
         return ret.GetError();
 
     // 设置 Clear 标记
-    m_stCurrentQueue->get()->ClearFlag = ClearFlags::Color | ClearFlags::Depth;
-    m_stCurrentQueue->get()->ClearColor = color;
+    (*m_stCurrentQueue)->get()->ClearFlag = ClearFlags::Color | ClearFlags::Depth;
+    (*m_stCurrentQueue)->get()->ClearColor = color;
     return {};
 }
 
@@ -211,7 +227,7 @@ void CommandBuffer::PrepareNewCommand() noexcept
 size_t CommandBuffer::AllocCamera()
 {
     // 先检查是否存在重复的相机，此时可以直接复用
-    CameraStateKey state { {}, m_stCurrentProjection, m_stCurrentViewport };
+    CameraStateKey state { {}, m_stCurrentView, m_stCurrentProjection, m_stCurrentViewport };
     auto it = m_stCameraMapping.find(state);
     if (it != m_stCameraMapping.end())
     {
@@ -228,6 +244,7 @@ size_t CommandBuffer::AllocCamera()
     // 设置参数
     Render::Camera* camera = (*(ptr.get())).get();
     assert(camera);
+    camera->SetViewMatrix(m_stCurrentView);
     camera->SetProjectMatrix(m_stCurrentProjection);
     camera->SetViewport(m_stCurrentViewport);
 
@@ -258,7 +275,7 @@ Result<size_t> CommandBuffer::AllocTexture(TexturePtr tex2d) noexcept
 
 Result<void> CommandBuffer::InstantialGroup() noexcept
 {
-    if (m_stCurrentGroup == CommandGroupContainer::iterator {})
+    if (!m_stCurrentGroup.has_value())
     {
         try
         {
@@ -278,14 +295,14 @@ Result<void> CommandBuffer::InstantialGroup() noexcept
 
 Result<void> CommandBuffer::InstantialQueue() noexcept
 {
-    if (m_stCurrentQueue == CommandQueueContainer::iterator {})
+    if (!m_stCurrentQueue.has_value())
     {
         auto ret = InstantialGroup();
         if (!ret)
             return ret.GetError();
 
-        assert(m_stCurrentGroup != CommandGroupContainer::iterator {});
-        assert(m_stCurrentGroup != m_stCommandGroups.end());
+        assert(m_stCurrentGroup.has_value());
+        assert(*m_stCurrentGroup != m_stCommandGroups.end());
         try
         {
             auto queue = m_stCommandQueueFreeList.Alloc();
@@ -293,8 +310,8 @@ Result<void> CommandBuffer::InstantialQueue() noexcept
             queue->ClearFlag = ClearFlags::None;
             queue->ClearColor = 0x00000000;
             queue->Commands.clear();
-            (*m_stCurrentGroup)->Queue.emplace_back(std::move(queue));
-            m_stCurrentQueue = (*m_stCurrentGroup)->Queue.end() - 1;
+            (*(*m_stCurrentGroup))->Queue.emplace_back(std::move(queue));
+            m_stCurrentQueue = (*(*m_stCurrentGroup))->Queue.end() - 1;
         }
         catch (...)  // bad_alloc
         {
@@ -306,14 +323,14 @@ Result<void> CommandBuffer::InstantialQueue() noexcept
 
 Result<void> CommandBuffer::InstantialCommand() noexcept
 {
-    if (m_stCurrentDrawCommand == DrawCommandContainer::iterator {})
+    if (!m_stCurrentDrawCommand.has_value())
     {
         auto ret = InstantialQueue();
         if (!ret)
             return ret.GetError();
 
-        assert(m_stCurrentQueue != CommandQueueContainer::iterator {});
-        assert(m_stCurrentQueue != m_stCurrentGroup->get()->Queue.end());
+        assert(m_stCurrentQueue.has_value());
+        assert((*m_stCurrentQueue) != (*m_stCurrentGroup)->get()->Queue.end());
         try
         {
             auto command = DrawCommand {
@@ -325,14 +342,23 @@ Result<void> CommandBuffer::InstantialCommand() noexcept
                 static_cast<size_t>(-1),
                 m_stIndexes.size(),
                 0,
+                m_uCurrentBaseVertexIndex,
             };
-            m_stCurrentQueue->get()->Commands.emplace_back(command);
-            m_stCurrentDrawCommand = m_stCurrentQueue->get()->Commands.end() - 1;
+            (*m_stCurrentQueue)->get()->Commands.emplace_back(command);
+            m_stCurrentDrawCommand = (*m_stCurrentQueue)->get()->Commands.end() - 1;
         }
         catch (...)  // bad_alloc
         {
             return make_error_code(errc::not_enough_memory);
         }
+    }
+
+    // 如果当前 DrawCommand 无法容纳足够数量的顶点，则创建新的 DrawCommand 并刷新 BaseVertexIndex
+    if (m_stVertices.size() + 4 - m_uCurrentBaseVertexIndex > std::numeric_limits<uint16_t>::max())
+    {
+        m_uCurrentBaseVertexIndex = m_stVertices.size();
+        PrepareNewCommand();
+        return InstantialCommand();
     }
     return {};
 }

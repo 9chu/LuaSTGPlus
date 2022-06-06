@@ -125,7 +125,7 @@ endif()
 CPMAddPackage(
     NAME DiligentCore
     GITHUB_REPOSITORY DiligentGraphics/DiligentCore
-    VERSION 2.5.1
+    VERSION 2.5.2
 )
 
 # glm

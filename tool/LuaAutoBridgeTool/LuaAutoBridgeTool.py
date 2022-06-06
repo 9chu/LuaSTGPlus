@@ -411,7 +411,7 @@ def main():
 
     # 解析所有输入的头文件
     header_parser = HeaderParser()
-    with fileinput.input(files=cmd_args.files) as f:
+    with fileinput.input(files=cmd_args.files, openhook=fileinput.hook_encoded('utf-8')) as f:
         for line in f:
             header_parser.process(line)
         header_parser.process(None)

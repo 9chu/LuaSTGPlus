@@ -9,6 +9,9 @@
 
 namespace lstg::v2::Bridge::detail
 {
+    /**
+     * 获取全局 APP 对象
+     */
     inline GameApp& GetGlobalApp() noexcept
     {
         return *static_cast<GameApp*>(&GameApp::GetInstance());

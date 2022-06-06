@@ -8,7 +8,7 @@
 #include <cassert>
 #include <cstdint>
 
-namespace lstg
+namespace lstg::Math
 {
     /**
      * 随机数发生器
@@ -111,12 +111,11 @@ namespace lstg
             // 转换到一个单精度浮点可以使用表达式
             // (x >> 8) * 0x1.0p-24
             const auto x = Next();
-            const union {
+            union {
                 uint32_t i;
                 float d;
-            } u = {
-                .i = ((0x7F) << (24 - 1)) | (x >> (32 - 24 + 1))
-            };
+            } u;
+            u.i = ((0x7F) << (24 - 1)) | (x >> (32 - 24 + 1));
             return u.d - 1.0f;  // 从 [1,2) 转换到 [0,1)
         }
 

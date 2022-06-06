@@ -8,8 +8,9 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
-#include <lstg/Core/Subsystem/Asset/TextureAsset.hpp>
-#include "detail/Global.hpp"
+#include <lstg/v2/Asset/TextureAsset.hpp>
+#include <lstg/v2/Asset/SpriteAsset.hpp>
+#include "detail/Helper.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -18,74 +19,6 @@ using namespace lstg::Subsystem;
 using namespace lstg::Subsystem::Asset;
 
 LSTG_DEF_LOG_CATEGORY(AssetManagerModule);
-
-static const size_t kAssetPrefixLength = 4;
-
-static const char* kAssetPrefix[] = {
-    "???$",
-    "tex$",  // Texture = 1
-    "img$",  // Image = 2
-    "ani$",  // Animation = 3
-    "bgm$",  // Music = 4
-    "snd$",  // Sound = 5
-    "par$",  // Particle = 6
-    "txf$",  // TexturedFont = 7
-    "ttf$",  // TrueTypeFont = 8,
-    "lfx$",  // Effect = 9,
-};
-
-namespace
-{
-    /**
-     * 转换资产类型到前缀
-     * @param t 资产类型
-     * @return 前缀
-     */
-    const char* AssetTypeToPrefix(AssetManagerModule::AssetTypes t) noexcept
-    {
-        auto idx = static_cast<uint32_t>(t);
-        if (idx >= std::extent_v<decltype(kAssetPrefix)>)
-            idx = 0;
-        return kAssetPrefix[idx];
-    }
-
-    /**
-     * 检查资产名是否与类型匹配
-     * @param name 名称
-     * @param t 类型
-     * @return 是否匹配
-     */
-    bool IsAssetNameMatchType(string_view name, AssetManagerModule::AssetTypes t) noexcept
-    {
-        auto prefix = AssetTypeToPrefix(t);
-        if (name.length() >= kAssetPrefixLength && name.substr(0, kAssetPrefixLength) == prefix)
-            return true;
-        return false;
-    }
-
-    /**
-     * 构造完整的资产名
-     * @param t 资产类型
-     * @param name 名称
-     * @return 完整资产名
-     */
-    string MakeFullAssetName(AssetManagerModule::AssetTypes t, string_view name)
-    {
-        auto prefix = AssetTypeToPrefix(t);
-        return fmt::format("{}{}", prefix, name);
-    }
-
-    /**
-     * 解出资产名
-     * @param name 完整资产名
-     * @return 脚本系统中所用资产名
-     */
-    string ExtractAssetName(string_view name)
-    {
-        assert(name.length() >= kAssetPrefixLength);
-        return string { name.substr(kAssetPrefixLength) };
-    }
-}
 
 void AssetManagerModule::SetResourceStatus(LuaStack& stack, const char* pool)
 {
@@ -181,9 +114,9 @@ AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(Lu
     if (!asset)
         stack.Error("texture '%s' not found.", name);
     assert(asset);
-    assert(asset->GetAssetTypeId() == TextureAsset::GetAssetTypeIdStatic());
+    assert(asset->GetAssetTypeId() == Asset::TextureAsset::GetAssetTypeIdStatic());
 
-    auto texAsset = static_pointer_cast<TextureAsset>(asset);
+    auto texAsset = static_pointer_cast<Asset::TextureAsset>(asset);
     return {texAsset->GetWidth(), texAsset->GetHeight()};
 }
 
@@ -206,86 +139,112 @@ void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const ch
     }
 
     // 执行加载
-    auto ret = assetSystem->CreateAsset<TextureAsset>(currentAssetPool, fullName, nlohmann::json {
+    auto ret = assetSystem->CreateAsset<Asset::TextureAsset>(currentAssetPool, fullName, nlohmann::json {
         {"path", path},
         {"mipmaps", mipmap ? *mipmap : false},
     });
     if (!ret)
-        stack.Error("can't load texture from file '%s'.", path);
+        stack.Error("load texture from file '%s' fail: %s", path, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::LoadImage(const char* name, const char* textureName, double x, double y, double w, double h,
+void AssetManagerModule::LoadImage(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
     std::optional<double> a, std::optional<double> b, std::optional<bool> rect)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* texname = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadImage(
-//        name,
-//        texname,
-//        luaL_checknumber(L, 3),
-//        luaL_checknumber(L, 4),
-//        luaL_checknumber(L, 5),
-//        luaL_checknumber(L, 6),
-//        luaL_optnumber(L, 7, 0.),
-//        luaL_optnumber(L, 8, 0.),
-//        lua_toboolean(L, 9) == 0 ? false : true
-//    ))
-//    {
-//        return luaL_error(L, "load image failed (name='%s', tex='%s').", name, texname);
-//    }
-//    return 0;
+    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
+    if (!currentAssetPool)
+        stack.Error("can't load resource at this time.");
+    assert(currentAssetPool);
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Image, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Sprite \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"texture", MakeFullAssetName(AssetTypes::Texture, textureName)},
+        {"left", x},
+        {"top", y},
+        {"width", w},
+        {"height", h},
+        {"colliderHalfSizeX", a ? *a : 0.},
+        {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
+        {"colliderIsRect", rect ? *rect : false},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::SpriteAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load image \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::SetImageState(const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
+void AssetManagerModule::SetImageState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
     std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4)
 {
-    // TODO
-//    ResSprite* p = LRES.FindSprite(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "image '%s' not found.", luaL_checkstring(L, 1));
-//
-//    p->SetBlendMode(TranslateBlendMode(L, 2));
-//    if (lua_gettop(L) == 3)
-//        p->GetSprite()->SetColor(*static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)));
-//    else if (lua_gettop(L) == 6)
-//    {
-//        fcyColor tColors[] = {
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 5, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 6, TYPENAME_COLOR))
-//        };
-//        p->GetSprite()->SetColor(tColors);
-//    }
-//    return 0;
+    auto fullName = MakeFullAssetName(AssetTypes::Image, name);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("image '%s' not found", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
+
+    if (!((vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4) ||
+        (!vertexColor1 && !vertexColor2 && !vertexColor3 && !vertexColor4) ||
+        (vertexColor1 && !vertexColor2 && !vertexColor3 && !vertexColor4)))
+    {
+        stack.Error("number of vertex color components must be 0, 1 or 4");
+    }
+
+    auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
+
+    // 转换混合模式
+    BlendMode m(blend);
+    spriteAsset->SetDefaultBlendMode(m);
+
+    // 决定顶点色
+    array<ColorRGBA32, 4> vertexColor;
+    if (vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4)
+    {
+        assert(*vertexColor1 && *vertexColor2 && *vertexColor3 && *vertexColor4);
+        vertexColor[0] = *(*vertexColor1);
+        vertexColor[1] = *(*vertexColor2);
+        vertexColor[2] = *(*vertexColor3);
+        vertexColor[3] = *(*vertexColor4);
+        spriteAsset->SetDefaultBlendColor(vertexColor);
+    }
+    else if (vertexColor1)
+    {
+        assert(*vertexColor1);
+        vertexColor[0] = *(*vertexColor1);
+        vertexColor[1] = *(*vertexColor1);
+        vertexColor[2] = *(*vertexColor1);
+        vertexColor[3] = *(*vertexColor1);
+        spriteAsset->SetDefaultBlendColor(vertexColor);
+    }
 }
 
-void AssetManagerModule::SetImageCenter(const char* name, double x, double y)
+void AssetManagerModule::SetImageCenter(LuaStack& stack, const char* name, double x, double y)
 {
-    // TODO
-//    ResSprite* p = LRES.FindSprite(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "image '%s' not found.", luaL_checkstring(L, 1));
-//    p->GetSprite()->SetHotSpot(fcyVec2(
-//        static_cast<float>(luaL_checknumber(L, 2) + p->GetSprite()->GetTexRect().a.x),
-//        static_cast<float>(luaL_checknumber(L, 3) + p->GetSprite()->GetTexRect().a.y)));
-//    return 0;
+    auto fullName = MakeFullAssetName(AssetTypes::Image, name);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("image '%s' not found", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
+
+    auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
+    spriteAsset->SetAnchor({x, y});
 }
 
 void AssetManagerModule::SetImageScale(double factor)
 {
-    // TODO
-//    float x = static_cast<float>(luaL_checknumber(L, 1));
-//    if (x == 0.f)
-//        return luaL_error(L, "invalid argument #1 for 'SetImageScale'.");
-//    LRES.SetGlobalImageScaleFactor(x);
-//    return 0;
+    LSTG_LOG_WARN_CAT(AssetManagerModule, "SetImageScale is deprecated and has no effect anymore");
 }
 
 void AssetManagerModule::LoadAnimation(const char* name, const char* textureName, double x, double y, double w, double h, int32_t n,

@@ -86,9 +86,7 @@ namespace
 
 void SystemModule::SetWindowed(bool windowed)
 {
-    // TODO
-//    LAPP.SetWindowed(lua_toboolean(L, 1) == 0 ? false : true);
-//    return 0;
+    GetApp().ToggleFullScreen(!windowed);
 }
 
 void SystemModule::SetFPS(int32_t fps)
@@ -112,23 +110,15 @@ void SystemModule::SetVsync(bool vsync)
 
 void SystemModule::SetResolution(int32_t width, int32_t height)
 {
-    // TODO
-//    LAPP.SetResolution(static_cast<fuInt>(::max(luaL_checkinteger(L, 1), 0)),
-//        static_cast<fuInt>(::max(luaL_checkinteger(L, 2), 0)));
-//    return 0;
+    GetApp().ChangeDesiredResolution(static_cast<uint32_t>(std::max(1, width)), static_cast<uint32_t>(std::max(1, height)));
 }
 
 bool SystemModule::ChangeVideoMode(int32_t width, int32_t height, bool windowed, bool vsync)
 {
-    // TODO
-//    lua_pushboolean(L, LAPP.ChangeVideoMode(
-//        luaL_checkinteger(L, 1),
-//        luaL_checkinteger(L, 2),
-//        lua_toboolean(L, 3) == 0 ? false : true,
-//        lua_toboolean(L, 4) == 0 ? false : true
-//    ));
-//    return 1;
-    return false;
+    SetWindowed(windowed);
+    SetResolution(width, height);
+    SetVsync(vsync);
+    return true;
 }
 
 void SystemModule::SetSplash(bool shown)

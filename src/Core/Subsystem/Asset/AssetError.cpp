@@ -41,6 +41,10 @@ std::string AssetErrorCategory::message(int ev) const
             return "asset factory is already registered";
         case AssetError::AssetFactoryNotRegistered:
             return "asset factory is not registered for this type";
+        case AssetError::InvalidState:
+            return "invalid state";
+        case AssetError::DependentAssetNotFound:
+            return "dependent asset not found";
         default:
             return "<unknown>";
     }

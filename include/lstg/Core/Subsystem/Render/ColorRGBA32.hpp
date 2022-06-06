@@ -39,6 +39,8 @@ namespace lstg::Subsystem::Render
             m_stRGBA32[3] = (rgba32 & 0x000000FF);
         }
 
+        ColorRGBA32(const ColorRGBA32&) noexcept = default;
+
         ColorRGBA32& operator=(uint32_t rgba32) noexcept
         {
             m_stRGBA32[0] = (rgba32 & 0xFF000000) >> 24;

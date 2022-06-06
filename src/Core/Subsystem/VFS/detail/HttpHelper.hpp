@@ -7,6 +7,7 @@
 #pragma once
 #include <ctime>
 #include <cassert>
+#include <memory>
 #include <string_view>
 #include <lstg/Core/Result.hpp>
 #include "WebFileSystemError.hpp"

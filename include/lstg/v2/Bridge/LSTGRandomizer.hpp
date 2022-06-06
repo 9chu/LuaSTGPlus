@@ -5,7 +5,7 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
-#include <lstg/Core/Randomizer.hpp>
+#include <lstg/Core/Math/Randomizer.hpp>
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
 #include <lstg/Core/Subsystem/Script/AutoBridgeHint.hpp>
 
@@ -16,7 +16,7 @@ namespace lstg::v2::Bridge
      */
     LSTG_CLASS()
     class LSTGRandomizer :
-        public Randomizer
+        public Math::Randomizer
     {
     public:
         /**

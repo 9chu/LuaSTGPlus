@@ -6,6 +6,7 @@
  */
 #pragma once
 #include <string>
+#include <memory>
 #include "../../Result.hpp"
 
 namespace lstg::Subsystem

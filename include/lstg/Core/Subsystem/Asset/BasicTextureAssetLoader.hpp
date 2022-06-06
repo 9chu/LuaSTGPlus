@@ -15,11 +15,11 @@ namespace lstg::Subsystem::Asset
     /**
      * 纹理资产加载器
      */
-    class TextureAssetLoader :
+    class BasicTextureAssetLoader :
         public AssetLoader
     {
     public:
-        TextureAssetLoader(AssetPtr asset, bool mipmapEnabled);
+        BasicTextureAssetLoader(AssetPtr asset, bool mipmapEnabled);
 
     public:  // AssetLoader
         Result<void> PreLoad() noexcept override;

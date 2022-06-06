@@ -19,6 +19,12 @@ namespace lstg::v2::Bridge
         public Subsystem::Render::ColorRGBA32
     {
     public:
+        using Subsystem::Render::ColorRGBA32::ColorRGBA32;
+
+        LSTGColor(const Subsystem::Render::ColorRGBA32& org)
+            : Subsystem::Render::ColorRGBA32(org) {}
+
+    public:
         LSTG_METHOD(__eq)
         static bool Equals(const LSTGColor& lhs, const LSTGColor& rhs) noexcept;
 

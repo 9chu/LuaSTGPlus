@@ -11,7 +11,7 @@
 #include "Asset/detail/WeakPtrTraits.hpp"
 
 // Core 中预定义的 Factory
-#include <lstg/Core/Subsystem/Asset/TextureAssetFactory.hpp>
+#include <lstg/Core/Subsystem/Asset/BasicTextureAssetFactory.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -149,6 +149,9 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                 goto ASSET_FAIL;
             }
 
+            // 调用 Update
+            task->Update();
+
             // 等待依赖加载或者正在加载，此时跳过
             if (state == Asset::AssetLoadingStates::DependencyLoading || state == Asset::AssetLoadingStates::AsyncLoadCommitted ||
                 state == Asset::AssetLoadingStates::Loading)
@@ -214,7 +217,10 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             // 如果加载成功
             if (state == Asset::AssetLoadingStates::Loaded)
             {
-                LSTG_LOG_TRACE_CAT(AssetSystem, "Asset {} loaded", asset->GetName());
+                if (asset->GetName().empty())
+                    LSTG_LOG_TRACE_CAT(AssetSystem, "Asset #{} loaded", asset->m_uId);
+                else
+                    LSTG_LOG_TRACE_CAT(AssetSystem, "Asset \"{}\" loaded", asset->GetName());
 
                 // 设置关联任务为 Loaded 状态
                 assert(asset->GetState() == Asset::AssetStates::Uninitialized);
@@ -244,7 +250,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 
 void AssetSystem::RegisterCoreAssetFactories()
 {
-    auto ret = RegisterAssetFactory(make_shared<Asset::TextureAssetFactory>());
+    auto ret = RegisterAssetFactory(make_shared<Asset::BasicTextureAssetFactory>());
     ret.ThrowIfError();
 }
 

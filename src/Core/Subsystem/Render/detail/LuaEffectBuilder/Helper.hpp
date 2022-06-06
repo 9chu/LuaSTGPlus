@@ -7,6 +7,7 @@
 #pragma once
 #include <set>
 #include <memory>
+#include <optional>
 #include <lstg/Core/Subsystem/Script/LuaState.hpp>
 #include <lstg/Core/Subsystem/Script/AutoBridgeHint.hpp>
 
