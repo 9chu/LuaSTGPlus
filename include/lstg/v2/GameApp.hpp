@@ -112,6 +112,11 @@ namespace lstg::v2
 
     private:
         /**
+         * 处理窗口大小变化
+         */
+        void HandleWindowResize() noexcept;
+
+        /**
          * 根据设定调整自适应 VP 大小
          */
         void AdjustViewport() noexcept;

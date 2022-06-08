@@ -171,8 +171,8 @@ namespace lstg::v2::Bridge
          * @param rect 是否是矩形碰撞盒
          */
         LSTG_METHOD()
-        static void LoadAnimation(const char* name, const char* textureName, double x, double y, double w, double h, int32_t n, int32_t m,
-            int32_t interval, std::optional<double> a, std::optional<double> b, std::optional<bool> rect);
+        static void LoadAnimation(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
+            int32_t n, int32_t m, int32_t interval, std::optional<double> a, std::optional<double> b, std::optional<bool> rect);
 
         /**
          * 设置动画资产绘制状态
@@ -184,7 +184,7 @@ namespace lstg::v2::Bridge
          * @param vertexColor4 顶点4颜色
          */
         LSTG_METHOD()
-        static void SetAnimationState(const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
+        static void SetAnimationState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
             std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4);
 
         /**
@@ -194,7 +194,7 @@ namespace lstg::v2::Bridge
          * @param y 中心坐标Y
          */
         LSTG_METHOD()
-        static void SetAnimationCenter(const char* name, double x, double y);
+        static void SetAnimationCenter(LuaStack& stack, const char* name, double x, double y);
 
         /**
          * 装载粒子发射器

@@ -10,6 +10,7 @@
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
 #include <lstg/v2/Asset/TextureAsset.hpp>
 #include <lstg/v2/Asset/SpriteAsset.hpp>
+#include <lstg/v2/Asset/SpriteSequenceAsset.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -175,7 +176,7 @@ void AssetManagerModule::LoadImage(LuaStack& stack, const char* name, const char
         {"height", h},
         {"colliderHalfSizeX", a ? *a : 0.},
         {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
-        {"colliderIsRect", rect ? *rect : false},
+        {"colliderIsRect", rect && *rect},
     };
 
     // 执行加载
@@ -247,80 +248,102 @@ void AssetManagerModule::SetImageScale(double factor)
     LSTG_LOG_WARN_CAT(AssetManagerModule, "SetImageScale is deprecated and has no effect anymore");
 }
 
-void AssetManagerModule::LoadAnimation(const char* name, const char* textureName, double x, double y, double w, double h, int32_t n,
-    int32_t m, int32_t interval, std::optional<double> a, std::optional<double> b, std::optional<bool> rect)
+void AssetManagerModule::LoadAnimation(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
+    int32_t n, int32_t m, int32_t interval, std::optional<double> a, std::optional<double> b, std::optional<bool> rect)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* texname = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadAnimation(
-//        name,
-//        texname,
-//        luaL_checknumber(L, 3),
-//        luaL_checknumber(L, 4),
-//        luaL_checknumber(L, 5),
-//        luaL_checknumber(L, 6),
-//        luaL_checkinteger(L, 7),
-//        luaL_checkinteger(L, 8),
-//        luaL_checkinteger(L, 9),
-//        luaL_optnumber(L, 10, 0.0f),
-//        luaL_optnumber(L, 11, 0.0f),
-//        lua_toboolean(L, 12) == 0 ? false : true
-//    ))
-//    {
-//        return luaL_error(L, "load animation failed (name='%s', tex='%s').", name, texname);
-//    }
-//
-//    return 0;
+    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
+    if (!currentAssetPool)
+        stack.Error("can't load resource at this time.");
+    assert(currentAssetPool);
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Animation, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "animation \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"texture", MakeFullAssetName(AssetTypes::Texture, textureName)},
+        {"left", x},
+        {"top", y},
+        {"frameWidth", w},
+        {"frameHeight", h},
+        {"row", m},
+        {"column", n},
+        {"interval", interval},
+        {"colliderHalfSizeX", a ? *a : 0.},
+        {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
+        {"colliderIsRect", rect && *rect},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::SpriteSequenceAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load animation \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::SetAnimationState(const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
+void AssetManagerModule::SetAnimationState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
     std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4)
 {
-    // TODO
-//    ResAnimation* p = LRES.FindAnimation(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "animation '%s' not found.", luaL_checkstring(L, 1));
-//
-//    p->SetBlendMode(TranslateBlendMode(L, 2));
-//    if (lua_gettop(L) == 3)
-//    {
-//        fcyColor c = *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR));
-//        for (size_t i = 0; i < p->GetCount(); ++i)
-//            p->GetSprite(i)->SetColor(c);
-//    }
-//    else if (lua_gettop(L) == 6)
-//    {
-//        fcyColor tColors[] = {
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 5, TYPENAME_COLOR)),
-//            *static_cast<fcyColor*>(luaL_checkudata(L, 6, TYPENAME_COLOR))
-//        };
-//        for (size_t i = 0; i < p->GetCount(); ++i)
-//            p->GetSprite(i)->SetColor(tColors);
-//    }
-//    return 0;
+    auto fullName = MakeFullAssetName(AssetTypes::Animation, name);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("animation '%s' not found", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteSequenceAsset::GetAssetTypeIdStatic());
+
+    if (!((vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4) ||
+        (!vertexColor1 && !vertexColor2 && !vertexColor3 && !vertexColor4) ||
+        (vertexColor1 && !vertexColor2 && !vertexColor3 && !vertexColor4)))
+    {
+        stack.Error("number of vertex color components must be 0, 1 or 4");
+    }
+
+    auto spriteSequenceAsset = static_pointer_cast<Asset::SpriteSequenceAsset>(asset);
+
+    // 转换混合模式
+    BlendMode m(blend);
+    spriteSequenceAsset->SetDefaultBlendMode(m);
+
+    // 决定顶点色
+    array<ColorRGBA32, 4> vertexColor;
+    if (vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4)
+    {
+        assert(*vertexColor1 && *vertexColor2 && *vertexColor3 && *vertexColor4);
+        vertexColor[0] = *(*vertexColor1);
+        vertexColor[1] = *(*vertexColor2);
+        vertexColor[2] = *(*vertexColor3);
+        vertexColor[3] = *(*vertexColor4);
+        spriteSequenceAsset->SetDefaultBlendColor(vertexColor);
+    }
+    else if (vertexColor1)
+    {
+        assert(*vertexColor1);
+        vertexColor[0] = *(*vertexColor1);
+        vertexColor[1] = *(*vertexColor1);
+        vertexColor[2] = *(*vertexColor1);
+        vertexColor[3] = *(*vertexColor1);
+        spriteSequenceAsset->SetDefaultBlendColor(vertexColor);
+    }
 }
 
-void AssetManagerModule::SetAnimationCenter(const char* name, double x, double y)
+void AssetManagerModule::SetAnimationCenter(LuaStack& stack, const char* name, double x, double y)
 {
-    // TODO
-//    ResAnimation* p = LRES.FindAnimation(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "animation '%s' not found.", luaL_checkstring(L, 1));
-//    for (size_t i = 0; i < p->GetCount(); ++i)
-//    {
-//        p->GetSprite(i)->SetHotSpot(fcyVec2(
-//            static_cast<float>(luaL_checknumber(L, 2) + p->GetSprite(i)->GetTexRect().a.x),
-//            static_cast<float>(luaL_checknumber(L, 3) + p->GetSprite(i)->GetTexRect().a.y)));
-//    }
-//    return 0;
+    auto fullName = MakeFullAssetName(AssetTypes::Animation, name);
+    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    if (!asset)
+        stack.Error("animation '%s' not found", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SpriteSequenceAsset::GetAssetTypeIdStatic());
+
+    auto spriteSequenceAsset = static_pointer_cast<Asset::SpriteSequenceAsset>(asset);
+    spriteSequenceAsset->SetAnchor({x, y});
 }
 
 void AssetManagerModule::LoadParticle(const char* name, const char* path, const char* imgName, std::optional<double> a,

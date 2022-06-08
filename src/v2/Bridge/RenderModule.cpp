@@ -56,7 +56,8 @@ void RenderModule::SetOrtho(double left, double right, double bottom, double top
 {
     auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
     cmdBuffer.SetView(glm::identity<glm::mat4x4>());
-    cmdBuffer.SetProjection(glm::ortho(left, right, bottom, top));
+    cmdBuffer.SetProjection(glm::ortho<float>(static_cast<float>(left), static_cast<float>(right), static_cast<float>(bottom),
+        static_cast<float>(top), 0.f, 100.f));
 }
 
 void RenderModule::SetPerspective(double eyeX, double eyeY, double eyeZ, double atX, double atY, double atZ, double upX, double upY,
@@ -121,6 +122,7 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
     auto& drawing = *ret;
     drawing.Transform(rot ? static_cast<float>(*rot) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
         vscale ? static_cast<float>(*vscale) : 1.f);
+    drawing.Translate(x, y, 0);
 }
 
 void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)

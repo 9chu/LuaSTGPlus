@@ -14,6 +14,7 @@ namespace lstg
 {
     namespace Subsystem
     {
+        class EventBusSystem;
         class RenderSystem;
         class ProfileSystem;
     }
@@ -104,6 +105,7 @@ namespace lstg
     private:
         // 子系统
         Subsystem::SubsystemContainer m_stSubsystemContainer;
+        std::shared_ptr<Subsystem::EventBusSystem> m_pEventBusSystem;
         std::shared_ptr<Subsystem::RenderSystem> m_pRenderSystem;
         std::shared_ptr<Subsystem::ProfileSystem> m_pProfileSystem;
 

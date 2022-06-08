@@ -8,6 +8,7 @@
 
 #include <SDL_syswm.h>
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include "../detail/SDLHelper.hpp"
 
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
@@ -49,6 +50,7 @@ namespace
 }
 
 WindowSystem::WindowSystem(SubsystemContainer& container)
+    : m_pEventBusSystem(container.Get<EventBusSystem>())
 {
     static_cast<void>(container);
 
@@ -126,8 +128,29 @@ std::tuple<int, int> WindowSystem::GetSize() const noexcept
 
 void WindowSystem::SetSize(int width, int height) noexcept
 {
+    int orgW = 0, orgH = 0;
+    ::SDL_GetWindowSize(m_pWindow, &orgW, &orgH);
+
     ::SDL_SetWindowSize(m_pWindow, width, height);
     ::SDL_SetWindowPosition(m_pWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+    int newW = 0, newH = 0;
+    ::SDL_GetWindowSize(m_pWindow, &newW, &newH);
+
+    // 主动发送一个窗口大小变化事件
+    if (orgW != newW || orgH != newH)
+    {
+        SDL_Event resizeEvent;
+        ::memset(&resizeEvent, 0, sizeof(resizeEvent));
+        resizeEvent.window.type = SDL_WINDOWEVENT;
+        resizeEvent.window.timestamp = ::SDL_GetTicks();
+        resizeEvent.window.windowID = ::SDL_GetWindowID(m_pWindow);
+        resizeEvent.window.event = SDL_WINDOWEVENT_RESIZED;
+        resizeEvent.window.data1 = newW;
+        resizeEvent.window.data2 = newH;
+        SubsystemEvent event {resizeEvent};
+        m_pEventBusSystem->EmitEvent(std::move(event));
+    }
 }
 
 std::tuple<int, int> WindowSystem::GetRenderSize() const noexcept
@@ -175,7 +198,7 @@ Result<void> WindowSystem::ToggleFullScreen(bool fullscreen) noexcept
 {
     int ev = ::SDL_SetWindowFullscreen(m_pWindow, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     if (ev < 0)
-        return detail::MakeSDLError(ev);
+        return lstg::detail::MakeSDLError(ev);
     return {};
 }
 
@@ -183,7 +206,7 @@ Result<bool> WindowSystem::IsMouseCursorVisible() noexcept
 {
     int ev = ::SDL_ShowCursor(SDL_QUERY);
     if (ev < 0)
-        return detail::MakeSDLError(ev);
+        return lstg::detail::MakeSDLError(ev);
     return ev == SDL_ENABLE;
 }
 
@@ -191,6 +214,6 @@ Result<void> WindowSystem::SetMouseCursorVisible(bool shown) noexcept
 {
     int ev = ::SDL_ShowCursor(shown ? SDL_ENABLE : SDL_DISABLE);
     if (ev < 0)
-        return detail::MakeSDLError(ev);
+        return lstg::detail::MakeSDLError(ev);
     return {};
 }

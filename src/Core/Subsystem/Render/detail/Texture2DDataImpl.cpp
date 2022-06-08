@@ -190,6 +190,8 @@ Result<void> Texture2DDataImpl::ReadImageInfoFromStream(uint32_t& width, uint32_
         LSTG_LOG_ERROR_CAT(Texture2DDataImpl, "stbi_load_from_callbacks fail: {}", ::stbi_failure_reason());
         return make_error_code(errc::io_error);
     }
+    width = static_cast<uint32_t>(x);
+    height = static_cast<uint32_t>(y);
     return {};
 }
 

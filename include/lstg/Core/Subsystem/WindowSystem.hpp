@@ -11,6 +11,7 @@
 #include "../Result.hpp"
 #include "../Exception.hpp"
 #include "ISubsystem.hpp"
+#include "EventBusSystem.hpp"
 
 struct SDL_Window;
 
@@ -145,6 +146,7 @@ namespace lstg::Subsystem
         Result<void> SetMouseCursorVisible(bool shown) noexcept;
 
     private:
+        EventBusSystemPtr m_pEventBusSystem;
         SDL_Window* m_pWindow = nullptr;
         WindowFeatures m_iFeatures = static_cast<WindowFeatures>(0);
     };

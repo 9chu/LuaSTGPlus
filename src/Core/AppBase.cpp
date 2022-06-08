@@ -18,6 +18,7 @@
 #endif
 
 // 所有子系统
+#include <lstg/Core/Subsystem/EventBusSystem.hpp>
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
@@ -56,6 +57,7 @@ AppBase::AppBase()
     const auto kSubsystemNoInteractive =
         SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
     const auto kSubsystemUpdateOnly = SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
+    m_stSubsystemContainer.Register<Subsystem::EventBusSystem>("EventBusSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::ScriptSystem>("ScriptSystem", 0, kSubsystemUpdateOnly);
@@ -68,6 +70,7 @@ AppBase::AppBase()
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 
     // 持有渲染子系统指针
+    m_pEventBusSystem = m_stSubsystemContainer.Get<Subsystem::EventBusSystem>();
     m_pRenderSystem = m_stSubsystemContainer.Get<Subsystem::RenderSystem>();
     m_pProfileSystem = m_stSubsystemContainer.Get<Subsystem::ProfileSystem>();
 }
@@ -213,11 +216,22 @@ void AppBase::Frame() noexcept
     // 更新消息
     {
         LSTG_PER_FRAME_PROFILE("EventDispatchTime");
+
+        // SDL 消息
         SDL_Event event;
         while (::SDL_PollEvent(&event) != 0)
         {
             Subsystem::SubsystemEvent transformed(&event);
             OnEvent(transformed);
+        }
+
+        // 总线消息
+        while (true)
+        {
+            auto subsystemEvent = m_pEventBusSystem->PollEvent();
+            if (!subsystemEvent)
+                break;
+            OnEvent(*subsystemEvent);
         }
     }
 

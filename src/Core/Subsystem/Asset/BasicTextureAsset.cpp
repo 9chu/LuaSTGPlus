@@ -99,7 +99,7 @@ void BasicTextureAsset::InitTextureInfo() noexcept
             else
             {
                 // 从流读取纹理信息
-                uint32_t width, height;
+                uint32_t width = 0, height = 0;
                 auto ret = Render::detail::Texture2DDataImpl::ReadImageInfoFromStream(width, height, *stream);
                 if (!ret)
                     LSTG_LOG_ERROR_CAT(BasicTextureAsset, "Read image size from \"{}\" fail: {}", m_stPath, ret.GetError());

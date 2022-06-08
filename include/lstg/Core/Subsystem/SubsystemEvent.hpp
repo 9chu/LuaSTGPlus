@@ -5,6 +5,8 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
+#include <cassert>
+#include <any>
 #include <variant>
 
 union SDL_Event;
@@ -20,9 +22,36 @@ namespace lstg::Subsystem
         using Event = std::variant<const SDL_Event*>;
 
     public:
-        template <typename... TArgs>
-        SubsystemEvent(TArgs&&... args)
-            : m_stEvent(std::forward<TArgs>(args)...) {}
+        /**
+         * 使用事件指针构造轻量事件
+         * 此时 SubsystemEvent 不会持有事件对象。
+         * @tparam P 事件类型
+         * @param eventRef 事件引用
+         */
+        template <typename P>
+        SubsystemEvent(P eventRef, std::enable_if_t<std::is_pointer_v<P>, int> = 0)
+            : m_stEvent(eventRef) {}
+
+        /**
+         * 使用事件对象构造事件
+         * 此时 SubsystemEvent 会持有事件对象的拷贝。
+         * @tparam P 事件类型
+         * @param event 事件对象
+         */
+        template <typename P>
+        SubsystemEvent(P event, std::enable_if_t<!std::is_pointer_v<P>, void*> = nullptr)
+            : m_stEventStorage(std::move(event))
+        {
+            auto ptr = std::any_cast<P>(&m_stEventStorage);
+            assert(ptr);
+            m_stEvent = ptr;
+        }
+
+        SubsystemEvent(const SubsystemEvent& org);
+        SubsystemEvent(SubsystemEvent&& org) noexcept;
+
+        SubsystemEvent& operator=(const SubsystemEvent& rhs);
+        SubsystemEvent& operator=(SubsystemEvent&& rhs) noexcept;
 
     public:
         /**
@@ -54,5 +83,6 @@ namespace lstg::Subsystem
         bool m_bIsDefaultPrevented = false;
         bool m_bIsBubbles = true;
         Event m_stEvent;
+        std::any m_stEventStorage;
     };
 }

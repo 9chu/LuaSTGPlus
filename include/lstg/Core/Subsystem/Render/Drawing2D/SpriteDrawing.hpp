@@ -196,12 +196,11 @@ namespace lstg::Subsystem::Render::Drawing2D
 
         /**
          * 平移
-         * @param buffer 命令缓冲
          * @param offsetX 坐标X
          * @param offsetY 坐标Y
          * @param offsetZ 坐标Z
          */
-        SpriteDrawing& Translate(CommandBuffer& buffer, float offsetX, float offsetY, float offsetZ) noexcept
+        SpriteDrawing& Translate(float offsetX, float offsetY, float offsetZ) noexcept
         {
             // Translate
             if (offsetX != 0.f)

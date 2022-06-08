@@ -57,14 +57,15 @@ void SpriteAsset::PrecomputedVertex(int what) noexcept
     if ((what & SHAPE_CHANGED) == SHAPE_CHANGED)
     {
         // 基本形状，在原点附近，且 z = 0.5
+        // 注意坐标轴是 Y 向上，X 向右
         auto w = static_cast<float>(m_stFrame.Width());
         auto h = static_cast<float>(m_stFrame.Height());
         auto cx = static_cast<float>(m_stAnchor.x);
         auto cy = static_cast<float>(m_stAnchor.y);
-        m_stPrecomputedVertex[0].Position = { -cx, -cy, 0.5f };
-        m_stPrecomputedVertex[1].Position = { w - cx, -cy, 0.5f };
-        m_stPrecomputedVertex[2].Position = { w - cx, h - cy, 0.5f };
-        m_stPrecomputedVertex[3].Position = { -cx, h - cy, 0.5f };
+        m_stPrecomputedVertex[0].Position = { -cx, cy, 0.5f };
+        m_stPrecomputedVertex[1].Position = { w - cx, cy, 0.5f };
+        m_stPrecomputedVertex[2].Position = { w - cx, cy - h, 0.5f };
+        m_stPrecomputedVertex[3].Position = { -cx, cy - h, 0.5f };
     }
 
     if ((what & UV_CHANGED) == UV_CHANGED)

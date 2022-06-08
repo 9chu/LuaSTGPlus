@@ -7,6 +7,7 @@
 #include <lstg/v2/GameApp.hpp>
 
 #include <SDL.h>
+#include <glm/ext.hpp>
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
@@ -18,8 +19,10 @@
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
 
+// 资源类型
 #include <lstg/v2/Asset/TextureAssetFactory.hpp>
 #include <lstg/v2/Asset/SpriteAssetFactory.hpp>
+#include <lstg/v2/Asset/SpriteSequenceAssetFactory.hpp>
 
 #include <lstg/v2/Bridge/BuiltInModules.hpp>
 
@@ -80,12 +83,36 @@ GameApp::GameApp(int argc, char** argv)
         GetSubsystem<Subsystem::VirtualFileSystem>()->SetAssetBaseDirectory("assets");
     }
 
+    // 初始化资源系统
+    {
+        // 注册内置资源类型
+        auto assetSystem = GetSubsystem<Subsystem::AssetSystem>();
+        assetSystem->RegisterAssetFactory(make_shared<Asset::TextureAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteSequenceAssetFactory>());
+
+        // 初始化资源池
+        m_pGlobalAssetPool = make_shared<Subsystem::Asset::AssetPool>();
+        m_pStageAssetPool = make_shared<Subsystem::Asset::AssetPool>();
+        m_pCurrentAssetPool = m_pGlobalAssetPool;  // 默认挂载在全局池上
+    }
+
     // 初始化渲染参数
     {
         auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
         assert(renderDevice);
         m_stNativeSolution = { renderDevice->GetRenderOutputWidth(), renderDevice->GetRenderOutputHeight() };
         AdjustViewport();
+
+        // 刷初始渲染状态
+        m_stCommandBuffer.Begin();
+        m_stCommandBuffer.SetView(glm::identity<glm::mat4x4>());
+        m_stCommandBuffer.SetProjection(glm::ortho<float>(0.f, static_cast<float>(m_stViewportBound.Width()),
+                                                          0.f, static_cast<float>(m_stViewportBound.Height()),
+                                                          0.f, 100.0f));
+        m_stCommandBuffer.SetViewport(static_cast<float>(m_stViewportBound.Left()), static_cast<float>(m_stViewportBound.Top()),
+                                      static_cast<float>(m_stViewportBound.Width()), static_cast<float>(m_stViewportBound.Height()));
+        m_stCommandBuffer.End();
     }
 
     // 初始化函数库
@@ -117,16 +144,6 @@ GameApp::GameApp(int argc, char** argv)
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
-
-    // 注册内置资源类型
-    auto assetSystem = GetSubsystem<Subsystem::AssetSystem>();
-    assetSystem->RegisterAssetFactory(make_shared<Asset::TextureAssetFactory>());
-    assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteAssetFactory>());
-
-    // 初始化资源池
-    m_pGlobalAssetPool = make_shared<Subsystem::Asset::AssetPool>();
-    m_pStageAssetPool = make_shared<Subsystem::Asset::AssetPool>();
-    m_pCurrentAssetPool = m_pGlobalAssetPool;  // 默认挂载在全局池上
 
     // 分配对象池
     // TODO
@@ -251,8 +268,22 @@ WindowRectangle GameApp::GetViewportBound() const noexcept
 
 void GameApp::ChangeDesiredResolution(uint32_t width, uint32_t height) noexcept
 {
+    auto windowSystem = GetSubsystem<Subsystem::WindowSystem>();
+    auto currentFullscreen = windowSystem->IsFullScreen();
+
     m_stDesiredSolution = { std::max(1u, width), std::max(1u, height) };
-    AdjustViewport();
+
+    // 如果当前环境支持切换分辨率
+    if ((windowSystem->GetFeatures() & Subsystem::WindowFeatures::ProgrammingResizable) && !currentFullscreen)
+    {
+        // TODO 防止窗口超过屏幕大小
+        // 这里会触发窗口大小变化事件
+        windowSystem->SetSize(static_cast<int>(width), static_cast<int>(height));
+    }
+    else
+    {
+        AdjustViewport();
+    }
 }
 
 void GameApp::ToggleFullScreen(bool fullscreen) noexcept
@@ -298,9 +329,11 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
                     // 获取渲染系统的分辨率
                     auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
                     assert(renderDevice);
+
                     auto renderWidth = renderDevice->GetRenderOutputWidth();
                     auto renderHeight = renderDevice->GetRenderOutputHeight();
                     m_stNativeSolution = { renderWidth, renderHeight };
+
                     AdjustViewport();
                 }
                 else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
@@ -343,7 +376,6 @@ void GameApp::OnRender(double elapsed) noexcept
 {
     // 启动场景
     m_stCommandBuffer.Begin();
-    m_stCommandBuffer.SetViewport(m_stViewportBound.Left(), m_stViewportBound.Top(), m_stViewportBound.Width(), m_stViewportBound.Height());
 
     // 执行框架 RenderFunc 方法
     auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnRender);
