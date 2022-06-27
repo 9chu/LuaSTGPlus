@@ -170,3 +170,153 @@ CPMAddPackage(
     GITHUB_REPOSITORY nlohmann/json
     VERSION 3.10.5
 )
+
+# libicu
+CPMAddPackage(
+    NAME icu
+    GITHUB_REPOSITORY unicode-org/icu
+    GIT_TAG release-71-1
+    DOWNLOAD_ONLY
+)
+if(${icu_ADDED})
+    # icu common 库
+    file(GLOB icu_COMMON_SOURCES ${icu_SOURCE_DIR}/icu4c/source/common/*.cpp ${icu_SOURCE_DIR}/icu4c/source/stubdata/*.cpp)
+    add_library(icuuc STATIC ${icu_COMMON_SOURCES})
+    target_include_directories(icuuc PRIVATE ${icu_SOURCE_DIR}/icu4c/source/common ${icu_SOURCE_DIR}/icu4c/source/stubdata
+        ${icu_SOURCE_DIR}/icu4c/source/common/unicode)
+    target_include_directories(icuuc PUBLIC ${icu_SOURCE_DIR}/icu4c/source/common)
+    set(icu_COMMON_PUBLIC_BUILD_FLAGS "-DU_STATIC_IMPLEMENTATION=1")
+    set(icu_COMMON_PRIVATE_BUILD_FLAGS "-DU_COMMON_IMPLEMENTATION")
+    if(WIN32)
+        # set minimal version to Win7 to support LOCALE_ALLOW_NEUTRAL_NAMES
+        list(APPEND icu_COMMON_PRIVATE_BUILD_FLAGS -DWINVER=0x0601 -D_WIN32_WINNT=0x0601)
+    endif()
+    target_compile_definitions(icuuc PUBLIC ${icu_COMMON_PUBLIC_BUILD_FLAGS} PRIVATE ${icu_COMMON_PRIVATE_BUILD_FLAGS})
+
+    # icu i18n 库
+    file(GLOB_RECURSE icu_i18n_SOURCES ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp)
+    add_library(icuin STATIC ${icu_i18n_SOURCES})
+    target_link_libraries(icuin PUBLIC icuuc)
+    target_include_directories(icuin PUBLIC ${icu_SOURCE_DIR}/icu4c/source/i18n)
+    target_compile_definitions(icuin PRIVATE "-DU_ATTRIBUTE_DEPRECATED=" "-DU_I18N_IMPLEMENTATION")
+
+    # icu io 库
+    file(GLOB_RECURSE icu_io_SOURCES ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp)
+    add_library(icuio STATIC ${icu_io_SOURCES})
+    target_link_libraries(icuio PUBLIC icuin)
+    target_include_directories(icuio PUBLIC ${icu_SOURCE_DIR}/icu4c/source/io)
+    target_compile_definitions(icuio PRIVATE "-DU_IO_IMPLEMENTATION")
+
+    # icu tool utils 库
+    file(GLOB icu_TOOL_UTILS_SOURCES ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.c ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.cpp)
+    add_library(icutu STATIC ${icu_TOOL_UTILS_SOURCES})
+    target_link_libraries(icutu PUBLIC icuin icuio)
+    target_include_directories(icutu PUBLIC ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil)
+    target_compile_definitions(icutu PRIVATE "-DU_TOOLUTIL_IMPLEMENTATION")
+
+    # 构建工具
+    file(GLOB icu_TOOL_DIRS ${icu_SOURCE_DIR}/icu4c/source/tools/*)
+    set(icu_TOOLS gencnval gencfu makeconv genbrk gensprep gendict icupkg genrb pkgdata)
+    foreach(icu_TMP_FILENAME ${icu_TOOL_DIRS})
+        if(IS_DIRECTORY ${icu_TMP_FILENAME})
+            get_filename_component(icu_TMP_TOOL_NAME ${icu_TMP_FILENAME} NAME)
+            if("${icu_TMP_TOOL_NAME}" IN_LIST icu_TOOLS)
+                file(GLOB icu_TMP_TOOL_SOURCES ${icu_TMP_FILENAME}/*.c ${icu_TMP_FILENAME}/*.cpp)
+                # 特殊处理 genrb
+                foreach(icu_TMP_TOOL_SRC ${icu_TMP_TOOL_SOURCES})
+                    if("${icu_TMP_TOOL_SRC}" MATCHES ".*derb.cpp")
+                        list(REMOVE_ITEM icu_TMP_TOOL_SOURCES "${icu_TMP_TOOL_SRC}")
+                    endif()
+                endforeach()
+                add_executable(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_SOURCES})
+                target_link_libraries(${icu_TMP_TOOL_NAME} icutu)
+                # 构建后移动到固定目录
+                add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${icu_TMP_TOOL_NAME}> ${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME})
+            endif()
+        endif()
+    endforeach()
+
+    # 构建数据
+    find_package(Python3 COMPONENTS Interpreter)
+    if(NOT Python3_Interpreter_FOUND)
+        message(FATAL "Python3 is required to build this project")
+    endif()
+
+    file(READ "${icu_SOURCE_DIR}/icu4c/source/common/unicode/uvernum.h" icu_VER_NUM_FILE_CONTENT)
+    string(REGEX MATCH "U_ICU_VERSION_MAJOR_NUM ([0-9]*)" _ ${icu_VER_NUM_FILE_CONTENT})
+    set(icu_VERSION_MAJOR ${CMAKE_MATCH_1})
+
+    set(icu_DATA_NAME "icudt${icu_VERSION_MAJOR}")
+    if("${CMAKE_CXX_BYTE_ORDER}" STREQUAL "BIG_ENDIAN")
+        set(icu_DATA_ENDIAN_SUFFIX "b")
+    else()
+        set(icu_DATA_ENDIAN_SUFFIX "l")
+    endif()
+    set(icu_DATA_NAME_FULL "${icu_DATA_NAME}${icu_DATA_ENDIAN_SUFFIX}")
+
+    set(icu_DATA_SOURCE_DIR ${icu_SOURCE_DIR}/icu4c/source/data)
+    if(WIN32)
+        set(icu_DATA_GEN_MODE "windows-exec")
+    else()
+        set(icu_DATA_GEN_MODE "unix-exec")
+    endif()
+
+    # 这里，我们只引入 brkitr 数据，如果有其他需要再进行追加
+    set(icu_DATA_OUTPUT "${CMAKE_BINARY_DIR}/icudata/icudata.cpp")
+    add_custom_command(
+        OUTPUT "${icu_DATA_OUTPUT}"
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/icudata/"
+        COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${icu_SOURCE_DIR}/icu4c/source/python" ${Python3_EXECUTABLE} -B -m icutools.databuilder
+            --mode ${icu_DATA_GEN_MODE}
+            --src_dir "${icu_DATA_SOURCE_DIR}"
+            --tool_dir "${CMAKE_BINARY_DIR}/icutools"
+            --tool_cfg ""
+            --out_dir "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
+            --tmp_dir "${CMAKE_BINARY_DIR}/icudata/tmp"
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/GenerateFileList.py
+            -o ${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt
+            -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
+            "brkitr/*"
+        COMMAND $<TARGET_FILE:pkgdata>
+            -m common
+            -p ${icu_DATA_NAME_FULL}
+            -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
+            "${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt"
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/BinaryToCode.py
+            -i "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}.dat"
+            -n "kIcuDataContent"
+            -o "${CMAKE_BINARY_DIR}/icudata/icudata.cpp"
+        DEPENDS ${icu_TOOLS}
+        COMMENT "Running icu data builder" VERBATIM)
+    add_library(IcuData STATIC ${icu_DATA_OUTPUT})
+endif()
+
+# freetype
+CPMAddPackage(
+    NAME freetype
+    GITHUB_REPOSITORY freetype/freetype
+    GIT_TAG VER-2-12-1
+    OPTIONS
+    "CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz TRUE"
+)
+
+# harfbuzz
+CPMAddPackage(
+    NAME harfbuzz
+    GITHUB_REPOSITORY 9chu/harfbuzz
+    GIT_TAG patch-cmake  # 4.3.0
+    OPTIONS
+    "SKIP_INSTALL_ALL ON"
+    "HB_BUILD_SUBSET OFF"
+)
+if(${harfbuzz_ADDED})
+    # 手动增加 harfbuzz-icu 目标
+    add_library(harfbuzz-icu ${harfbuzz_SOURCE_DIR}/src/hb-icu.cc ${harfbuzz_SOURCE_DIR}/src/hb-icu.h)
+    add_dependencies(harfbuzz-icu harfbuzz)
+    target_link_libraries(harfbuzz-icu harfbuzz icuuc)
+    target_compile_definitions(harfbuzz-icu PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
+
+    target_link_libraries(harfbuzz icuuc)
+    target_compile_definitions(harfbuzz PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
+endif()

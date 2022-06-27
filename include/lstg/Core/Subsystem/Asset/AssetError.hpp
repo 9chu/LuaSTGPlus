@@ -43,3 +43,9 @@ namespace lstg::Subsystem::Asset
         return { static_cast<int>(ec), AssetErrorCategory::GetInstance() };
     }
 }
+
+namespace std
+{
+    template <>
+    struct is_error_code_enum<lstg::Subsystem::Asset::AssetError> : true_type {};
+}

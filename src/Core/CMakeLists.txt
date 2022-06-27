@@ -1,6 +1,6 @@
 ### 明确第三方库引用
 set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm nlohmann_json)
-set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb)
+set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb freetype harfbuzz icuuc harfbuzz harfbuzz-icu freetype IcuData)
 
 # 平台相关库
 if(LSTG_PLATFORM_MACOS)
