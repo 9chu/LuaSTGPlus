@@ -12,6 +12,34 @@
 #include "detail/CommonDefines.hpp"
 #include "detail/FreeTypeStream.hpp"
 
+template <>
+struct std::hash<std::tuple<lstg::Subsystem::Render::Font::FontGlyphRasterParam, lstg::Subsystem::Render::Font::FontGlyphId>>
+{
+    std::size_t operator()(const std::tuple<lstg::Subsystem::Render::Font::FontGlyphRasterParam,
+        lstg::Subsystem::Render::Font::FontGlyphId>& s) const noexcept
+    {
+        using namespace lstg::Subsystem::Render::Font;
+
+        auto h1 = std::hash<FontGlyphRasterParam>{}(std::get<0>(s));
+        auto h2 = std::hash<FontGlyphId>{}(std::get<1>(s));
+        return h1 ^ h2;
+    }
+};
+
+template <>
+struct std::hash<std::tuple<lstg::Subsystem::Render::Font::FontGlyphRasterParam, lstg::Subsystem::Render::Font::FontGlyphPair>>
+{
+    std::size_t operator()(const std::tuple<lstg::Subsystem::Render::Font::FontGlyphRasterParam,
+        lstg::Subsystem::Render::Font::FontGlyphPair>& s) const noexcept
+    {
+        using namespace lstg::Subsystem::Render::Font;
+
+        auto h1 = std::hash<FontGlyphRasterParam>{}(std::get<0>(s));
+        auto h2 = std::hash<FontGlyphPair>{}(std::get<1>(s));
+        return h1 ^ h2;
+    }
+};
+
 namespace lstg::Subsystem::Render::Font
 {
     /**
@@ -28,9 +56,9 @@ namespace lstg::Subsystem::Render::Font
             std::vector<FT_Vector> OutlinePoints;
         };
 
-        using GlyphCacheContainer = LRUCache<FontGlyphId, CachedGlyphData, detail::kGlyphCacheCount>;
-        using KerningCacheContainer = LRUCache<FontGlyphPair, FT_Vector, detail::kKerningCacheCount>;
-        using AdvanceCacheContainer = LRUCache<FontGlyphId, FT_Fixed, detail::kAdvanceCacheCount>;
+        using GlyphCacheContainer = LRUCache<std::tuple<FontGlyphRasterParam, FontGlyphId>, CachedGlyphData, detail::kGlyphCacheCount>;
+        using KerningCacheContainer = LRUCache<std::tuple<FontGlyphRasterParam, FontGlyphPair>, FT_Vector, detail::kKerningCacheCount>;
+        using AdvanceCacheContainer = LRUCache<std::tuple<FontGlyphRasterParam, FontGlyphId>, FT_Fixed, detail::kAdvanceCacheCount>;
 
     public:
         FreeTypeFontFace(detail::FreeTypeStreamPtr stream, FT_Face face);
@@ -77,10 +105,8 @@ namespace lstg::Subsystem::Render::Font
         FT_Face m_pFace = nullptr;
 
         // 缓存
-        // FIXME: 展平 FontGlyphRasterParam+X 可以节约内存
-        // FIXME: 当瞬间使用的不同大小字体数量超过 kFontSizeCache 时性能会很糟糕
-        LRUCache<FontGlyphRasterParam, GlyphCacheContainer, detail::kFontSizeCacheSize> m_stGlyphCache;  // 字形缓存
-        LRUCache<FontGlyphRasterParam, KerningCacheContainer, detail::kFontSizeCacheSize> m_stKerningCache;  // 字符间距调整量缓存
-        LRUCache<FontGlyphRasterParam, AdvanceCacheContainer, detail::kFontSizeCacheSize> m_stAdvanceCache;  // 字符前进量缓存
+        GlyphCacheContainer m_stGlyphCache;  // 字形缓存
+        KerningCacheContainer m_stKerningCache;  // 字符间距调整量缓存
+        AdvanceCacheContainer m_stAdvanceCache;  // 字符前进量缓存
     };
 }

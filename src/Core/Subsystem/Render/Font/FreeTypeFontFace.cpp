@@ -389,23 +389,9 @@ Result<void> FreeTypeFontFace::LoadGlyph(FontGlyphRasterParam param, FontGlyphId
 
 Result<const FreeTypeFontFace::CachedGlyphData*> FreeTypeFontFace::FindOrCacheGlyph(FontGlyphRasterParam param, FontGlyphId id) noexcept
 {
-    // 创建字体容器
-    auto* container = m_stGlyphCache.TryGet(param);
-    if (!container)
-    {
-        try
-        {
-            container = m_stGlyphCache.Emplace(param, GlyphCacheContainer {});
-        }
-        catch (...)  // bad_alloc
-        {
-            return make_error_code(errc::not_enough_memory);
-        }
-    }
-    assert(container);
-
     // 获取缓存
-    auto cache = container->TryGet(id);
+    auto key = std::make_tuple(param, id);
+    auto cache = m_stGlyphCache.TryGet(key);
     if (!cache)
     {
         // 没有命中缓存，加载字形
@@ -426,7 +412,7 @@ Result<const FreeTypeFontFace::CachedGlyphData*> FreeTypeFontFace::FindOrCacheGl
                 for (auto i = 0; i < points; ++i)
                     cachedData.OutlinePoints.push_back(m_pFace->glyph->outline.points[i]);
             }
-            cache = container->Emplace(id, std::move(cachedData));
+            cache = m_stGlyphCache.Emplace(key, std::move(cachedData));
         }
         catch (...)  // bad_alloc
         {
@@ -439,23 +425,9 @@ Result<const FreeTypeFontFace::CachedGlyphData*> FreeTypeFontFace::FindOrCacheGl
 
 Result<FT_Vector> FreeTypeFontFace::FindOrCacheKerning(FontGlyphRasterParam param, FontGlyphPair pair) noexcept
 {
-    // 创建字体容器
-    auto* container = m_stKerningCache.TryGet(param);
-    if (!container)
-    {
-        try
-        {
-            container = m_stKerningCache.Emplace(param, KerningCacheContainer {});
-        }
-        catch (...)  // bad_alloc
-        {
-            return make_error_code(errc::not_enough_memory);
-        }
-    }
-    assert(container);
-
     // 获取缓存
-    auto cache = container->TryGet(pair);
+    auto key = make_tuple(param, pair);
+    auto cache = m_stKerningCache.TryGet(key);
     if (!cache)
     {
         // 没有命中缓存，加载 Kerning
@@ -477,7 +449,7 @@ Result<FT_Vector> FreeTypeFontFace::FindOrCacheKerning(FontGlyphRasterParam para
 
         try
         {
-            cache = container->Emplace(pair, kerning);
+            cache = m_stKerningCache.Emplace(key, kerning);
         }
         catch (...)  // bad_alloc
         {
@@ -490,23 +462,9 @@ Result<FT_Vector> FreeTypeFontFace::FindOrCacheKerning(FontGlyphRasterParam para
 
 Result<FT_Fixed> FreeTypeFontFace::FindOrCacheAdvance(FontGlyphRasterParam param, FontGlyphId id) noexcept
 {
-    // 创建字体容器
-    auto* container = m_stAdvanceCache.TryGet(param);
-    if (!container)
-    {
-        try
-        {
-            container = m_stAdvanceCache.Emplace(param, AdvanceCacheContainer {});
-        }
-        catch (...)  // bad_alloc
-        {
-            return make_error_code(errc::not_enough_memory);
-        }
-    }
-    assert(container);
-
     // 获取缓存
-    auto cache = container->TryGet(id);
+    auto key = make_tuple(param, id);
+    auto cache = m_stAdvanceCache.TryGet(key);
     if (!cache)
     {
         // 没有命中缓存，加载 Advance
@@ -528,7 +486,7 @@ Result<FT_Fixed> FreeTypeFontFace::FindOrCacheAdvance(FontGlyphRasterParam param
 
         try
         {
-            cache = container->Emplace(id, advance);
+            cache = m_stAdvanceCache.Emplace(key, advance);
         }
         catch (...)  // bad_alloc
         {

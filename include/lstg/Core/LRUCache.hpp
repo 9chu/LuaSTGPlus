@@ -32,10 +32,9 @@ namespace lstg
         }
 
         LRUCache(LRUCache&& rhs) noexcept
-            : m_stNodes(std::move(rhs.m_stNodes))
+            : m_stNodes(std::move(rhs.m_stNodes)), m_stLookupTable(std::move(rhs.m_stLookupTable))
         {
-            rhs.m_stLookupTable.clear();
-            RebuildCache();
+            RefreshCache();
         }
 
         LRUCache& operator=(const LRUCache& rhs)
@@ -59,25 +58,14 @@ namespace lstg
             return *this;
         }
 
-        LRUCache& operator=(LRUCache&& rhs)
+        LRUCache& operator=(LRUCache&& rhs) noexcept
         {
             if (this == &rhs)
                 return *this;
 
             m_stNodes = std::move(rhs.m_stNodes);
-            rhs.m_stLookupTable.clear();
-            m_stLookupTable.clear();
-            try
-            {
-                RebuildCache();
-            }
-            catch (...)
-            {
-                // 此时状态难以恢复
-                m_stNodes.clear();
-                m_stLookupTable.clear();
-                throw;
-            }
+            m_stLookupTable = std::move(rhs.m_stLookupTable);
+            RefreshCache();
             return *this;
         }
 
@@ -204,6 +192,17 @@ namespace lstg
             m_stLookupTable.clear();
             for (auto it = m_stNodes.begin(); it != m_stNodes.end(); ++it)
                 m_stLookupTable.emplace(std::make_pair(it->first, it));
+        }
+
+        void RefreshCache() noexcept
+        {
+            assert(m_stNodes.size() == m_stLookupTable.size());
+            for (auto it = m_stNodes.begin(); it != m_stNodes.end(); ++it)
+            {
+                auto jt = m_stLookupTable.find(it->first);
+                assert(jt != m_stLookupTable.end());
+                jt->second = it;
+            }
         }
 
         void InvalidateOutdated() noexcept
