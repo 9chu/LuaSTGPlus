@@ -6,8 +6,8 @@
  */
 #include "FreeTypeFontFactory.hpp"
 
-#include "../../../detail/FreeTypeError.hpp"
 #include "FreeTypeFontFace.hpp"
+#include "detail/FreeTypeError.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -15,15 +15,8 @@ using namespace lstg::Subsystem::Render::Font;
 
 FreeTypeFontFactory::FreeTypeFontFactory()
 {
-    auto err = ::FT_Init_FreeType(&m_pLibrary);
-    if (err != 0)
-        throw system_error(make_error_code(static_cast<lstg::detail::FreeTypeError>(err)));
-}
-
-FreeTypeFontFactory::~FreeTypeFontFactory()
-{
-    auto err = ::FT_Done_FreeType(m_pLibrary);
-    assert(err == 0);
+    auto ret = detail::FreeTypeObject::CreateLibrary();
+    m_pLibrary = std::move(ret.ThrowIfError());
 }
 
 Result<FontFacePtr> FreeTypeFontFactory::CreateFontFace(VFS::StreamPtr stream, int faceIndex) noexcept
@@ -40,11 +33,11 @@ Result<FontFacePtr> FreeTypeFontFactory::CreateFontFace(VFS::StreamPtr stream, i
         args.stream = ftStream.get();
 
         FT_Face face = nullptr;
-        auto ret = ::FT_Open_Face(m_pLibrary, &args, faceIndex, &face);
+        auto ret = ::FT_Open_Face(m_pLibrary.get(), &args, faceIndex, &face);
         if (ret != 0)
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(ret));
+            return make_error_code(static_cast<detail::FreeTypeError>(ret));
 
-        return make_shared<FreeTypeFontFace>(std::move(ftStream), face);
+        return make_shared<FreeTypeFontFace>(m_pLibrary, std::move(ftStream), detail::FreeTypeObject::FacePtr(face));
     }
     catch (const system_error& ex)
     {
@@ -69,35 +62,28 @@ Result<size_t> FreeTypeFontFactory::EnumFontFace(std::vector<FontFaceInfo>& out,
         args.flags = FT_OPEN_STREAM;
         args.stream = ftStream.get();
 
-        FT_Face face = nullptr;
-        auto ret = ::FT_Open_Face(m_pLibrary, &args, -1, &face);
+        detail::FreeTypeObject::FacePtr face;
+
+        FT_Face tmpFace = nullptr;
+        auto ret = ::FT_Open_Face(m_pLibrary.get(), &args, -1, &tmpFace);
+        face.reset(tmpFace);
         if (ret != 0)
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(ret));
+            return make_error_code(static_cast<detail::FreeTypeError>(ret));
 
         assert(face);
         auto faceCount = face->num_faces;
-        ::FT_Done_Face(face);
-        face = nullptr;
 
         out.reserve(faceCount);
         for (auto i = 0; i < faceCount; ++i)
         {
-            ret = ::FT_Open_Face(m_pLibrary, &args, i, &face);
+            tmpFace = nullptr;
+            ::FT_Open_Face(m_pLibrary.get(), &args, i, &tmpFace);
+            face.reset(tmpFace);
             if (face)
             {
                 FontFaceInfo info;
-                try
-                {
-                    info.FamilyName = face->family_name;
-                    info.StyleName = face->style_name;
-                }
-                catch (...)
-                {
-                    ::FT_Done_Face(face);
-                    throw;
-                }
-                ::FT_Done_Face(face);
-                face = nullptr;
+                info.FamilyName = face->family_name;
+                info.StyleName = face->style_name;
                 out.emplace_back(std::move(info));
             }
         }

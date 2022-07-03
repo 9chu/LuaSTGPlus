@@ -32,14 +32,11 @@ namespace lstg::Encoding
         std::string message(int ev) const override;
     };
 
-    std::error_code make_error_code(EncodingError err) noexcept
+    inline std::error_code make_error_code(EncodingError err) noexcept
     {
         return {static_cast<int32_t>(err), EncodingErrorCategory::GetInstance()};
     }
 }
 
-namespace std
-{
-    template <>
-    struct is_error_code_enum<lstg::Encoding::EncodingError> : true_type {};
-}
+template <>
+struct std::is_error_code_enum<lstg::Encoding::EncodingError> : true_type {};

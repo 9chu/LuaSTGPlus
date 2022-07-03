@@ -8,7 +8,7 @@
 #include <system_error>
 #include <freetype/freetype.h>
 
-namespace lstg::detail
+namespace lstg::Subsystem::Render::Font::detail
 {
     // 见 FT_Error
     enum class FreeTypeError : int32_t {};
@@ -29,9 +29,9 @@ namespace lstg::detail
 
     inline std::error_code make_error_code(FreeTypeError ec) noexcept
     {
-        return { static_cast<int>(ec), lstg::detail::FreeTypeErrorCategory::GetInstance() };
+        return { static_cast<int>(ec), lstg::Subsystem::Render::Font::detail::FreeTypeErrorCategory::GetInstance() };
     }
 }
 
 template <>
-struct std::is_error_code_enum<lstg::detail::FreeTypeError> : std::true_type {};
+struct std::is_error_code_enum<lstg::Subsystem::Render::Font::detail::FreeTypeError> : std::true_type {};

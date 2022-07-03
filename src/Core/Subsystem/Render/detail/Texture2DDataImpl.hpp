@@ -6,9 +6,7 @@
  */
 #pragma once
 #include <vector>
-#include <lstg/Core/Subsystem/Render/Texture2DData.hpp>
-
-#include <Texture.h>
+#include "Texture2DFormats.hpp"
 
 namespace lstg::Subsystem
 {

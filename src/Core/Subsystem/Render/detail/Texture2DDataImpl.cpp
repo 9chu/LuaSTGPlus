@@ -116,60 +116,6 @@ namespace
     };
 
     using StbImageMemoryPtr = std::unique_ptr<uint8_t, StbImageMemoryDeleter>;
-
-    uint32_t AlignedScanLineSize(uint32_t widthSize) noexcept
-    {
-        static const unsigned kAlignment = 4;
-        return (widthSize + kAlignment - 1) & ~(kAlignment - 1);
-    }
-
-    Subsystem::Render::Texture2DFormats FromDiligent(Diligent::TEXTURE_FORMAT format) noexcept
-    {
-        switch (format)
-        {
-            case Diligent::TEX_FORMAT_R8_UNORM:
-                return Subsystem::Render::Texture2DFormats::R8;
-            case Diligent::TEX_FORMAT_RG8_UNORM:
-                return Subsystem::Render::Texture2DFormats::R8G8;
-            case Diligent::TEX_FORMAT_RGBA8_UNORM:
-                return Subsystem::Render::Texture2DFormats::R8G8B8A8;
-            case Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB:
-                return Subsystem::Render::Texture2DFormats::R8G8B8A8_SRGB;
-            case Diligent::TEX_FORMAT_R16_UNORM:
-                return Subsystem::Render::Texture2DFormats::R16;
-            case Diligent::TEX_FORMAT_RG16_UNORM:
-                return Subsystem::Render::Texture2DFormats::R16G16;
-            case Diligent::TEX_FORMAT_RGBA16_UNORM:
-                return Subsystem::Render::Texture2DFormats::R16G16B16A16;
-            default:
-                assert(false);
-                return Subsystem::Render::Texture2DFormats::R8G8B8A8;
-        }
-    }
-
-//    Diligent::TEXTURE_FORMAT ToDiligent(Subsystem::Render::Texture2DFormats format) noexcept
-//    {
-//        switch (format)
-//        {
-//            case Subsystem::Render::Texture2DFormats::R8:
-//                return Diligent::TEX_FORMAT_R8_UNORM;
-//            case Subsystem::Render::Texture2DFormats::R8G8:
-//                return Diligent::TEX_FORMAT_RG8_UNORM;
-//            case Subsystem::Render::Texture2DFormats::R8G8B8A8:
-//                return Diligent::TEX_FORMAT_RGBA8_UNORM;
-//            case Subsystem::Render::Texture2DFormats::R8G8B8A8_SRGB:
-//                return Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
-//            case Subsystem::Render::Texture2DFormats::R16:
-//                return Diligent::TEX_FORMAT_R16_UNORM;
-//            case Subsystem::Render::Texture2DFormats::R16G16:
-//                return Diligent::TEX_FORMAT_RG16_UNORM;
-//            case Subsystem::Render::Texture2DFormats::R16G16B16A16:
-//                return Diligent::TEX_FORMAT_RGBA16_UNORM;
-//            default:
-//                assert(false);
-//                return Diligent::TEX_FORMAT_RGBA8_UNORM;
-//        }
-//    }
 }
 
 Result<void> Texture2DDataImpl::ReadImageInfoFromStream(uint32_t& width, uint32_t& height, VFS::StreamPtr stream) noexcept
@@ -233,7 +179,7 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
             break;
         case 3:
         case 4:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM;
+            m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
             componentSize = 4;
             break;
         default:
@@ -280,41 +226,11 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
 Texture2DDataImpl::Texture2DDataImpl(uint32_t width, uint32_t height, Texture2DFormats format)
 {
     // 填充图像大小和位深
-    int componentSize = 1;
+    auto componentSize = GetPixelComponentSize(format);
     m_stDesc.Type = Diligent::RESOURCE_DIM_TEX_2D;
     m_stDesc.Width = width;
     m_stDesc.Height = height;
-    switch (format)
-    {
-        case Texture2DFormats::R8:
-            m_stDesc.Format = Diligent::TEX_FORMAT_R8_UNORM;
-            componentSize = 1;
-            break;
-        case Texture2DFormats::R8G8:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RG8_UNORM;
-            componentSize = 2;
-            break;
-        case Texture2DFormats::R8G8B8A8:
-        case Texture2DFormats::R8G8B8A8_SRGB:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM;
-            componentSize = 4;
-            break;
-        case Texture2DFormats::R16:
-            m_stDesc.Format = Diligent::TEX_FORMAT_R16_UNORM;
-            componentSize = 2;
-            break;
-        case Texture2DFormats::R16G16:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RG16_UNORM;
-            componentSize = 4;
-            break;
-        case Texture2DFormats::R16G16B16A16:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RGBA16_UNORM;
-            componentSize = 8;
-            break;
-        default:
-            assert(false);
-            throw system_error(make_error_code(errc::invalid_argument));
-    }
+    m_stDesc.Format = ToDiligent(format);
 
     // 初始化数据
     uint32_t stride = AlignedScanLineSize(m_stDesc.Width * componentSize);

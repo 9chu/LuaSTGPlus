@@ -57,9 +57,7 @@ ZipPkDecryptStream::ZipPkDecryptStream(StreamPtr underlayStream, std::string_vie
 ZipPkDecryptStream::ZipPkDecryptStream(const ZipPkDecryptStream& org)
 {
     auto stream = org.m_pUnderlayStream->Clone();
-    stream.ThrowIfError();
-
-    m_pUnderlayStream = std::move(*stream);
+    m_pUnderlayStream = std::move(stream.ThrowIfError());
     ::memcpy(m_uKeys, org.m_uKeys, sizeof(m_uKeys));
     m_uVerify1 = org.m_uVerify1;
     m_uVerify2 = org.m_uVerify2;

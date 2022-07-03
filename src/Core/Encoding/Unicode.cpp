@@ -131,12 +131,12 @@ EncodingResult Utf16::Decoder::operator()(InputType ch, std::array<OutputType, k
                 m_iState = 1;
                 return EncodingResult::Incomplete;
             }
-            else [[unlikely]]
+            else
             {
                 return EncodingResult::Reject;
             }
         case 1:
-            if (!(word >= 0xDC00u && word <= 0xDFFFu)) [[unlikely]]
+            if (!(word >= 0xDC00u && word <= 0xDFFFu))
             {
                 m_iState = 0;
                 return EncodingResult::Reject;
@@ -169,7 +169,7 @@ EncodingResult Utf16::Encoder::operator()(InputType ch, std::array<OutputType, k
         out[1] = static_cast<char16_t>(0xDC00u | (cp & 0x3FFu));
         count = 2;
     }
-    else [[unlikely]]
+    else
     {
         return EncodingResult::Reject;
     }

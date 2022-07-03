@@ -48,4 +48,9 @@ namespace lstg::Subsystem::Render::Font
     };
 
     using FontFactoryPtr = std::shared_ptr<IFontFactory>;
+
+    /**
+     * 创建 FreeType 字体工厂
+     */
+    FontFactoryPtr CreateFreeTypeFactory();
 }

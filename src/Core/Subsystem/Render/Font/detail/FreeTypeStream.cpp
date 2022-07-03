@@ -20,12 +20,15 @@ unsigned long FreeTypeStream::OnRead(FT_Stream stream, unsigned long offset, uns
     assert(self->Stream);
 
     // 执行 Seek 操作
-    auto ret = self->Stream->Seek(static_cast<int64_t>(offset), VFS::StreamSeekOrigins::Begin);
-    if (!ret)
+    if (self->pos != offset)
     {
-        LSTG_LOG_ERROR_CAT(FreeTypeStream, "Error perform seek on stream, ret={}", ret.GetError());
-        // 只有当 count == 0 时才能返回非 0 值表示错误
-        return count == 0 ? ret.GetError().value() : 0;
+        auto ret = self->Stream->Seek(static_cast<int64_t>(offset), VFS::StreamSeekOrigins::Begin);
+        if (!ret)
+        {
+            LSTG_LOG_ERROR_CAT(FreeTypeStream, "Error perform seek on stream, ret={}", ret.GetError());
+            // 只有当 count == 0 时才能返回非 0 值表示错误
+            return count == 0 ? ret.GetError().value() : 0;
+        }
     }
 
     // 执行读操作
@@ -65,11 +68,11 @@ FreeTypeStream::FreeTypeStream(VFS::StreamPtr s)
     limit = nullptr;
 
     // 如果不支持 Seek 报错
-    if (!s->IsSeekable())
+    if (!Stream->IsSeekable())
         throw system_error(make_error_code(errc::not_supported));
 
     // 填充大小
-    auto sz = s->GetLength();
+    auto sz = Stream->GetLength();
     if (!sz)
     {
         if (sz.GetError() == make_error_code(errc::not_supported))

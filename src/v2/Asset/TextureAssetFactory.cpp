@@ -34,8 +34,7 @@ Result<Subsystem::Asset::CreateAssetResult> TextureAssetFactory::CreateAsset(Sub
     try
     {
         auto basicTexture = assetSystem.CreateAsset<Subsystem::Asset::BasicTextureAsset>(pool, {}, arguments);
-        basicTexture.ThrowIfError();
-        auto asset = make_shared<TextureAsset>(string{name}, std::move(*basicTexture), pixelPerUnit);
+        auto asset = make_shared<TextureAsset>(string{name}, std::move(basicTexture.ThrowIfError()), pixelPerUnit);
         auto loader = make_shared<TextureAssetLoader>(asset);
         return Subsystem::Asset::CreateAssetResult {
             static_pointer_cast<Subsystem::Asset::Asset>(asset),

@@ -439,6 +439,11 @@ namespace lstg::Encoding
                     m_uDecodingPosition == rhs.m_uDecodingPosition && m_uEncodingPosition == rhs.m_uEncodingPosition;
             }
 
+            bool operator!=(const Iterator& rhs) const noexcept
+            {
+                return !operator==(rhs);
+            }
+
         private:
             Span<const InputType> m_stSource;
             DecodingFailureFallbackFuncType* m_pDecodingFallback = nullptr;
@@ -501,7 +506,8 @@ namespace lstg::Encoding
         FailureFallbackCallbackType<typename InputEncoding::Decoder> decoderFailureFallback = nullptr,
         FailureFallbackCallbackType<typename OutputEncoding::Encoder> encoderFailureFallback = nullptr) noexcept
     {
-        ConvertingView<InputEncoding, OutputEncoding, InputType> view(src, decoderFailureFallback, encoderFailureFallback);
+        ConvertingView<InputEncoding, OutputEncoding, InputType> view({ src.data(), src.size() }, decoderFailureFallback,
+            encoderFailureFallback);
 
         try
         {

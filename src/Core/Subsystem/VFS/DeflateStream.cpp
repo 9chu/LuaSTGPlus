@@ -30,8 +30,7 @@ DeflateStream::DeflateStream(const DeflateStream& org)
     : m_pZStream(std::make_shared<detail::ZStream>(*org.m_pZStream)), m_bFinished(org.m_bFinished)
 {
     auto clone = org.m_pUnderlayStream->Clone();
-    clone.ThrowIfError();
-    m_pUnderlayStream = *clone;
+    m_pUnderlayStream = clone.ThrowIfError();
 
     // Write 操作总是会消耗所有的输入输出
     auto zstream = (*m_pZStream);

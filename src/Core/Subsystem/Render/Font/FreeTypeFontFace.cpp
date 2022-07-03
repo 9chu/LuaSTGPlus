@@ -11,7 +11,7 @@
 #include <freetype/tttables.h>
 #include <lstg/Core/Logging.hpp>
 #include "detail/Helper.hpp"
-#include "../../../detail/FreeTypeError.hpp"
+#include "detail/FreeTypeError.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -19,17 +19,13 @@ using namespace lstg::Subsystem::Render::Font;
 
 LSTG_DEF_LOG_CATEGORY(FreeTypeFontFace);
 
-FreeTypeFontFace::FreeTypeFontFace(detail::FreeTypeStreamPtr stream, FT_Face face)
-    : m_pStream(std::move(stream)), m_pFace(face)
+FreeTypeFontFace::FreeTypeFontFace(detail::FreeTypeObject::LibraryPtr library, detail::FreeTypeStreamPtr stream,
+    detail::FreeTypeObject::FacePtr face)
+    : m_pLibrary(std::move(library)), m_pStream(std::move(stream)), m_pFace(std::move(face))
 {
-    assert(face);
-    assert(stream);
-}
-
-FreeTypeFontFace::~FreeTypeFontFace()
-{
-    auto err = ::FT_Done_Face(m_pFace);
-    assert(err == 0);
+    assert(m_pLibrary);
+    assert(m_pFace);
+    assert(m_pStream);
 }
 
 uint32_t FreeTypeFontFace::GetFaceIndex() const noexcept
@@ -77,23 +73,23 @@ size_t FreeTypeFontFace::BatchGetNominalGlyphs(Span<FontGlyphId, true> glyphsOut
     while (it != codepoints.End())
     {
         auto ch = *it;
-        auto glyphIndex = ::FT_Get_Char_Index(m_pFace, ch);
+        auto glyphIndex = ::FT_Get_Char_Index(m_pFace.get(), ch);
 
         // 特殊处理符号字体
-        if (ch != '\0' && glyphIndex == 0 && symbolCharMap && ch <= 0x00FFu)
+        if (symbolCharMap && ch != '\0' && glyphIndex == 0 && ch <= 0x00FFu)
         {
             /**
              * 对于符号编码的 OpenType 字体，将 U+0000..00FF 复制到 U+F000..F0FF，以符合 Windows 的做法。
              * https://docs.microsoft.com/en-us/typography/opentype/spec/recom
              */
-            glyphIndex = ::FT_Get_Char_Index(m_pFace, 0xF000u + ch);
+            glyphIndex = ::FT_Get_Char_Index(m_pFace.get(), 0xF000u + ch);
         }
 
         // 尝试 fallback 到空白或者 InvalidChar
         if (fallback && ch != '\0' && glyphIndex == 0)
         {
             auto fallbackCodePoint = detail::Helper::IsRenderAsWhitespace(ch) ? ' ' : detail::kInvalidCharCodePoint;
-            glyphIndex = ::FT_Get_Char_Index(m_pFace, fallbackCodePoint);
+            glyphIndex = ::FT_Get_Char_Index(m_pFace.get(), fallbackCodePoint);
         }
 
         // 失败的时候返回处理了多少个字形
@@ -110,7 +106,7 @@ size_t FreeTypeFontFace::BatchGetNominalGlyphs(Span<FontGlyphId, true> glyphsOut
 
 std::optional<FontGlyphId> FreeTypeFontFace::GetVariationGlyph(char32_t codepoint, uint32_t variationSelector) noexcept
 {
-    auto glyphIndex = ::FT_Face_GetCharVariantIndex(m_pFace, codepoint, variationSelector);
+    auto glyphIndex = ::FT_Face_GetCharVariantIndex(m_pFace.get(), codepoint, variationSelector);
     if (glyphIndex == 0)
         return {};
     return glyphIndex;
@@ -118,11 +114,11 @@ std::optional<FontGlyphId> FreeTypeFontFace::GetVariationGlyph(char32_t codepoin
 
 Result<void> FreeTypeFontFace::GetGlyphName(Span<char> nameOutput, FontGlyphId glyphId) noexcept
 {
-    auto ret = ::FT_Get_Glyph_Name(m_pFace, glyphId, nameOutput.data(), nameOutput.size());
+    auto ret = ::FT_Get_Glyph_Name(m_pFace.get(), glyphId, nameOutput.data(), nameOutput.size());
     if (ret != 0)
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(ret));
+        return make_error_code(static_cast<detail::FreeTypeError>(ret));
     if (!nameOutput.IsEmpty() && nameOutput[0] == '\0')
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(FT_Err_Invalid_Glyph_Index));
+        return make_error_code(static_cast<detail::FreeTypeError>(FT_Err_Invalid_Glyph_Index));
     return {};
 }
 
@@ -132,11 +128,11 @@ std::optional<FontGlyphId> FreeTypeFontFace::GetGlyphByName(std::string_view nam
     auto len = std::min(sizeof(buf) - 1, name.length());
     ::strncpy(buf, name.data(), len);
     buf[len] = '\0';
-    auto glyph = ::FT_Get_Name_Index(m_pFace, buf);
+    auto glyph = ::FT_Get_Name_Index(m_pFace.get(), buf);
     if (glyph == 0)
     {
         // 检查是否确实是 '\0' 的名称
-        if (0 == ::FT_Get_Glyph_Name(m_pFace, 0, buf, sizeof(buf)) && name == buf)
+        if (0 == ::FT_Get_Glyph_Name(m_pFace.get(), 0, buf, sizeof(buf)) && name == buf)
             return glyph;
         return {};
     }
@@ -195,15 +191,14 @@ Result<std::tuple<Q26D6, Q26D6>> FreeTypeFontFace::GetGlyphOrigin(FontGlyphRaste
     FontGlyphId glyphId) noexcept
 {
     if (direction == FontLayoutDirection::Horizontal)
-        param.Flags &= ~FT_LOAD_VERTICAL_LAYOUT;
-    else
-        param.Flags |= FT_LOAD_VERTICAL_LAYOUT;
+        return std::tuple<Q26D6, Q26D6> { 0, 0 };
 
     auto ret = FindOrCacheGlyph(param, glyphId);
     if (!ret)
         return ret.GetError();
 
     auto& cache = *ret;
+    // FIXME: from hb-ft.cc, why?
     auto x = cache->GlyphMetrics.horiBearingX - cache->GlyphMetrics.vertBearingX;
     auto y = cache->GlyphMetrics.horiBearingY - (-cache->GlyphMetrics.vertBearingY);  // 修正坐标轴，使得 Y 向上
     return std::tuple<Q26D6, Q26D6> { static_cast<Q26D6>(x), static_cast<Q26D6>(y) };
@@ -247,7 +242,7 @@ Result<std::tuple<Q26D6, Q26D6>> FreeTypeFontFace::GetGlyphOutlinePoint(FontGlyp
     auto& cache = *ret;
 
     if (pointIndex >= cache->OutlinePoints.size())
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(FT_Err_Bad_Argument));
+        return make_error_code(static_cast<detail::FreeTypeError>(FT_Err_Bad_Argument));
 
     auto x = cache->OutlinePoints[pointIndex].x;
     auto y = cache->OutlinePoints[pointIndex].y;
@@ -257,16 +252,88 @@ Result<std::tuple<Q26D6, Q26D6>> FreeTypeFontFace::GetGlyphOutlinePoint(FontGlyp
 Result<SharedConstBlob> FreeTypeFontFace::LoadSfntTable(uint32_t tag) noexcept
 {
     FT_ULong length = 0;
-    auto err = ::FT_Load_Sfnt_Table(m_pFace, tag, 0, nullptr, &length);
+    auto err = ::FT_Load_Sfnt_Table(m_pFace.get(), tag, 0, nullptr, &length);
     if (err != 0)
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(err));
+        return make_error_code(static_cast<detail::FreeTypeError>(err));
 
     shared_ptr<uint8_t[]> ret;
     ret.reset(new uint8_t[length]);
-    err = ::FT_Load_Sfnt_Table(m_pFace, tag, 0, reinterpret_cast<FT_Byte*>(ret.get()), &length);
+    err = ::FT_Load_Sfnt_Table(m_pFace.get(), tag, 0, reinterpret_cast<FT_Byte*>(ret.get()), &length);
     if (err != 0)
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(err));
+        return make_error_code(static_cast<detail::FreeTypeError>(err));
     return SharedConstBlob { static_pointer_cast<const uint8_t[]>(ret), length };
+}
+
+Result<FontGlyphAtlasInfo> FreeTypeFontFace::GetGlyphAtlas(FontGlyphRasterParam param, FontGlyphId glyphId,
+    DynamicFontGlyphAtlas* dynamicAtlas) noexcept
+{
+    // 查缓存
+    FontGlyphAtlasInfo info;
+    if (dynamicAtlas->FindGlyph(info, this, param, glyphId))
+        return info;
+
+    FontFacePtr self;
+    try
+    {
+        self = static_pointer_cast<IFontFace>(shared_from_this());
+    }
+    catch (...)
+    {
+        return make_error_code(std::errc::operation_not_supported);
+    }
+    assert(self.get() == this);
+
+    // 渲染文字
+    auto ret = LoadGlyph(param, glyphId);
+    if (!ret)
+        return ret.GetError();
+
+    auto err = ::FT_Render_Glyph(m_pFace->glyph, FT_RENDER_MODE_NORMAL);
+    if (err != 0)
+        return make_error_code(static_cast<detail::FreeTypeError>(err));
+
+    // 转换格式
+    bool isGrayscale = true;
+    FT_Bitmap* finalBitmap = &m_pFace->glyph->bitmap;
+    detail::FreeTypeObject::Bitmap tmpBitmap(m_pLibrary);
+    if (m_pFace->glyph->bitmap.pixel_mode == FT_PIXEL_MODE_BGRA)
+    {
+        isGrayscale = false;
+    }
+    else if (m_pFace->glyph->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+    {
+        // 转换到灰度图
+        auto ret = tmpBitmap.ConvertFrom(finalBitmap, 4);
+        if (!ret)
+            return ret.GetError();
+        finalBitmap = *tmpBitmap;
+    }
+    assert((isGrayscale && finalBitmap->pixel_mode == FT_PIXEL_MODE_GRAY) ||
+        (!isGrayscale && finalBitmap->pixel_mode == FT_PIXEL_MODE_BGRA));
+
+    // 缓存
+    BitmapSource source;
+    source.Buffer = finalBitmap->buffer;
+    source.Width = finalBitmap->width;
+    source.Height = finalBitmap->rows;
+    source.Stride = finalBitmap->pitch;
+    source.DrawLeftOffset = m_pFace->glyph->bitmap_left;
+    source.DrawTopOffset = m_pFace->glyph->bitmap_top;
+    if (isGrayscale)
+    {
+        auto ret = dynamicAtlas->CacheGlyphFromGrayscale(self, param, glyphId, source, finalBitmap->num_grays);
+        if (!ret)
+            return ret.GetError();
+        info = *ret;
+    }
+    else
+    {
+        auto ret = dynamicAtlas->CacheGlyphFromBGRA(self, param, glyphId, source);
+        if (!ret)
+            return ret.GetError();
+        info = *ret;
+    }
+    return info;
 }
 
 Result<void> FreeTypeFontFace::ApplySizeAndScale(FontSize size) noexcept
@@ -293,11 +360,11 @@ Result<void> FreeTypeFontFace::ApplySizeAndScale(FontSize size) noexcept
         // 调用
         auto requiredFontPixelSize = Q26D6ToPixel(requiredFontPixelSizeFixed);
 
-        auto ret = ::FT_Set_Pixel_Sizes(m_pFace, requiredFontPixelSize, requiredFontPixelSize);
+        auto ret = ::FT_Set_Pixel_Sizes(m_pFace.get(), requiredFontPixelSize, requiredFontPixelSize);
         if (ret != 0)
         {
             LSTG_LOG_ERROR_CAT(FreeTypeFontFace, "FT_Set_Pixel_Sizes({}) fail: {}", requiredFontPixelSize, ret);
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(ret));
+            return make_error_code(static_cast<detail::FreeTypeError>(ret));
         }
     }
     else if (FT_HAS_FIXED_SIZES(m_pFace))
@@ -347,11 +414,11 @@ Result<void> FreeTypeFontFace::ApplySizeAndScale(FontSize size) noexcept
         }
 
         assert(bestStrikeIndex != -1);
-        auto ret = ::FT_Select_Size(m_pFace, bestStrikeIndex);
+        auto ret = ::FT_Select_Size(m_pFace.get(), bestStrikeIndex);
         if (ret != 0)
         {
             LSTG_LOG_ERROR_CAT(FreeTypeFontFace, "FT_Select_Size({}) fail: {}", bestStrikeIndex, ret);
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(ret));
+            return make_error_code(static_cast<detail::FreeTypeError>(ret));
         }
 
         // 计算缩放量
@@ -381,9 +448,9 @@ Result<void> FreeTypeFontFace::LoadGlyph(FontGlyphRasterParam param, FontGlyphId
     if (!ret)
         return ret.GetError();
 
-    auto err = ::FT_Load_Glyph(m_pFace, id, static_cast<FT_Int32>(param.Flags));
+    auto err = ::FT_Load_Glyph(m_pFace.get(), id, static_cast<FT_Int32>(param.Flags));
     if (err != 0)
-        return make_error_code(static_cast<lstg::detail::FreeTypeError>(err));
+        return make_error_code(static_cast<detail::FreeTypeError>(err));
     return {};
 }
 
@@ -436,9 +503,9 @@ Result<FT_Vector> FreeTypeFontFace::FindOrCacheKerning(FontGlyphRasterParam para
             return ret.GetError();
 
         FT_Vector kerning = { 0, 0 };
-        auto err = ::FT_Get_Kerning(m_pFace, pair.Left, pair.Right, FT_KERNING_DEFAULT, &kerning);
+        auto err = ::FT_Get_Kerning(m_pFace.get(), pair.Left, pair.Right, FT_KERNING_DEFAULT, &kerning);
         if (err != 0)
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(err));
+            return make_error_code(static_cast<detail::FreeTypeError>(err));
 
         // 对于固定大小的字体，我们通过之前保存的 Scaling 对 Kerning 进行调整
         if (!FT_IS_SCALABLE(m_pFace) && FT_HAS_FIXED_SIZES(m_pFace))
@@ -473,9 +540,9 @@ Result<FT_Fixed> FreeTypeFontFace::FindOrCacheAdvance(FontGlyphRasterParam param
             return ret.GetError();
 
         FT_Fixed advance = 0;
-        auto err = ::FT_Get_Advance(m_pFace, id, static_cast<FT_Int32>(param.Flags), &advance);
+        auto err = ::FT_Get_Advance(m_pFace.get(), id, static_cast<FT_Int32>(param.Flags), &advance);
         if (err != 0)
-            return make_error_code(static_cast<lstg::detail::FreeTypeError>(err));
+            return make_error_code(static_cast<detail::FreeTypeError>(err));
 
         // 对于固定大小的字体，我们通过之前保存的 Scaling 对 Kerning 进行调整
         if (!FT_IS_SCALABLE(m_pFace) && FT_HAS_FIXED_SIZES(m_pFace))

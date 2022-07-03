@@ -22,38 +22,50 @@ Texture2DData::Texture2DData(uint32_t width, uint32_t height, Texture2DFormats f
 {
 }
 
+Texture2DData::Texture2DData(Texture2DData&& rhs) noexcept
+    : m_pImpl(std::move(rhs.m_pImpl))
+{
+}
+
 uint32_t Texture2DData::GetWidth() const noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GetWidth();
 }
 
 uint32_t Texture2DData::GetHeight() const noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GetHeight();
 }
 
 size_t Texture2DData::GetStride() const noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GetStride();
 }
 
 Texture2DFormats Texture2DData::GetFormat() const noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GetFormat();
 }
 
 Span<const uint8_t> Texture2DData::GetBuffer() const noexcept
 {
+    assert(m_pImpl);
     const detail::Texture2DDataImpl* p = m_pImpl.get();
     return p->GetBuffer();
 }
 
 Span<uint8_t> Texture2DData::GetBuffer() noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GetBuffer();
 }
 
 Result<void> Texture2DData::GenerateMipmap(size_t count) noexcept
 {
+    assert(m_pImpl);
     return m_pImpl->GenerateMipmap(count);
 }

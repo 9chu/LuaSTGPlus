@@ -198,7 +198,12 @@ if(${icu_ADDED})
     add_library(icuin STATIC ${icu_i18n_SOURCES})
     target_link_libraries(icuin PUBLIC icuuc)
     target_include_directories(icuin PUBLIC ${icu_SOURCE_DIR}/icu4c/source/i18n)
-    target_compile_definitions(icuin PRIVATE "-DU_ATTRIBUTE_DEPRECATED=" "-DU_I18N_IMPLEMENTATION")
+    set(icu_i18n_PRIVATE_BUILD_FLAGS "-DU_ATTRIBUTE_DEPRECATED=" "-DU_I18N_IMPLEMENTATION")
+    if(WIN32)
+        # set minimal version to Win7 to support ResolveLocalName
+        list(APPEND icu_i18n_PRIVATE_BUILD_FLAGS -DWINVER=0x0601 -D_WIN32_WINNT=0x0601)
+    endif()
+    target_compile_definitions(icuin PRIVATE ${icu_i18n_PRIVATE_BUILD_FLAGS})
 
     # icu io 库
     file(GLOB_RECURSE icu_io_SOURCES ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp)
@@ -230,9 +235,17 @@ if(${icu_ADDED})
                 endforeach()
                 add_executable(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_SOURCES})
                 target_link_libraries(${icu_TMP_TOOL_NAME} icutu)
+
                 # 构建后移动到固定目录
-                add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${icu_TMP_TOOL_NAME}> ${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME})
+                if(WIN32)
+                    add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
+                            "${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME}/${icu_TMP_TOOL_NAME}.exe")
+                else()
+                    add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${icu_TMP_TOOL_NAME}>
+                            ${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME})
+                endif()
             endif()
         endif()
     endforeach()
@@ -263,6 +276,7 @@ if(${icu_ADDED})
     endif()
 
     # 这里，我们只引入 brkitr 数据，如果有其他需要再进行追加
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/icudata/")
     set(icu_DATA_OUTPUT "${CMAKE_BINARY_DIR}/icudata/icudata.cpp")
     add_custom_command(
         OUTPUT "${icu_DATA_OUTPUT}"

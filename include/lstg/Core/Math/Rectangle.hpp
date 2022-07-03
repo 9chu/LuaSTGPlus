@@ -33,6 +33,16 @@ namespace lstg::Math
         Rectangle(T x, T y, T w, T h)
             : m_stTopLeft(x, y), m_stSize(w, h) {}
 
+        bool operator==(const Rectangle& rhs) const noexcept
+        {
+            return m_stTopLeft == rhs.m_stTopLeft && m_stSize == rhs.m_stSize;
+        }
+
+        bool operator!=(const Rectangle& rhs) const noexcept
+        {
+            return !operator==(rhs);
+        }
+
     public:
         /**
          * 获取左侧距离
@@ -139,6 +149,31 @@ namespace lstg::Math
                     return { true, Rectangle(na, nb - na) };
             }
             return { false, {} };
+        }
+
+        /**
+         * 计算并集
+         * @param another 被合并的矩形
+         * @return 返回一个合并当前矩形和被合并矩形的矩形
+         */
+        Rectangle Union(const Rectangle& another) const noexcept
+        {
+            auto a = GetTopLeft();
+            auto b = GetBottomRight();
+            auto oa = another.GetTopLeft();
+            auto ob = another.GetBottomRight();
+            if constexpr (std::is_same_v<YAxisDirection, BottomUpTag>)
+            {
+                Vector na { std::min(a.x, oa.x), std::max(a.y, oa.y) };
+                Vector nb { std::max(b.x, ob.x), std::min(b.y, ob.y) };
+                return Rectangle(na.x, na.y, nb.x - na.x, na.y - nb.y);
+            }
+            else
+            {
+                Vector na { std::min(a.x, oa.x), std::min(a.y, oa.y) };
+                Vector nb { std::max(b.x, ob.x), std::max(b.y, ob.y) };
+                return Rectangle(na.x, na.y, nb.x - na.x, nb.y - na.y);
+            }
         }
 
     private:

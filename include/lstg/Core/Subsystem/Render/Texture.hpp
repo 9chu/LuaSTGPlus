@@ -7,6 +7,9 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include "../../Span.hpp"
+#include "../../Result.hpp"
+#include "../../Math/Rectangle.hpp"
 
 namespace Diligent
 {
@@ -21,6 +24,7 @@ namespace lstg::Subsystem
 namespace lstg::Subsystem::Render
 {
     class Material;
+    class RenderDevice;
 }
 
 namespace lstg::Subsystem::Render
@@ -34,7 +38,7 @@ namespace lstg::Subsystem::Render
         friend class lstg::Subsystem::RenderSystem;
 
     public:
-        Texture(Diligent::ITexture* handler);
+        Texture(RenderDevice& device, Diligent::ITexture* handler);
         Texture(const Texture&) = delete;
         Texture(Texture&&) noexcept = delete;
         ~Texture();
@@ -50,7 +54,19 @@ namespace lstg::Subsystem::Render
          */
         uint32_t GetHeight() const noexcept;
 
+        /**
+         * 更新 2D 纹理（针对动态纹理）
+         * @param range 纹理范围
+         * @param data 数据源
+         * @param stride 一行的字节数
+         * @param mipmapLevel Mipmap 级别
+         * @param arrayIndex 数组下标
+         */
+        Result<void> Commit(Math::Rectangle<uint32_t, Math::TopDownTag> range, Span<const uint8_t> data, size_t stride,
+            size_t mipmapLevel = 0, size_t arrayIndex = 0) noexcept;
+
     private:
+        RenderDevice& m_stDevice;
         Diligent::ITexture* m_pNativeHandler = nullptr;
     };
 

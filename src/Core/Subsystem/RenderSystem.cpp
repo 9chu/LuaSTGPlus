@@ -163,8 +163,7 @@ namespace
                 start[12] = start[13] = start[14] = 0; start[15] = 0xFF;
             }
         auto ret = self->CreateTexture2D(data);
-        ret.ThrowIfError();
-        return *ret;
+        return ret.ThrowIfError();
     }
 }
 
@@ -292,6 +291,8 @@ Result<Render::TexturePtr> RenderSystem::CreateTexture2D(const Render::Texture2D
     Diligent::TextureDesc desc = data.m_pImpl->m_stDesc;
     desc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
     desc.Usage = Diligent::USAGE_IMMUTABLE;
+    desc.MipLevels = data.m_pImpl->m_stSubResources.size();
+    assert(desc.MipLevels != 0);
     Diligent::TextureData texData;
     texData.pContext = m_pRenderDevice->GetImmediateContext();
     texData.NumSubresources = data.m_pImpl->m_stSubResources.size();
@@ -300,7 +301,47 @@ Result<Render::TexturePtr> RenderSystem::CreateTexture2D(const Render::Texture2D
     m_pRenderDevice->GetDevice()->CreateTexture(desc, &texData, &texture);
     if (!texture)
         return make_error_code(errc::not_enough_memory);
-    return make_shared<Render::Texture>(texture);
+    return make_shared<Render::Texture>(*m_pRenderDevice, texture);
+}
+
+Result<Render::TexturePtr> RenderSystem::CreateDynamicTexture2D(uint32_t width, uint32_t height, Render::Texture2DFormats format) noexcept
+{
+    try
+    {
+        auto stride = Render::detail::AlignedScanLineSize(width * Render::detail::GetPixelComponentSize(format));
+
+        // 用一个空纹理初始化
+        vector<uint8_t> emptyTexture;
+        emptyTexture.resize(stride * height);
+
+        Diligent::TextureDesc desc;
+        desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+        desc.Width = width;
+        desc.Height = height;
+        desc.MipLevels = 1;
+        desc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
+        desc.Usage = Diligent::USAGE_DEFAULT;
+        desc.Format = Render::detail::ToDiligent(format);
+
+        Diligent::TextureSubResData subResData;
+        subResData.pData = emptyTexture.data();
+        subResData.Stride = stride;
+
+        Diligent::TextureData texData;
+        texData.pContext = m_pRenderDevice->GetImmediateContext();
+        texData.NumSubresources = 1;
+        texData.pSubResources = &subResData;
+
+        Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+        m_pRenderDevice->GetDevice()->CreateTexture(desc, &texData, &texture);
+        if (!texture)
+            return make_error_code(errc::not_enough_memory);
+        return make_shared<Render::Texture>(*m_pRenderDevice, texture);
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
 }
 
 Result<Render::MeshPtr> RenderSystem::CreateStaticMesh(const Render::GraphDef::MeshDefinition& def, Span<const uint8_t> vertexData,

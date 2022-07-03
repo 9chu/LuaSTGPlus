@@ -10,6 +10,9 @@
 
 namespace lstg::Subsystem::Render::Drawing2D
 {
+    /**
+     * 精灵绘制工具
+     */
     class SpriteDrawing
     {
     public:
@@ -91,6 +94,7 @@ namespace lstg::Subsystem::Render::Drawing2D
 
         /**
          * 形状
+         * @note 坐标系为 Y 向上，X 向右
          * @param w 宽度
          * @param h 高度
          * @param cx 中心X，相对于左边
@@ -98,10 +102,10 @@ namespace lstg::Subsystem::Render::Drawing2D
          */
         SpriteDrawing& Shape(float w, float h, float cx, float cy) noexcept
         {
-            m_stVertexList[0].Position = { -cx, -cy, 0.f };
-            m_stVertexList[1].Position = { w - cx, -cy, 0.f };
-            m_stVertexList[2].Position = { w - cx, h - cy, 0.f };
-            m_stVertexList[3].Position = { -cx, h - cy, 0.f };
+            m_stVertexList[0].Position = { -cx, cy, 0.f };
+            m_stVertexList[1].Position = { w - cx, cy, 0.f };
+            m_stVertexList[2].Position = { w - cx, cy - h, 0.f };
+            m_stVertexList[3].Position = { -cx, cy - h, 0.f };
             return *this;
         }
 
@@ -180,6 +184,14 @@ namespace lstg::Subsystem::Render::Drawing2D
             m_stVertexList[3].Color0 = color[3];
             return *this;
         }
+        SpriteDrawing& SetAdditiveColor(ColorRGBA32 color) noexcept
+        {
+            m_stVertexList[0].Color0 = color;
+            m_stVertexList[1].Color0 = color;
+            m_stVertexList[2].Color0 = color;
+            m_stVertexList[3].Color0 = color;
+            return *this;
+        }
 
         /**
          * 设置乘算颜色
@@ -193,9 +205,18 @@ namespace lstg::Subsystem::Render::Drawing2D
             m_stVertexList[3].Color1 = color[3];
             return *this;
         }
+        SpriteDrawing& SetMultiplyColor(ColorRGBA32 color) noexcept
+        {
+            m_stVertexList[0].Color1 = color;
+            m_stVertexList[1].Color1 = color;
+            m_stVertexList[2].Color1 = color;
+            m_stVertexList[3].Color1 = color;
+            return *this;
+        }
 
         /**
          * 平移
+         * @note 坐标系为 Y 向上，X 向右
          * @param offsetX 坐标X
          * @param offsetY 坐标Y
          * @param offsetZ 坐标Z

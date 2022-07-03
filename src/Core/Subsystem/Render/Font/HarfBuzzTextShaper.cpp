@@ -99,27 +99,6 @@ bool HarfBuzzTextShaper::HandleSpecialCharacter(std::vector<FontShapedGlyph>& ou
     const FontGlyphRasterParam& fontParam, const hb_glyph_info_t& glyphInfo, const hb_glyph_position_t& glyphPosition,
     size_t currentCharIndex, char32_t currentChar)
 {
-    // 控制字符
-    if (detail::Helper::IsControlCharacter(currentChar))
-    {
-        FontShapedGlyph shapedGlyph;
-        shapedGlyph.FontFace = run.Font.get();
-        shapedGlyph.GlyphIndex = 0;
-        shapedGlyph.StartIndex = currentCharIndex;
-        shapedGlyph.LineNumber = run.LineNumber;
-        shapedGlyph.XAdvance = 0;
-        shapedGlyph.YAdvance = 0;
-        shapedGlyph.XOffset = 0;
-        shapedGlyph.YOffset = 0;
-        shapedGlyph.Kerning = 0;
-        shapedGlyph.GlyphCharacterCount = 1;
-        shapedGlyph.GlyphGraphemeClusterCount = 1;
-        shapedGlyph.Direction = run.Direction;
-        shapedGlyph.Visible = false;
-        output.push_back(shapedGlyph);
-        return true;
-    }
-
     // TAB
     if (currentChar == '\t')
     {
@@ -136,10 +115,33 @@ bool HarfBuzzTextShaper::HandleSpecialCharacter(std::vector<FontShapedGlyph>& ou
 
         FontShapedGlyph shapedGlyph;
         shapedGlyph.FontFace = run.Font.get();
+        shapedGlyph.Param = fontParam;
         shapedGlyph.GlyphIndex = spaceGlyphId;
         shapedGlyph.StartIndex = currentCharIndex;
         shapedGlyph.LineNumber = run.LineNumber;
         shapedGlyph.XAdvance = Q26D6ToPixelF(spaceAdvance) * 4;  // 直接按照 4 空格计算
+        shapedGlyph.YAdvance = 0;
+        shapedGlyph.XOffset = 0;
+        shapedGlyph.YOffset = 0;
+        shapedGlyph.Kerning = 0;
+        shapedGlyph.GlyphCharacterCount = 1;
+        shapedGlyph.GlyphGraphemeClusterCount = 1;
+        shapedGlyph.Direction = run.Direction;
+        shapedGlyph.Visible = false;
+        output.push_back(shapedGlyph);
+        return true;
+    }
+
+    // 控制字符
+    if (detail::Helper::IsControlCharacter(currentChar))
+    {
+        FontShapedGlyph shapedGlyph;
+        shapedGlyph.FontFace = run.Font.get();
+        shapedGlyph.Param = fontParam;
+        shapedGlyph.GlyphIndex = 0;
+        shapedGlyph.StartIndex = currentCharIndex;
+        shapedGlyph.LineNumber = run.LineNumber;
+        shapedGlyph.XAdvance = 0;
         shapedGlyph.YAdvance = 0;
         shapedGlyph.XOffset = 0;
         shapedGlyph.YOffset = 0;
@@ -156,27 +158,18 @@ bool HarfBuzzTextShaper::HandleSpecialCharacter(std::vector<FontShapedGlyph>& ou
 
 HarfBuzzTextShaper::HarfBuzzTextShaper()
 {
+    auto& inst = lstg::detail::IcuService::GetInstance();
+
     // 创建 UBiDi
-    m_pUBiDi = ::ubidi_open();
-    if (!m_pUBiDi)
-        throw system_error(make_error_code(errc::not_enough_memory));
+    m_pBidi = std::move(inst.CreateBidi().ThrowIfError());
 
     // 创建字符切分器
-    UErrorCode status = U_ZERO_ERROR;
-    m_pGraphemeBreakIter.reset(icu::BreakIterator::createCharacterInstance(icu::Locale::getDefault(), status));
-    if (U_FAILURE(status))
-        throw system_error(make_error_code(status));
+    m_pGraphemeBreakIter = std::move(inst.CreateGraphemeBreakIterator().ThrowIfError());
 
     // 创建 HarfBuzz 缓冲区
     auto buffer = detail::HarfBuzzBridge::CreateBuffer();
-    buffer.ThrowIfError();
-    m_pHBBuffer = std::move(*buffer);
+    m_pHBBuffer = std::move(buffer.ThrowIfError());
     assert(m_pHBBuffer);
-}
-
-HarfBuzzTextShaper::~HarfBuzzTextShaper()
-{
-    ::ubidi_close(m_pUBiDi);
 }
 
 Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input,
@@ -198,7 +191,7 @@ Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output,
         BreakParagraph(m_stTmpBuffers[1], input, m_stTmpBuffers[0]);
 
         // Step2: 书写方向分段
-        auto ret = BreakDirection(m_stTmpBuffers[0], input, m_stTmpBuffers[1], m_pUBiDi, baseDirection);
+        auto ret = BreakDirection(m_stTmpBuffers[0], input, m_stTmpBuffers[1], m_pBidi.get(), baseDirection);
         if (!ret)
             return ret.GetError();
 
@@ -276,6 +269,7 @@ Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output,
                     {
                         FontShapedGlyph shapedGlyph;
                         shapedGlyph.FontFace = run.Font.get();
+                        shapedGlyph.Param = fontParam;
                         shapedGlyph.GlyphIndex = glyphInfo.codepoint;
                         shapedGlyph.StartIndex = currentCharIndex;
                         shapedGlyph.LineNumber = run.LineNumber;
@@ -484,8 +478,8 @@ void HarfBuzzTextShaper::ChooseFont(std::vector<ProcessingTextRun>& output, std:
         int32_t lastBreakIndex = 0;
         int32_t currentBreakIndex = 0;
 
-        int32_t runningPosition = 0;
-        int32_t runningSegmentStartIndex = 0;
+        int32_t runningPosition = run.StartIndex;
+        int32_t runningSegmentStartIndex = run.StartIndex;
         FontFacePtr runningSegmentFont;
         float runningSegmentFontScale = 1.f;
 
@@ -494,7 +488,7 @@ void HarfBuzzTextShaper::ChooseFont(std::vector<ProcessingTextRun>& output, std:
             if (runningSegmentFont)
             {
                 ProcessingTextRun newRun;
-                newRun.StartIndex = run.StartIndex + runningSegmentStartIndex;
+                newRun.StartIndex = runningSegmentStartIndex;
                 newRun.Length = runningPosition - runningSegmentStartIndex;
                 newRun.LineNumber = run.LineNumber;
                 newRun.Direction = run.Direction;

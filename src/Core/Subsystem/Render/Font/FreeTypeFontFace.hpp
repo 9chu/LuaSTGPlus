@@ -11,6 +11,7 @@
 #include <lstg/Core/Subsystem/Render/Font/IFontFace.hpp>
 #include "detail/CommonDefines.hpp"
 #include "detail/FreeTypeStream.hpp"
+#include "detail/FreeTypeObject.hpp"
 
 template <>
 struct std::hash<std::tuple<lstg::Subsystem::Render::Font::FontGlyphRasterParam, lstg::Subsystem::Render::Font::FontGlyphId>>
@@ -46,7 +47,8 @@ namespace lstg::Subsystem::Render::Font
      * FreeType 字体
      */
     class FreeTypeFontFace :
-        public IFontFace
+        public IFontFace,
+        public std::enable_shared_from_this<FreeTypeFontFace>
     {
         struct CachedGlyphData
         {
@@ -61,8 +63,8 @@ namespace lstg::Subsystem::Render::Font
         using AdvanceCacheContainer = LRUCache<std::tuple<FontGlyphRasterParam, FontGlyphId>, FT_Fixed, detail::kAdvanceCacheCount>;
 
     public:
-        FreeTypeFontFace(detail::FreeTypeStreamPtr stream, FT_Face face);
-        ~FreeTypeFontFace();
+        FreeTypeFontFace(detail::FreeTypeObject::LibraryPtr library, detail::FreeTypeStreamPtr stream,
+            detail::FreeTypeObject::FacePtr face);
 
         // Non-copyable
         FreeTypeFontFace(const FreeTypeFontFace&) = delete;
@@ -89,6 +91,8 @@ namespace lstg::Subsystem::Render::Font
         Result<std::tuple<Q26D6, Q26D6>> GetGlyphOutlinePoint(FontGlyphRasterParam param, FontGlyphId glyphId,
             size_t pointIndex) noexcept override;
         Result<SharedConstBlob> LoadSfntTable(uint32_t tag) noexcept override;
+        Result<FontGlyphAtlasInfo> GetGlyphAtlas(FontGlyphRasterParam param, FontGlyphId glyphId,
+            DynamicFontGlyphAtlas* dynamicAtlas) noexcept override;
 
     private:
         Result<void> ApplySizeAndScale(FontSize size) noexcept;
@@ -101,8 +105,9 @@ namespace lstg::Subsystem::Render::Font
 
     private:
         // 字体
+        detail::FreeTypeObject::LibraryPtr m_pLibrary;
         detail::FreeTypeStreamPtr m_pStream;
-        FT_Face m_pFace = nullptr;
+        detail::FreeTypeObject::FacePtr m_pFace;
 
         // 缓存
         GlyphCacheContainer m_stGlyphCache;  // 字形缓存

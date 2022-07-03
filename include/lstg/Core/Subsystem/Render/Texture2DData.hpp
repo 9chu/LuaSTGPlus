@@ -61,7 +61,8 @@ namespace lstg::Subsystem::Render
         Texture2DData(uint32_t width, uint32_t height, Texture2DFormats format);
 
         Texture2DData(const Texture2DData&) = delete;
-        Texture2DData(Texture2DData&&) noexcept = delete;
+
+        Texture2DData(Texture2DData&& rhs) noexcept;
 
     public:
         /**

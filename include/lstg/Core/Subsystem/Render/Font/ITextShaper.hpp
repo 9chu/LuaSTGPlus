@@ -26,6 +26,7 @@ namespace lstg::Subsystem::Render::Font
     struct FontShapedGlyph
     {
         IFontFace* FontFace = nullptr;
+        FontGlyphRasterParam Param;
         FontGlyphId GlyphIndex = 0;
         size_t StartIndex = 0;
         uint32_t LineNumber = 0;
@@ -64,4 +65,9 @@ namespace lstg::Subsystem::Render::Font
     };
 
     using TextShaperPtr = std::shared_ptr<ITextShaper>;
+
+    /**
+     * 创建 HarfBuzz 文本整形器
+     */
+    TextShaperPtr CreateHarfBuzzTextShaper();
 }

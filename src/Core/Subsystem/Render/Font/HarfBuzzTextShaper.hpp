@@ -5,9 +5,7 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
-#include <unicode/utypes.h>
-#include <unicode/ubidi.h>
-#include <unicode/brkiter.h>
+#include "../../../detail/IcuService.hpp"
 #include <lstg/Core/Subsystem/Render/Font/ITextShaper.hpp>
 #include "detail/HarfBuzzBridge.hpp"
 #include "detail/CommonDefines.hpp"
@@ -94,7 +92,6 @@ namespace lstg::Subsystem::Render::Font
     public:
         HarfBuzzTextShaper();
         HarfBuzzTextShaper(const HarfBuzzTextShaper& rhs) = delete;
-        ~HarfBuzzTextShaper();
 
     public:  // ITextShaper
         Result<void> ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input, FontCollection* collection,
@@ -113,8 +110,8 @@ namespace lstg::Subsystem::Render::Font
         Result<detail::HarfBuzzBridge::FontPtr*> CreateHBFont(FontFacePtr face, FontGlyphRasterParam param) noexcept;
 
     private:
-        UBiDi* m_pUBiDi = nullptr;
-        std::unique_ptr<icu::BreakIterator> m_pGraphemeBreakIter;
+        lstg::detail::IcuBidiPtr m_pBidi;
+        lstg::detail::IcuBreakIteratorPtr m_pGraphemeBreakIter;
         detail::HarfBuzzBridge::BufferPtr m_pHBBuffer;
         LRUCache<HarfBuzzFontCacheKey, detail::HarfBuzzBridge::FontPtr, detail::kFontSizeCacheSize> m_stHBFontCache;
         std::vector<ProcessingTextRun> m_stTmpBuffers[2];

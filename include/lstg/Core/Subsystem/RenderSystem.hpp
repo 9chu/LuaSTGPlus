@@ -106,6 +106,17 @@ namespace lstg::Subsystem
         [[nodiscard]] Result<Render::TexturePtr> CreateTexture2D(const Render::Texture2DData& data) noexcept;
 
         /**
+         * 创建动态 2D 纹理
+         * @note 动态 2D 纹理没有 Mipmaps，且仅允许 CPU 侧写操作。
+         * @param width 宽度
+         * @param height 高度
+         * @param format 格式
+         * @return 纹理对象
+         */
+        [[nodiscard]] Result<Render::TexturePtr> CreateDynamicTexture2D(uint32_t width, uint32_t height,
+            Render::Texture2DFormats format) noexcept;
+
+        /**
          * 获取默认的占位 2D 纹理
          */
         [[nodiscard]] const Render::TexturePtr& GetDefaultTexture2D() const noexcept { return m_pDefaultTexture2D; }

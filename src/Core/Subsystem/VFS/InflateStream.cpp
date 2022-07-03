@@ -30,8 +30,7 @@ InflateStream::InflateStream(const InflateStream& org)
     m_stUncompressedSize(org.m_stUncompressedSize)
 {
     auto clone = org.m_pUnderlayStream->Clone();
-    clone.ThrowIfError();
-    m_pUnderlayStream = *clone;
+    m_pUnderlayStream = clone.ThrowIfError();
 
     // 拷贝后，校准输入缓冲区
     auto zstream = (*m_pZStream);

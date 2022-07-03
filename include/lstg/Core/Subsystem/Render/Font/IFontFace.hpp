@@ -11,7 +11,7 @@
 #include "../../../Result.hpp"
 #include "../../../Span.hpp"
 #include "FixedPoint.hpp"
-#include "FontSize.hpp"
+#include "DynamicFontGlyphAtlas.hpp"
 
 namespace lstg::Subsystem::Render::Font
 {
@@ -22,7 +22,7 @@ namespace lstg::Subsystem::Render::Font
     struct FontFaceMetrics
     {
         Q26D6 Ascender = 0;
-        Q26D6 Descender = 0;
+        Q26D6 Descender = 0;  // < 0
         Q26D6 LineGap = 0;
     };
 
@@ -38,36 +38,12 @@ namespace lstg::Subsystem::Render::Font
     };
 
     /**
-     * 字形内部ID
-     */
-    using FontGlyphId = uint32_t;
-
-    /**
      * 排版方向
      */
     enum class FontLayoutDirection
     {
         Horizontal,  ///< @brief 横向排版
         Vertical,  ///< @brief 垂直排版
-    };
-
-    /**
-     * 字形光栅化参数
-     */
-    struct FontGlyphRasterParam
-    {
-        FontSize Size;  ///< @brief 字体大小
-        uint32_t Flags = 0;  ///< @brief 光栅化参数，透传、内部使用，例如用于存储 FT_LOAD_*
-
-        bool operator==(const FontGlyphRasterParam& rhs) const noexcept
-        {
-            return Size == rhs.Size && Flags == rhs.Flags;
-        }
-
-        bool operator!=(const FontGlyphRasterParam& rhs) const noexcept
-        {
-            return !operator==(rhs);
-        }
     };
 
     /**
@@ -232,21 +208,21 @@ namespace lstg::Subsystem::Render::Font
          * @return 原始二进制数据
          */
         virtual Result<SharedConstBlob> LoadSfntTable(uint32_t tag) noexcept = 0;
+
+        /**
+         * 获取字形图集
+         * 对于 TTF 字体，需要在运行时渲染并存储在动态图集中。
+         * @param param 光栅化参数
+         * @param glyphId 字形ID
+         * @param dynamicAtlas 动态图集
+         * @return 图集信息
+         */
+        virtual Result<FontGlyphAtlasInfo> GetGlyphAtlas(FontGlyphRasterParam param, FontGlyphId glyphId,
+            DynamicFontGlyphAtlas* dynamicAtlas) noexcept = 0;
     };
 
     using FontFacePtr = std::shared_ptr<IFontFace>;
 }
-
-template <>
-struct std::hash<lstg::Subsystem::Render::Font::FontGlyphRasterParam>
-{
-    std::size_t operator()(const lstg::Subsystem::Render::Font::FontGlyphRasterParam& s) const noexcept
-    {
-        auto h1 = std::hash<lstg::Subsystem::Render::Font::FontSize>{}(s.Size);
-        auto h2 = std::hash<uint32_t>{}(s.Flags);
-        return h1 ^ h2;
-    }
-};
 
 template <>
 struct std::hash<lstg::Subsystem::Render::Font::FontGlyphPair>

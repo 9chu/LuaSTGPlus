@@ -8,7 +8,7 @@
 
 using namespace std;
 using namespace lstg;
-using namespace lstg::detail;
+using namespace lstg::Subsystem::Render::Font::detail;
 
 const FreeTypeErrorCategory& FreeTypeErrorCategory::GetInstance() noexcept
 {
@@ -23,5 +23,6 @@ const char* FreeTypeErrorCategory::name() const noexcept
 
 std::string FreeTypeErrorCategory::message(int ev) const
 {
-    return ::FT_Error_String(static_cast<FT_Error>(ev));
+    auto p = ::FT_Error_String(static_cast<FT_Error>(ev));
+    return p ? p : "<unknown>";
 }

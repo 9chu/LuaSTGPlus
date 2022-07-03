@@ -47,4 +47,6 @@ namespace lstg::Subsystem::Render::Font
         std::vector<std::tuple<FontFacePtr, float>> m_stFallbackFont;
         mutable LRUCache<char32_t, std::tuple<FontFacePtr, FontGlyphId, float>, kCharFontMappingCacheSize> m_pCharToFontCache;
     };
+
+    using FontCollectionPtr = std::shared_ptr<FontCollection>;
 }
