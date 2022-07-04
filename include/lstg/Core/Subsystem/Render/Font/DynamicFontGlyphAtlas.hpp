@@ -51,7 +51,7 @@ namespace lstg::Subsystem::Render::Font
 
             // 字形信息
             std::weak_ptr<IFontFace> Face;  ///< @brief 关联的字体
-            Math::Rectangle<float, Math::TopDownTag> TextureRect;  ///< @brief UV矩形
+            Math::UVRectangle TextureRect;  ///< @brief UV矩形
             glm::vec2 DrawOffset;  ///< @brief 笔触偏移（像素）
         };
 
@@ -74,7 +74,7 @@ namespace lstg::Subsystem::Render::Font
             TexturePtr Texture;
             Texture2DData TextureData;
             std::list<AtlasSlotStrip> SlotRowHeaders;
-            Math::Rectangle<uint32_t, Math::TopDownTag> ImageDirtyRegion;
+            Math::ImageRectangle ImageDirtyRegion;
 
             AtlasTexture(RenderSystem& renderSystem, uint32_t width, uint32_t height);
         };
@@ -103,7 +103,7 @@ namespace lstg::Subsystem::Render::Font
     struct FontGlyphAtlasInfo
     {
         TexturePtr Texture;  ///< @brief 关联纹理
-        Math::Rectangle<float, Math::TopDownTag> TextureRect;  ///< @brief UV矩形
+        Math::UVRectangle TextureRect;  ///< @brief UV矩形
         glm::vec2 DrawOffset;  ///< @brief 笔触偏移（像素），X 表示笔触起点到位图左边的距离，Y 表示笔触起点距离位图顶边的距离（Y轴向上）
         glm::vec2 DrawSize;  ///< @brief 大小
     };

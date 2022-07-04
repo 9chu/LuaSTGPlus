@@ -20,7 +20,7 @@ namespace lstg::Subsystem::Render::Font
         FreeTypeFontFactory();
 
     public:  // IFontFactory
-        Result<FontFacePtr> CreateFontFace(VFS::StreamPtr stream, int faceIndex) noexcept override;
+        Result<FontFacePtr> CreateFontFace(VFS::StreamPtr stream, IFontDependencyLoader* dependencyLoader, int faceIndex) noexcept override;
         Result<size_t> EnumFontFace(std::vector<FontFaceInfo>& out, VFS::StreamPtr stream) noexcept override;
 
     private:

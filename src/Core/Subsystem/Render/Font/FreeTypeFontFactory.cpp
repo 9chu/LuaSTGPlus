@@ -19,7 +19,8 @@ FreeTypeFontFactory::FreeTypeFontFactory()
     m_pLibrary = std::move(ret.ThrowIfError());
 }
 
-Result<FontFacePtr> FreeTypeFontFactory::CreateFontFace(VFS::StreamPtr stream, int faceIndex) noexcept
+Result<FontFacePtr> FreeTypeFontFactory::CreateFontFace(VFS::StreamPtr stream, IFontDependencyLoader* dependencyLoader,
+    int faceIndex) noexcept
 {
     try
     {

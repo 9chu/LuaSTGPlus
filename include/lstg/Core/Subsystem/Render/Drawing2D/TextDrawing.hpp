@@ -19,10 +19,11 @@ namespace lstg::Subsystem::Render::Drawing2D
             std::string Text;
             Font::FontCollection* Collection = nullptr;
             uint32_t FontSize = 0;
+            float FontScale = 0.f;
 
             bool operator==(const ShapedTextCacheKey& rhs) const noexcept
             {
-                return Text == rhs.Text && Collection == rhs.Collection && FontSize == rhs.FontSize;
+                return Text == rhs.Text && Collection == rhs.Collection && FontSize == rhs.FontSize && FontScale == rhs.FontScale;
             }
 
             bool operator!=(const ShapedTextCacheKey& rhs) const noexcept
@@ -41,7 +42,8 @@ struct std::hash<lstg::Subsystem::Render::Drawing2D::detail::ShapedTextCacheKey>
         auto h1 = std::hash<std::string>{}(key.Text);
         auto h2 = std::hash<void*>{}(key.Collection);
         auto h3 = std::hash<uint32_t>{}(key.FontSize);
-        return h1 ^ h2 ^ h3;
+        auto h4 = std::hash<float>{}(key.FontScale);
+        return h1 ^ h2 ^ h3 ^ h4;
     }
 };
 
@@ -163,6 +165,11 @@ namespace lstg::Subsystem::Render::Drawing2D
         uint32_t FontSize = 12;
 
         /**
+         * 缩放
+         */
+        float FontScale = 1.f;
+
+        /**
          * 排版样式
          */
         TextLayoutStyle LayoutStyle;
@@ -174,7 +181,7 @@ namespace lstg::Subsystem::Render::Drawing2D
 
         bool operator==(const TextDrawingStyle& rhs) const noexcept
         {
-            return FontSize == rhs.FontSize && LayoutStyle == rhs.LayoutStyle && TextColor == rhs.TextColor;
+            return FontSize == rhs.FontSize && FontScale == rhs.FontScale && LayoutStyle == rhs.LayoutStyle && TextColor == rhs.TextColor;
         }
 
         bool operator!=(const TextDrawingStyle& rhs) const noexcept
@@ -255,19 +262,21 @@ namespace lstg::Subsystem::Render::Drawing2D
              * @param text 文本
              * @param collection 字体集合
              * @param fontSize 字体大小
+             * @param fontScale 字体缩放
              * @return 缓存信息
              */
-            ShapedTextInfo* FindCache(std::string_view text, Font::FontCollection* collection, uint32_t fontSize) noexcept;
+            ShapedTextInfo* FindCache(std::string_view text, Font::FontCollection* collection, uint32_t fontSize, float fontScale) noexcept;
 
             /**
              * 缓存字形
              * @param text 文本
              * @param collection 字体集合
              * @param fontSize 字体大小
+             * @param fontScale 字体缩放
              * @param info 整形信息
              * @return 缓存信息
              */
-            Result<ShapedTextInfo*> Cache(std::string_view text, Font::FontCollection* collection, uint32_t fontSize,
+            Result<ShapedTextInfo*> Cache(std::string_view text, Font::FontCollection* collection, uint32_t fontSize, float fontScale,
                 ShapedTextInfo&& info) noexcept;
 
         private:
@@ -283,13 +292,13 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @param collection 字体集合
          * @param shaper 整形器
          * @param text 文本
-         * @param rect 绘制范围（坐标系为 Y 向上，X 向右）
+         * @param rect 绘制范围
          * @param style 样式
          * @return
          */
         static Result<void> Draw(TextDrawing::ShapedTextCache& cache, CommandBuffer& cmdBuffer, Font::FontCollectionPtr collection,
-            Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text,
-            Math::Rectangle<float, Math::BottomUpTag> rect, TextDrawingStyle style) noexcept;
+            Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text, Math::XYRectangle rect,
+            TextDrawingStyle style) noexcept;
 
     private:
         /**

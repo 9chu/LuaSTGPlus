@@ -172,8 +172,8 @@ HarfBuzzTextShaper::HarfBuzzTextShaper()
     assert(m_pHBBuffer);
 }
 
-Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input,
-    FontCollection* collection, uint32_t fontSize, TextDirection baseDirection) noexcept
+Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input, FontCollection* collection,
+    uint32_t fontSize, float fontScale, TextDirection baseDirection) noexcept
 {
     output.clear();
 
@@ -196,7 +196,7 @@ Result<void> HarfBuzzTextShaper::ShapeText(std::vector<FontShapedGlyph>& output,
             return ret.GetError();
 
         // Step3: 选择各个分块的字体
-        ChooseFont(m_stTmpBuffers[1], input, m_stTmpBuffers[0], *collection);
+        ChooseFont(m_stTmpBuffers[1], input, m_stTmpBuffers[0], *collection, fontScale);
 
         // Step4: 语言系统分段
         SplitScript(m_stTmpBuffers[0], input, m_stTmpBuffers[1]);
@@ -465,7 +465,7 @@ Result<void> HarfBuzzTextShaper::BreakDirection(std::vector<ProcessingTextRun>& 
 }
 
 void HarfBuzzTextShaper::ChooseFont(std::vector<ProcessingTextRun>& output, std::u16string_view text,
-    const std::vector<ProcessingTextRun>& input, FontCollection& collection)
+    const std::vector<ProcessingTextRun>& input, FontCollection& collection, float fontScale)
 {
     output.clear();
 
@@ -481,7 +481,7 @@ void HarfBuzzTextShaper::ChooseFont(std::vector<ProcessingTextRun>& output, std:
         int32_t runningPosition = run.StartIndex;
         int32_t runningSegmentStartIndex = run.StartIndex;
         FontFacePtr runningSegmentFont;
-        float runningSegmentFontScale = 1.f;
+        float runningSegmentFontScale = 0.f;
 
         auto emitRun = [&]() {
             // 极端情况下如果没有字体可以渲染这个字符和代替字符，将造成这个文本丢失掉
@@ -528,7 +528,7 @@ void HarfBuzzTextShaper::ChooseFont(std::vector<ProcessingTextRun>& output, std:
                 emitRun();
                 runningSegmentStartIndex = runningPosition;
                 runningSegmentFont = selectedFont;
-                runningSegmentFontScale = selectedFontScale;
+                runningSegmentFontScale = selectedFontScale * fontScale;  // 乘以整体的缩放量
             }
 
             runningPosition += clusterSize;

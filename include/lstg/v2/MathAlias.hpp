@@ -13,7 +13,6 @@ namespace lstg::v2
 {
     using ColorRGBA32 = Subsystem::Render::ColorRGBA32;
     using WindowRectangle = Math::Rectangle<double, Math::TopDownTag>;
-    using UVRectangle = Math::Rectangle<double, Math::TopDownTag>;
     using Vec2 = glm::vec<2, double, glm::defaultp>;
     using ColliderShape = Math::Collider2D::ColliderShape<double>;
 }

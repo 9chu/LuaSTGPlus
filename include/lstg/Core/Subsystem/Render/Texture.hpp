@@ -62,8 +62,8 @@ namespace lstg::Subsystem::Render
          * @param mipmapLevel Mipmap 级别
          * @param arrayIndex 数组下标
          */
-        Result<void> Commit(Math::Rectangle<uint32_t, Math::TopDownTag> range, Span<const uint8_t> data, size_t stride,
-            size_t mipmapLevel = 0, size_t arrayIndex = 0) noexcept;
+        Result<void> Commit(Math::ImageRectangle range, Span<const uint8_t> data, size_t stride, size_t mipmapLevel = 0,
+            size_t arrayIndex = 0) noexcept;
 
     private:
         RenderDevice& m_stDevice;

@@ -33,13 +33,14 @@ namespace
 /// <editor-fold desc="TextDrawing::ShapedTextCache">
 
 TextDrawing::ShapedTextInfo* TextDrawing::ShapedTextCache::FindCache(std::string_view text, Font::FontCollection* collection,
-    uint32_t fontSize) noexcept
+    uint32_t fontSize, float fontScale) noexcept
 {
     try
     {
         m_stTmpKey.Text = text;
         m_stTmpKey.Collection = collection;
         m_stTmpKey.FontSize = fontSize;
+        m_stTmpKey.FontScale = fontScale;
         return m_stShapedTextCache.TryGet(m_stTmpKey);
     }
     catch (...)  // std::bad_alloc
@@ -49,13 +50,14 @@ TextDrawing::ShapedTextInfo* TextDrawing::ShapedTextCache::FindCache(std::string
 }
 
 Result<TextDrawing::ShapedTextInfo*> TextDrawing::ShapedTextCache::Cache(std::string_view text, Font::FontCollection* collection,
-    uint32_t fontSize, ShapedTextInfo&& info) noexcept
+    uint32_t fontSize, float fontScale, ShapedTextInfo&& info) noexcept
 {
     try
     {
         m_stTmpKey.Text = text;
         m_stTmpKey.Collection = collection;
         m_stTmpKey.FontSize = fontSize;
+        m_stTmpKey.FontScale = fontScale;
         return m_stShapedTextCache.Emplace(std::move(m_stTmpKey), std::move(info));
     }
     catch (...)  // std::bad_alloc
@@ -69,15 +71,14 @@ Result<TextDrawing::ShapedTextInfo*> TextDrawing::ShapedTextCache::Cache(std::st
 /// <editor-fold desc="TextDrawing">
 
 Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffer& cmdBuffer, Font::FontCollectionPtr collection,
-    Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text,
-    Math::Rectangle<float, Math::BottomUpTag> rect, TextDrawingStyle style) noexcept
+    Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text, Math::XYRectangle rect,
+    TextDrawingStyle style) noexcept
 {
     assert(collection);
-    assert(dynamicAtlas);
     assert(shaper);
 
     // 先查 Cache 看有没有预先整形的数据
-    auto shapedTextInfo = cache.FindCache(text, collection.get(), style.FontSize);
+    auto shapedTextInfo = cache.FindCache(text, collection.get(), style.FontSize, style.FontScale);
     if (!shapedTextInfo)  // 没有命中 Cache，进行整形
     {
         ShapedTextInfo info;
@@ -89,7 +90,7 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
             return ret.GetError();
 
         // 整形
-        ret = shaper->ShapeText(info.ShapedGlyphs, info.Text, info.Collection.get(), style.FontSize);
+        ret = shaper->ShapeText(info.ShapedGlyphs, info.Text, info.Collection.get(), style.FontSize, style.FontScale);
         if (!ret)
             return ret.GetError();
 
@@ -147,7 +148,7 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
             return make_error_code(errc::not_enough_memory);
         }
 
-        auto cacheRet = cache.Cache(text, info.Collection.get(), style.FontSize, std::move(info));
+        auto cacheRet = cache.Cache(text, info.Collection.get(), style.FontSize, style.FontScale, std::move(info));
         if (!cacheRet)
             return cacheRet.GetError();
         shapedTextInfo = *cacheRet;

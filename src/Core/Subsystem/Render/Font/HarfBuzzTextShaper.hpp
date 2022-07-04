@@ -95,7 +95,7 @@ namespace lstg::Subsystem::Render::Font
 
     public:  // ITextShaper
         Result<void> ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input, FontCollection* collection,
-            uint32_t fontSize, TextDirection baseDirection) noexcept override;
+            uint32_t fontSize, float fontScale, TextDirection baseDirection) noexcept override;
 
     private:
         void BreakParagraph(std::vector<ProcessingTextRun>& output, std::u16string_view text,
@@ -103,7 +103,7 @@ namespace lstg::Subsystem::Render::Font
         Result<void> BreakDirection(std::vector<ProcessingTextRun>& output, std::u16string_view text,
             const std::vector<ProcessingTextRun>& input, UBiDi* bidi, TextDirection baseDirection);
         void ChooseFont(std::vector<ProcessingTextRun>& output, std::u16string_view text,
-            const std::vector<ProcessingTextRun>& input, FontCollection& collection);
+            const std::vector<ProcessingTextRun>& input, FontCollection& collection, float fontScale);
         void SplitScript(std::vector<ProcessingTextRun>& output, std::u16string_view text,
             const std::vector<ProcessingTextRun>& input);
 

@@ -459,8 +459,7 @@ Result<FontGlyphAtlasInfo> DynamicFontGlyphAtlas::CacheGlyphFrom(std::shared_ptr
     }
 
     // 刷新 Dirty Rect
-    Math::Rectangle<uint32_t, Math::TopDownTag> dirtyRange {
-        slot->SlotLeft, strip->StripTop, source.Width + kSlotMargin, source.Height + kSlotMargin };
+    Math::ImageRectangle dirtyRange { slot->SlotLeft, strip->StripTop, source.Width + kSlotMargin, source.Height + kSlotMargin };
     if (atlas->ImageDirtyRegion.Width() == 0 || atlas->ImageDirtyRegion.Height() == 0)
         atlas->ImageDirtyRegion = dirtyRange;
     else

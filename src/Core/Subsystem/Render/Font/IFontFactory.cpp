@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/Render/Font/IFontFactory.hpp>
 
 #include "FreeTypeFontFactory.hpp"
+#include "HgeFontFactory.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -15,4 +16,9 @@ using namespace lstg::Subsystem::Render::Font;
 FontFactoryPtr lstg::Subsystem::Render::Font::CreateFreeTypeFactory()
 {
     return static_pointer_cast<IFontFactory>(make_shared<FreeTypeFontFactory>());
+}
+
+FontFactoryPtr lstg::Subsystem::Render::Font::CreateHgeFontFactory()
+{
+    return static_pointer_cast<IFontFactory>(make_shared<HgeFontFactory>());
 }

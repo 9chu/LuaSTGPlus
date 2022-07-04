@@ -36,7 +36,7 @@ std::tuple<FontFacePtr, FontGlyphId, float> FontCollection::ChooseFontForChar(ch
     if (cache)
         return *cache;
 
-    tuple<FontFacePtr, FontGlyphId, float> ret;
+    tuple<FontFacePtr, FontGlyphId, float> ret = { nullptr, 0, 0.f };
 
     // 使用主选字体
     std::optional<FontGlyphId> selectedGlyph;

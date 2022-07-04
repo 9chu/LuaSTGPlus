@@ -47,7 +47,7 @@ uint32_t Texture::GetHeight() const noexcept
     return m_pNativeHandler->GetDesc().GetHeight();
 }
 
-Result<void> Texture::Commit(Math::Rectangle<uint32_t, Math::TopDownTag> range, Span<const uint8_t> data, size_t stride, size_t mipmapLevel,
+Result<void> Texture::Commit(Math::ImageRectangle range, Span<const uint8_t> data, size_t stride, size_t mipmapLevel,
     size_t arrayIndex) noexcept
 {
     const auto& desc = m_pNativeHandler->GetDesc();

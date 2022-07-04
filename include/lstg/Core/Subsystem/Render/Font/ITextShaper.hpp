@@ -57,11 +57,12 @@ namespace lstg::Subsystem::Render::Font
          * @param input 输入串
          * @param collection 字体集合
          * @param fontSize 字体大小（72DPI下的度量值）
+         * @param fontScale 整体缩放
          * @param baseDirection 基础书写方向
          * @return 是否成功
          */
         virtual Result<void> ShapeText(std::vector<FontShapedGlyph>& output, std::u16string_view input, FontCollection* collection,
-            uint32_t fontSize, TextDirection baseDirection = TextDirection::LeftToRight) noexcept = 0;
+            uint32_t fontSize, float fontScale = 1.f, TextDirection baseDirection = TextDirection::LeftToRight) noexcept = 0;
     };
 
     using TextShaperPtr = std::shared_ptr<ITextShaper>;

@@ -312,7 +312,7 @@ CPMAddPackage(
     GITHUB_REPOSITORY freetype/freetype
     GIT_TAG VER-2-12-1
     OPTIONS
-    "CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz TRUE"
+        "CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz TRUE"
 )
 
 # harfbuzz
@@ -321,8 +321,8 @@ CPMAddPackage(
     GITHUB_REPOSITORY 9chu/harfbuzz
     GIT_TAG patch-cmake  # 4.3.0
     OPTIONS
-    "SKIP_INSTALL_ALL ON"
-    "HB_BUILD_SUBSET OFF"
+        "SKIP_INSTALL_ALL ON"
+        "HB_BUILD_SUBSET OFF"
 )
 if(${harfbuzz_ADDED})
     # 手动增加 harfbuzz-icu 目标
@@ -333,4 +333,17 @@ if(${harfbuzz_ADDED})
 
     target_link_libraries(harfbuzz icuuc)
     target_compile_definitions(harfbuzz PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
+endif()
+
+# ryu
+CPMAddPackage(
+    NAME ryu
+    GITHUB_REPOSITORY ulfjack/ryu
+    GIT_TAG master
+    DOWNLOAD_ONLY
+)
+if(${ryu_ADDED})
+    file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
+    add_library(ryu STATIC ${ryu_SOURCES})
+    target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
 endif()

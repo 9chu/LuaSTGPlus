@@ -180,4 +180,34 @@ namespace lstg::Math
         Vector m_stTopLeft;
         Vector m_stSize;
     };
+
+    /**
+     * UV 坐标系上的矩形
+     *  0 -- X -- 1
+     *  |
+     *  Y
+     *  |
+     *  1
+     */
+    using UVRectangle = Rectangle<float, TopDownTag>;
+
+    /**
+     * 图像数据上的矩形
+     *  0 -- X -- Width
+     *  |
+     *  Y
+     *  |
+     *  Height
+     */
+    using ImageRectangle = Rectangle<uint32_t, TopDownTag>;
+
+    /**
+     * 世界坐标系 X-Y 平面上的矩形
+     *  +∞
+     *  |
+     *  Y
+     *  |
+     *  0 -- X -- +∞
+     */
+    using XYRectangle = Rectangle<float, BottomUpTag>;
 }
