@@ -343,7 +343,8 @@ CPMAddPackage(
     DOWNLOAD_ONLY
 )
 if(${ryu_ADDED})
-    file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
-    add_library(ryu STATIC ${ryu_SOURCES})
+    # file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
+    add_library(ryu STATIC ${ryu_SOURCE_DIR}/ryu/d2fixed.c ${ryu_SOURCE_DIR}/ryu/d2s.c ${ryu_SOURCE_DIR}/ryu/f2s.c
+        ${ryu_SOURCE_DIR}/ryu/s2d.c ${ryu_SOURCE_DIR}/ryu/s2f.c)
     target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
 endif()

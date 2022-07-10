@@ -20,7 +20,7 @@ AssetPool::~AssetPool()
 
 Result<void> AssetPool::AddAsset(AssetPtr asset) noexcept
 {
-    assert(asset && asset->m_uId == kEmptyAssetId && detail::IsWeakPtrUninitialized(asset->m_pPool));
+    assert(asset && asset->m_uId == kEmptyAssetId && asset->IsWildAsset());
     auto id = m_iNextAssetId++;
 
     // 允许资产为匿名资产，此时不能通过名称快速查找

@@ -11,21 +11,21 @@
 
 namespace lstg::Subsystem::Asset
 {
-    class BasicTextureAssetLoader;
+    class BasicTexture2DAssetLoader;
 
     /**
      * 纹理资产
      */
-    class BasicTextureAsset :
+    class BasicTexture2DAsset :
         public Asset
     {
-        friend class BasicTextureAssetLoader;
+        friend class BasicTexture2DAssetLoader;
 
     public:
         [[nodiscard]] static AssetTypeId GetAssetTypeIdStatic() noexcept;
         
     public:
-        BasicTextureAsset(std::string name, std::string path);
+        BasicTexture2DAsset(std::string name, std::string path);
 
     public:
         /**
@@ -70,5 +70,5 @@ namespace lstg::Subsystem::Asset
         Render::TexturePtr m_pTexture;
     };
 
-    using BasicTextureAssetPtr = std::shared_ptr<BasicTextureAsset>;
+    using BasicTexture2DAssetPtr = std::shared_ptr<BasicTexture2DAsset>;
 }

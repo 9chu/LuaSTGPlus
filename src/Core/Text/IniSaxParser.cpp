@@ -7,6 +7,7 @@
 #include <lstg/Core/Text/IniSaxParser.hpp>
 
 #include <cassert>
+#include <lstg/Core/Text/IniParsingError.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -20,7 +21,7 @@ namespace
     }
 }
 
-void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, IniParsingFlags flags)
+Result<void> IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, IniParsingFlags flags) noexcept
 {
     assert(listener);
 
@@ -38,44 +39,46 @@ void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, In
     std::string_view pendingKey;
     bool firstSection = true;
 
-    auto isCommentCharacter = [&](char ch) {
+    auto isCommentCharacter = [&](char ch) noexcept {
         return ch == ';' || ((flags & IniParsingFlags::UnixStyleComment) && ch == '#');
     };
-    auto removeLeadingSpaces = [&]() {
+    auto removeLeadingSpaces = [&]() noexcept {
         while (bufferLength > 0 && IsSpace(content[bufferStartIndex]))
         {
             ++bufferStartIndex;
             --bufferLength;
         }
     };
-    auto removeTailingSpaces = [&]() {
+    auto removeTailingSpaces = [&]() noexcept {
         while (bufferLength > 0 && IsSpace(content[bufferStartIndex + bufferLength - 1]))
             --bufferLength;
     };
-    auto commitSection = [&]() {
+    auto commitSection = [&]() noexcept {
         if (flags & IniParsingFlags::IgnoreSectionLeadingSpaces)
             removeLeadingSpaces();
         if (flags & IniParsingFlags::IgnoreSectionTailingSpaces)
             removeTailingSpaces();
         string_view value = { content.data() + bufferStartIndex, bufferLength };
-        listener->OnSectionBegin(value);
+        auto ret = listener->OnSectionBegin(value);
         firstSection = false;
+        return ret;
     };
-    auto commitKey = [&]() {
+    auto commitKey = [&]() noexcept {
         if (flags & IniParsingFlags::IgnoreKeyLeadingSpaces)
             removeLeadingSpaces();
         if (flags & IniParsingFlags::IgnoreKeyTailingSpaces)
             removeTailingSpaces();
         pendingKey = { content.data() + bufferStartIndex, bufferLength };
     };
-    auto commitValue = [&]() {
+    auto commitValue = [&]() noexcept {
         if (flags & IniParsingFlags::IgnoreValueLeadingSpaces)
             removeLeadingSpaces();
         if (flags & IniParsingFlags::IgnoreValueTailingSpaces)
             removeTailingSpaces();
         string_view value = { content.data() + bufferStartIndex, bufferLength };
-        listener->OnValue(pendingKey, value);
+        auto ret = listener->OnValue(pendingKey, value);
         pendingKey = {};
+        return ret;
     };
 
     for (size_t i = 0; i < content.size() + 1; )
@@ -95,7 +98,11 @@ void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, In
                     bufferStartIndex = i + 1;
                     bufferLength = 0;
                     if (!firstSection)
-                        listener->OnSectionEnd();
+                    {
+                        auto ret = listener->OnSectionEnd();
+                        if (!ret)
+                            return ret.GetError();
+                    }
                     break;
                 }
                 else if (IsSpace(ch))
@@ -127,28 +134,35 @@ void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, In
                 if (ch == ']')
                 {
                     state = STATE_READING_SECTION_LEFT;
-                    commitSection();
+                    auto ret = commitSection();
+                    if (!ret)
+                        return ret.GetError();
                     bufferStartIndex = bufferLength = 0;
                     break;
                 }
                 else if (ch == '\r' || ch == '\n' || ch == '\0')
                 {
-                    // 针对 Section 声明没有正确结束，容错，按照 Section 结束处理
-                    state = STATE_GUESS_LINE_CONTENT;
-                    commitSection();
-                    bufferStartIndex = i + 1;
-                    bufferLength = 0;
-                    break;
+                    // Section 声明没有正确结束
+                    return make_error_code(IniParsingError::SectionNotClosed);
                 }
                 ++bufferLength;
                 break;
             case STATE_READING_SECTION_LEFT:
-                // 简单处理，直接忽略行所有剩余内容
-                if (ch == '\r' || ch == '\n' || ch == '\0')
+                if (isCommentCharacter(ch))
+                {
+                    state = STATE_TAILING_COMMENT;
+                    break;
+                }
+                else if (ch == '\r' || ch == '\n' || ch == '\0')
                 {
                     state = STATE_GUESS_LINE_CONTENT;
                     bufferStartIndex = i + 1;
                     bufferLength = 0;
+                }
+                else if (!IsSpace(ch))
+                {
+                    // 无效的字符
+                    return make_error_code(IniParsingError::UnexpectedCharacter);
                 }
                 break;
             case STATE_READING_KEY:
@@ -173,14 +187,18 @@ void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, In
                 if (isCommentCharacter(ch) && (flags & IniParsingFlags::RemoveCommentInValue))
                 {
                     state = STATE_TAILING_COMMENT;
-                    commitValue();
+                    auto ret = commitValue();
+                    if (!ret)
+                        return ret.GetError();
                     bufferStartIndex = bufferLength = 0;
                     break;
                 }
                 else if (ch == '\r' || ch == '\n' || ch == '\0')
                 {
                     state = STATE_GUESS_LINE_CONTENT;
-                    commitValue();
+                    auto ret = commitValue();
+                    if (!ret)
+                        return ret.GetError();
                     bufferStartIndex = i + 1;
                     bufferLength = 0;
                     break;
@@ -196,5 +214,10 @@ void IniSaxParser::Parse(std::string_view content, IIniSaxListener* listener, In
     }
 
     if (!firstSection)
-        listener->OnSectionEnd();
+    {
+        auto ret = listener->OnSectionEnd();
+        if (!ret)
+            return ret.GetError();
+    }
+    return {};
 }

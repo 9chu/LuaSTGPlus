@@ -6,58 +6,65 @@
  */
 #pragma once
 #include <optional>
-#include <lstg/Core/Subsystem/Asset/BasicTextureAsset.hpp>
+#include <lstg/Core/Subsystem/Asset/BasicTexture2DAsset.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/Texture2D.hpp>
 
 namespace lstg::v2::Asset
 {
     class TextureAssetLoader;
 
     /**
-     * 区别于 Subsystem::Asset::TextureAsset，增加 PPU 的概念。
+     * 2D纹理资源化包装
      */
     class TextureAsset :
         public Subsystem::Asset::Asset
     {
-        friend class BasicTextureAssetLoader;
+        friend class TextureAssetLoader;
 
     public:
         [[nodiscard]] static Subsystem::Asset::AssetTypeId GetAssetTypeIdStatic() noexcept;
 
     public:
-        TextureAsset(std::string name, Subsystem::Asset::BasicTextureAssetPtr basicTexture, double pixelPerUnit);
+        TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAssetPtr textureAsset, float pixelPerUnit);
 
     public:
         /**
-         * 获取实际纹理资源
+         * 获取纹理资源
          */
-        const Subsystem::Asset::BasicTextureAssetPtr& GetBasicTexture() const noexcept;
+        const Subsystem::Asset::BasicTexture2DAssetPtr& GetBasicTextureAsset() const noexcept { return m_pTextureAsset; }
+
+        /**
+         * 获取实际用于渲染的纹理定义
+         */
+        const Subsystem::Render::Drawing2D::Texture2D& GetDrawingTexture() const noexcept { return m_stDrawingTexture; }
 
         /**
          * 获取PPU
          */
-        [[nodiscard]] double GetPixelPerUnit() const noexcept;
+        [[nodiscard]] float GetPixelPerUnit() const noexcept { return m_stDrawingTexture.GetPixelPerUnit(); }
 
         /**
          * 获得宽度
          * = 实际像素宽度 / PPU
          */
-        [[nodiscard]] double GetWidth() const noexcept;
+        [[nodiscard]] double GetWidth() const noexcept { return m_stDrawingTexture.GetWidth(); }
 
         /**
          * 获取高度
          * = 实际像素高度 / PPU
          */
-        [[nodiscard]] double GetHeight() const noexcept;
+        [[nodiscard]] double GetHeight() const noexcept { return m_stDrawingTexture.GetHeight(); }
 
     protected:  // Asset
         [[nodiscard]] Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
 
     private:
-        // 依赖
-        const Subsystem::Asset::BasicTextureAssetPtr m_pBasicTexture;
+        void UpdateResource() noexcept;
 
-        // 资源属性
-        const double m_dPixelPerUnit = 1.;
+    private:
+        // 依赖
+        const Subsystem::Asset::BasicTexture2DAssetPtr m_pTextureAsset;
+        Subsystem::Render::Drawing2D::Texture2D m_stDrawingTexture;
     };
 
     using TextureAssetPtr = std::shared_ptr<TextureAsset>;

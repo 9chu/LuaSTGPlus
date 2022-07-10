@@ -11,7 +11,7 @@
 #include "Asset/detail/WeakPtrTraits.hpp"
 
 // Core 中预定义的 Factory
-#include <lstg/Core/Subsystem/Asset/BasicTextureAssetFactory.hpp>
+#include <lstg/Core/Subsystem/Asset/BasicTexture2DAssetFactory.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -40,6 +40,9 @@ namespace
 static AssetSystem* s_pInstance = nullptr;
 
 static const uint32_t kMaxTaskExecuteTimeMs = 100;
+#if LSTG_ASSET_HOT_RELOAD
+static const uint32_t kMaxHotReloadCheckTimeMs = 5;
+#endif
 
 AssetSystem& AssetSystem::GetInstance() noexcept
 {
@@ -80,6 +83,19 @@ Result<VFS::StreamPtr> AssetSystem::OpenAssetStream(std::string_view path) noexc
     {
         auto fullPath = fmt::format("{0}/{1}", m_pVirtualFileSystem->GetAssetBaseDirectory(), path);
         return m_pVirtualFileSystem->OpenFile(fullPath, VFS::FileAccessMode::Read);
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+}
+
+Result<VFS::FileAttribute> AssetSystem::GetAssetStreamAttribute(std::string_view path) noexcept
+{
+    try
+    {
+        auto fullPath = fmt::format("{0}/{1}", m_pVirtualFileSystem->GetAssetBaseDirectory(), path);
+        return m_pVirtualFileSystem->GetFileAttribute(fullPath);
     }
     catch (...)
     {
@@ -128,6 +144,7 @@ Result<Asset::AssetPtr> AssetSystem::CreateAsset(Asset::AssetPoolPtr pool, std::
 
 void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 {
+    // 刷新所有加载中任务的状态
     if (!m_stLoadingTasks.empty())
     {
         bool executeEnabled = true;
@@ -143,7 +160,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             assert(asset);
 
             // 如果关联的资产已经被从 Pool 删除，可以直接干掉加载任务
-            if (state != Asset::AssetLoadingStates::Loading && Asset::detail::IsWeakPtrUninitialized(asset->GetPool()))
+            if (state != Asset::AssetLoadingStates::Loading && asset->IsWildAsset())
             {
                 LSTG_LOG_TRACE_CAT(AssetSystem, "Asset is already removed from pool, name={}", asset->GetName());
                 goto ASSET_FAIL;
@@ -225,6 +242,22 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                 // 设置关联任务为 Loaded 状态
                 assert(asset->GetState() == Asset::AssetStates::Uninitialized);
                 asset->SetState(Asset::AssetStates::Loaded);
+
+#if LSTG_ASSET_HOT_RELOAD
+                // 当热更新支持时，将任务丢到监控列表
+                if (task->SupportHotReload())
+                {
+                    try
+                    {
+                        m_stWatchTasks.push_back(task);
+                    }
+                    catch (...)  // bad_alloc
+                    {
+                        LSTG_LOG_ERROR_CAT(AssetSystem, "Cannot alloc memory");
+                    }
+                }
+#endif
+
                 it = m_stLoadingTasks.erase(it);
                 continue;
             }
@@ -238,11 +271,70 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 
         ASSET_FAIL:
             // 设置关联任务为 Error 状态
+#if LSTG_ASSET_HOT_RELOAD
+            if (asset->GetState() == Asset::AssetStates::Uninitialized)  // 在热更新支持下，如果异步加载没有成功，则不对原对象发起变动
+                asset->SetState(Asset::AssetStates::Error);
+#else
             assert(asset->GetState() == Asset::AssetStates::Uninitialized);
             asset->SetState(Asset::AssetStates::Error);
+#endif
             it = m_stLoadingTasks.erase(it);
         }
     }
+
+#if LSTG_ASSET_HOT_RELOAD
+    // 刷新所有监控任务的状态
+    if (!m_stWatchTasks.empty())
+    {
+        auto begin = std::chrono::steady_clock::now();
+        auto end = begin;
+
+        if (m_uLastCheckedTask >= m_stWatchTasks.size())
+            m_uLastCheckedTask = 0;
+
+        // 检查所有任务
+        while (m_uLastCheckedTask < m_stWatchTasks.size())
+        {
+            auto task = m_stWatchTasks[m_uLastCheckedTask];
+
+            // 如果关联资源已经卸载，则终止任务
+            if (task->GetAsset()->IsWildAsset())
+            {
+                m_stWatchTasks.erase(m_stWatchTasks.begin() + static_cast<ptrdiff_t>(m_uLastCheckedTask));
+                continue;
+            }
+
+            // 若资源已过期
+            if (task->CheckIsOutdated())
+            {
+                try
+                {
+                    LSTG_LOG_INFO_CAT(AssetSystem, "Reload asset \"{}\"", task->GetAsset()->GetName());
+
+                    // 先尝试加入任务队列
+                    m_stLoadingTasks.emplace_back(task);
+
+                    // 发起重新加载操作
+                    task->PrepareToReload();
+
+                    // 从队列删除
+                    m_stWatchTasks.erase(m_stWatchTasks.begin() + static_cast<ptrdiff_t>(m_uLastCheckedTask));
+                }
+                catch (...)
+                {
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Cannot alloc memory");
+                }
+            }
+
+            // 刷新时间
+            end = chrono::steady_clock::now();
+            if (chrono::duration_cast<chrono::milliseconds>(end - begin).count() > kMaxHotReloadCheckTimeMs)
+                break;
+
+            ++m_uLastCheckedTask;
+        }
+    }
+#endif
 
     // 更新线程池
     m_stAsyncLoadingThread.Update();
@@ -250,7 +342,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 
 void AssetSystem::RegisterCoreAssetFactories()
 {
-    auto ret = RegisterAssetFactory(make_shared<Asset::BasicTextureAssetFactory>());
+    auto ret = RegisterAssetFactory(make_shared<Asset::BasicTexture2DAssetFactory>());
     ret.ThrowIfError();
 }
 
@@ -286,7 +378,7 @@ Result<Asset::AssetPtr> AssetSystem::CreateAsset(Asset::AssetPoolPtr pool, Asset
         assert(asset->GetState() == Asset::AssetStates::Loaded);
     }
 
-   // 加入到池子
+    // 加入到池子
     auto ret2 = pool->AddAsset(asset);
     if (!ret2)
     {

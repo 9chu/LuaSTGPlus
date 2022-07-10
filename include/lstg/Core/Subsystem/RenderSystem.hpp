@@ -33,6 +33,11 @@ namespace lstg::Subsystem
         using EffectGroupSelectCallback = std::function<const Render::GraphDef::EffectPassGroupDefinition*(
             const Render::GraphDef::EffectDefinition*, const TagContainer&)>;
 
+        /**
+         * 获取默认占位纹理大小
+         */
+        static glm::vec<2, uint32_t> GetDefaultTexture2DSize() noexcept;
+
     public:
         RenderSystem(SubsystemContainer& container);
         RenderSystem(const RenderSystem&) = delete;

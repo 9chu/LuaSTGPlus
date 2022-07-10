@@ -9,6 +9,14 @@
 #include <memory>
 #include "../../Result.hpp"
 
+#ifndef LSTG_ASSET_HOT_RELOAD
+#ifdef LSTG_DEVELOPMENT
+#define LSTG_ASSET_HOT_RELOAD 1
+#else
+#define LSTG_ASSET_HOT_RELOAD 0
+#endif
+#endif
+
 namespace lstg::Subsystem
 {
     class AssetSystem;
@@ -43,29 +51,48 @@ namespace lstg::Subsystem::Asset
 
     public:
         Asset(std::string name);
+        Asset(const Asset&) = delete;
+        Asset(Asset&&) noexcept = delete;
         virtual ~Asset() noexcept;
+
+        Asset& operator=(const Asset&) = delete;
+        Asset& operator=(Asset&&) noexcept = delete;
 
     public:
         /**
          * 获取资产状态
          */
-        AssetStates GetState() const noexcept { return m_iState; }
+        [[nodiscard]] AssetStates GetState() const noexcept { return m_iState; }
 
         /**
          * 获取资产名称
          */
-        const std::string& GetName() const noexcept { return m_stName; }
+        [[nodiscard]] const std::string& GetName() const noexcept { return m_stName; }
 
         /**
          * 获取关联的资源池
          */
-        const std::weak_ptr<AssetPool>& GetPool() const noexcept { return m_pPool; }
+        [[nodiscard]] const std::weak_ptr<AssetPool>& GetPool() const noexcept { return m_pPool; }
+
+        /**
+         * 是否是空悬资产
+         * 指示资产被从 AssetPool 释放。
+         * 当资产处于空悬状态时，对应的 Loader 将会终止并释放 Asset。
+         */
+        [[nodiscard]] bool IsWildAsset() const noexcept;
+
+#if LSTG_ASSET_HOT_RELOAD
+        /**
+         * 获取资产版本号
+         */
+        [[nodiscard]] uint32_t GetVersion() const noexcept { return m_uVersion; }
+#endif
 
     public:  // 需要实现
         /**
          * 获取类型 ID
          */
-        virtual AssetTypeId GetAssetTypeId() const noexcept = 0;
+        [[nodiscard]] virtual AssetTypeId GetAssetTypeId() const noexcept = 0;
 
     protected:
         /**
@@ -73,6 +100,13 @@ namespace lstg::Subsystem::Asset
          * @param s 状态
          */
         void SetState(AssetStates s) noexcept;
+
+#if LSTG_ASSET_HOT_RELOAD
+        /**
+         * 更新版本号
+         */
+        void UpdateVersion() noexcept;
+#endif
 
     protected:  // 需要实现
         /**
@@ -88,6 +122,9 @@ namespace lstg::Subsystem::Asset
         AssetStates m_iState = AssetStates::Uninitialized;
         std::string m_stName;
         std::weak_ptr<AssetPool> m_pPool;
+#if LSTG_ASSET_HOT_RELOAD
+        uint32_t m_uVersion = 0;
+#endif
     };
 
     using AssetPtr = std::shared_ptr<Asset>;

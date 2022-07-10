@@ -46,9 +46,36 @@ void SpriteAssetLoader::Update() noexcept
     auto asset = static_pointer_cast<SpriteAsset>(GetAsset());
 
     // 检查依赖的资源是否加载完毕
-    auto state = asset->GetTexture()->GetState();
+    auto state = asset->GetTextureAsset()->GetState();
     if (state == Subsystem::Asset::AssetStates::Loaded)
+    {
+#if LSTG_ASSET_HOT_RELOAD
+        m_uLastTextureVersion = asset->GetTextureAsset()->GetVersion();
+#endif
+        asset->UpdateResource();
+
         SetState(Subsystem::Asset::AssetLoadingStates::Loaded);
+    }
     else if (state == Subsystem::Asset::AssetStates::Error)
+    {
         SetState(Subsystem::Asset::AssetLoadingStates::Error);
+    }
 }
+
+#if LSTG_ASSET_HOT_RELOAD
+bool SpriteAssetLoader::SupportHotReload() const noexcept
+{
+    return true;
+}
+
+bool SpriteAssetLoader::CheckIsOutdated() const noexcept
+{
+    auto asset = static_pointer_cast<SpriteAsset>(GetAsset());
+    return asset->GetTextureAsset()->GetVersion() != m_uLastTextureVersion;
+}
+
+void SpriteAssetLoader::PrepareToReload() noexcept
+{
+    SetState(Subsystem::Asset::AssetLoadingStates::DependencyLoading);
+}
+#endif

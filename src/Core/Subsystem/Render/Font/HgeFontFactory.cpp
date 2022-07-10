@@ -13,47 +13,55 @@ extern "C" {
 #include <lstg/Core/Encoding/Unicode.hpp>
 #include <lstg/Core/Text/IniSaxParser.hpp>
 #include "HgeFontFace.hpp"
+#include "detail/HgeFontLoadError.hpp"
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::Font;
+using namespace lstg::Subsystem::Render::Font::detail;
 
 LSTG_DEF_LOG_CATEGORY(HgeFontFactory);
 
 namespace
 {
-    Result<string> ReadWholeFile(Subsystem::VFS::IStream* stream) noexcept
-    {
-        static const size_t kExpand = 16 * 1024;
-
-        assert(stream);
-        string ret;
-        try
-        {
-            while (true)
-            {
-                auto sz = ret.size();
-                ret.resize(sz + kExpand);
-
-                auto err = stream->Read(reinterpret_cast<uint8_t*>(ret.data() + sz), ret.size() - sz);
-                if (!err)
-                    return err.GetError();
-
-                ret.resize(sz + *err);
-                if (*err < kExpand)
-                    break;
-            }
-        }
-        catch (...)
-        {
-            return make_error_code(errc::not_enough_memory);
-        }
-        return ret;
-    }
+//    Result<string> ReadWholeFile(Subsystem::VFS::IStream* stream) noexcept
+//    {
+//        static const size_t kExpand = 16 * 1024;
+//
+//        assert(stream);
+//        string ret;
+//        try
+//        {
+//            while (true)
+//            {
+//                auto sz = ret.size();
+//                ret.resize(sz + kExpand);
+//
+//                auto err = stream->Read(reinterpret_cast<uint8_t*>(ret.data() + sz), ret.size() - sz);
+//                if (!err)
+//                    return err.GetError();
+//
+//                ret.resize(sz + *err);
+//                if (*err < kExpand)
+//                    break;
+//            }
+//        }
+//        catch (...)
+//        {
+//            return make_error_code(errc::not_enough_memory);
+//        }
+//        return ret;
+//    }
 
     class FontGenerator :
         public Text::IIniSaxListener
     {
+        enum  {
+            STATE_LOOKFOR_SECTION,
+            STATE_READING_SECTION,
+            STATE_FINISH_SECTION,
+        };
+
     public:
         FontGenerator(std::shared_ptr<HgeFontFace> p, IFontDependencyLoader* dependencyLoader) noexcept
             : m_pFontFace(std::move(p)), m_pDependencyLoader(dependencyLoader)
@@ -62,29 +70,54 @@ namespace
         }
 
     public:  // IIniSaxListener
-        void OnSectionBegin(std::string_view name) override
+        Result<void> OnSectionBegin(std::string_view name) noexcept override
         {
-            if (name == "HGEFONT")
-                m_bInSection = true;
+            switch (m_iState)
+            {
+                case STATE_LOOKFOR_SECTION:
+                    if (name == "HGEFONT")
+                        m_iState = STATE_READING_SECTION;
+                    break;
+                case STATE_FINISH_SECTION:
+                    if (name == "HGEFONT")
+                        return make_error_code(HgeFontLoadError::DuplicatedFontSection);
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
+            return {};
         }
 
-        void OnSectionEnd() override
+        Result<void> OnSectionEnd() noexcept override
         {
-            if (m_bInSection)
-                m_bInSection = false;
+            switch (m_iState)
+            {
+                case STATE_READING_SECTION:
+                    m_iState = STATE_FINISH_SECTION;
+                    break;
+                default:
+                    break;
+            }
+            return {};
         }
 
-        void OnValue(std::string_view key, std::string_view value) override
+        Result<void> OnValue(std::string_view key, std::string_view value) noexcept override
         {
             if (key == "Bitmap")
             {
-                auto tex = m_pDependencyLoader->OnLoadTexture(value);
-                if (!tex)
+                if (m_bBitmapRead)
+                    return make_error_code(HgeFontLoadError::DuplicatedBitmap);
+
+                auto ret = m_pDependencyLoader->OnLoadTexture(value);
+                if (!ret)
                 {
                     LSTG_LOG_ERROR_CAT(HgeFontFactory, "Load texture \"{}\" fail", value);
-                    tex.ThrowIfError();
+                    return ret.GetError();
                 }
-                m_pFontFace->SetAtlasTexture(std::move(*tex));
+
+                m_pFontFace->SetAtlasTexture(std::move(*ret));
+                m_bBitmapRead = true;
             }
             else if (key == "Char")
             {
@@ -93,9 +126,7 @@ namespace
                     STATE_START,
                     STATE_READ_CHAR,
                     STATE_LOOKING_FINISH,
-                    STATE_READ_LEADING_ZERO,
                     STATE_READ_HEX_NUMBER,
-                    STATE_READ_DECIMAL_NUMBER,
                     STATE_FINISH,
                 } state = STATE_START;
                 size_t i = 0;
@@ -113,21 +144,17 @@ namespace
                                 chStart = i + 1;
                                 break;
                             }
-                            else if (ch == '0')
+                            else if (('0' <= ch && ch <= '9') || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F'))
                             {
-                                state = STATE_READ_LEADING_ZERO;
-                                break;
-                            }
-                            else if (ch >= '1' && ch <= '9')
-                            {
-                                state = STATE_READ_DECIMAL_NUMBER;
+                                state = STATE_READ_HEX_NUMBER;
                                 continue;
                             }
                             else
                             {
                                 LSTG_LOG_ERROR_CAT(HgeFontFactory, "Unexpected character '{}'", ch);
-                                throw system_error(make_error_code(errc::invalid_argument));
+                                return make_error_code(HgeFontLoadError::UnexpectedCharacter);
                             }
+                            break;
                         case STATE_READ_CHAR:
                             if (chStart != i && ch == '"')
                             {
@@ -146,7 +173,7 @@ namespace
                                         if (!err)
                                         {
                                             LSTG_LOG_ERROR_CAT(HgeFontFactory, "Can't decode utf-8 string \"{}\"", utf8Ch);
-                                            throw system_error(make_error_code(errc::invalid_argument));
+                                            return make_error_code(HgeFontLoadError::Utf8DecodeError);
                                         }
                                     }
                                     else
@@ -161,7 +188,7 @@ namespace
                                         else if (err == Encoding::EncodingResult::Reject)
                                         {
                                             LSTG_LOG_ERROR_CAT(HgeFontFactory, "Can't decode utf-8 string \"{}\"", utf8Ch);
-                                            throw system_error(make_error_code(errc::invalid_argument));
+                                            return make_error_code(HgeFontLoadError::Utf8DecodeError);
                                         }
                                     }
                                 }
@@ -169,7 +196,7 @@ namespace
                             else if (ch == '\0')
                             {
                                 LSTG_LOG_ERROR_CAT(HgeFontFactory, "Unexpected EOF");
-                                throw system_error(make_error_code(errc::invalid_argument));
+                                return make_error_code(HgeFontLoadError::UnexpectedCharacter);
                             }
                             break;
                         case STATE_LOOKING_FINISH:
@@ -181,22 +208,7 @@ namespace
                             else
                             {
                                 LSTG_LOG_ERROR_CAT(HgeFontFactory, "Unexpected character '{}'", ch);
-                                throw system_error(make_error_code(errc::invalid_argument));
-                            }
-                        case STATE_READ_LEADING_ZERO:
-                            if (ch == 'x' || ch == 'X')
-                            {
-                                state = STATE_READ_HEX_NUMBER;
-                            }
-                            else if (ch == ',' || ch == '\0')
-                            {
-                                state = STATE_FINISH;
-                                continue;
-                            }
-                            else
-                            {
-                                LSTG_LOG_ERROR_CAT(HgeFontFactory, "Unexpected character '{}'", ch);
-                                throw system_error(make_error_code(errc::invalid_argument));
+                                return make_error_code(HgeFontLoadError::UnexpectedCharacter);
                             }
                             break;
                         case STATE_READ_HEX_NUMBER:
@@ -218,17 +230,6 @@ namespace
                                 continue;
                             }
                             break;
-                        case STATE_READ_DECIMAL_NUMBER:
-                            if (ch >= '0' && ch <= '9')
-                            {
-                                chNumber = chNumber * 16 + (ch - '0');
-                            }
-                            else if (ch == ',' || ch == '\0')
-                            {
-                                state = STATE_FINISH;
-                                continue;
-                            }
-                            break;
                         default:
                             assert(false);
                             break;
@@ -240,7 +241,7 @@ namespace
                 if (i >= value.length())
                 {
                     LSTG_LOG_ERROR_CAT(HgeFontFactory, "Glyph info expected, but EOF read");
-                    throw system_error(make_error_code(errc::invalid_argument));
+                    return make_error_code(HgeFontLoadError::UnexpectedCharacter);
                 }
                 ++i;  // 跳过 ','
 
@@ -255,11 +256,11 @@ namespace
                     {
                         float v = 0;
                         string_view floatText = { value.data() + floatStart, i - floatStart };
-                        auto err = s2f_n(floatText.data(), floatText.length(), &v);
+                        auto err = ::s2f_n(floatText.data(), static_cast<int>(floatText.length()), &v);
                         if (err != SUCCESS)
                         {
                             LSTG_LOG_ERROR_CAT(HgeFontFactory, "Parse value \"{}\" fail", floatText);
-                            throw system_error(make_error_code(errc::invalid_argument));
+                            return make_error_code(HgeFontLoadError::InvalidValue);
                         }
                         values[valueCnt++] = v;
                         if (valueCnt >= std::extent_v<decltype(values)>)
@@ -271,19 +272,23 @@ namespace
                 if (valueCnt < std::extent_v<decltype(values)>)
                 {
                     LSTG_LOG_ERROR_CAT(HgeFontFactory, "Invalid glyph info");
-                    throw system_error(make_error_code(errc::invalid_argument));
+                    return make_error_code(HgeFontLoadError::InvalidValue);
                 }
 
                 // 计入结果
-                m_pFontFace->AppendGlyph(static_cast<char32_t>(chNumber), values[0], values[1], values[2], values[3], values[4], values[5])
-                    .ThrowIfError();
+                auto ret = m_pFontFace->AppendGlyph(static_cast<char32_t>(chNumber), values[0], values[1], values[2], values[3], values[4],
+                    values[5]);
+                if (!ret)
+                    return ret.GetError();
             }
+            return {};
         }
 
     private:
         std::shared_ptr<HgeFontFace> m_pFontFace;
         IFontDependencyLoader* m_pDependencyLoader = nullptr;
-        bool m_bInSection = false;
+        int32_t m_iState = STATE_LOOKFOR_SECTION;
+        bool m_bBitmapRead = false;
     };
 }
 
@@ -295,28 +300,20 @@ Result<FontFacePtr> HgeFontFactory::CreateFontFace(VFS::StreamPtr stream, IFontD
     if (faceIndex != 0)
         return make_error_code(errc::invalid_argument);
 
-    auto content = ReadWholeFile(stream.get());
-    if (!content)
-        return content.GetError();
+    string content;
+    auto ret = ReadAll(content, stream.get());
+    if (!ret)
+        return ret.GetError();
 
-    try
-    {
-        auto face = make_shared<HgeFontFace>();
-        FontGenerator gen(face, dependencyLoader);
-        Text::IniSaxParser::Parse(*content, &gen,
-            Text::IniParsingFlags::IgnoreKeyLeadingSpaces | Text::IniParsingFlags::IgnoreKeyTailingSpaces |
-            Text::IniParsingFlags::IgnoreValueLeadingSpaces | Text::IniParsingFlags::IgnoreValueTailingSpaces |
-            Text::IniParsingFlags::IgnoreSectionLeadingSpaces | Text::IniParsingFlags::IgnoreSectionTailingSpaces);
-        return face;
-    }
-    catch (const std::system_error& ex)
-    {
-        return ex.code();
-    }
-    catch (...)  // bad_alloc
-    {
-        return make_error_code(errc::not_enough_memory);
-    }
+    auto face = make_shared<HgeFontFace>();
+    FontGenerator gen(face, dependencyLoader);
+    ret = Text::IniSaxParser::Parse(content, &gen,
+        Text::IniParsingFlags::IgnoreKeyLeadingSpaces | Text::IniParsingFlags::IgnoreKeyTailingSpaces |
+        Text::IniParsingFlags::IgnoreValueLeadingSpaces | Text::IniParsingFlags::IgnoreValueTailingSpaces |
+        Text::IniParsingFlags::IgnoreSectionLeadingSpaces | Text::IniParsingFlags::IgnoreSectionTailingSpaces);
+    if (!ret)
+        return ret.GetError();
+    return face;
 }
 
 Result<size_t> HgeFontFactory::EnumFontFace(std::vector<FontFaceInfo>& out, VFS::StreamPtr stream) noexcept

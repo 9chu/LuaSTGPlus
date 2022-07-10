@@ -75,17 +75,17 @@ namespace lstg::v2
         /**
          * 获取原生分辨率
          */
-        Vec2 GetNativeResolution() const noexcept;
+        glm::vec2 GetNativeResolution() const noexcept;
 
         /**
          * 获取期望的分辨率
          */
-        Vec2 GetDesiredResolution() const noexcept;
+        glm::vec2 GetDesiredResolution() const noexcept;
 
         /**
          * 获取可视范围
          */
-        WindowRectangle GetViewportBound() const noexcept;
+        Math::ImageRectangleFloat GetViewportBound() const noexcept;
 
         /**
          * 调整目标分辨率
@@ -130,9 +130,9 @@ namespace lstg::v2
         Subsystem::Asset::AssetPoolPtr m_pCurrentAssetPool;
 
         // 渲染
-        Vec2 m_stNativeSolution;  // 原生分辨率
-        Vec2 m_stDesiredSolution;  // 设计分辨率
-        WindowRectangle m_stViewportBound;  // 视口范围
+        glm::vec2 m_stNativeSolution;  // 原生分辨率
+        glm::vec2 m_stDesiredSolution;  // 设计分辨率
+        Math::ImageRectangleFloat m_stViewportBound;  // 视口范围
         Subsystem::Render::Drawing2D::CommandBuffer m_stCommandBuffer;
         Subsystem::Render::Drawing2D::CommandExecutor m_stCommandExecutor;
     };

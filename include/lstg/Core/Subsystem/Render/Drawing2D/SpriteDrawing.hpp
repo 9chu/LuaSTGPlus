@@ -10,6 +10,8 @@
 
 namespace lstg::Subsystem::Render::Drawing2D
 {
+    using SpriteColorComponents = std::array<ColorRGBA32, 4>;
+
     /**
      * 精灵绘制工具
      */
@@ -176,7 +178,17 @@ namespace lstg::Subsystem::Render::Drawing2D
          * 设置加算颜色
          * @param color 颜色
          */
-        SpriteDrawing& SetAdditiveColor(const std::array<ColorRGBA32, 4>& color) noexcept
+        ColorRGBA32& GetAdditiveColor(size_t index) noexcept
+        {
+            assert(index < 4);
+            return m_stVertexList[index].Color0;
+        }
+        [[nodiscard]] ColorRGBA32 GetAdditiveColor(size_t index) const noexcept
+        {
+            assert(index < 4);
+            return m_stVertexList[index].Color0;
+        }
+        SpriteDrawing& SetAdditiveColor(const SpriteColorComponents& color) noexcept
         {
             m_stVertexList[0].Color0 = color[0];
             m_stVertexList[1].Color0 = color[1];
@@ -197,7 +209,17 @@ namespace lstg::Subsystem::Render::Drawing2D
          * 设置乘算颜色
          * @param color 颜色
          */
-        SpriteDrawing& SetMultiplyColor(const std::array<ColorRGBA32, 4>& color) noexcept
+        ColorRGBA32& GetMultiplyColor(size_t index) noexcept
+        {
+            assert(index < 4);
+            return m_stVertexList[index].Color1;
+        }
+        [[nodiscard]] ColorRGBA32 GetMultiplyColor(size_t index) const noexcept
+        {
+            assert(index < 4);
+            return m_stVertexList[index].Color1;
+        }
+        SpriteDrawing& SetMultiplyColor(const SpriteColorComponents& color) noexcept
         {
             m_stVertexList[0].Color1 = color[0];
             m_stVertexList[1].Color1 = color[1];

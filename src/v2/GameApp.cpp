@@ -251,17 +251,17 @@ Subsystem::Asset::AssetPtr GameApp::FindAsset(std::string_view name) const noexc
     return ret;
 }
 
-Vec2 GameApp::GetNativeResolution() const noexcept
+glm::vec2 GameApp::GetNativeResolution() const noexcept
 {
     return m_stNativeSolution;
 }
 
-Vec2 GameApp::GetDesiredResolution() const noexcept
+glm::vec2 GameApp::GetDesiredResolution() const noexcept
 {
     return m_stDesiredSolution;
 }
 
-WindowRectangle GameApp::GetViewportBound() const noexcept
+Math::ImageRectangleFloat GameApp::GetViewportBound() const noexcept
 {
     return m_stViewportBound;
 }
@@ -399,15 +399,15 @@ void GameApp::AdjustViewport() noexcept
     // 则 480/640 = 0.75, 320/480 = 0.667
     // 取 scale = 0.667，则 vp = 0.667 * 640 x 0.667 * 480 = 427x320
     auto scale = std::min(m_stNativeSolution.x / m_stDesiredSolution.x, m_stNativeSolution.y / m_stDesiredSolution.y);
-    auto halfWidth = m_stDesiredSolution.x * scale / 2.;
-    auto halfHeight = m_stDesiredSolution.y * scale / 2.;
-    auto centerX = m_stNativeSolution.x / 2.;
-    auto centerY = m_stNativeSolution.y / 2.;
+    auto halfWidth = m_stDesiredSolution.x * scale / 2.f;
+    auto halfHeight = m_stDesiredSolution.y * scale / 2.f;
+    auto centerX = m_stNativeSolution.x / 2.f;
+    auto centerY = m_stNativeSolution.y / 2.f;
     m_stViewportBound = {
-        std::max(0., std::ceil(centerX - halfWidth)),
-        std::max(0., std::ceil(centerY - halfHeight)),
-        std::ceil(halfWidth * 2.),
-        std::ceil(halfHeight * 2.)
+        std::max(0.f, std::ceil(centerX - halfWidth)),
+        std::max(0.f, std::ceil(centerY - halfHeight)),
+        std::ceil(halfWidth * 2.f),
+        std::ceil(halfHeight * 2.f)
     };
     LSTG_LOG_DEBUG_CAT(GameApp, "Adjust viewport to {}x{}-{}x{}", m_stViewportBound.Left(), m_stViewportBound.Top(),
         m_stViewportBound.GetBottomRight().x, m_stViewportBound.GetBottomRight().y);

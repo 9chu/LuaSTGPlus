@@ -12,9 +12,7 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Asset;
 
-#define SHAPE_CHANGED 1
-#define UV_CHANGED 2
-#define COLOR_CHANGED 4
+using namespace lstg::Subsystem::Render::Drawing2D;
 
 Subsystem::Asset::AssetTypeId SpriteSequenceAsset::GetAssetTypeIdStatic() noexcept
 {
@@ -22,33 +20,48 @@ Subsystem::Asset::AssetTypeId SpriteSequenceAsset::GetAssetTypeIdStatic() noexce
     return uniqueTypeName.Id;
 }
 
-SpriteSequenceAsset::SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frame, ColliderShape colliderShape)
-    : Subsystem::Asset::Asset(std::move(name)), m_pTextureAsset(std::move(texture)), m_stFrames(std::move(frame)),
+SpriteSequenceAsset::SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frames, ColliderShape colliderShape)
+    : Subsystem::Asset::Asset(std::move(name)), m_pTextureAsset(std::move(texture)), m_stSequences(std::move(frames)),
       m_stColliderShape(colliderShape)
 {
-    // 中心点取第一个 Frame 进行计算
-    assert(!m_stFrames.empty());
-    m_stAnchor = m_stFrames[0].GetCenter() - m_stFrames[0].GetTopLeft();
-    m_stPrecomputedSequenceVertex.resize(m_stFrames.size());
-    PrecomputedVertex(SHAPE_CHANGED | UV_CHANGED | COLOR_CHANGED);
+    assert(!m_stSequences.empty());
+
+    // Factory 只需要初始化 Frames，在这里填充其他参数
+    // 以第一个 Frame 来标记中心点
+    auto anchor = m_stSequences[0].GetFrame().GetCenter() - m_stSequences[0].GetFrame().GetTopLeft();
+    for (auto& f : m_stSequences)
+    {
+        f.SetAnchor(anchor, false);
+        f.SetTexture2D(&m_pTextureAsset->GetDrawingTexture(), false);
+    }
+    SyncBlendMode(false);
+
+    // 统一刷新顶点
+    for (auto& f : m_stSequences)
+        f.UpdatePrecomputedVertex();
 }
 
-void SpriteSequenceAsset::SetAnchor(Vec2 vec) noexcept
+const glm::vec2& SpriteSequenceAsset::GetAnchor() const noexcept
 {
-    m_stAnchor = vec;
-    PrecomputedVertex(SHAPE_CHANGED);
+    return m_stSequences[0].GetAnchor();
+}
+
+void SpriteSequenceAsset::SetAnchor(glm::vec2 vec) noexcept
+{
+    for (auto& f : m_stSequences)
+        f.SetAnchor(vec);
 }
 
 void SpriteSequenceAsset::SetDefaultBlendMode(BlendMode mode) noexcept
 {
     m_stDefaultBlendMode = mode;
-    PrecomputedVertex(COLOR_CHANGED);
+    SyncBlendMode();
 }
 
-void SpriteSequenceAsset::SetDefaultBlendColor(std::array<ColorRGBA32, 4> color) noexcept
+void SpriteSequenceAsset::SetDefaultBlendColor(const Subsystem::Render::Drawing2D::SpriteColorComponents& color) noexcept
 {
     m_stDefaultBlendColor = color;
-    PrecomputedVertex(COLOR_CHANGED);
+    SyncBlendMode();
 }
 
 Subsystem::Asset::AssetTypeId SpriteSequenceAsset::GetAssetTypeId() const noexcept
@@ -56,84 +69,31 @@ Subsystem::Asset::AssetTypeId SpriteSequenceAsset::GetAssetTypeId() const noexce
     return GetAssetTypeIdStatic();
 }
 
-void SpriteSequenceAsset::PrecomputedVertex(int what) noexcept
+void SpriteSequenceAsset::UpdateResource() noexcept
 {
-    assert(m_stFrames.size() == m_stPrecomputedSequenceVertex.size());
+    for (auto& f : m_stSequences)
+        f.UpdatePrecomputedVertex();
 
-    if ((what & SHAPE_CHANGED) == SHAPE_CHANGED)
+#if LSTG_ASSET_HOT_RELOAD
+    UpdateVersion();
+#endif
+}
+
+void SpriteSequenceAsset::SyncBlendMode(bool updateVertex) noexcept
+{
+    for (auto& f : m_stSequences)
     {
-        for (size_t i = 0; i < m_stFrames.size(); ++i)
+        f.SetColorBlendMode(m_stDefaultBlendMode.ColorBlend);
+        if (m_stDefaultBlendMode.VertexColorBlend == VertexColorBlendMode::Additive)
         {
-            const auto& frame = m_stFrames[i];
-            auto& precomputedVertex = m_stPrecomputedSequenceVertex[i];
-
-            // 基本形状，在原点附近，且 z = 0.5
-            // 注意坐标轴是 Y 向上，X 向右
-            auto w = static_cast<float>(frame.Width());
-            auto h = static_cast<float>(frame.Height());
-            auto cx = static_cast<float>(m_stAnchor.x);
-            auto cy = static_cast<float>(m_stAnchor.y);
-            precomputedVertex[0].Position = { -cx, cy, 0.5f };
-            precomputedVertex[1].Position = { w - cx, cy, 0.5f };
-            precomputedVertex[2].Position = { w - cx, cy - h, 0.5f };
-            precomputedVertex[3].Position = { -cx, cy - h, 0.5f };
+            f.SetAdditiveBlendColor(m_stDefaultBlendColor, false);
+            f.SetMultiplyBlendColor(SpriteColorComponents { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu }, updateVertex);
         }
-    }
-
-    if ((what & UV_CHANGED) == UV_CHANGED)
-    {
-        for (size_t i = 0; i < m_stFrames.size(); ++i)
+        else
         {
-            const auto& frame = m_stFrames[i];
-            auto& precomputedVertex = m_stPrecomputedSequenceVertex[i];
-
-            // 设置纹理
-            auto texture = static_pointer_cast<v2::Asset::TextureAsset>(GetTexture());
-            auto textureWidth = texture->GetWidth();
-            auto textureHeight = texture->GetHeight();
-            auto u = static_cast<float>(frame.Left() / textureWidth);
-            auto v = static_cast<float>(frame.Top() / textureHeight);
-            auto uw = static_cast<float>(frame.Width() / textureWidth);
-            auto vh = static_cast<float>(frame.Height() / textureHeight);
-            precomputedVertex[0].TexCoord = {u, v};
-            precomputedVertex[1].TexCoord = {u + uw, v};
-            precomputedVertex[2].TexCoord = {u + uw, v + vh};
-            precomputedVertex[3].TexCoord = {u, v + vh};
-        }
-    }
-
-    if ((what & COLOR_CHANGED) == COLOR_CHANGED)
-    {
-        for (size_t i = 0; i < m_stFrames.size(); ++i)
-        {
-            auto& precomputedVertex = m_stPrecomputedSequenceVertex[i];
-
-            // 设置混合模式
-            auto vertexColorBlendMode = m_stDefaultBlendMode.VertexColorBlend;
-            if (vertexColorBlendMode == VertexColorBlendMode::Multiply)
-            {
-                precomputedVertex[0].Color0 = 0x000000FF;
-                precomputedVertex[1].Color0 = 0x000000FF;
-                precomputedVertex[2].Color0 = 0x000000FF;
-                precomputedVertex[3].Color0 = 0x000000FF;
-
-                precomputedVertex[0].Color1 = m_stDefaultBlendColor[0];
-                precomputedVertex[1].Color1 = m_stDefaultBlendColor[1];
-                precomputedVertex[2].Color1 = m_stDefaultBlendColor[2];
-                precomputedVertex[3].Color1 = m_stDefaultBlendColor[3];
-            }
-            else
-            {
-                precomputedVertex[0].Color0 = m_stDefaultBlendColor[0];
-                precomputedVertex[1].Color0 = m_stDefaultBlendColor[1];
-                precomputedVertex[2].Color0 = m_stDefaultBlendColor[2];
-                precomputedVertex[3].Color0 = m_stDefaultBlendColor[3];
-
-                precomputedVertex[0].Color1 = 0xFFFFFFFF;
-                precomputedVertex[1].Color1 = 0xFFFFFFFF;
-                precomputedVertex[2].Color1 = 0xFFFFFFFF;
-                precomputedVertex[3].Color1 = 0xFFFFFFFF;
-            }
+            assert(m_stDefaultBlendMode.VertexColorBlend == VertexColorBlendMode::Multiply);
+            f.SetAdditiveBlendColor(SpriteColorComponents { 0x000000FFu, 0x000000FFu, 0x000000FFu, 0x000000FFu }, false);
+            f.SetMultiplyBlendColor(m_stDefaultBlendColor, updateVertex);
         }
     }
 }

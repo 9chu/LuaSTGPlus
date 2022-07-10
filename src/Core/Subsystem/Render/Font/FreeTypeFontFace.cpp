@@ -279,7 +279,7 @@ Result<FontGlyphAtlasInfo> FreeTypeFontFace::GetGlyphAtlas(FontGlyphRasterParam 
     }
     catch (...)
     {
-        return make_error_code(std::errc::operation_not_supported);
+        return make_error_code(std::errc::not_supported);
     }
     assert(self.get() == this);
 

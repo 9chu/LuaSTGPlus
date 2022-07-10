@@ -7,7 +7,7 @@
 #pragma once
 #include <array>
 #include <optional>
-#include <lstg/Core/Subsystem/Render/Drawing2D/CommandBuffer.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/Sprite.hpp>
 #include "TextureAsset.hpp"
 #include "../BlendMode.hpp"
 #include "../MathAlias.hpp"
@@ -28,28 +28,33 @@ namespace lstg::v2::Asset
         [[nodiscard]] static Subsystem::Asset::AssetTypeId GetAssetTypeIdStatic() noexcept;
 
     public:
-        SpriteAsset(std::string name, TextureAssetPtr texture, UVRectangle frame, ColliderShape colliderShape);
+        SpriteAsset(std::string name, TextureAssetPtr texture, Math::ImageRectangleFloat frame, ColliderShape colliderShape);
 
     public:
         /**
          * 获取关联的纹理资产
          */
-        [[nodiscard]] const Subsystem::Asset::AssetPtr& GetTexture() const noexcept { return m_pTextureAsset; }
+        [[nodiscard]] const TextureAssetPtr& GetTextureAsset() const noexcept { return m_pTextureAsset; }
+
+        /**
+         * 获取绘制用精灵定义
+         */
+        [[nodiscard]] const Subsystem::Render::Drawing2D::Sprite& GetDrawingSprite() const noexcept { return m_stSprite; }
 
         /**
          * 获取帧
          */
-        [[nodiscard]] const UVRectangle& GetFrame() const noexcept { return m_stFrame; }
+        [[nodiscard]] const Math::ImageRectangleFloat& GetFrame() const noexcept { return m_stSprite.GetFrame(); }
 
         /**
          * 获取锚点
          */
-        [[nodiscard]] const Vec2& GetAnchor() const noexcept { return m_stAnchor; }
+        [[nodiscard]] const glm::vec2& GetAnchor() const noexcept { return m_stSprite.GetAnchor(); }
 
         /**
          * 设置锚点
          */
-        void SetAnchor(Vec2 vec) noexcept;
+        void SetAnchor(glm::vec2 vec) noexcept { m_stSprite.SetAnchor(vec); }
 
         /**
          * 获取碰撞形状
@@ -74,32 +79,28 @@ namespace lstg::v2::Asset
         /**
          * 获取默认的混合颜色
          */
-        [[nodiscard]] const std::array<ColorRGBA32, 4>& GetDefaultBlendColor() const noexcept { return m_stDefaultBlendColor; }
+        [[nodiscard]] const Subsystem::Render::Drawing2D::SpriteColorComponents& GetDefaultBlendColor() const noexcept
+        {
+            return m_stDefaultBlendColor;
+        }
 
         /**
          * 设置默认的混合颜色
          */
-        void SetDefaultBlendColor(std::array<ColorRGBA32, 4> color) noexcept;
-
-        /**
-         * 获取预先计算的顶点
-         * 这里的顶点会预先填充好偏移、纹理坐标、颜色等数据，用于加速渲染。
-         */
-        const std::array<Subsystem::Render::Drawing2D::Vertex, 4>& GetPrecomputedVertex() const noexcept { return m_stPrecomputedVertex; }
+        void SetDefaultBlendColor(const Subsystem::Render::Drawing2D::SpriteColorComponents& color) noexcept;
 
     protected:  // Asset
         [[nodiscard]] Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
 
     private:
-        void PrecomputedVertex(int what) noexcept;
+        void UpdateResource() noexcept;
+        void SyncBlendMode(bool updateVertex = true) noexcept;
 
     private:
-        Subsystem::Asset::AssetPtr m_pTextureAsset;
-        UVRectangle m_stFrame;  // 帧，精灵在纹理中的范围
-        Vec2 m_stAnchor;  // 锚点，相对于 Frame 左上角
+        TextureAssetPtr m_pTextureAsset;
+        Subsystem::Render::Drawing2D::Sprite m_stSprite;
         ColliderShape m_stColliderShape;  // 碰撞外形
         BlendMode m_stDefaultBlendMode;  // 默认混合模式
-        std::array<ColorRGBA32, 4> m_stDefaultBlendColor = { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };  // 默认混合颜色
-        std::array<Subsystem::Render::Drawing2D::Vertex, 4> m_stPrecomputedVertex;  // 根据参数预先计算的顶点
+        Subsystem::Render::Drawing2D::SpriteColorComponents m_stDefaultBlendColor = { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
     };
 }

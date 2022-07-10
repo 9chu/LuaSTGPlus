@@ -7,14 +7,16 @@
 #include <lstg/v2/Asset/TextureAssetFactory.hpp>
 
 #include <memory>
+#include <lstg/Core/Text/JsonHelper.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
-#include <lstg/Core/Subsystem/Asset/ArgumentHelper.hpp>
 #include <lstg/v2/Asset/TextureAsset.hpp>
 #include <lstg/v2/Asset/TextureAssetLoader.hpp>
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Asset;
+
+using namespace lstg::Text;
 
 std::string_view TextureAssetFactory::GetAssetTypeName() const noexcept
 {
@@ -29,11 +31,11 @@ Subsystem::Asset::AssetTypeId TextureAssetFactory::GetAssetTypeId() const noexce
 Result<Subsystem::Asset::CreateAssetResult> TextureAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
     Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments) noexcept
 {
-    auto pixelPerUnit = Subsystem::Asset::ReadArgument<double>(arguments, "/ppu", 1.);
+    auto pixelPerUnit = JsonHelper::ReadValue<float>(arguments, "/ppu", 1.f);
 
     try
     {
-        auto basicTexture = assetSystem.CreateAsset<Subsystem::Asset::BasicTextureAsset>(pool, {}, arguments);
+        auto basicTexture = assetSystem.CreateAsset<Subsystem::Asset::BasicTexture2DAsset>(pool, {}, arguments);
         auto asset = make_shared<TextureAsset>(string{name}, std::move(basicTexture.ThrowIfError()), pixelPerUnit);
         auto loader = make_shared<TextureAssetLoader>(asset);
         return Subsystem::Asset::CreateAssetResult {

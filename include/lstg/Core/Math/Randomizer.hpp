@@ -120,6 +120,19 @@ namespace lstg::Math
         }
 
         /**
+         * 生成下一个随机数（浮点数）
+         * @pre lower <= upper
+         * @param lower 下限
+         * @param upper 上限
+         * @return [lower, upper) 区间的浮点数
+         */
+        inline float NextFloat(float lower, float upper) noexcept
+        {
+            assert(lower <= upper);
+            return NextFloat() * (upper - lower) + lower;
+        }
+
+        /**
          * 长跳
          * 等价于 2^64 次 Next() 调用。
          */

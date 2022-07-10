@@ -200,6 +200,7 @@ namespace lstg::Math
      *  Height
      */
     using ImageRectangle = Rectangle<uint32_t, TopDownTag>;
+    using ImageRectangleFloat = Rectangle<float, TopDownTag>;
 
     /**
      * 世界坐标系 X-Y 平面上的矩形

@@ -4,7 +4,7 @@
  * @author 9chu
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
-#include <lstg/Core/Subsystem/Asset/BasicTextureAsset.hpp>
+#include <lstg/Core/Subsystem/Asset/BasicTexture2DAsset.hpp>
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/AppBase.hpp>
@@ -16,19 +16,19 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Asset;
 
-LSTG_DEF_LOG_CATEGORY(BasicTextureAsset);
+LSTG_DEF_LOG_CATEGORY(BasicTexture2DAsset);
 
-AssetTypeId BasicTextureAsset::GetAssetTypeIdStatic() noexcept
+AssetTypeId BasicTexture2DAsset::GetAssetTypeIdStatic() noexcept
 {
-    const auto& uniqueTypeName = Script::detail::GetUniqueTypeName<BasicTextureAsset>();
+    const auto& uniqueTypeName = Script::detail::GetUniqueTypeName<BasicTexture2DAsset>();
     return uniqueTypeName.Id;
 }
 
-BasicTextureAsset::BasicTextureAsset(std::string name, std::string path)
+BasicTexture2DAsset::BasicTexture2DAsset(std::string name, std::string path)
     : Asset(std::move(name)), m_stPath(std::move(path))
 {}
 
-uint32_t BasicTextureAsset::GetWidth() const noexcept
+uint32_t BasicTexture2DAsset::GetWidth() const noexcept
 {
     if (m_stTextureInfo)
     {
@@ -36,11 +36,11 @@ uint32_t BasicTextureAsset::GetWidth() const noexcept
     }
     else
     {
-        const_cast<BasicTextureAsset*>(this)->InitTextureInfo();
+        const_cast<BasicTexture2DAsset*>(this)->InitTextureInfo();
         if (!m_stTextureInfo)
         {
-            LSTG_LOG_WARN_CAT(BasicTextureAsset, "Fail to init texture info, asset name=\"{}\"", GetName());
-            return 0;
+            LSTG_LOG_WARN_CAT(BasicTexture2DAsset, "Fail to init texture info, asset name=\"{}\"", GetName());
+            return RenderSystem::GetDefaultTexture2DSize().x;  // 加载失败，此时返回默认纹理宽度
         }
         else
         {
@@ -49,7 +49,7 @@ uint32_t BasicTextureAsset::GetWidth() const noexcept
     }
 }
 
-uint32_t BasicTextureAsset::GetHeight() const noexcept
+uint32_t BasicTexture2DAsset::GetHeight() const noexcept
 {
     if (m_stTextureInfo)
     {
@@ -57,11 +57,11 @@ uint32_t BasicTextureAsset::GetHeight() const noexcept
     }
     else
     {
-        const_cast<BasicTextureAsset*>(this)->InitTextureInfo();
+        const_cast<BasicTexture2DAsset*>(this)->InitTextureInfo();
         if (!m_stTextureInfo)
         {
-            LSTG_LOG_WARN_CAT(BasicTextureAsset, "Fail to init texture info, asset name=\"{}\"", GetName());
-            return 0;
+            LSTG_LOG_WARN_CAT(BasicTexture2DAsset, "Fail to init texture info, asset name=\"{}\"", GetName());
+            return RenderSystem::GetDefaultTexture2DSize().y;  // 加载失败，此时返回默认纹理高度
         }
         else
         {
@@ -70,12 +70,12 @@ uint32_t BasicTextureAsset::GetHeight() const noexcept
     }
 }
 
-AssetTypeId BasicTextureAsset::GetAssetTypeId() const noexcept
+AssetTypeId BasicTexture2DAsset::GetAssetTypeId() const noexcept
 {
     return GetAssetTypeIdStatic();
 }
 
-void BasicTextureAsset::InitTextureInfo() noexcept
+void BasicTexture2DAsset::InitTextureInfo() noexcept
 {
     if (!m_stTextureInfo)
     {
@@ -89,12 +89,13 @@ void BasicTextureAsset::InitTextureInfo() noexcept
         else
         {
             // 此时，纹理正在加载，只能阻塞地再次打开文件获取信息
-            LSTG_LOG_WARN_CAT(BasicTextureAsset, "Get texture info when asset is not ready may influence performance, asset={}", GetName());
+            LSTG_LOG_WARN_CAT(BasicTexture2DAsset, "Get texture info when asset is not ready may influence performance, asset={}",
+                GetName());
 
             auto stream = AssetSystem::GetInstance().OpenAssetStream(m_stPath);
             if (!stream)
             {
-                LSTG_LOG_ERROR_CAT(BasicTextureAsset, "Open asset stream from \"{}\" fail: {}", m_stPath, stream.GetError());
+                LSTG_LOG_ERROR_CAT(BasicTexture2DAsset, "Open asset stream from \"{}\" fail: {}", m_stPath, stream.GetError());
             }
             else
             {
@@ -102,7 +103,7 @@ void BasicTextureAsset::InitTextureInfo() noexcept
                 uint32_t width = 0, height = 0;
                 auto ret = Render::detail::Texture2DDataImpl::ReadImageInfoFromStream(width, height, *stream);
                 if (!ret)
-                    LSTG_LOG_ERROR_CAT(BasicTextureAsset, "Read image size from \"{}\" fail: {}", m_stPath, ret.GetError());
+                    LSTG_LOG_ERROR_CAT(BasicTexture2DAsset, "Read image size from \"{}\" fail: {}", m_stPath, ret.GetError());
                 else
                     m_stTextureInfo = TextureInfo { width, height };
             }
@@ -110,8 +111,11 @@ void BasicTextureAsset::InitTextureInfo() noexcept
     }
 }
 
-void BasicTextureAsset::ReceiveLoadedAsset(Render::TexturePtr tex) noexcept
+void BasicTexture2DAsset::ReceiveLoadedAsset(Render::TexturePtr tex) noexcept
 {
     m_pTexture = std::move(tex);
     InitTextureInfo();
+#if LSTG_ASSET_HOT_RELOAD
+    UpdateVersion();  // 刷新版本号
+#endif
 }

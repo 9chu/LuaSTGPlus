@@ -12,7 +12,7 @@ namespace lstg::Subsystem::Asset
     /**
      * 纹理资产工厂
      */
-    class BasicTextureAssetFactory :
+    class BasicTexture2DAssetFactory :
         public IAssetFactory
     {
     public:  // IAssetFactory

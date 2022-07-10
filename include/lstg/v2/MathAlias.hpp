@@ -11,8 +11,7 @@
 
 namespace lstg::v2
 {
-    using ColorRGBA32 = Subsystem::Render::ColorRGBA32;
-    using WindowRectangle = Math::Rectangle<double, Math::TopDownTag>;
+    // 这里定义 GamePlay 所用的数据结构
     using Vec2 = glm::vec<2, double, glm::defaultp>;
     using ColliderShape = Math::Collider2D::ColliderShape<double>;
 }

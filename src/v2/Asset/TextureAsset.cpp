@@ -18,33 +18,23 @@ Subsystem::Asset::AssetTypeId TextureAsset::GetAssetTypeIdStatic() noexcept
     return uniqueTypeName.Id;
 }
 
-TextureAsset::TextureAsset(std::string name, Subsystem::Asset::BasicTextureAssetPtr basicTexture, double pixelPerUnit)
-    : Subsystem::Asset::Asset(std::move(name)), m_pBasicTexture(std::move(basicTexture)),
-    m_dPixelPerUnit(std::abs(pixelPerUnit) <= std::numeric_limits<double>::epsilon() ? 1. : pixelPerUnit)
+TextureAsset::TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAssetPtr textureAsset, float pixelPerUnit)
+    : Subsystem::Asset::Asset(std::move(name)), m_pTextureAsset(std::move(textureAsset))
 {
-}
-
-const Subsystem::Asset::BasicTextureAssetPtr& TextureAsset::GetBasicTexture() const noexcept
-{
-    return m_pBasicTexture;
-}
-
-double TextureAsset::GetPixelPerUnit() const noexcept
-{
-    return m_dPixelPerUnit;
-}
-
-double TextureAsset::GetWidth() const noexcept
-{
-    return m_pBasicTexture->GetWidth() / GetPixelPerUnit();
-}
-
-double TextureAsset::GetHeight() const noexcept
-{
-    return m_pBasicTexture->GetHeight() / GetPixelPerUnit();
+    m_stDrawingTexture.SetUnderlayTexture(m_pTextureAsset->GetTexture());
+    m_stDrawingTexture.SetPixelPerUnit(std::abs(pixelPerUnit) <= std::numeric_limits<float>::epsilon() ? 1.f : pixelPerUnit);
 }
 
 Subsystem::Asset::AssetTypeId TextureAsset::GetAssetTypeId() const noexcept
 {
     return GetAssetTypeIdStatic();
+}
+
+void TextureAsset::UpdateResource() noexcept
+{
+    m_stDrawingTexture.SetUnderlayTexture(m_pTextureAsset->GetTexture());
+
+#if LSTG_ASSET_HOT_RELOAD
+    UpdateVersion();
+#endif
 }

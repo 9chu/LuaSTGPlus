@@ -7,15 +7,17 @@
 #include <lstg/v2/Asset/SpriteSequenceAssetFactory.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Text/JsonHelper.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
 #include <lstg/Core/Subsystem/Asset/AssetError.hpp>
-#include <lstg/Core/Subsystem/Asset/ArgumentHelper.hpp>
 #include <lstg/v2/Asset/SpriteSequenceAsset.hpp>
 #include <lstg/v2/Asset/SpriteSequenceAssetLoader.hpp>
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Asset;
+
+using namespace lstg::Text;
 
 LSTG_DEF_LOG_CATEGORY(SpriteSequenceAssetFactory);
 
@@ -32,22 +34,22 @@ Subsystem::Asset::AssetTypeId SpriteSequenceAssetFactory::GetAssetTypeId() const
 Result<Subsystem::Asset::CreateAssetResult> SpriteSequenceAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
     Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments) noexcept
 {
-    auto textureName = Subsystem::Asset::ReadArgument<string>(arguments, "/texture");
+    auto textureName = JsonHelper::ReadValue<string>(arguments, "/texture");
     if (!textureName)
         return make_error_code(Subsystem::Asset::AssetError::MissingRequiredArgument);
-    auto sequencesX = Subsystem::Asset::ReadArgument<double>(arguments, "/left");
-    auto sequencesY = Subsystem::Asset::ReadArgument<double>(arguments, "/top");
-    auto frameW = Subsystem::Asset::ReadArgument<double>(arguments, "/frameWidth");
-    auto frameH = Subsystem::Asset::ReadArgument<double>(arguments, "/frameHeight");
-    auto row = Subsystem::Asset::ReadArgument<int32_t>(arguments, "/row");
-    auto column = Subsystem::Asset::ReadArgument<int32_t>(arguments, "/column");
-    auto interval = Subsystem::Asset::ReadArgument<int32_t>(arguments, "/interval");
+    auto sequencesX = JsonHelper::ReadValue<float>(arguments, "/left");
+    auto sequencesY = JsonHelper::ReadValue<float>(arguments, "/top");
+    auto frameW = JsonHelper::ReadValue<float>(arguments, "/frameWidth");
+    auto frameH = JsonHelper::ReadValue<float>(arguments, "/frameHeight");
+    auto row = JsonHelper::ReadValue<int32_t>(arguments, "/row");
+    auto column = JsonHelper::ReadValue<int32_t>(arguments, "/column");
+    auto interval = JsonHelper::ReadValue<int32_t>(arguments, "/interval");
 
     if (!sequencesX || !sequencesY || !frameW || !frameH || !row || !column || !interval)
         return make_error_code(Subsystem::Asset::AssetError::MissingRequiredArgument);
-    auto colliderHalfSizeX = Subsystem::Asset::ReadArgument<double>(arguments, "/colliderHalfSizeX", 0);
-    auto colliderHalfSizeY = Subsystem::Asset::ReadArgument<double>(arguments, "/colliderHalfSizeY", 0);
-    auto colliderIsRect = Subsystem::Asset::ReadArgument<bool>(arguments, "/colliderIsRect", false);
+    auto colliderHalfSizeX = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeX", 0);
+    auto colliderHalfSizeY = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeY", 0);
+    auto colliderIsRect = JsonHelper::ReadValue<bool>(arguments, "/colliderIsRect", false);
 
     try
     {
@@ -60,17 +62,20 @@ Result<Subsystem::Asset::CreateAssetResult> SpriteSequenceAssetFactory::CreateAs
         }
 
         // 拆分构造 Frames
-        std::vector<UVRectangle> frames;
+        std::vector<Subsystem::Render::Drawing2D::Sprite> frames;
+        frames.reserve(*row * *column);
         for (int j = 0; j < *row; ++j)  // 行
         {
             for (int i = 0; i < *column; ++i)  // 列
             {
-                frames.emplace_back(
+                Subsystem::Render::Drawing2D::Sprite sprite;
+                sprite.SetFrame({
                     *sequencesX + *frameW * i,  // left
                     *sequencesY + *frameH * j,  // top
                     *frameW,  // width
                     *frameH  // height
-                );
+                });
+                frames.push_back(sprite);
             }
         }
         if (frames.empty())

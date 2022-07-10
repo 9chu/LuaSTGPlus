@@ -46,9 +46,36 @@ void TextureAssetLoader::Update() noexcept
     auto asset = static_pointer_cast<TextureAsset>(GetAsset());
 
     // 检查依赖的资源是否加载完毕
-    auto state = asset->GetBasicTexture()->GetState();
+    auto state = asset->GetBasicTextureAsset()->GetState();
     if (state == Subsystem::Asset::AssetStates::Loaded)
+    {
+#if LSTG_ASSET_HOT_RELOAD
+        m_uLastTextureVersion = asset->GetBasicTextureAsset()->GetVersion();
+#endif
+        asset->UpdateResource();
+
         SetState(Subsystem::Asset::AssetLoadingStates::Loaded);
+    }
     else if (state == Subsystem::Asset::AssetStates::Error)
+    {
         SetState(Subsystem::Asset::AssetLoadingStates::Error);
+    }
 }
+
+#if LSTG_ASSET_HOT_RELOAD
+bool TextureAssetLoader::SupportHotReload() const noexcept
+{
+    return true;
+}
+
+bool TextureAssetLoader::CheckIsOutdated() const noexcept
+{
+    auto asset = static_pointer_cast<TextureAsset>(GetAsset());
+    return asset->GetBasicTextureAsset()->GetVersion() != m_uLastTextureVersion;
+}
+
+void TextureAssetLoader::PrepareToReload() noexcept
+{
+    SetState(Subsystem::Asset::AssetLoadingStates::DependencyLoading);
+}
+#endif

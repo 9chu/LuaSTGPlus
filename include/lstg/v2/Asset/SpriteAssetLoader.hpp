@@ -23,5 +23,16 @@ namespace lstg::v2::Asset
         Result<void> AsyncLoad() noexcept override;
         Result<void> PostLoad() noexcept override;
         void Update() noexcept override;
+
+#if LSTG_ASSET_HOT_RELOAD
+        bool SupportHotReload() const noexcept override;
+        bool CheckIsOutdated() const noexcept override;
+        void PrepareToReload() noexcept override;
+#endif
+
+    private:
+#if LSTG_ASSET_HOT_RELOAD
+        uint32_t m_uLastTextureVersion = 0;
+#endif
     };
 }

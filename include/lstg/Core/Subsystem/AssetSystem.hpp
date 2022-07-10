@@ -8,6 +8,7 @@
 #include "VirtualFileSystem.hpp"
 #include "RenderSystem.hpp"
 #include "VFS/IStream.hpp"
+#include "VFS/IFileSystem.hpp"
 #include "Asset/IAssetFactory.hpp"
 #include "Asset/AssetError.hpp"
 #include "Asset/AssetPool.hpp"
@@ -59,6 +60,13 @@ namespace lstg::Subsystem
          * @return 流指针
          */
         Result<VFS::StreamPtr> OpenAssetStream(std::string_view path) noexcept;
+
+        /**
+         * 获取资产流属性
+         * @param path 路径
+         * @return 属性
+         */
+        Result<VFS::FileAttribute> GetAssetStreamAttribute(std::string_view path) noexcept;
 
         /**
          * 注册资产工厂
@@ -126,5 +134,9 @@ namespace lstg::Subsystem
 
         // 加载队列
         std::vector<Asset::AssetLoaderPtr> m_stLoadingTasks;
+#if LSTG_ASSET_HOT_RELOAD
+        size_t m_uLastCheckedTask = 0;
+        std::vector<Asset::AssetLoaderPtr> m_stWatchTasks;
+#endif
     };
 }

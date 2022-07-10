@@ -23,6 +23,11 @@ Asset::~Asset() noexcept
     assert(m_uId == kEmptyAssetId && detail::IsWeakPtrUninitialized(m_pPool));
 }
 
+bool Asset::IsWildAsset() const noexcept
+{
+    return detail::IsWeakPtrUninitialized(m_pPool);
+}
+
 void Asset::SetState(AssetStates s) noexcept
 {
     // 限制状态转换
@@ -31,6 +36,13 @@ void Asset::SetState(AssetStates s) noexcept
         (m_iState == AssetStates::Error && s == AssetStates::Error));
     m_iState = s;
 }
+
+#if LSTG_ASSET_HOT_RELOAD
+void Asset::UpdateVersion() noexcept
+{
+    ++m_uVersion;
+}
+#endif
 
 void Asset::OnRemove() noexcept
 {

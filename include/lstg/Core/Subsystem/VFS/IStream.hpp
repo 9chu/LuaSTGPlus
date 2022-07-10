@@ -670,4 +670,43 @@ namespace lstg::Subsystem::VFS
     }
 
     // </editor-fold>
+
+    /**
+     * 从流中读取所有数据
+     * @tparam TContainer 输出容器类型
+     * @param out 输出容器
+     * @param stream 流
+     * @return 是否成功
+     */
+    template <typename TContainer>
+    inline Result<void> ReadAll(TContainer& out, IStream* stream) noexcept
+    {
+        static const size_t kExpandSize = 4 * 1024;
+
+        static_assert(sizeof(typename TContainer::value_type) == 1);
+        assert(stream);
+        out.clear();
+
+        try
+        {
+            while (true)
+            {
+                auto sz = out.size();
+                out.resize(sz + kExpandSize);
+
+                auto err = stream->Read(reinterpret_cast<uint8_t*>(out.data() + sz), kExpandSize);
+                if (!err)
+                    return err.GetError();
+
+                out.resize(sz + *err);
+                if (*err < kExpandSize)
+                    break;
+            }
+        }
+        catch (...)
+        {
+            return make_error_code(std::errc::not_enough_memory);
+        }
+        return {};
+    }
 }

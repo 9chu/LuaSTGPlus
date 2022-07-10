@@ -39,11 +39,11 @@ void RenderModule::SetViewport(double left, double right, double bottom, double 
     auto& app = detail::GetGlobalApp();
     auto bound = app.GetViewportBound();
     auto scale = bound.Width() / detail::GetGlobalApp().GetDesiredResolution().x;
-    WindowRectangle desiredViewport = {
-        bound.Left() + left * scale,
-        bound.Top() + top * scale,
-        std::abs(right - left) * scale,
-        std::abs(top - bottom) * scale
+    Math::ImageRectangleFloat desiredViewport = {
+        static_cast<float>(bound.Left() + left * scale),
+        static_cast<float>(bound.Top() + top * scale),
+        static_cast<float>(std::abs(right - left) * scale),
+        static_cast<float>(std::abs(top - bottom) * scale)
     };
     app.GetCommandBuffer().SetViewport(
         static_cast<float>(desiredViewport.Left()),
@@ -109,20 +109,19 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
     auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
-    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
-    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
 
     // 准备渲染
     auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
-    cmdBuffer.SetColorBlendMode(colorBlendMode);
+    auto drawing = spriteAsset->GetDrawingSprite().Draw(cmdBuffer);
+    if (!drawing)
+    {
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, drawing.GetError().message().c_str());
+        return;
+    }
 
-    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
-    if (!ret)
-        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
-    auto& drawing = *ret;
-    drawing.Transform(rot ? static_cast<float>(*rot) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
+    drawing->Transform(rot ? static_cast<float>(*rot) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
         vscale ? static_cast<float>(*vscale) : 1.f);
-    drawing.Translate(x, y, 0);
+    drawing->Translate(x, y, 0);
 }
 
 void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)
@@ -136,18 +135,17 @@ void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double lef
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
     auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
-    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
-    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
 
     // 准备渲染
     auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
-    cmdBuffer.SetColorBlendMode(colorBlendMode);
+    auto drawing = spriteAsset->GetDrawingSprite().Draw(cmdBuffer);
+    if (!drawing)
+    {
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, drawing.GetError().message().c_str());
+        return;
+    }
 
-    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
-    if (!ret)
-        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
-    auto& drawing = *ret;
-    drawing.Vertices(glm::vec2(left, top), glm::vec2(right, top), glm::vec2(right, bottom), glm::vec2(left, bottom));
+    drawing->Vertices(glm::vec2(left, top), glm::vec2(right, top), glm::vec2(right, bottom), glm::vec2(left, bottom));
 }
 
 void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2,
@@ -162,18 +160,17 @@ void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
     auto spriteAsset = static_pointer_cast<Asset::SpriteAsset>(asset);
-    auto texture = static_pointer_cast<Asset::TextureAsset>(spriteAsset->GetTexture())->GetBasicTexture()->GetTexture();
-    auto colorBlendMode = spriteAsset->GetDefaultBlendMode().ColorBlend;
 
     // 准备渲染
     auto& cmdBuffer = detail::GetGlobalApp().GetCommandBuffer();
-    cmdBuffer.SetColorBlendMode(colorBlendMode);
+    auto drawing = spriteAsset->GetDrawingSprite().Draw(cmdBuffer);
+    if (!drawing)
+    {
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, drawing.GetError().message().c_str());
+        return;
+    }
 
-    auto ret = Subsystem::Render::Drawing2D::SpriteDrawing::Draw(cmdBuffer, texture, spriteAsset->GetPrecomputedVertex());
-    if (!ret)
-        LSTG_LOG_ERROR_CAT(RenderModule, "draw image '%s' fail: %s", imageName, ret.GetError().message().c_str());
-    auto& drawing = *ret;
-    drawing.Vertices(
+    drawing->Vertices(
         glm::vec3(static_cast<float>(x1), static_cast<float>(y1), static_cast<float>(z1)),
         glm::vec3(static_cast<float>(x2), static_cast<float>(y2), static_cast<float>(z2)),
         glm::vec3(static_cast<float>(x3), static_cast<float>(y3), static_cast<float>(z3)),

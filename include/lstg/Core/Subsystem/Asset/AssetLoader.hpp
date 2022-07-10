@@ -73,6 +73,27 @@ namespace lstg::Subsystem::Asset
          */
         virtual void Update() noexcept = 0;
 
+#if LSTG_ASSET_HOT_RELOAD
+        /**
+         * 检查是否支持热加载
+         * 如果不支持热加载，则不会被资源系统监视，首次加载完毕后即释放加载器。
+         */
+        virtual bool SupportHotReload() const noexcept = 0;
+
+        /**
+         * 检查是否可以重新加载
+         * @pre GetState() == AssetLoadingStates::Loaded || GetState() == AssetLoadingStates::Error
+         */
+        virtual bool CheckIsOutdated() const noexcept = 0;
+
+        /**
+         * 准备重新加载
+         * 执行后将发生状态切换 -> DependencyLoading | Pending
+         * @pre GetState() == AssetLoadingStates::Loaded || GetState() == AssetLoadingStates::Error
+         */
+        virtual void PrepareToReload() noexcept = 0;
+#endif
+
     protected:
         void SetState(AssetLoadingStates state) noexcept;
 

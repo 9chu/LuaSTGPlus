@@ -80,7 +80,9 @@ namespace lstg::Subsystem::Render::Font
             {
                 if (texWidth == 0.f || texHeight == 0.f)
                 {
-                    UVRectangle = {};
+                    UVRectangle = {
+                        0.f, 0.f, 1.f, 1.f,
+                    };
                 }
                 else
                 {

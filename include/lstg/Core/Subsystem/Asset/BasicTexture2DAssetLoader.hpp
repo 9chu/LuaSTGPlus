@@ -9,23 +9,29 @@
 #include "AssetLoader.hpp"
 #include "../Render/Texture2DData.hpp"
 #include "../VFS/IStream.hpp"
+#include "../VFS/IFileSystem.hpp"
 
 namespace lstg::Subsystem::Asset
 {
     /**
      * 纹理资产加载器
      */
-    class BasicTextureAssetLoader :
+    class BasicTexture2DAssetLoader :
         public AssetLoader
     {
     public:
-        BasicTextureAssetLoader(AssetPtr asset, bool mipmapEnabled);
+        BasicTexture2DAssetLoader(AssetPtr asset, bool mipmapEnabled);
 
     public:  // AssetLoader
         Result<void> PreLoad() noexcept override;
         Result<void> AsyncLoad() noexcept override;
         Result<void> PostLoad() noexcept override;
         void Update() noexcept override;
+#if LSTG_ASSET_HOT_RELOAD
+        bool SupportHotReload() const noexcept override;
+        bool CheckIsOutdated() const noexcept override;
+        void PrepareToReload() noexcept override;
+#endif
 
     private:
         // 资源属性
@@ -33,6 +39,9 @@ namespace lstg::Subsystem::Asset
 
         // 状态
         VFS::StreamPtr m_pSourceStream;  // PreLoad 时加载
+#if LSTG_ASSET_HOT_RELOAD
+        VFS::FileAttribute m_stSourceAttribute;
+#endif
         std::optional<Render::Texture2DData> m_stTextureData;  // AsyncLoad 时加载
     };
 }

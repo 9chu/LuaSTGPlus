@@ -209,7 +209,7 @@ void AssetManagerModule::SetImageState(LuaStack& stack, const char* name, const 
     spriteAsset->SetDefaultBlendMode(m);
 
     // 决定顶点色
-    array<ColorRGBA32, 4> vertexColor;
+    array<Render::ColorRGBA32, 4> vertexColor;
     if (vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4)
     {
         assert(*vertexColor1 && *vertexColor2 && *vertexColor3 && *vertexColor4);
@@ -312,7 +312,7 @@ void AssetManagerModule::SetAnimationState(LuaStack& stack, const char* name, co
     spriteSequenceAsset->SetDefaultBlendMode(m);
 
     // 决定顶点色
-    array<ColorRGBA32, 4> vertexColor;
+    array<Render::ColorRGBA32, 4> vertexColor;
     if (vertexColor1 && vertexColor2 && vertexColor3 && vertexColor4)
     {
         assert(*vertexColor1 && *vertexColor2 && *vertexColor3 && *vertexColor4);
