@@ -24,35 +24,6 @@ LSTG_DEF_LOG_CATEGORY(HgeFontFactory);
 
 namespace
 {
-//    Result<string> ReadWholeFile(Subsystem::VFS::IStream* stream) noexcept
-//    {
-//        static const size_t kExpand = 16 * 1024;
-//
-//        assert(stream);
-//        string ret;
-//        try
-//        {
-//            while (true)
-//            {
-//                auto sz = ret.size();
-//                ret.resize(sz + kExpand);
-//
-//                auto err = stream->Read(reinterpret_cast<uint8_t*>(ret.data() + sz), ret.size() - sz);
-//                if (!err)
-//                    return err.GetError();
-//
-//                ret.resize(sz + *err);
-//                if (*err < kExpand)
-//                    break;
-//            }
-//        }
-//        catch (...)
-//        {
-//            return make_error_code(errc::not_enough_memory);
-//        }
-//        return ret;
-//    }
-
     class FontGenerator :
         public Text::IIniSaxListener
     {
@@ -95,6 +66,8 @@ namespace
             {
                 case STATE_READING_SECTION:
                     m_iState = STATE_FINISH_SECTION;
+                    if (!m_bBitmapRead)
+                        return make_error_code(HgeFontLoadError::MissingBitmap);
                     break;
                 default:
                     break;

@@ -43,6 +43,13 @@ namespace lstg::Subsystem::Asset
 
     /**
      * 资产基类
+     *
+     * - 资产总是位于一个 Pool 中，并且具备 Pool 中的唯一 ID。
+     * - 资产可以没有名称，此时不能由名称查询资产，名称也是 Pool 中唯一的。
+     * - 资产可以持有其他资产的引用，此时称为“引用资产”。
+     * - 资产也可以依赖其他资产，此时被依赖的资产称为“子资产”。
+     * - 资产需要主动释放“子资产”，否则会造成泄漏。
+     * - “子资产”通常没有名字。
      */
     class Asset
     {
@@ -59,6 +66,11 @@ namespace lstg::Subsystem::Asset
         Asset& operator=(Asset&&) noexcept = delete;
 
     public:
+        /**
+         * 获取资产 ID
+         */
+        [[nodiscard]] AssetId GetId() const noexcept { return m_uId; }
+
         /**
          * 获取资产状态
          */

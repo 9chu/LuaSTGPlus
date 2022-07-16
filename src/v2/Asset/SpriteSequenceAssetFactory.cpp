@@ -32,7 +32,8 @@ Subsystem::Asset::AssetTypeId SpriteSequenceAssetFactory::GetAssetTypeId() const
 }
 
 Result<Subsystem::Asset::CreateAssetResult> SpriteSequenceAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
-    Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments) noexcept
+    Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments,
+    Subsystem::Asset::IAssetDependencyResolver* resolver) noexcept
 {
     auto textureName = JsonHelper::ReadValue<string>(arguments, "/texture");
     if (!textureName)
@@ -54,7 +55,8 @@ Result<Subsystem::Asset::CreateAssetResult> SpriteSequenceAssetFactory::CreateAs
     try
     {
         // 找到依赖的纹理
-        auto texture = static_pointer_cast<TextureAsset>(pool->GetAsset(*textureName));
+        assert(resolver);
+        auto texture = static_pointer_cast<TextureAsset>(resolver->OnResolveAsset(*textureName));
         if (!texture)
         {
             LSTG_LOG_ERROR_CAT(SpriteSequenceAssetFactory, "Texture \"{}\" not found", *textureName);

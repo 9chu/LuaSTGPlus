@@ -19,6 +19,6 @@ namespace lstg::v2::Asset
         std::string_view GetAssetTypeName() const noexcept override;
         Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
         Result<Subsystem::Asset::CreateAssetResult> CreateAsset(Subsystem::AssetSystem& assetSystem, Subsystem::Asset::AssetPoolPtr pool,
-            std::string_view name, const nlohmann::json& arguments) noexcept override;
+            std::string_view name, const nlohmann::json& arguments, Subsystem::Asset::IAssetDependencyResolver* resolver) noexcept override;
     };
 }

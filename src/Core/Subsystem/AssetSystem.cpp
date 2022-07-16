@@ -42,6 +42,7 @@ static AssetSystem* s_pInstance = nullptr;
 static const uint32_t kMaxTaskExecuteTimeMs = 100;
 #if LSTG_ASSET_HOT_RELOAD
 static const uint32_t kMaxHotReloadCheckTimeMs = 5;
+static const size_t kMaxWatchTaskPerFrame = 3;  // 一帧就检查 3 个资源
 #endif
 
 AssetSystem& AssetSystem::GetInstance() noexcept
@@ -240,7 +241,9 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                     LSTG_LOG_TRACE_CAT(AssetSystem, "Asset \"{}\" loaded", asset->GetName());
 
                 // 设置关联任务为 Loaded 状态
+#if !LSTG_ASSET_HOT_RELOAD
                 assert(asset->GetState() == Asset::AssetStates::Uninitialized);
+#endif
                 asset->SetState(Asset::AssetStates::Loaded);
 
 #if LSTG_ASSET_HOT_RELOAD
@@ -273,10 +276,27 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             // 设置关联任务为 Error 状态
 #if LSTG_ASSET_HOT_RELOAD
             if (asset->GetState() == Asset::AssetStates::Uninitialized)  // 在热更新支持下，如果异步加载没有成功，则不对原对象发起变动
+            {
                 asset->SetState(Asset::AssetStates::Error);
+                if (asset->GetName().empty())
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Asset #{} load fail", asset->GetId());
+                else
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Asset {} load fail", asset->GetName());
+            }
+            else
+            {
+                if (asset->GetName().empty())
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Asset #{} reload fail", asset->GetId());
+                else
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Asset {} reload fail", asset->GetName());
+            }
 #else
             assert(asset->GetState() == Asset::AssetStates::Uninitialized);
             asset->SetState(Asset::AssetStates::Error);
+            if (asset->GetName().empty())
+                LSTG_LOG_ERROR_CAT(AssetSystem, "Asset #{} load fail", asset->GetId());
+            else
+                LSTG_LOG_ERROR_CAT(AssetSystem, "Asset {} load fail", asset->GetName());
 #endif
             it = m_stLoadingTasks.erase(it);
         }
@@ -289,6 +309,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
         auto begin = std::chrono::steady_clock::now();
         auto end = begin;
 
+        size_t watchCount = 0;
         if (m_uLastCheckedTask >= m_stWatchTasks.size())
             m_uLastCheckedTask = 0;
 
@@ -332,6 +353,8 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                 break;
 
             ++m_uLastCheckedTask;
+            if (++watchCount > kMaxWatchTaskPerFrame)
+                break;
         }
     }
 #endif
@@ -350,9 +373,10 @@ Result<Asset::AssetPtr> AssetSystem::CreateAsset(Asset::AssetPoolPtr pool, Asset
     const nlohmann::json& arguments) noexcept
 {
     assert(pool && factory);
+    assert(m_pResolver);
 
     // 调用 Factory 创建资产
-    auto ret = factory->CreateAsset(*this, pool, name, arguments);
+    auto ret = factory->CreateAsset(*this, pool, name, arguments, m_pResolver);
     if (!ret)
     {
         LSTG_LOG_TRACE_CAT(AssetSystem, "Create asset error, err={}, asset={}", ret.GetError(), name);

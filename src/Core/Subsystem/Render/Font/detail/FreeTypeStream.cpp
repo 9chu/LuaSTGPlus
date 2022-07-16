@@ -57,8 +57,11 @@ void FreeTypeStream::OnClose(FT_Stream stream) noexcept
 }
 
 FreeTypeStream::FreeTypeStream(VFS::StreamPtr s)
-    : Stream(std::move(s))
 {
+    // 将输入流转换到可以随机访问的内存流
+    Stream = ConvertToSeekableStream(std::move(s)).ThrowIfError();
+    assert(Stream->IsSeekable() && Stream->GetLength());
+
     // 无用
     base = nullptr;
     descriptor.pointer = nullptr;
@@ -67,20 +70,17 @@ FreeTypeStream::FreeTypeStream(VFS::StreamPtr s)
     cursor = nullptr;
     limit = nullptr;
 
-    // 如果不支持 Seek 报错
-    if (!Stream->IsSeekable())
-        throw system_error(make_error_code(errc::not_supported));
-
     // 填充大小
-    auto sz = Stream->GetLength();
-    if (!sz)
-    {
-        if (sz.GetError() == make_error_code(errc::not_supported))
-            size = 0x7FFFFFFF;
-        else
-            sz.ThrowIfError();
-    }
-    size = static_cast<unsigned long>(*sz);
+    size = Stream->GetLength().ThrowIfError();
+//    auto sz = Stream->GetLength();
+//    if (!sz)
+//    {
+//        if (sz.GetError() == make_error_code(errc::not_supported))
+//            size = 0x7FFFFFFF;
+//        else
+//            sz.ThrowIfError();
+//    }
+//    size = static_cast<unsigned long>(*sz);
 
     // 填充位置
     pos = 0;

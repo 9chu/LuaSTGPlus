@@ -11,6 +11,8 @@
 #include <lstg/v2/Asset/TextureAsset.hpp>
 #include <lstg/v2/Asset/SpriteAsset.hpp>
 #include <lstg/v2/Asset/SpriteSequenceAsset.hpp>
+#include <lstg/v2/Asset/TrueTypeFontAsset.hpp>
+#include <lstg/v2/Asset/HgeFontAsset.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -21,78 +23,86 @@ using namespace lstg::Subsystem::Asset;
 
 LSTG_DEF_LOG_CATEGORY(AssetManagerModule);
 
+#define GET_CURRENT_POOL \
+    auto assetPools = detail::GetGlobalApp().GetAssetPools(); \
+    auto [_, currentAssetPool] = assetPools->GetCurrentAssetPool(); \
+    if (!currentAssetPool) \
+        stack.Error("can't load resource at this time."); \
+    assert(currentAssetPool)
+
 void AssetManagerModule::SetResourceStatus(LuaStack& stack, const char* pool)
 {
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
     if (::strcmp(pool, "global") == 0)
-        detail::GetGlobalApp().SetCurrentAssetPool(detail::GetGlobalApp().GetGlobalAssetPool());
+        assetPools->SetCurrentAssetPool(AssetPoolTypes::Global);
     else if (::strcmp(pool, "stage") == 0)
-        detail::GetGlobalApp().SetCurrentAssetPool(detail::GetGlobalApp().GetStageAssetPool());
+        assetPools->SetCurrentAssetPool(AssetPoolTypes::Stage);
     else if (::strcmp(pool, "none") == 0)
-        detail::GetGlobalApp().SetCurrentAssetPool(nullptr);
+        assetPools->SetCurrentAssetPool(AssetPoolTypes::None);
     else
         stack.Error("invalid argument #1 for 'SetResourceStatus', requires 'stage', 'global' or 'none'.");
 }
 
 void AssetManagerModule::RemoveResource(LuaStack& stack, const char* pool, std::optional<AssetTypes> type, std::optional<const char*> name)
 {
-    AssetPool* assetPool = nullptr;
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto p = AssetPoolTypes::None;
     if (::strcmp(pool, "global") == 0)
-        assetPool = detail::GetGlobalApp().GetGlobalAssetPool().get();
+        p = AssetPoolTypes::Global;
     else if (::strcmp(pool, "stage") == 0)
-        assetPool = detail::GetGlobalApp().GetStageAssetPool().get();
+        p = AssetPoolTypes::Stage;
     else if (::strcmp(pool, "none") == 0)
-        return;  // do nothing
+        p = AssetPoolTypes::None;
     else
         stack.Error("invalid argument #1 for 'RemoveResource', requires 'stage', 'global' or 'none'.");
 
-    assert(assetPool);
     if (type)
     {
         if (!name)
             stack.Error("argument #3 must be specified");
-
-        auto fullName = MakeFullAssetName(*type, *name);
-        auto ret = assetPool->RemoveAsset(fullName);
-        if (!ret)
-            LSTG_LOG_WARN_CAT(AssetManagerModule, "Remove asset {} fail: {}", fullName, ret.GetError());
+        assetPools->RemoveAsset(p, *type, *name);
     }
     else
     {
-        assetPool->Clear(AssetPool::AssetClearTypes::All);
-        if (assetPool == detail::GetGlobalApp().GetGlobalAssetPool().get())
-        {
+        assetPools->ClearAssetPool(p);
+        if (p == AssetPoolTypes::Global)
             LSTG_LOG_INFO_CAT(AssetManagerModule, "Global asset pool is clear");
-        }
-        else
-        {
-            assert(assetPool == detail::GetGlobalApp().GetStageAssetPool().get());
+        else if (p == AssetPoolTypes::Stage)
             LSTG_LOG_INFO_CAT(AssetManagerModule, "Stage asset pool is clear");
-        }
     }
 }
 
 std::optional<const char*> AssetManagerModule::CheckRes(AssetTypes type, const char* name)
 {
-    auto fullName = MakeFullAssetName(type, name);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
 
-    // 先在全局池中寻找再到关卡池中找
-    // FIXME: 行为似乎不统一，这个应该改成先在关卡池找再去全局池找？
-    if (detail::GetGlobalApp().GetGlobalAssetPool()->ContainsAsset(fullName))
-        return "global";
-    else if (detail::GetGlobalApp().GetStageAssetPool()->ContainsAsset(fullName))
-        return "stage";
-    return nullopt;
+    // NOTE: 老版本行为会先去 GlobalPool 查找，再去 StagePool 查找
+    // 这里统一先搜 StagePool
+    auto p = assetPools->LocateAsset(type, name);
+    switch (std::get<0>(p))
+    {
+        case AssetPoolTypes::Global:
+            return "global";
+        case AssetPoolTypes::Stage:
+            return "stage";
+        default:
+            return nullopt;
+    }
 }
 
 AssetManagerModule::Unpack<AssetManagerModule::AbsIndex, AssetManagerModule::AbsIndex> AssetManagerModule::EnumRes(LuaStack& stack,
     AssetTypes type)
 {
-    AssetPool* assetPools[] = {
-        detail::GetGlobalApp().GetGlobalAssetPool().get(),
-        detail::GetGlobalApp().GetStageAssetPool().get()
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    AssetPool* pools[] = {
+        assetPools->GetGlobalAssetPool().get(),
+        assetPools->GetStageAssetPool().get()
     };
 
-    for (auto assetPool : assetPools)
+    for (auto assetPool : pools)
     {
         size_t idx = 1;
         lua_newtable(stack);
@@ -110,8 +120,9 @@ AssetManagerModule::Unpack<AssetManagerModule::AbsIndex, AssetManagerModule::Abs
 
 AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(LuaStack& stack, const char* name)
 {
-    auto fullName = MakeFullAssetName(AssetTypes::Texture, name);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Texture, name);
     if (!asset)
         stack.Error("texture '%s' not found.", name);
     assert(asset);
@@ -123,10 +134,7 @@ AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(Lu
 
 void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const char* path, std::optional<bool> mipmap /* = false */)
 {
-    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
-    if (!currentAssetPool)
-        stack.Error("can't load resource at this time.");
-    assert(currentAssetPool);
+    GET_CURRENT_POOL;
 
     auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
     assert(assetSystem);
@@ -151,10 +159,7 @@ void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const ch
 void AssetManagerModule::LoadImage(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
     std::optional<double> a, std::optional<double> b, std::optional<bool> rect)
 {
-    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
-    if (!currentAssetPool)
-        stack.Error("can't load resource at this time.");
-    assert(currentAssetPool);
+    GET_CURRENT_POOL;
 
     auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
     assert(assetSystem);
@@ -188,10 +193,11 @@ void AssetManagerModule::LoadImage(LuaStack& stack, const char* name, const char
 void AssetManagerModule::SetImageState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
     std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4)
 {
-    auto fullName = MakeFullAssetName(AssetTypes::Image, name);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Image, name);
     if (!asset)
-        stack.Error("image '%s' not found", name);
+        stack.Error("image '%s' not found.", name);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
@@ -232,10 +238,11 @@ void AssetManagerModule::SetImageState(LuaStack& stack, const char* name, const 
 
 void AssetManagerModule::SetImageCenter(LuaStack& stack, const char* name, double x, double y)
 {
-    auto fullName = MakeFullAssetName(AssetTypes::Image, name);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Image, name);
     if (!asset)
-        stack.Error("image '%s' not found", name);
+        stack.Error("image '%s' not found.", name);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
@@ -251,10 +258,7 @@ void AssetManagerModule::SetImageScale(double factor)
 void AssetManagerModule::LoadAnimation(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
     int32_t n, int32_t m, int32_t interval, std::optional<double> a, std::optional<double> b, std::optional<bool> rect)
 {
-    const auto& currentAssetPool = detail::GetGlobalApp().GetCurrentAssetPool();
-    if (!currentAssetPool)
-        stack.Error("can't load resource at this time.");
-    assert(currentAssetPool);
+    GET_CURRENT_POOL;
 
     auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
     assert(assetSystem);
@@ -291,10 +295,11 @@ void AssetManagerModule::LoadAnimation(LuaStack& stack, const char* name, const 
 void AssetManagerModule::SetAnimationState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> vertexColor1,
     std::optional<LSTGColor*> vertexColor2, std::optional<LSTGColor*> vertexColor3, std::optional<LSTGColor*> vertexColor4)
 {
-    auto fullName = MakeFullAssetName(AssetTypes::Animation, name);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Animation, name);
     if (!asset)
-        stack.Error("animation '%s' not found", name);
+        stack.Error("animation '%s' not found.", name);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteSequenceAsset::GetAssetTypeIdStatic());
 
@@ -335,10 +340,11 @@ void AssetManagerModule::SetAnimationState(LuaStack& stack, const char* name, co
 
 void AssetManagerModule::SetAnimationCenter(LuaStack& stack, const char* name, double x, double y)
 {
-    auto fullName = MakeFullAssetName(AssetTypes::Animation, name);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Animation, name);
     if (!asset)
-        stack.Error("animation '%s' not found", name);
+        stack.Error("animation '%s' not found.", name);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteSequenceAsset::GetAssetTypeIdStatic());
 
@@ -346,87 +352,83 @@ void AssetManagerModule::SetAnimationCenter(LuaStack& stack, const char* name, d
     spriteSequenceAsset->SetAnchor({x, y});
 }
 
-void AssetManagerModule::LoadParticle(const char* name, const char* path, const char* imgName, std::optional<double> a,
+void AssetManagerModule::LoadParticle(LuaStack& stack, const char* name, const char* path, const char* imgName, std::optional<double> a,
     std::optional<double> b, std::optional<bool> rect)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//    const char* img_name = luaL_checkstring(L, 3);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadParticle(
-//        name,
-//        path,
-//        img_name,
-//        luaL_optnumber(L, 4, 0.0f),
-//        luaL_optnumber(L, 5, 0.0f),
-//        lua_toboolean(L, 6) == 0 ? false : true
-//    ))
-//    {
-//        return luaL_error(L, "load particle failed (name='%s', file='%s', img='%s').", name, path, img_name);
-//    }
-//
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Particle, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Particle \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"path", path},
+        {"sprite", imgName},
+        {"colliderHalfSizeX", a ? *a : 0.},
+        {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
+        {"colliderIsRect", rect && *rect},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::HgeFontAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load particle \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::LoadTexturedFont(const char* name, const char* path,
-    std::optional<std::variant<const char*, bool>> textureNamePathOrMipmap, std::optional<bool> mipmap /* =true */)
+void AssetManagerModule::LoadTexturedFont(LuaStack& stack, const char* name, const char* path, std::optional<bool> mipmap /* =true */)
 {
-    // TODO
-//    bool bSucceed = false;
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (lua_gettop(L) == 2)
-//    {
-//        // HGE字体 mipmap=true
-//        bSucceed = pActivedPool->LoadSpriteFont(name, path);
-//    }
-//    else
-//    {
-//        if (lua_isboolean(L, 3))
-//        {
-//            // HGE字体 mipmap=user_defined
-//            bSucceed = pActivedPool->LoadSpriteFont(name, path, lua_toboolean(L, 3) == 0 ? false : true);
-//        }
-//        else
-//        {
-//            // fancy2d字体
-//            const char* texpath = luaL_checkstring(L, 3);
-//            if (lua_gettop(L) == 4)
-//                bSucceed = pActivedPool->LoadSpriteFont(name, path, texpath, lua_toboolean(L, 4) == 0 ? false : true);
-//            else
-//                bSucceed = pActivedPool->LoadSpriteFont(name, path, texpath);
-//        }
-//    }
-//
-//    if (!bSucceed)
-//        return luaL_error(L, "can't load font from file '%s'.", path);
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::TexturedFont, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Textured font \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"path", path},
+        {"mipmaps", mipmap ? *mipmap : true},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::HgeFontAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load textured font \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::SetTexturedFontState(const char* name, const char* blend, std::optional<LSTGColor*> color)
+void AssetManagerModule::SetTexturedFontState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> color)
 {
-    // TODO
-//    ResFont* p = LRES.FindSpriteFont(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "sprite font '%s' not found.", luaL_checkstring(L, 1));
-//
-//    p->SetBlendMode(TranslateBlendMode(L, 2));
-//    if (lua_gettop(L) == 3)
-//    {
-//        fcyColor c = *static_cast<fcyColor*>(luaL_checkudata(L, 3, TYPENAME_COLOR));
-//        p->SetBlendColor(c);
-//    }
-//    return 0;
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::TexturedFont, name);
+    if (!asset)
+        stack.Error("textured font '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::HgeFontAsset::GetAssetTypeIdStatic());
+
+    auto hgeFontAsset = static_pointer_cast<Asset::HgeFontAsset>(asset);
+
+    // 转换混合模式
+    BlendMode m(blend);
+    hgeFontAsset->SetDefaultBlendMode(m);
+
+    // 决定顶点色
+    if (color)
+        hgeFontAsset->SetDefaultBlendColor(**color);
 }
 
 void AssetManagerModule::SetTexturedFontState2()
@@ -434,19 +436,41 @@ void AssetManagerModule::SetTexturedFontState2()
     LSTG_LOG_WARN_CAT(AssetManagerModule, "SetFontState2 is deprecated and has no effect anymore");
 }
 
-void AssetManagerModule::LoadTrueTypeFont(const char* name, const char* path, double width, double height)
+void AssetManagerModule::LoadTrueTypeFont(LuaStack& stack, const char* name, const char* path, double width, std::optional<double> height)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadTTFFont(name, path, (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4)))
-//        return luaL_error(L, "load ttf font failed (name=%s, path=%s)", name, path);
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::TrueTypeFont, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "TrueType font \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    auto fontSize = static_cast<uint32_t>(width);
+    if (height)
+    {
+        if (width == 0)
+            fontSize = static_cast<uint32_t>(*height);
+        else if (static_cast<uint32_t>(*height) != width)
+            LSTG_LOG_WARN_CAT(AssetManagerModule, "Create ttf font with height is deprecated", name);
+    }
+    fontSize = clamp(fontSize, 1u, 100u);  // 限定大小
+
+    nlohmann::json args {
+        {"path", path},
+        {"size", fontSize},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::TrueTypeFontAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load ttf font \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
 void AssetManagerModule::RegTTF()

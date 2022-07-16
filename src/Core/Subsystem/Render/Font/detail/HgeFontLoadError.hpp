@@ -20,6 +20,7 @@ namespace lstg::Subsystem::Render::Font::detail
         UnexpectedCharacter = 3,
         Utf8DecodeError = 4,
         InvalidValue = 5,
+        MissingBitmap = 6,
     };
 
     /**

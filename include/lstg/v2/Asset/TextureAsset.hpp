@@ -26,6 +26,7 @@ namespace lstg::v2::Asset
 
     public:
         TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAssetPtr textureAsset, float pixelPerUnit);
+        ~TextureAsset();
 
     public:
         /**
@@ -57,13 +58,15 @@ namespace lstg::v2::Asset
 
     protected:  // Asset
         [[nodiscard]] Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
+        void OnRemove() noexcept override;
 
     private:
+        void FreeResource() noexcept;
         void UpdateResource() noexcept;
 
     private:
         // 依赖
-        const Subsystem::Asset::BasicTexture2DAssetPtr m_pTextureAsset;
+        Subsystem::Asset::BasicTexture2DAssetPtr m_pTextureAsset;  // 子资源
         Subsystem::Render::Drawing2D::Texture2D m_stDrawingTexture;
     };
 

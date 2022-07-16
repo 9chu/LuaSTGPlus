@@ -73,7 +73,7 @@ Result<void> BasicTexture2DAssetLoader::AsyncLoad() noexcept
     auto asset = static_pointer_cast<BasicTexture2DAsset>(GetAsset());
     try
     {
-        m_stTextureData.emplace(std::move(m_pSourceStream));
+        m_stTextureData.emplace(std::move(m_pSourceStream));  // Stream 在使用后自动关闭
         if (m_bMipmaps)
             m_stTextureData->GenerateMipmap();
     }

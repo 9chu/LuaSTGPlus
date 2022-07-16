@@ -23,6 +23,9 @@
 #include <lstg/v2/Asset/TextureAssetFactory.hpp>
 #include <lstg/v2/Asset/SpriteAssetFactory.hpp>
 #include <lstg/v2/Asset/SpriteSequenceAssetFactory.hpp>
+#include <lstg/v2/Asset/TrueTypeFontAssetFactory.hpp>
+#include <lstg/v2/Asset/HgeFontAssetFactory.hpp>
+#include <lstg/v2/Asset/HgeParticleAssetFactory.hpp>
 
 #include <lstg/v2/Bridge/BuiltInModules.hpp>
 
@@ -90,11 +93,17 @@ GameApp::GameApp(int argc, char** argv)
         assetSystem->RegisterAssetFactory(make_shared<Asset::TextureAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::SpriteSequenceAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::TrueTypeFontAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::HgeFontAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::HgeParticleAssetFactory>());
 
-        // 初始化资源池
-        m_pGlobalAssetPool = make_shared<Subsystem::Asset::AssetPool>();
-        m_pStageAssetPool = make_shared<Subsystem::Asset::AssetPool>();
-        m_pCurrentAssetPool = m_pGlobalAssetPool;  // 默认挂载在全局池上
+        // TODO: Music Sound FX
+
+        // 创建资源池
+        m_pAssetPools = make_unique<AssetPools>();
+
+        // 绑定资产解析器
+        assetSystem->SetDependencyResolver(m_pAssetPools.get());
     }
 
     // 初始化渲染参数
@@ -241,14 +250,6 @@ Result<void> GameApp::UnmountAssetPack(const char* path) noexcept
 
     LSTG_LOG_ERROR_CAT(GameApp, "Asset pack not found, path={}", path);
     return make_error_code(errc::no_such_file_or_directory);
-}
-
-Subsystem::Asset::AssetPtr GameApp::FindAsset(std::string_view name) const noexcept
-{
-    auto ret = m_pStageAssetPool->GetAsset(name);
-    if (!ret)
-        ret = m_pGlobalAssetPool->GetAsset(name);
-    return ret;
 }
 
 glm::vec2 GameApp::GetNativeResolution() const noexcept

@@ -421,7 +421,8 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
 
                 const auto& texRect = atlasInfo->TextureRect;
                 drawer->Texture(texRect.Left(), texRect.Top(), texRect.Width(), texRect.Height());
-                drawer->SetMultiplyColor(style.TextColor);
+                drawer->SetAdditiveColor(style.AdditiveTextColor);
+                drawer->SetMultiplyColor(style.MultiplyTextColor);
                 drawer->Shape(atlasInfo->DrawSize.x, atlasInfo->DrawSize.y, 0, 0);
                 drawer->Translate(drawPosX + atlasInfo->DrawOffset.x + glyph.XOffset,
                     drawPosY + atlasInfo->DrawOffset.y + glyph.YOffset,

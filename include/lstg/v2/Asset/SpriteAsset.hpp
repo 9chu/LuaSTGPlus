@@ -103,4 +103,6 @@ namespace lstg::v2::Asset
         BlendMode m_stDefaultBlendMode;  // 默认混合模式
         Subsystem::Render::Drawing2D::SpriteColorComponents m_stDefaultBlendColor = { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
     };
+
+    using SpriteAssetPtr = std::shared_ptr<SpriteAsset>;
 }

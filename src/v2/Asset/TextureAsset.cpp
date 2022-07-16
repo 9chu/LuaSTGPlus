@@ -7,6 +7,7 @@
 #include <lstg/v2/Asset/TextureAsset.hpp>
 
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include <lstg/Core/Subsystem/Asset/AssetPool.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -25,9 +26,32 @@ TextureAsset::TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAss
     m_stDrawingTexture.SetPixelPerUnit(std::abs(pixelPerUnit) <= std::numeric_limits<float>::epsilon() ? 1.f : pixelPerUnit);
 }
 
+TextureAsset::~TextureAsset()
+{
+    assert(m_pTextureAsset == nullptr || m_pTextureAsset->GetId() == Subsystem::Asset::kEmptyAssetId);
+}
+
 Subsystem::Asset::AssetTypeId TextureAsset::GetAssetTypeId() const noexcept
 {
     return GetAssetTypeIdStatic();
+}
+
+void TextureAsset::OnRemove() noexcept
+{
+    FreeResource();
+}
+
+void TextureAsset::FreeResource() noexcept
+{
+    // 释放关联资源
+    if (m_pTextureAsset && !m_pTextureAsset->IsWildAsset())
+    {
+        assert(m_pTextureAsset->GetId() != Subsystem::Asset::kEmptyAssetId);
+
+        auto pool = m_pTextureAsset->GetPool().lock();
+        pool->RemoveAsset(m_pTextureAsset->GetId());
+        m_pTextureAsset.reset();
+    }
 }
 
 void TextureAsset::UpdateResource() noexcept

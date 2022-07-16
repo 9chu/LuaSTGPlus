@@ -10,6 +10,7 @@
 #include <fmt/format.h>
 
 using namespace std;
+using namespace lstg;
 using namespace lstg::v2;
 
 static const size_t kAssetPrefixLength = 4;
@@ -47,6 +48,21 @@ string lstg::v2::MakeFullAssetName(AssetTypes t, string_view name)
 {
     auto prefix = AssetTypeToPrefix(t);
     return fmt::format("{}{}", prefix, name);
+}
+
+Result<void> lstg::v2::MakeFullAssetName(std::string& out, AssetTypes t, std::string_view name) noexcept
+{
+    auto prefix = AssetTypeToPrefix(t);
+    try
+    {
+        out.clear();
+        fmt::format_to(std::back_inserter(out), "{}{}", prefix, name);
+        return {};
+    }
+    catch (...)  // bad_alloc
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
 }
 
 string lstg::v2::ExtractAssetName(string_view name)

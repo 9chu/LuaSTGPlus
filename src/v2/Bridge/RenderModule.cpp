@@ -100,11 +100,12 @@ void RenderModule::SetFog(std::optional<double> near, std::optional<double> far,
 void RenderModule::Render(LuaStack& stack, const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
     std::optional<double> hscale /* =1 */, std::optional<double> vscale /* =1 */, std::optional<double> z /* =0.5 */)
 {
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
     // 获取精灵对象
-    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto asset = assetPools->FindAsset(AssetTypes::Image, imageName);
     if (!asset)
-        stack.Error("image '%s' not found", imageName);
+        stack.Error("image '%s' not found.", imageName);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
@@ -126,11 +127,12 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
 
 void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)
 {
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
     // 获取精灵对象
-    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto asset = assetPools->FindAsset(AssetTypes::Image, imageName);
     if (!asset)
-        stack.Error("image '%s' not found", imageName);
+        stack.Error("image '%s' not found.", imageName);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 
@@ -151,11 +153,12 @@ void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double lef
 void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2,
     double x3, double y3, double z3, double x4, double y4, double z4)
 {
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
     // 获取精灵对象
-    auto fullName = MakeFullAssetName(AssetTypes::Image, imageName);
-    auto asset = detail::GetGlobalApp().FindAsset(fullName);
+    auto asset = assetPools->FindAsset(AssetTypes::Image, imageName);
     if (!asset)
-        stack.Error("image '%s' not found", imageName);
+        stack.Error("image '%s' not found.", imageName);
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::SpriteAsset::GetAssetTypeIdStatic());
 

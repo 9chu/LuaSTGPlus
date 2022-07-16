@@ -31,9 +31,14 @@ bool Asset::IsWildAsset() const noexcept
 void Asset::SetState(AssetStates s) noexcept
 {
     // 限制状态转换
+#if !LSTG_ASSET_HOT_RELOAD
     assert((m_iState == AssetStates::Uninitialized && (s == AssetStates::Loaded || s == AssetStates::Error)) ||
         (m_iState == AssetStates::Loaded && s == AssetStates::Error) ||
         (m_iState == AssetStates::Error && s == AssetStates::Error));
+#else
+    // 热更新的情况下，不允许出现已经加载的资源转换到错误状态
+    assert(!(m_iState == AssetStates::Loaded && (s == AssetStates::Error || s == AssetStates::Uninitialized)));
+#endif
     m_iState = s;
 }
 

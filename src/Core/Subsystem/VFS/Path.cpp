@@ -214,7 +214,7 @@ Path Path::operator/(const Path& rhs) const
 
     // 计算合并后路径长度和路径构成元素个数
     auto left = ToStringView();
-    auto right = ToStringView();
+    auto right = rhs.ToStringView();
     assert(!right.empty() && right[0] != '/');
 
     auto pathLength = left.length() + right.length() + 1;  // 分隔符空间另算

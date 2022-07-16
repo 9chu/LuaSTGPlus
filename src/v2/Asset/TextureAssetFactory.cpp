@@ -29,7 +29,8 @@ Subsystem::Asset::AssetTypeId TextureAssetFactory::GetAssetTypeId() const noexce
 }
 
 Result<Subsystem::Asset::CreateAssetResult> TextureAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
-    Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments) noexcept
+    Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments,
+    Subsystem::Asset::IAssetDependencyResolver* resolver) noexcept
 {
     auto pixelPerUnit = JsonHelper::ReadValue<float>(arguments, "/ppu", 1.f);
 

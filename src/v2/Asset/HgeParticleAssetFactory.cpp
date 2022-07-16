@@ -1,17 +1,16 @@
 /**
  * @file
- * @date 2022/5/31
+ * @date 2022/7/15
  * @author 9chu
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
-#include <lstg/v2/Asset/SpriteAssetFactory.hpp>
+#include <lstg/v2/Asset/HgeParticleAssetFactory.hpp>
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Text/JsonHelper.hpp>
-#include <lstg/Core/Subsystem/AssetSystem.hpp>
 #include <lstg/Core/Subsystem/Asset/AssetError.hpp>
-#include <lstg/v2/Asset/SpriteAsset.hpp>
-#include <lstg/v2/Asset/SpriteAssetLoader.hpp>
+#include <lstg/v2/Asset/HgeParticleAsset.hpp>
+#include <lstg/v2/Asset/HgeParticleAssetLoader.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -19,30 +18,25 @@ using namespace lstg::v2::Asset;
 
 using namespace lstg::Text;
 
-LSTG_DEF_LOG_CATEGORY(SpriteAssetFactory);
+LSTG_DEF_LOG_CATEGORY(HgeParticleAssetFactory);
 
-std::string_view SpriteAssetFactory::GetAssetTypeName() const noexcept
+std::string_view HgeParticleAssetFactory::GetAssetTypeName() const noexcept
 {
-    return "Sprite";
+    return "HgeParticle";
 }
 
-Subsystem::Asset::AssetTypeId SpriteAssetFactory::GetAssetTypeId() const noexcept
+Subsystem::Asset::AssetTypeId HgeParticleAssetFactory::GetAssetTypeId() const noexcept
 {
-    return SpriteAsset::GetAssetTypeIdStatic();
+    return HgeParticleAsset::GetAssetTypeIdStatic();
 }
 
-Result<Subsystem::Asset::CreateAssetResult> SpriteAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
+Result<Subsystem::Asset::CreateAssetResult> HgeParticleAssetFactory::CreateAsset(Subsystem::AssetSystem& assetSystem,
     Subsystem::Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments,
     Subsystem::Asset::IAssetDependencyResolver* resolver) noexcept
 {
-    auto textureName = JsonHelper::ReadValue<string>(arguments, "/texture");
-    if (!textureName)
-        return make_error_code(Subsystem::Asset::AssetError::MissingRequiredArgument);
-    auto frameX = JsonHelper::ReadValue<float>(arguments, "/left");
-    auto frameY = JsonHelper::ReadValue<float>(arguments, "/top");
-    auto frameW = JsonHelper::ReadValue<float>(arguments, "/width");
-    auto frameH = JsonHelper::ReadValue<float>(arguments, "/height");
-    if (!frameX || !frameY || !frameW || !frameH)
+    auto path = JsonHelper::ReadValue<string>(arguments, "/path");
+    auto spriteName = JsonHelper::ReadValue<string>(arguments, "/sprite");
+    if (!path || !spriteName)
         return make_error_code(Subsystem::Asset::AssetError::MissingRequiredArgument);
     auto colliderHalfSizeX = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeX", 0);
     auto colliderHalfSizeY = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeY", 0);
@@ -50,12 +44,11 @@ Result<Subsystem::Asset::CreateAssetResult> SpriteAssetFactory::CreateAsset(Subs
 
     try
     {
-        // 找到依赖的纹理
-        assert(resolver);
-        auto texture = static_pointer_cast<TextureAsset>(resolver->OnResolveAsset(*textureName));
-        if (!texture)
+        // 找到依赖的精灵
+        auto sprite = static_pointer_cast<SpriteAsset>(resolver->OnResolveAsset(*spriteName));
+        if (!sprite)
         {
-            LSTG_LOG_ERROR_CAT(SpriteAssetFactory, "Texture \"{}\" not found", *textureName);
+            LSTG_LOG_ERROR_CAT(HgeParticleAssetFactory, "Sprite \"{}\" not found", *spriteName);
             return make_error_code(Subsystem::Asset::AssetError::DependentAssetNotFound);
         }
 
@@ -81,9 +74,8 @@ Result<Subsystem::Asset::CreateAssetResult> SpriteAssetFactory::CreateAsset(Subs
             collider = ellipseShape;
         }
 
-        auto asset = make_shared<SpriteAsset>(string{name}, std::move(texture),
-            Math::ImageRectangleFloat(*frameX, *frameY, *frameW, *frameH), collider);
-        auto loader = make_shared<SpriteAssetLoader>(asset);
+        auto asset = make_shared<HgeParticleAsset>(string{name}, std::move(*path), std::move(sprite), collider);
+        auto loader = make_shared<HgeParticleAssetLoader>(asset);
         return Subsystem::Asset::CreateAssetResult {
             static_pointer_cast<Subsystem::Asset::Asset>(asset),
             static_pointer_cast<Subsystem::Asset::AssetLoader>(loader)

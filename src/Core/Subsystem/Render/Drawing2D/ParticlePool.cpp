@@ -60,7 +60,7 @@ Result<void> ParticlePool::SetMaxParticles(size_t particles) noexcept
     return {};
 }
 
-Result<void> ParticlePool::AddEmitter(ParticleConfig* config) noexcept
+Result<void> ParticlePool::AddEmitter(const ParticleConfig* config) noexcept
 {
     try
     {

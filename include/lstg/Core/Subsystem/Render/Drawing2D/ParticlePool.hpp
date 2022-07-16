@@ -52,7 +52,7 @@ namespace lstg::Subsystem::Render::Drawing2D
          * 增加发射器
          * @param config 配置
          */
-        Result<void> AddEmitter(ParticleConfig* config) noexcept;
+        Result<void> AddEmitter(const ParticleConfig* config) noexcept;
 
         /**
          * 删除发射器

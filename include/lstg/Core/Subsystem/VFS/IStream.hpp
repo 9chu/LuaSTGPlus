@@ -671,6 +671,8 @@ namespace lstg::Subsystem::VFS
 
     // </editor-fold>
 
+    // <editor-fold desc="辅助方法">
+
     /**
      * 从流中读取所有数据
      * @tparam TContainer 输出容器类型
@@ -709,4 +711,14 @@ namespace lstg::Subsystem::VFS
         }
         return {};
     }
+
+    /**
+     * 转换到可随机访问流
+     * 如果输入流是一个不能随机访问的流，则将其加载到内存中，产生内存流并返回。
+     * @param stream 输入流
+     * @return 输出流
+     */
+    Result<Subsystem::VFS::StreamPtr> ConvertToSeekableStream(Subsystem::VFS::StreamPtr stream) noexcept;
+
+    // </editor-fold>
 }

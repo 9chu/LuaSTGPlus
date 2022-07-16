@@ -1,6 +1,6 @@
 /**
  * @file
- * @date 2022/5/30
+ * @date 2022/7/14
  * @author 9chu
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
@@ -10,11 +10,14 @@
 namespace lstg::v2::Asset
 {
     /**
-     * 纹理资产工厂
+     * HGE 粒子资产工厂
      */
-    class TextureAssetFactory :
+    class HgeParticleAssetFactory :
         public Subsystem::Asset::IAssetFactory
     {
+    public:
+        HgeParticleAssetFactory() = default;
+
     public:  // IAssetFactory
         std::string_view GetAssetTypeName() const noexcept override;
         Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;

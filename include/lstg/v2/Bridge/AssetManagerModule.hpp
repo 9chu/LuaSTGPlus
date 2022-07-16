@@ -207,8 +207,8 @@ namespace lstg::v2::Bridge
          * @param rect 是否是矩形碰撞盒
          */
         LSTG_METHOD(LoadPS)
-        static void LoadParticle(const char* name, const char* path, const char* imgName, std::optional<double> a, std::optional<double> b,
-            std::optional<bool> rect);
+        static void LoadParticle(LuaStack& stack, const char* name, const char* path, const char* imgName, std::optional<double> a,
+            std::optional<double> b, std::optional<bool> rect);
 
         /**
          * 装载纹理字体
@@ -218,8 +218,7 @@ namespace lstg::v2::Bridge
          * @param mipmap 是否生成 mipmap
          */
         LSTG_METHOD(LoadFont)
-        static void LoadTexturedFont(const char* name, const char* path,
-            std::optional<std::variant<const char*, bool>> textureNamePathOrMipmap, std::optional<bool> mipmap /* =true */);
+        static void LoadTexturedFont(LuaStack& stack, const char* name, const char* path, std::optional<bool> mipmap /* =true */);
 
         /**
          * 设置字体颜色
@@ -228,7 +227,7 @@ namespace lstg::v2::Bridge
          * @param color 混合颜色
          */
         LSTG_METHOD(SetFontState)
-        static void SetTexturedFontState(const char* name, const char* blend, std::optional<LSTGColor*> color);
+        static void SetTexturedFontState(LuaStack& stack, const char* name, const char* blend, std::optional<LSTGColor*> color);
 
         /**
          * 设置 HGE 字体状态
@@ -245,7 +244,7 @@ namespace lstg::v2::Bridge
          * @param height 字形高度，建议设置同 width 相同的值
          */
         LSTG_METHOD(LoadTTF)
-        static void LoadTrueTypeFont(const char* name, const char* path, double width, double height);
+        static void LoadTrueTypeFont(LuaStack& stack, const char* name, const char* path, double width, std::optional<double> height);
 
         /**
          * 注册 TTF 字体

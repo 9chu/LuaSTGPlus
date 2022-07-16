@@ -29,7 +29,7 @@ namespace
     }
 }
 
-ParticleEmitter::ParticleEmitter(ParticlePool* pool, ParticleConfig* config) noexcept
+ParticleEmitter::ParticleEmitter(ParticlePool* pool, const ParticleConfig* config) noexcept
     : m_pPool(pool), m_pConfig(config)
 {
     assert(pool && config);

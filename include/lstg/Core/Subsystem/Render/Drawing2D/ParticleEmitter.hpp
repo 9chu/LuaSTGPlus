@@ -18,7 +18,7 @@ namespace lstg::Subsystem::Render::Drawing2D
     class ParticleEmitter
     {
     public:
-        ParticleEmitter(ParticlePool* pool, ParticleConfig* config) noexcept;
+        ParticleEmitter(ParticlePool* pool, const ParticleConfig* config) noexcept;
         ParticleEmitter(const ParticleEmitter&) = delete;
         ParticleEmitter(ParticleEmitter&& rhs) noexcept;
         ~ParticleEmitter();
@@ -84,7 +84,7 @@ namespace lstg::Subsystem::Render::Drawing2D
 
     private:
         ParticlePool* m_pPool = nullptr;
-        ParticleConfig* m_pConfig = nullptr;
+        const ParticleConfig* m_pConfig = nullptr;
         std::vector<size_t> m_stParticles;  // 管理的粒子
 
         bool m_bAlive = true;

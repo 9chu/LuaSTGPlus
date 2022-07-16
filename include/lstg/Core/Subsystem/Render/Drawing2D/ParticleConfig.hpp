@@ -29,7 +29,7 @@ namespace lstg::Subsystem::Render::Drawing2D
     struct ParticleConfig
     {
         // 绑定的 Sprite
-        Sprite* ParticleSprite = nullptr;
+        const Sprite* ParticleSprite = nullptr;
 
         // 混合模式
         ColorBlendMode ColorBlend = ColorBlendMode::Alpha;  ///< @brief 混合模式

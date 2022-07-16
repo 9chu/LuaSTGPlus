@@ -37,6 +37,8 @@ std::string HgeFontLoadErrorCategory::message(int ev) const
             return "unicode decoding error";
         case HgeFontLoadError::InvalidValue:
             return "invalid value";
+        case HgeFontLoadError::MissingBitmap:
+            return "missing bitmap";
         default:
             assert(false);
             return "<unknown>";

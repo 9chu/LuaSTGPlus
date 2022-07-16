@@ -7,6 +7,7 @@
 #pragma once
 #include <string>
 #include <string_view>
+#include <lstg/Core/Result.hpp>
 
 namespace lstg::v2
 {
@@ -48,6 +49,14 @@ namespace lstg::v2
      * @return 完整资产名
      */
     std::string MakeFullAssetName(AssetTypes t, std::string_view name);
+
+    /**
+     * 构造完整的资产名（原地）
+     * @param out 输出缓冲区
+     * @param t 资产类型
+     * @param name 名称
+     */
+    Result<void> MakeFullAssetName(std::string& out, AssetTypes t, std::string_view name) noexcept;
 
     /**
      * 解出资产名

@@ -28,7 +28,7 @@ AssetTypeId BasicTexture2DAssetFactory::GetAssetTypeId() const noexcept
 }
 
 Result<CreateAssetResult> BasicTexture2DAssetFactory::CreateAsset(AssetSystem& assetSystem, AssetPoolPtr pool, std::string_view name,
-    const nlohmann::json& arguments) noexcept
+    const nlohmann::json& arguments, IAssetDependencyResolver* resolver) noexcept
 {
     auto path = JsonHelper::ReadValue<string>(arguments, "/path");
     auto mipmaps = JsonHelper::ReadValue<bool>(arguments, "/mipmaps", true);

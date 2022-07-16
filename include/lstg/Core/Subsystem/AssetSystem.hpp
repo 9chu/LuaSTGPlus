@@ -55,6 +55,17 @@ namespace lstg::Subsystem
         void SetAsyncLoadingEnabled(bool v) noexcept { m_bAsyncLoadingEnabled = v; }
 
         /**
+         * 获取资产依赖解析器
+         */
+        Asset::IAssetDependencyResolver* GetDependencyResolver() const noexcept { return m_pResolver; }
+
+        /**
+         * 设置资产依赖解析器
+         * @param resolver 解析器
+         */
+        void SetDependencyResolver(Asset::IAssetDependencyResolver* resolver) noexcept { m_pResolver = resolver; }
+
+        /**
          * 打开资产流
          * @param path 路径
          * @return 流指针
@@ -126,6 +137,7 @@ namespace lstg::Subsystem
         bool m_bAsyncLoadingEnabled = true;
 
         // 资产工厂
+        Asset::IAssetDependencyResolver* m_pResolver = nullptr;
         std::unordered_map<Asset::AssetTypeId, Asset::AssetFactoryPtr> m_stAssetFactories;
         std::map<std::string, Asset::AssetTypeId, std::less<>> m_stAssetFactoryLookupTable;
 

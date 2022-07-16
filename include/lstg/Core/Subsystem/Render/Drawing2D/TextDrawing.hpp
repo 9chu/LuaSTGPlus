@@ -175,13 +175,19 @@ namespace lstg::Subsystem::Render::Drawing2D
         TextLayoutStyle LayoutStyle;
 
         /**
-         * 文本颜色
+         * 文本颜色（加算）
          */
-        ColorRGBA32 TextColor;
+        ColorRGBA32 AdditiveTextColor;
+
+        /**
+         * 文本颜色（乘算）
+         */
+        ColorRGBA32 MultiplyTextColor;
 
         bool operator==(const TextDrawingStyle& rhs) const noexcept
         {
-            return FontSize == rhs.FontSize && FontScale == rhs.FontScale && LayoutStyle == rhs.LayoutStyle && TextColor == rhs.TextColor;
+            return FontSize == rhs.FontSize && FontScale == rhs.FontScale && LayoutStyle == rhs.LayoutStyle &&
+                AdditiveTextColor == rhs.AdditiveTextColor && MultiplyTextColor == rhs.MultiplyTextColor;
         }
 
         bool operator!=(const TextDrawingStyle& rhs) const noexcept
