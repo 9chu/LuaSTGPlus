@@ -122,6 +122,22 @@ namespace lstg::Subsystem
             Render::Texture2DFormats format) noexcept;
 
         /**
+         * 创建 RenderTarget
+         * @param width 宽度
+         * @param height 高度
+         * @return 纹理对象
+         */
+        [[nodiscard]] Result<Render::TexturePtr> CreateRenderTarget(uint32_t width, uint32_t height) noexcept;
+
+        /**
+         * 创建深度模板缓冲区
+         * @param width 宽度
+         * @param height 高度
+         * @return 纹理对象
+         */
+        [[nodiscard]] Result<Render::TexturePtr> CreateDepthStencil(uint32_t width, uint32_t height) noexcept;
+
+        /**
          * 获取默认的占位 2D 纹理
          */
         [[nodiscard]] const Render::TexturePtr& GetDefaultTexture2D() const noexcept { return m_pDefaultTexture2D; }

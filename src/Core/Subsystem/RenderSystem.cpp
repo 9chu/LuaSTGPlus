@@ -350,6 +350,42 @@ Result<Render::TexturePtr> RenderSystem::CreateDynamicTexture2D(uint32_t width, 
     }
 }
 
+Result<Render::TexturePtr> RenderSystem::CreateRenderTarget(uint32_t width, uint32_t height) noexcept
+{
+    Diligent::TextureDesc desc;
+    desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_RENDER_TARGET;
+    desc.Usage = Diligent::USAGE_DEFAULT;
+    desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().ColorBufferFormat;
+
+    Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    m_pRenderDevice->GetDevice()->CreateTexture(desc, nullptr, &texture);
+    if (!texture)
+        return make_error_code(errc::not_enough_memory);
+    return make_shared<Render::Texture>(*m_pRenderDevice, texture);
+}
+
+Result<Render::TexturePtr> RenderSystem::CreateDepthStencil(uint32_t width, uint32_t height) noexcept
+{
+    Diligent::TextureDesc desc;
+    desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_DEPTH_STENCIL;
+    desc.Usage = Diligent::USAGE_DEFAULT;
+    desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().DepthBufferFormat;
+
+    Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    m_pRenderDevice->GetDevice()->CreateTexture(desc, nullptr, &texture);
+    if (!texture)
+        return make_error_code(errc::not_enough_memory);
+    return make_shared<Render::Texture>(*m_pRenderDevice, texture);
+}
+
 Result<Render::MeshPtr> RenderSystem::CreateStaticMesh(const Render::GraphDef::MeshDefinition& def, Span<const uint8_t> vertexData,
     Span<const uint8_t> indexData, bool use32BitIndex) noexcept
 {
@@ -546,10 +582,27 @@ Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, 
 
     auto context = m_pRenderDevice->GetImmediateContext();
     auto swapChain = m_pRenderDevice->GetSwapChain();
-    Diligent::ITextureView* renderTargetView = m_stCurrentOutputViews.ColorView ? m_stCurrentOutputViews.ColorView :
-        swapChain->GetCurrentBackBufferRTV();
-    Diligent::ITextureView* depthStencilView = m_stCurrentOutputViews.DepthStencilView ? m_stCurrentOutputViews.DepthStencilView :
-        swapChain->GetDepthBufferDSV();
+
+    Diligent::ITextureView* renderTargetView = nullptr;
+    Diligent::ITextureView* depthStencilView = nullptr;
+    if (m_stCurrentOutputViews.ColorView)
+    {
+        renderTargetView = m_stCurrentOutputViews.ColorView->m_pNativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        assert(renderTargetView);
+    }
+    else
+    {
+        renderTargetView = swapChain->GetCurrentBackBufferRTV();
+    }
+    if (m_stCurrentOutputViews.DepthStencilView)
+    {
+        depthStencilView = m_stCurrentOutputViews.DepthStencilView->m_pNativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
+        assert(depthStencilView);
+    }
+    else
+    {
+        depthStencilView = swapChain->GetDepthBufferDSV();
+    }
 
     if (clearColor)
     {
@@ -641,7 +694,7 @@ std::tuple<uint32_t, uint32_t> RenderSystem::GetCurrentOutputViewSize() noexcept
     }
     else
     {
-        auto texture = m_stCurrentOutputViews.ColorView->GetTexture();
+        auto texture = m_stCurrentOutputViews.ColorView->m_pNativeHandler;
         assert(texture);
         return { texture->GetDesc().Width, texture->GetDesc().Height };
     }
@@ -681,9 +734,26 @@ Result<void> RenderSystem::CommitCamera() noexcept
     // 提交 RT
     if (!(m_stCurrentOutputViews == outputViews))
     {
-        Diligent::ITextureView* renderTargetView = outputViews.ColorView ? outputViews.ColorView : swapChain->GetCurrentBackBufferRTV();
-        Diligent::ITextureView* depthStencilView = outputViews.DepthStencilView ? outputViews.DepthStencilView :
-            swapChain->GetDepthBufferDSV();
+        Diligent::ITextureView* renderTargetView = nullptr;
+        Diligent::ITextureView* depthStencilView = nullptr;
+        if (outputViews.ColorView)
+        {
+            renderTargetView = outputViews.ColorView->m_pNativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+            assert(renderTargetView);
+        }
+        else
+        {
+            renderTargetView = swapChain->GetCurrentBackBufferRTV();
+        }
+        if (outputViews.DepthStencilView)
+        {
+            depthStencilView = outputViews.DepthStencilView->m_pNativeHandler->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
+            assert(depthStencilView);
+        }
+        else
+        {
+            depthStencilView = swapChain->GetDepthBufferDSV();
+        }
 
         // 切换 RT
         context->SetRenderTargets(1, &renderTargetView, depthStencilView, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -778,9 +848,9 @@ Result<void> RenderSystem::PreparePipeline(const Render::GraphDef::EffectPassDef
     // 检查是否已经存在 PSO
     Render::GraphDef::EffectPassDefinition::PipelineCacheKey key;
     key.ColorBufferFormat = (m_stCurrentOutputViews.ColorView == nullptr ? swapChain->GetDesc().ColorBufferFormat :
-        m_stCurrentOutputViews.ColorView->GetDesc().Format);
+        m_stCurrentOutputViews.ColorView->m_pNativeHandler->GetDesc().Format);
     key.DepthBufferFormat = (m_stCurrentOutputViews.DepthStencilView == nullptr ? swapChain->GetDesc().DepthBufferFormat :
-        m_stCurrentOutputViews.DepthStencilView->GetDesc().Format);
+        m_stCurrentOutputViews.DepthStencilView->m_pNativeHandler->GetDesc().Format);
     key.MeshDef = meshDef;
     auto it = pass->m_stPipelineStateCaches.find(key);
     if (it != pass->m_stPipelineStateCaches.end())

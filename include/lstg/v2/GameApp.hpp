@@ -11,6 +11,9 @@
 #include <lstg/Core/Subsystem/VFS/OverlayFileSystem.hpp>
 #include <lstg/Core/Subsystem/Render/Drawing2D/CommandBuffer.hpp>
 #include <lstg/Core/Subsystem/Render/Drawing2D/CommandExecutor.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/TextDrawing.hpp>
+#include <lstg/Core/Subsystem/Render/Font/ITextShaper.hpp>
+#include <lstg/Core/Subsystem/Render/Font/DynamicFontGlyphAtlas.hpp>
 #include "AssetPools.hpp"
 
 namespace lstg::v2
@@ -81,6 +84,21 @@ namespace lstg::v2
          */
         Subsystem::Render::Drawing2D::CommandBuffer& GetCommandBuffer() noexcept;
 
+        /**
+         * 获取字形缓存
+         */
+        Subsystem::Render::Drawing2D::TextDrawing::ShapedTextCache& GetShapedTextCache() noexcept { return m_stShapedTextCache; }
+
+        /**
+         * 获取字体整形器
+         */
+        Subsystem::Render::Font::ITextShaper* GetTextShaper() noexcept { return m_pTextShaper.get(); }
+
+        /**
+         * 获取动态字形图集
+         */
+        Subsystem::Render::Font::DynamicFontGlyphAtlas* GetFontGlyphAtlas() noexcept { return m_pFontGlyphAtlas.get(); }
+
     protected:  // 框架事件
         void OnEvent(Subsystem::SubsystemEvent& event) noexcept override;
         void OnUpdate(double elapsed) noexcept override;
@@ -108,5 +126,10 @@ namespace lstg::v2
         Math::ImageRectangleFloat m_stViewportBound;  // 视口范围
         Subsystem::Render::Drawing2D::CommandBuffer m_stCommandBuffer;
         Subsystem::Render::Drawing2D::CommandExecutor m_stCommandExecutor;
+
+        // 文字渲染组件
+        Subsystem::Render::Drawing2D::TextDrawing::ShapedTextCache m_stShapedTextCache;
+        Subsystem::Render::Font::TextShaperPtr m_pTextShaper;
+        Subsystem::Render::Font::DynamicFontGlyphAtlasPtr m_pFontGlyphAtlas;
     };
 }

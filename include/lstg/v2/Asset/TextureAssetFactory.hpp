@@ -6,9 +6,12 @@
  */
 #pragma once
 #include <lstg/Core/Subsystem/Asset/IAssetFactory.hpp>
+#include <lstg/Core/Subsystem/Render/Camera.hpp>
 
 namespace lstg::v2::Asset
 {
+    class TextureAsset;
+
     /**
      * 纹理资产工厂
      */
@@ -20,5 +23,21 @@ namespace lstg::v2::Asset
         Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
         Result<Subsystem::Asset::CreateAssetResult> CreateAsset(Subsystem::AssetSystem& assetSystem, Subsystem::Asset::AssetPoolPtr pool,
             std::string_view name, const nlohmann::json& arguments, Subsystem::Asset::IAssetDependencyResolver* resolver) noexcept override;
+
+    public:
+        /**
+         * 调整所有 RT 大小
+         * @param width 宽度
+         * @param height 高度
+         */
+        void ResizeRenderTarget(uint32_t width, uint32_t height) noexcept;
+
+    private:
+        Result<Subsystem::Render::Camera::OutputViews> CreateViews(uint32_t width, uint32_t height) noexcept;
+
+    private:
+        // 我们在这里保存所有的 RT，当渲染大小发生变化时主动调整 RT 的大小和渲染系统对齐
+        // 考虑到 RT 的数量不会很多，因此这里采取惰性释放的方式释放内存
+        std::vector<std::weak_ptr<TextureAsset>> m_stRenderTargets;
     };
 }

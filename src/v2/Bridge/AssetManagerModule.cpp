@@ -13,6 +13,7 @@
 #include <lstg/v2/Asset/SpriteSequenceAsset.hpp>
 #include <lstg/v2/Asset/TrueTypeFontAsset.hpp>
 #include <lstg/v2/Asset/HgeFontAsset.hpp>
+#include <lstg/v2/Asset/EffectAsset.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -149,6 +150,7 @@ void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const ch
 
     // 执行加载
     auto ret = assetSystem->CreateAsset<Asset::TextureAsset>(currentAssetPool, fullName, nlohmann::json {
+        {"rt", false},
         {"path", path},
         {"mipmaps", mipmap ? *mipmap : false},
     });
@@ -519,41 +521,65 @@ void AssetManagerModule::LoadMusic(const char* name, const char* path, double en
 //    return 0;
 }
 
-void AssetManagerModule::LoadFX(const char* name, const char* path)
+void AssetManagerModule::LoadFX(LuaStack& stack, const char* name, const char* path)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadFX(name, path))
-//        return luaL_error(L, "load fx failed (name=%s, path=%s)", name, path);
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Effect, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Effect \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"path", path},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::EffectAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load fx \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::CreateRenderTarget(const char* name)
+void AssetManagerModule::CreateRenderTarget(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->CreateRenderTarget(name))
-//        return luaL_error(L, "can't create render target with name '%s'.", name);
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Texture, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Texture \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::TextureAsset>(currentAssetPool, fullName, nlohmann::json {
+        {"rt", true},
+    });
+    if (!ret)
+        stack.Error("create render target fail: %s", ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::IsRenderTarget(const char* name)
+bool AssetManagerModule::IsRenderTarget(LuaStack& stack, const char* name)
 {
-    // TODO
-//    ResTexture* p = LRES.FindTexture(luaL_checkstring(L, 1));
-//    if (!p)
-//        return luaL_error(L, "render target '%s' not found.", luaL_checkstring(L, 1));
-//    lua_pushboolean(L, p->IsRenderTarget());
-//    return 1;
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    auto asset = assetPools->FindAsset(AssetTypes::Texture, name);
+    if (!asset)
+        stack.Error("render target '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::TextureAsset::GetAssetTypeIdStatic());
+
+    auto tex = static_pointer_cast<Asset::TextureAsset>(asset);
+    return tex->IsRenderTarget();
 }

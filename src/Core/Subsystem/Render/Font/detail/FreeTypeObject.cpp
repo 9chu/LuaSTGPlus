@@ -26,7 +26,7 @@ Result<FreeTypeObject::LibraryPtr> FreeTypeObject::CreateLibrary() noexcept
     });
 }
 
-/// <editor-fold desc="Bitmap">
+// <editor-fold desc="Bitmap">
 
 FreeTypeObject::Bitmap::Bitmap(LibraryPtr library) noexcept
     : m_pLibrary(std::move(library))
@@ -74,4 +74,4 @@ Result<void> FreeTypeObject::Bitmap::ConvertFrom(const FT_Bitmap* original, uint
     return {};
 }
 
-/// </editor-fold>
+// </editor-fold>

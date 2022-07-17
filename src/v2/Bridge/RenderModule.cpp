@@ -6,12 +6,16 @@
  */
 #include <lstg/v2/Bridge/RenderModule.hpp>
 
+#include <glm/ext.hpp>
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/SpriteDrawing.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/TextDrawing.hpp>
+#include <lstg/v2/BlendMode.hpp>
 #include <lstg/v2/AssetNaming.hpp>
 #include <lstg/v2/Asset/SpriteAsset.hpp>
-#include <lstg/Core/Subsystem/Render/Drawing2D/SpriteDrawing.hpp>
+#include <lstg/v2/Asset/HgeFontAsset.hpp>
+#include <lstg/v2/Asset/TrueTypeFontAsset.hpp>
 #include "detail/Helper.hpp"
-#include <glm/ext.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -183,90 +187,263 @@ void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x
 void RenderModule::RenderTexture(LuaStack& stack, const char* textureName, const char* blend, AbsIndex vertex1, AbsIndex vertex2,
     AbsIndex vertex3, AbsIndex vertex4)
 {
-    // TODO
-//    const char* tex_name = luaL_checkstring(L, 1);
-//    BlendMode blend = TranslateBlendMode(L, 2);
-//    f2dGraphics2DVertex vertex[4];
-//
-//    for (int i = 0; i < 4; ++i)
-//    {
-//        lua_pushinteger(L, 1);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].x = (float)lua_tonumber(L, -1);
-//
-//        lua_pushinteger(L, 2);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].y = (float)lua_tonumber(L, -1);
-//
-//        lua_pushinteger(L, 3);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].z = (float)lua_tonumber(L, -1);
-//
-//        lua_pushinteger(L, 4);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].u = (float)lua_tonumber(L, -1);
-//
-//        lua_pushinteger(L, 5);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].v = (float)lua_tonumber(L, -1);
-//
-//        lua_pushinteger(L, 6);
-//        lua_gettable(L, 3 + i);
-//        vertex[i].color = static_cast<fcyColor*>(luaL_checkudata(L, -1, TYPENAME_COLOR))->argb;
-//
-//        lua_pop(L, 6);
-//    }
-//
-//    if (!LAPP.RenderTexture(tex_name, blend, vertex))
-//        return luaL_error(L, "can't render texture '%s'.", tex_name);
-//    return 0;
+    auto& app = detail::GetGlobalApp();
+    auto& cmdBuffer = app.GetCommandBuffer();
+    auto assetPools = app.GetAssetPools();
+
+    // 获取纹理对象
+    auto asset = assetPools->FindAsset(AssetTypes::Texture, textureName);
+    if (!asset)
+        stack.Error("texture '%s' not found.", textureName);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::TextureAsset::GetAssetTypeIdStatic());
+
+    auto tex = static_pointer_cast<Asset::TextureAsset>(asset)->GetDrawingTexture().GetUnderlayTexture();
+
+    // 转换 BlendMode
+    v2::BlendMode blendMode(blend);
+
+    // 收集顶点
+    AbsIndex verts[4] = { vertex1, vertex2, vertex3, vertex4 };
+    Subsystem::Render::Drawing2D::Vertex drawingVerts[4];
+    for (int i = 0; i < 4; ++i)
+    {
+        auto vert = verts[i];
+
+        lua_pushinteger(stack, 1);
+        lua_gettable(stack, vert);
+        auto x = static_cast<float>(lua_tonumber(stack, -1));
+
+        lua_pushinteger(stack, 2);
+        lua_gettable(stack, vert);
+        auto y = static_cast<float>(lua_tonumber(stack, -1));
+
+        lua_pushinteger(stack, 3);
+        lua_gettable(stack, vert);
+        auto z = static_cast<float>(lua_tonumber(stack, -1));
+
+        lua_pushinteger(stack, 4);
+        lua_gettable(stack, vert);
+        auto u = static_cast<float>(lua_tonumber(stack, -1));
+
+        lua_pushinteger(stack, 5);
+        lua_gettable(stack, vert);
+        auto v = static_cast<float>(lua_tonumber(stack, -1));
+
+        lua_pushinteger(stack, 6);
+        lua_gettable(stack, vert);
+        LSTGColor* color = nullptr;
+        stack.ReadValue<LSTGColor*>(-1, color);
+
+        lua_pop(stack, 6);
+
+        drawingVerts[i].Position = { x, y, z };
+        drawingVerts[i].TexCoord = { u, v };
+        if (blendMode.VertexColorBlend == v2::VertexColorBlendMode::Additive)
+        {
+            drawingVerts[i].Color0 = color ? color->rgba32() : 0x000000FF;
+            drawingVerts[i].Color1 = 0xFFFFFFFF;
+        }
+        else
+        {
+            drawingVerts[i].Color0 = 0x000000FF;
+            drawingVerts[i].Color1 = color ? color->rgba32() : 0xFFFFFFFF;
+        }
+    }
+
+    // 绘制
+    cmdBuffer.SetColorBlendMode(blendMode.ColorBlend);
+    auto ret = cmdBuffer.DrawQuad(tex, drawingVerts);
+    if (!ret)
+        LSTG_LOG_ERROR_CAT(RenderModule, "draw texture '%s' fail: %s", textureName, ret.GetError().message().c_str());
 }
 
-void RenderModule::RenderText(const char* name, const char* text, double x, double y, std::optional<double> scale /* =1 */,
+void RenderModule::RenderText(LuaStack& stack, const char* name, const char* text, double x, double y, std::optional<double> scale /* =1 */,
     std::optional<TextAlignment> align /* =5 */)
 {
-    // TODO
-//    ResFont::FontAlignHorizontal halign = ResFont::FontAlignHorizontal::Center;
-//    ResFont::FontAlignVertical valign = ResFont::FontAlignVertical::Middle;
-//    if (lua_gettop(L) == 6)
-//        TranslateAlignMode(L, 6, halign, valign);
-//    if (!LAPP.RenderText(
-//        luaL_checkstring(L, 1),
-//        luaL_checkstring(L, 2),
-//        (float)luaL_checknumber(L, 3),
-//        (float)luaL_checknumber(L, 4),
-//        (float)(luaL_optnumber(L, 5, 1.0) * LRES.GetGlobalImageScaleFactor()),
-//        halign,
-//        valign
-//    ))
-//    {
-//        return luaL_error(L, "can't draw text '%m'.", luaL_checkstring(L, 1));
-//    }
-//    return 0;
+    using namespace Subsystem::Render::Drawing2D;
+
+    auto& app = detail::GetGlobalApp();
+    auto& cmdBuffer = app.GetCommandBuffer();
+    auto assetPools = app.GetAssetPools();
+
+    // 获取字体对象
+    auto asset = assetPools->FindAsset(AssetTypes::TexturedFont, name);
+    if (!asset)
+        stack.Error("textured font '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::HgeFontAsset::GetAssetTypeIdStatic());
+
+    auto font = static_pointer_cast<Asset::HgeFontAsset>(asset);
+    const auto& blendMode = font->GetDefaultBlendMode();
+
+    // 生成 Style
+    TextDrawingStyle style;
+    style.FontSize = 12;  // 对于 TexturedFont，无所谓 FontSize 填值
+    style.FontScale = scale ? static_cast<float>(*scale) : 1.f;
+    if (align)
+    {
+        // 低1-2位 表示横向左中右对齐
+        switch (static_cast<uint32_t>(*align) & 3)
+        {
+            default:
+            case 0:
+                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Left;
+                break;
+            case 1:
+                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Center;
+                break;
+            case 2:
+                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Right;
+                break;
+        }
+        // 低3-4位
+        switch ((static_cast<uint32_t>(*align) >> 2u) & 3)
+        {
+            default:
+            case 0:
+                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Top;
+                break;
+            case 1:
+                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Middle;
+                break;
+            case 2:
+                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Bottom;
+                break;
+        }
+    }
+    else
+    {
+        // 默认中间对齐
+        style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Center;
+        style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Middle;
+    }
+
+    if (blendMode.VertexColorBlend == v2::VertexColorBlendMode::Additive)
+    {
+        style.AdditiveTextColor = font->GetDefaultBlendColor();
+        style.MultiplyTextColor = 0xFFFFFFFF;
+    }
+    else
+    {
+        assert(blendMode.VertexColorBlend == v2::VertexColorBlendMode::Multiply);
+        style.AdditiveTextColor = 0x000000FF;
+        style.MultiplyTextColor = font->GetDefaultBlendColor();
+    }
+
+    // 先计算文本渲染后的大小
+    auto sizeRet = TextDrawing::MeasureNonBreakSize(app.GetShapedTextCache(), font->GetFontCollection(), app.GetTextShaper(), text, style);
+    if (!sizeRet)
+    {
+        stack.Error("font \"%s\" measure text size fail: %s", font->GetName().c_str(), sizeRet.GetError().message().c_str());
+        return;
+    }
+
+    // 计算渲染位置
+    Math::XYRectangle rect { static_cast<float>(x), static_cast<float>(y), sizeRet->x, sizeRet->y };
+    switch (style.LayoutStyle.HorizontalAlignment)
+    {
+        default:
+        case TextHorizontalAlignment::Left:
+            break;
+        case TextHorizontalAlignment::Center:
+            rect.SetLeft(rect.Left() - sizeRet->x / 2.f);
+            break;
+        case TextHorizontalAlignment::Right:
+            rect.SetLeft(rect.Left() - sizeRet->x);
+            break;
+    }
+    switch (style.LayoutStyle.VerticalAlignment)
+    {
+        default:
+        case TextVerticalAlignment::Top:
+            break;
+        case TextVerticalAlignment::Middle:
+            rect.SetTop(rect.Top() + sizeRet->y / 2.f);
+            break;
+        case TextVerticalAlignment::Bottom:
+            rect.SetTop(rect.Top() + sizeRet->y);
+            break;
+    }
+
+    // 渲染
+    cmdBuffer.SetColorBlendMode(blendMode.ColorBlend);
+    auto ret = TextDrawing::Draw(app.GetShapedTextCache(), cmdBuffer, font->GetFontCollection(), app.GetFontGlyphAtlas(),
+        app.GetTextShaper(), text, rect, style);
+    if (!ret)
+        stack.Error("font \"%s\" draw text fail: %s", font->GetName().c_str(), sizeRet.GetError().message().c_str());
 }
 
-void RenderModule::RenderTrueTypeFont(const char* name, const char* text, double left, double right, double bottom, double top, int32_t fmt,
-    LSTGColor* blend)
+void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const char* text, double left, double right, double bottom,
+    double top, int32_t fmt, LSTGColor* blend)
 {
-    // TODO
-//    if (!LAPP.RenderTTF(
-//        luaL_checkstring(L, 1),
-//        luaL_checkstring(L, 2),
-//        (float)luaL_checknumber(L, 3),
-//        (float)luaL_checknumber(L, 4),
-//        (float)luaL_checknumber(L, 5),
-//        (float)luaL_checknumber(L, 6),
-//        LRES.GetGlobalImageScaleFactor() * (float)luaL_optnumber(L, 9, 1.0),
-//        luaL_checkinteger(L, 7),
-//        *static_cast<fcyColor*>(luaL_checkudata(L, 8, TYPENAME_COLOR))
-//    ))
-//    {
-//        return luaL_error(L, "can't render font '%s'.", luaL_checkstring(L, 1));
-//    }
-//    return 0;
+    using namespace Subsystem::Render::Drawing2D;
+
+    auto& app = detail::GetGlobalApp();
+    auto& cmdBuffer = app.GetCommandBuffer();
+    auto assetPools = app.GetAssetPools();
+
+    // 获取字体对象
+    auto asset = assetPools->FindAsset(AssetTypes::TrueTypeFont, name);
+    if (!asset)
+        stack.Error("ttf font '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::TrueTypeFontAsset::GetAssetTypeIdStatic());
+
+    auto font = static_pointer_cast<Asset::TrueTypeFontAsset>(asset);
+
+    // 生成 Style
+    assert(blend);
+    TextDrawingStyle style;
+    style.FontSize = font->GetFontSize();
+    style.AdditiveTextColor = *blend;  // TTF 字体总是使用加算
+    style.MultiplyTextColor = 0xFFFFFFFF;
+
+    // 由于 lstg 最早使用 GDI 渲染文本，这里需要根据 GDI 的枚举对 fmt 进行转换
+    // reference: https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-drawtext
+    // from winuser.h
+    enum {
+        // 只考虑下述格式的支持
+        DT_TOP = 0x00000000u,
+        DT_LEFT = 0x00000000u,
+        DT_CENTER = 0x00000001u,
+        DT_RIGHT = 0x00000002u,
+        DT_VCENTER = 0x00000004u,
+        DT_BOTTOM = 0x00000008u,
+        DT_WORDBREAK = 0x00000010u,
+    };
+//    if ((fmt & DT_LEFT) == DT_LEFT)
+//        style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Left;
+    if ((fmt & DT_CENTER) == DT_CENTER)
+        style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Center;
+    else if ((fmt & DT_RIGHT) == DT_RIGHT)
+        style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Right;
+
+//    if ((fmt & DT_TOP) == DT_TOP)
+//        style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Top;
+    if ((fmt & DT_VCENTER) == DT_VCENTER)
+        style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Middle;
+    else if ((fmt & DT_BOTTOM) == DT_BOTTOM)
+        style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Bottom;
+
+    if ((fmt & DT_WORDBREAK) == DT_WORDBREAK)
+        style.LayoutStyle.LineBreak = TextLineBreakTypes::Anywhere;
+
+    // 渲染
+    Math::XYRectangle rect {
+        static_cast<float>(left),
+        static_cast<float>(top),
+        std::max(0.f, static_cast<float>(right - left)),
+        std::max(0.f, static_cast<float>(top - bottom))
+    };
+    cmdBuffer.SetColorBlendMode(ColorBlendMode::Alpha);
+    auto ret = TextDrawing::Draw(app.GetShapedTextCache(), cmdBuffer, font->GetFontCollection(), app.GetFontGlyphAtlas(),
+        app.GetTextShaper(), text, rect, style);
+    if (!ret)
+        stack.Error("ttf font \"%s\" draw text fail: %s", font->GetName().c_str(), ret.GetError().message().c_str());
 }
 
-void RenderModule::PushRenderTarget(const char* name)
+void RenderModule::PushRenderTarget(LuaStack& stack, const char* name)
 {
     // TODO
 //    ResTexture* p = LRES.FindTexture(luaL_checkstring(L, 1));
@@ -280,7 +457,7 @@ void RenderModule::PushRenderTarget(const char* name)
 //    return 0;
 }
 
-void RenderModule::PopRenderTarget()
+void RenderModule::PopRenderTarget(LuaStack& stack)
 {
     // TODO
 //    if (!LAPP.PopRenderTarget())
@@ -338,7 +515,7 @@ void RenderModule::PostEffect(LuaStack& stack, const char* name, const char* fx,
 //    return 0;
 }
 
-void RenderModule::PostEffectCapture()
+void RenderModule::PostEffectCapture(LuaStack& stack)
 {
     // TODO
 //    if (!LAPP.PostEffectCapture())

@@ -55,6 +55,16 @@ namespace lstg::Subsystem::Render
         uint32_t GetHeight() const noexcept;
 
         /**
+         * 是否可以被用作 RT
+         */
+        bool IsRenderTarget() const noexcept;
+
+        /**
+         * 是否可以被用作深度/模板缓冲区
+         */
+        bool IsDepthStencil() const noexcept;
+
+        /**
          * 更新 2D 纹理（针对动态纹理）
          * @param range 纹理范围
          * @param data 数据源

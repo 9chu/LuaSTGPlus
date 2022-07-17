@@ -194,8 +194,8 @@ namespace lstg::v2::Bridge
          * @param align 对齐
          */
         LSTG_METHOD()
-        static void RenderText(const char* name, const char* text, double x, double y, std::optional<double> scale /* =1 */,
-            std::optional<TextAlignment> align /* =5 */);
+        static void RenderText(LuaStack& stack, const char* name, const char* text, double x, double y,
+            std::optional<double> scale /* =1 */, std::optional<TextAlignment> align /* =5 */);
 
         /**
          * 渲染 TTF 字体
@@ -209,21 +209,21 @@ namespace lstg::v2::Bridge
          * @param blend 混合颜色
          */
         LSTG_METHOD(RenderTTF)
-        static void RenderTrueTypeFont(const char* name, const char* text, double left, double right, double bottom, double top,
-            int32_t fmt, LSTGColor* blend);
+        static void RenderTrueTypeFont(LuaStack& stack, const char* name, const char* text, double left, double right, double bottom,
+            double top, int32_t fmt, LSTGColor* blend);
 
         /**
          * 推入RT到堆栈
          * @param name RT纹理资源名
          */
         LSTG_METHOD()
-        static void PushRenderTarget(const char* name);
+        static void PushRenderTarget(LuaStack& stack, const char* name);
 
         /**
          * 将RT从栈移除
          */
         LSTG_METHOD()
-        static void PopRenderTarget();
+        static void PopRenderTarget(LuaStack& stack);
 
         /**
          * 执行后处理效果
@@ -241,7 +241,7 @@ namespace lstg::v2::Bridge
          *   PushRenderTarget(InternalPostEffectBuffer)
          */
         LSTG_METHOD()
-        static void PostEffectCapture();
+        static void PostEffectCapture(LuaStack& stack);
 
         /**
          * 结束捕获并施加后处理特效

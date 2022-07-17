@@ -17,14 +17,14 @@ using namespace lstg::detail;
 // ${CMAKE_BINARY_DIR}/icudata/icudata.cpp
 extern const uint8_t kIcuDataContent[];
 
-/// <editor-fold desc="">
+// <editor-fold desc="IcuBidiDeleter">
 
 void IcuBidiDeleter::operator()(UBiDi* bidi) noexcept
 {
     ::ubidi_close(bidi);
 }
 
-/// </editor-fold>
+// </editor-fold>
 
 IcuService& IcuService::GetInstance() noexcept
 {

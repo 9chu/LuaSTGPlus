@@ -16,8 +16,18 @@ using namespace lstg::v2::Asset;
 TextureAssetLoader::TextureAssetLoader(Subsystem::Asset::AssetPtr asset)
     : Subsystem::Asset::AssetLoader(std::move(asset))
 {
-    // 需要等待依赖的纹理加载完毕
-    SetState(Subsystem::Asset::AssetLoadingStates::DependencyLoading);
+    auto texAsset = static_pointer_cast<TextureAsset>(GetAsset());
+
+    if (texAsset->IsRenderTarget())
+    {
+        // RT 不需要加载过程
+        SetState(Subsystem::Asset::AssetLoadingStates::Loaded);
+    }
+    else
+    {
+        // 需要等待依赖的纹理加载完毕
+        SetState(Subsystem::Asset::AssetLoadingStates::DependencyLoading);
+    }
 }
 
 Result<void> TextureAssetLoader::PreLoad() noexcept
@@ -44,6 +54,8 @@ Result<void> TextureAssetLoader::PostLoad() noexcept
 void TextureAssetLoader::Update() noexcept
 {
     auto asset = static_pointer_cast<TextureAsset>(GetAsset());
+    if (asset->IsRenderTarget())
+        return;
 
     // 检查依赖的资源是否加载完毕
     auto state = asset->GetBasicTextureAsset()->GetState();
@@ -65,17 +77,21 @@ void TextureAssetLoader::Update() noexcept
 #if LSTG_ASSET_HOT_RELOAD
 bool TextureAssetLoader::SupportHotReload() const noexcept
 {
-    return true;
+    auto asset = static_pointer_cast<TextureAsset>(GetAsset());
+    return !asset->IsRenderTarget();
 }
 
 bool TextureAssetLoader::CheckIsOutdated() const noexcept
 {
     auto asset = static_pointer_cast<TextureAsset>(GetAsset());
+    assert(!asset->IsRenderTarget());
     return asset->GetBasicTextureAsset()->GetVersion() != m_uLastTextureVersion;
 }
 
 void TextureAssetLoader::PrepareToReload() noexcept
 {
+    auto asset = static_pointer_cast<TextureAsset>(GetAsset());
+    assert(!asset->IsRenderTarget());
     SetState(Subsystem::Asset::AssetLoadingStates::DependencyLoading);
 }
 #endif

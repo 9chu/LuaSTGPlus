@@ -8,12 +8,8 @@
 #include <cstdint>
 #include <optional>
 #include <glm/glm.hpp>
+#include "Texture.hpp"
 #include "ConstantBuffer.hpp"
-
-namespace Diligent
-{
-    struct ITextureView;
-}
 
 namespace lstg::Subsystem
 {
@@ -63,22 +59,17 @@ namespace lstg::Subsystem::Render
          */
         struct OutputViews
         {
-            static constexpr Diligent::ITextureView* kDefaultView = nullptr;  // 设置为 kDefaultView 则使用交换链缓冲区
-
-            Diligent::ITextureView* ColorView = kDefaultView;
-            Diligent::ITextureView* DepthStencilView = kDefaultView;
-
-            OutputViews() = default;
-            OutputViews(const OutputViews& org);
-            OutputViews(OutputViews&& org) noexcept;
-            ~OutputViews();
-
-            OutputViews& operator=(const OutputViews& rhs);
-            OutputViews& operator=(OutputViews&& rhs) noexcept;
+            TexturePtr ColorView;  // 设置为 nullptr 则使用交换链缓冲区，下同
+            TexturePtr DepthStencilView;
 
             [[nodiscard]] bool operator==(const OutputViews& rhs) const noexcept
             {
                 return ColorView == rhs.ColorView && DepthStencilView == rhs.DepthStencilView;
+            }
+
+            [[nodiscard]] bool operator!=(const OutputViews& rhs) const noexcept
+            {
+                return !operator==(rhs);
             }
         };
 

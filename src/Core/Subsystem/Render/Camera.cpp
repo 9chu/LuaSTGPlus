@@ -13,72 +13,12 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render;
 
-// <editor-fold desc="Camera::OutputViews">
-
-Camera::OutputViews::OutputViews(const OutputViews& org)
-    : ColorView(org.ColorView), DepthStencilView(org.DepthStencilView)
-{
-    if (ColorView)
-        ColorView->AddRef();
-    if (DepthStencilView)
-        DepthStencilView->AddRef();
-}
-
-Camera::OutputViews::OutputViews(OutputViews&& org) noexcept
-{
-    std::swap(ColorView, org.ColorView);
-    std::swap(DepthStencilView, org.DepthStencilView);
-}
-
-Camera::OutputViews::~OutputViews()
-{
-    if (ColorView)
-    {
-        ColorView->Release();
-        ColorView = nullptr;
-    }
-    if (DepthStencilView)
-    {
-        DepthStencilView->Release();
-        DepthStencilView = nullptr;
-    }
-}
-
-Camera::OutputViews& Camera::OutputViews::operator=(const OutputViews& rhs)
-{
-    if (this == &rhs)
-        return *this;
-
-    if (ColorView)
-        ColorView->Release();
-    if (DepthStencilView)
-        DepthStencilView->Release();
-
-    ColorView = rhs.ColorView;
-    DepthStencilView = rhs.DepthStencilView;
-
-    if (ColorView)
-        ColorView->AddRef();
-    if (DepthStencilView)
-        DepthStencilView->AddRef();
-    return *this;
-}
-
-Camera::OutputViews& Camera::OutputViews::operator=(OutputViews&& rhs) noexcept
-{
-    std::swap(ColorView, rhs.ColorView);
-    std::swap(DepthStencilView, rhs.DepthStencilView);
-    return *this;
-}
-
-// </editor-fold>
 // <editor-fold desc="Camera">
 
 Camera::Camera()
     : m_stViewMatrix(glm::identity<glm::mat4x4>()), m_stProjectMatrix(glm::identity<glm::mat4x4>()),
     m_stProjectViewMatrix(glm::identity<glm::mat4x4>())
 {
-
 }
 
 void Camera::SetViewMatrix(const glm::mat4x4& mat) noexcept

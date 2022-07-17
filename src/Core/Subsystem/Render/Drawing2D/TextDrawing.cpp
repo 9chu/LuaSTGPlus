@@ -30,7 +30,7 @@ namespace
     }
 }
 
-/// <editor-fold desc="TextDrawing::ShapedTextCache">
+// <editor-fold desc="TextDrawing::ShapedTextCache">
 
 TextDrawing::ShapedTextInfo* TextDrawing::ShapedTextCache::FindCache(std::string_view text, Font::FontCollection* collection,
     uint32_t fontSize, float fontScale) noexcept
@@ -66,9 +66,9 @@ Result<TextDrawing::ShapedTextInfo*> TextDrawing::ShapedTextCache::Cache(std::st
     }
 }
 
-/// </editor-fold>
+// </editor-fold>
 
-/// <editor-fold desc="TextDrawing">
+// <editor-fold desc="TextDrawing">
 
 Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffer& cmdBuffer, Font::FontCollectionPtr collection,
     Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text, Math::XYRectangle rect,
@@ -77,6 +77,134 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
     assert(collection);
     assert(shaper);
 
+    // Step1. 文本整形
+    auto shapedRet = ShapeText(cache, std::move(collection), shaper, text, style);
+    if (!shapedRet)
+        return shapedRet.GetError();
+    auto shapedTextInfo = *shapedRet;
+
+    // Step2. 对整形后的文字进行简单的排版
+    auto layoutRet = LayoutText(shapedTextInfo, rect, style);
+    if (!layoutRet)
+        return layoutRet.GetError();
+
+    // Step3. 渲染
+    // 此时已经完成排版的文字数据存储在 shapedTextInfo 上
+    float yOffset = 0;
+    if (style.LayoutStyle.VerticalAlignment != TextVerticalAlignment::Top)
+    {
+        yOffset = rect.Height() - shapedTextInfo->LayoutHeight;
+        if (style.LayoutStyle.VerticalAlignment == TextVerticalAlignment::Middle)
+            yOffset /= 2.f;
+    }
+    float y = rect.Top() + yOffset;
+    for (const auto& line : shapedTextInfo->LayoutProcessedLine)
+    {
+        y -= line.MarginTop;
+
+        // 决定笔触位置
+        auto drawPosY = y - line.DrawPosTop;
+        auto drawPosX = 0.f;
+        if (style.LayoutStyle.HorizontalAlignment != TextHorizontalAlignment::Left)
+        {
+            drawPosX = rect.Width() - line.LineWidth;
+            if (style.LayoutStyle.HorizontalAlignment == TextHorizontalAlignment::Center)
+                drawPosX /= 2.f;
+        }
+        drawPosX += rect.Left();
+
+        // 逐个字形获取图集并绘制
+        for (size_t i = 0; i < line.GlyphRunCount; ++i)
+        {
+            for (size_t j = 0; j < std::get<1>(line.GlyphRuns[i]); ++j)
+            {
+                auto glyphIndex = std::get<0>(line.GlyphRuns[i]) + j;
+                const auto& glyph = shapedTextInfo->ShapedGlyphs[glyphIndex];
+
+                // 获取图集
+                auto atlasInfo = glyph.FontFace->GetGlyphAtlas(glyph.Param, glyph.GlyphIndex, dynamicAtlas);
+                if (!atlasInfo)
+                    return atlasInfo.GetError();
+
+                // 绘制精灵
+                auto drawer = SpriteDrawing::Draw(cmdBuffer, atlasInfo->Texture);
+                if (!drawer)
+                    return drawer.GetError();
+
+                const auto& texRect = atlasInfo->TextureRect;
+                drawer->Texture(texRect.Left(), texRect.Top(), texRect.Width(), texRect.Height());
+                drawer->SetAdditiveColor(style.AdditiveTextColor);
+                drawer->SetMultiplyColor(style.MultiplyTextColor);
+                drawer->Shape(atlasInfo->DrawSize.x, atlasInfo->DrawSize.y, 0, 0);
+                drawer->Translate(drawPosX + atlasInfo->DrawOffset.x + glyph.XOffset,
+                    drawPosY + atlasInfo->DrawOffset.y + glyph.YOffset,
+                    0.5);
+
+                drawPosX += glyph.XAdvance;
+                drawPosY += glyph.YAdvance;
+            }
+        }
+
+        y -= line.LineHeight;
+    }
+    return {};
+}
+
+Result<glm::vec2> TextDrawing::MeasureNonBreakSize(TextDrawing::ShapedTextCache& cache, Font::FontCollectionPtr collection,
+    Font::ITextShaper* shaper, std::string_view text, TextDrawingStyle style) noexcept
+{
+    assert(collection);
+    assert(shaper);
+
+    // Step1. 文本整形
+    auto shapedRet = ShapeText(cache, std::move(collection), shaper, text, style);
+    if (!shapedRet)
+        return shapedRet.GetError();
+    auto shapedTextInfo = *shapedRet;
+
+    // Step2. 计算占用空间大小，相当于 Layout 的退化算法
+    // 如果 shapedTextInfo 上已经缓存的类似情形的计算结果，则直接使用
+    if (!shapedTextInfo->LayoutProcessedLine.empty() && shapedTextInfo->LayoutLineBreak == TextLineBreakTypes::None &&
+        shapedTextInfo->LayoutParagraphInnerLineGap == style.LayoutStyle.ParagraphInnerLineGap &&
+        shapedTextInfo->LayoutMarginBeforeParagraph == style.LayoutStyle.MarginBeforeParagraph &&
+        shapedTextInfo->LayoutMarginAfterParagraph == style.LayoutStyle.MarginAfterParagraph)
+    {
+        return glm::vec2 { shapedTextInfo->LayoutWidth, shapedTextInfo->LayoutHeight };
+    }
+
+    // 否则，快速计算大小
+    float totalWidth = 0.f;
+    float totalHeight = 0.f;
+    float lastParaMarginBottom = 0.f;
+    for (const auto& para : shapedTextInfo->ParagraphMeasures)
+    {
+        auto marginTop = std::max(CalcLineGap(style.LayoutStyle.MarginBeforeParagraph, para.LineHeight),
+            lastParaMarginBottom);
+
+        // 宽度取最大
+        totalWidth = std::max(totalWidth, para.LineWidth);
+
+        // 高度，需要计算段前+行高+段后
+        float paraBeforeAddition = marginTop - lastParaMarginBottom;  // 上一行的 MarginBottom 已经计算在内
+        lastParaMarginBottom = CalcLineGap(style.LayoutStyle.MarginAfterParagraph, para.LineHeight);
+        totalHeight += paraBeforeAddition + para.LineHeight + lastParaMarginBottom;
+    }
+    return glm::vec2 { totalWidth, totalHeight };
+}
+
+bool TextDrawing::IsAllParagraphFitInLine(const std::vector<ParagraphMeasureInfo>& paragraphs, float maxWidth) noexcept
+{
+    for (const auto& e : paragraphs)
+    {
+        if (e.LineWidth > maxWidth)
+            return false;
+    }
+    return true;
+}
+
+Result<TextDrawing::ShapedTextInfo*> TextDrawing::ShapeText(TextDrawing::ShapedTextCache& cache, Font::FontCollectionPtr collection,
+    Font::ITextShaper* shaper, std::string_view text, const TextDrawingStyle& style) noexcept
+{
     // 先查 Cache 看有没有预先整形的数据
     auto shapedTextInfo = cache.FindCache(text, collection.get(), style.FontSize, style.FontScale);
     if (!shapedTextInfo)  // 没有命中 Cache，进行整形
@@ -154,9 +282,15 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
         shapedTextInfo = *cacheRet;
     }
     assert(shapedTextInfo);
+    return shapedTextInfo;
+}
 
-    // 对整形后的文字进行简单的排版
-    // Step1. 施加行间距、段落间距、处理折行
+Result<void> TextDrawing::LayoutText(ShapedTextInfo* shapedTextInfo, const Math::XYRectangle& rect, const TextDrawingStyle& style) noexcept
+{
+    assert(shapedTextInfo);
+
+    // 文本简单整形
+    // 施加行间距、段落间距、处理折行
     if (shapedTextInfo->LayoutProcessedLine.empty() || shapedTextInfo->LayoutMaxWidth != rect.Width() ||
         shapedTextInfo->LayoutLineBreak != style.LayoutStyle.LineBreak ||
         shapedTextInfo->LayoutParagraphInnerLineGap != style.LayoutStyle.ParagraphInnerLineGap ||
@@ -376,76 +510,7 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
             return make_error_code(errc::not_enough_memory);
         }
     }
-
-    // Step2. 渲染
-    float yOffset = 0;
-    if (style.LayoutStyle.VerticalAlignment != TextVerticalAlignment::Top)
-    {
-        yOffset = rect.Height() - shapedTextInfo->LayoutHeight;
-        if (style.LayoutStyle.VerticalAlignment == TextVerticalAlignment::Middle)
-            yOffset /= 2.f;
-    }
-    float y = rect.Top() + yOffset;
-    for (const auto& line : shapedTextInfo->LayoutProcessedLine)
-    {
-        y -= line.MarginTop;
-
-        // 决定笔触位置
-        auto drawPosY = y - line.DrawPosTop;
-        auto drawPosX = 0.f;
-        if (style.LayoutStyle.HorizontalAlignment != TextHorizontalAlignment::Left)
-        {
-            drawPosX = rect.Width() - line.LineWidth;
-            if (style.LayoutStyle.HorizontalAlignment == TextHorizontalAlignment::Center)
-                drawPosX /= 2.f;
-        }
-        drawPosX += rect.Left();
-
-        // 逐个字形获取图集并绘制
-        for (size_t i = 0; i < line.GlyphRunCount; ++i)
-        {
-            for (size_t j = 0; j < std::get<1>(line.GlyphRuns[i]); ++j)
-            {
-                auto glyphIndex = std::get<0>(line.GlyphRuns[i]) + j;
-                const auto& glyph = shapedTextInfo->ShapedGlyphs[glyphIndex];
-
-                // 获取图集
-                auto atlasInfo = glyph.FontFace->GetGlyphAtlas(glyph.Param, glyph.GlyphIndex, dynamicAtlas);
-                if (!atlasInfo)
-                    return atlasInfo.GetError();
-
-                // 绘制精灵
-                auto drawer = SpriteDrawing::Draw(cmdBuffer, atlasInfo->Texture);
-                if (!drawer)
-                    return drawer.GetError();
-
-                const auto& texRect = atlasInfo->TextureRect;
-                drawer->Texture(texRect.Left(), texRect.Top(), texRect.Width(), texRect.Height());
-                drawer->SetAdditiveColor(style.AdditiveTextColor);
-                drawer->SetMultiplyColor(style.MultiplyTextColor);
-                drawer->Shape(atlasInfo->DrawSize.x, atlasInfo->DrawSize.y, 0, 0);
-                drawer->Translate(drawPosX + atlasInfo->DrawOffset.x + glyph.XOffset,
-                    drawPosY + atlasInfo->DrawOffset.y + glyph.YOffset,
-                    0.5);
-
-                drawPosX += glyph.XAdvance;
-                drawPosY += glyph.YAdvance;
-            }
-        }
-
-        y -= line.LineHeight;
-    }
     return {};
 }
 
-bool TextDrawing::IsAllParagraphFitInLine(const std::vector<ParagraphMeasureInfo>& paragraphs, float maxWidth) noexcept
-{
-    for (const auto& e : paragraphs)
-    {
-        if (e.LineWidth > maxWidth)
-            return false;
-    }
-    return true;
-}
-
-/// </editor-fold>
+// </editor-fold>

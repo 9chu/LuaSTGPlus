@@ -32,7 +32,7 @@ namespace
     }
 }
 
-/// <editor-fold desc="detail::AtlasTexture">
+// <editor-fold desc="detail::AtlasTexture">
 
 AtlasTexture::AtlasTexture(RenderSystem& renderSystem, uint32_t width, uint32_t height)
     : TextureData(width, height, Render::Texture2DFormats::R8G8B8A8)
@@ -42,7 +42,7 @@ AtlasTexture::AtlasTexture(RenderSystem& renderSystem, uint32_t width, uint32_t 
     ImageDirtyRegion = { 0, 0, 0, 0 };
 }
 
-/// </editor-fold>
+// </editor-fold>
 
 DynamicFontGlyphAtlas::DynamicFontGlyphAtlas(RenderSystem& renderSystem) noexcept
     : m_stRenderSystem(renderSystem)

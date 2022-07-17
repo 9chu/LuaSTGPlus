@@ -20,13 +20,16 @@
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
 
 // 资源类型
+#include <lstg/v2/Asset/TextureAsset.hpp>
 #include <lstg/v2/Asset/TextureAssetFactory.hpp>
 #include <lstg/v2/Asset/SpriteAssetFactory.hpp>
 #include <lstg/v2/Asset/SpriteSequenceAssetFactory.hpp>
 #include <lstg/v2/Asset/TrueTypeFontAssetFactory.hpp>
 #include <lstg/v2/Asset/HgeFontAssetFactory.hpp>
 #include <lstg/v2/Asset/HgeParticleAssetFactory.hpp>
+#include <lstg/v2/Asset/EffectAssetFactory.hpp>
 
+// 脚本桥
 #include <lstg/v2/Bridge/BuiltInModules.hpp>
 
 using namespace std;
@@ -96,8 +99,9 @@ GameApp::GameApp(int argc, char** argv)
         assetSystem->RegisterAssetFactory(make_shared<Asset::TrueTypeFontAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::HgeFontAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::HgeParticleAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::EffectAssetFactory>());
 
-        // TODO: Music Sound FX
+        // TODO: Music Sound
 
         // 创建资源池
         m_pAssetPools = make_unique<AssetPools>();
@@ -106,9 +110,12 @@ GameApp::GameApp(int argc, char** argv)
         assetSystem->SetDependencyResolver(m_pAssetPools.get());
     }
 
-    // 初始化渲染参数
+    // 初始化渲染系统
     {
-        auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
+        auto& renderSystem = *GetSubsystem<Subsystem::RenderSystem>();
+
+        // 初始化渲染参数
+        auto renderDevice = renderSystem.GetRenderDevice();
         assert(renderDevice);
         m_stNativeSolution = { renderDevice->GetRenderOutputWidth(), renderDevice->GetRenderOutputHeight() };
         AdjustViewport();
@@ -122,6 +129,10 @@ GameApp::GameApp(int argc, char** argv)
         m_stCommandBuffer.SetViewport(static_cast<float>(m_stViewportBound.Left()), static_cast<float>(m_stViewportBound.Top()),
                                       static_cast<float>(m_stViewportBound.Width()), static_cast<float>(m_stViewportBound.Height()));
         m_stCommandBuffer.End();
+
+        // 初始化文字渲染组件
+        m_pTextShaper = Subsystem::Render::Font::CreateHarfBuzzTextShaper();
+        m_pFontGlyphAtlas = make_shared<Subsystem::Render::Font::DynamicFontGlyphAtlas>(renderSystem);
     }
 
     // 初始化函数库
@@ -335,7 +346,14 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
                     auto renderHeight = renderDevice->GetRenderOutputHeight();
                     m_stNativeSolution = { renderWidth, renderHeight };
 
+                    // 调整视口
                     AdjustViewport();
+
+                    // 调整所有 RenderTarget 的大小
+                    auto textureAssetFactory = static_pointer_cast<Asset::TextureAssetFactory>(
+                        GetSubsystem<Subsystem::AssetSystem>()->FindAssetFactory<Asset::TextureAsset>());
+                    assert(textureAssetFactory);
+                    textureAssetFactory->ResizeRenderTarget(renderWidth, renderHeight);
                 }
                 else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
                 {

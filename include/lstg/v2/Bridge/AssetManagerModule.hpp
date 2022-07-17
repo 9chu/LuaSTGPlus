@@ -279,20 +279,20 @@ namespace lstg::v2::Bridge
          * @param path 路径
          */
         LSTG_METHOD()
-        static void LoadFX(const char* name, const char* path);
+        static void LoadFX(LuaStack& stack, const char* name, const char* path);
 
         /**
          * 创建RT
          * @param name 纹理资产名
          */
         LSTG_METHOD()
-        static void CreateRenderTarget(const char* name);
+        static void CreateRenderTarget(LuaStack& stack, const char* name);
 
         /**
          * 检查一个纹理是否为RT
          * @param name 被检查纹理名
          */
         LSTG_METHOD()
-        static void IsRenderTarget(const char* name);
+        static bool IsRenderTarget(LuaStack& stack, const char* name);
     };
 }

@@ -54,6 +54,7 @@ void DiligentShaderSourceInputStreamFactory::CreateInputStream2(const char* name
 {
     *stream = nullptr;
 
+    // TODO: 支持基于相对路径的加载
     auto fullPath = fmt::format("{}/{}", m_stFileSystem.GetAssetBaseDirectory(), name);
     auto ret = m_stFileSystem.OpenFile(fullPath, VFS::FileAccessMode::Read);
     if (!ret)

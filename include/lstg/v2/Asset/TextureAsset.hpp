@@ -7,6 +7,7 @@
 #pragma once
 #include <optional>
 #include <lstg/Core/Subsystem/Asset/BasicTexture2DAsset.hpp>
+#include <lstg/Core/Subsystem/Render/Camera.hpp>
 #include <lstg/Core/Subsystem/Render/Drawing2D/Texture2D.hpp>
 
 namespace lstg::v2::Asset
@@ -26,18 +27,33 @@ namespace lstg::v2::Asset
 
     public:
         TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAssetPtr textureAsset, float pixelPerUnit);
+        TextureAsset(std::string name, Subsystem::Render::Camera::OutputViews view, float pixelPerUnit);
         ~TextureAsset();
 
     public:
         /**
-         * 获取纹理资源
+         * 是否是 RenderTarget
          */
-        const Subsystem::Asset::BasicTexture2DAssetPtr& GetBasicTextureAsset() const noexcept { return m_pTextureAsset; }
+        [[nodiscard]] bool IsRenderTarget() const noexcept;
+
+        /**
+         * 获取纹理资源
+         * @pre !IsRenderTarget()
+         * @note 当且仅当类型不是 RT 时可以调用
+         */
+        [[nodiscard]] const Subsystem::Asset::BasicTexture2DAssetPtr& GetBasicTextureAsset() const noexcept;
+
+        /**
+         * 获取 RT 视图
+         * @pre IsRenderTarget()
+         * @note 当且仅当类型是 RT 时可以调用
+         */
+        [[nodiscard]] Subsystem::Render::Camera::OutputViews& GetOutputViews() noexcept;
 
         /**
          * 获取实际用于渲染的纹理定义
          */
-        const Subsystem::Render::Drawing2D::Texture2D& GetDrawingTexture() const noexcept { return m_stDrawingTexture; }
+        [[nodiscard]] const Subsystem::Render::Drawing2D::Texture2D& GetDrawingTexture() const noexcept { return m_stDrawingTexture; }
 
         /**
          * 获取PPU
@@ -66,7 +82,7 @@ namespace lstg::v2::Asset
 
     private:
         // 依赖
-        Subsystem::Asset::BasicTexture2DAssetPtr m_pTextureAsset;  // 子资源
+        std::variant<Subsystem::Asset::BasicTexture2DAssetPtr, Subsystem::Render::Camera::OutputViews> m_stUnderlay;
         Subsystem::Render::Drawing2D::Texture2D m_stDrawingTexture;
     };
 

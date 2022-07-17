@@ -300,11 +300,23 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @param text 文本
          * @param rect 绘制范围
          * @param style 样式
-         * @return
+         * @return 是否成功
          */
         static Result<void> Draw(TextDrawing::ShapedTextCache& cache, CommandBuffer& cmdBuffer, Font::FontCollectionPtr collection,
             Font::DynamicFontGlyphAtlas* dynamicAtlas, Font::ITextShaper* shaper, std::string_view text, Math::XYRectangle rect,
             TextDrawingStyle style) noexcept;
+
+        /**
+         * 计算文本占用大小（无折行情形）
+         * @param cache 缓存器
+         * @param collection 字体集合
+         * @param shaper 整形器
+         * @param text 文本
+         * @param style 样式
+         * @return 是否成功
+         */
+        static Result<glm::vec2> MeasureNonBreakSize(TextDrawing::ShapedTextCache& cache, Font::FontCollectionPtr collection,
+            Font::ITextShaper* shaper, std::string_view text, TextDrawingStyle style) noexcept;
 
     private:
         /**
@@ -314,5 +326,27 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @return 可以在一行显示
          */
         static bool IsAllParagraphFitInLine(const std::vector<ParagraphMeasureInfo>& paragraphs, float maxWidth) noexcept;
+
+        /**
+         * 对文本进行整形
+         * @param cache 缓存
+         * @param collection 字体集合
+         * @param shaper 整形器
+         * @param text 文本
+         * @param style 文本样式
+         * @return 整形后的缓存对象
+         */
+        static Result<ShapedTextInfo*> ShapeText(TextDrawing::ShapedTextCache& cache, Font::FontCollectionPtr collection,
+            Font::ITextShaper* shaper, std::string_view text, const TextDrawingStyle& style) noexcept;
+
+        /**
+         * 在指定矩形区域内对文本进行排版
+         * @param shapedText 整形后文本
+         * @param rect 矩形区域
+         * @param style 文字样式
+         * @return 是否成功
+         */
+        static Result<void> LayoutText(ShapedTextInfo* shapedTextInfo, const Math::XYRectangle& rect,
+            const TextDrawingStyle& style) noexcept;
     };
 }

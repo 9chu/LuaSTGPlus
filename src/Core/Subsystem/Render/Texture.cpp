@@ -47,6 +47,18 @@ uint32_t Texture::GetHeight() const noexcept
     return m_pNativeHandler->GetDesc().GetHeight();
 }
 
+bool Texture::IsRenderTarget() const noexcept
+{
+    assert(m_pNativeHandler);
+    return (m_pNativeHandler->GetDesc().BindFlags & Diligent::BIND_RENDER_TARGET) == Diligent::BIND_RENDER_TARGET;
+}
+
+bool Texture::IsDepthStencil() const noexcept
+{
+    assert(m_pNativeHandler);
+    return (m_pNativeHandler->GetDesc().BindFlags & Diligent::BIND_DEPTH_STENCIL) == Diligent::BIND_DEPTH_STENCIL;
+}
+
 Result<void> Texture::Commit(Math::ImageRectangle range, Span<const uint8_t> data, size_t stride, size_t mipmapLevel,
     size_t arrayIndex) noexcept
 {

@@ -85,6 +85,24 @@ namespace lstg::Subsystem
         Result<void> RegisterAssetFactory(Asset::AssetFactoryPtr factory) noexcept;
 
         /**
+         * 查找资产工厂
+         * @tparam T 资产类型
+         * @return 工厂指针
+         */
+        template <typename T>
+        Asset::AssetFactoryPtr FindAssetFactory() noexcept
+        {
+            const auto& uniqueTypeName = Script::detail::GetUniqueTypeName<T>();
+            auto id = uniqueTypeName.Id;
+
+            auto it = m_stAssetFactories.find(id);
+            if (it == m_stAssetFactories.end())
+                return nullptr;
+
+            return it->second;
+        }
+
+        /**
          * 通过资源类型名和参数创建资产
          * @param pool 资产池
          * @param typeName 资源类型名
@@ -106,14 +124,11 @@ namespace lstg::Subsystem
         template <typename T>
         Result<std::shared_ptr<T>> CreateAsset(Asset::AssetPoolPtr pool, std::string_view name, const nlohmann::json& arguments) noexcept
         {
-            const auto& uniqueTypeName = Script::detail::GetUniqueTypeName<T>();
-            auto id = uniqueTypeName.Id;
-
-            auto it = m_stAssetFactories.find(id);
-            if (it == m_stAssetFactories.end())
+            auto factory = FindAssetFactory<T>();
+            if (!factory)
                 return make_error_code(Asset::AssetError::AssetFactoryNotRegistered);
 
-            auto ret = CreateAsset(pool, it->second, name, arguments);
+            auto ret = CreateAsset(pool, std::move(factory), name, arguments);
             if (!ret)
                 return ret.GetError();
             return std::static_pointer_cast<T>(*ret);
