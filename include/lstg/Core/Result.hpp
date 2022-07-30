@@ -72,7 +72,7 @@ namespace lstg
          * @param obj 参数
          */
         template <typename P>
-        Result(P&& obj, typename std::enable_if<detail::IsNotResultNorErrorCode<P>::value, void*>::type = nullptr) noexcept
+        Result(P&& obj, typename std::enable_if<lstg::detail::IsNotResultNorErrorCode<P>::value, void*>::type = nullptr) noexcept
             : m_stValue(std::forward<P>(obj))
         {
         }

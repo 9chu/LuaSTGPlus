@@ -15,6 +15,7 @@
 #include <lstg/Core/Subsystem/Render/Font/ITextShaper.hpp>
 #include <lstg/Core/Subsystem/Render/Font/DynamicFontGlyphAtlas.hpp>
 #include "AssetPools.hpp"
+#include "GamePlay/GameWorld.hpp"
 
 namespace lstg::v2
 {
@@ -99,6 +100,13 @@ namespace lstg::v2
          */
         Subsystem::Render::Font::DynamicFontGlyphAtlas* GetFontGlyphAtlas() noexcept { return m_pFontGlyphAtlas.get(); }
 
+    public:  // GamePlay
+        /**
+         * 获取游戏世界
+         */
+        GamePlay::GameWorld& GetDefaultWorld() noexcept { return m_stDefaultWorld; }
+        const GamePlay::GameWorld& GetDefaultWorld() const noexcept { return m_stDefaultWorld; }
+        
     protected:  // 框架事件
         void OnEvent(Subsystem::SubsystemEvent& event) noexcept override;
         void OnUpdate(double elapsed) noexcept override;
@@ -131,5 +139,8 @@ namespace lstg::v2
         Subsystem::Render::Drawing2D::TextDrawing::ShapedTextCache m_stShapedTextCache;
         Subsystem::Render::Font::TextShaperPtr m_pTextShaper;
         Subsystem::Render::Font::DynamicFontGlyphAtlasPtr m_pFontGlyphAtlas;
+
+        // 游戏世界
+        GamePlay::GameWorld m_stDefaultWorld;
     };
 }

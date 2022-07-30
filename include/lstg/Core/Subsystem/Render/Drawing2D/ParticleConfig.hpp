@@ -43,12 +43,12 @@ namespace lstg::Subsystem::Render::Drawing2D
         ParticleEmitDirection EmitDirection = ParticleEmitDirection::Fixed;  ///< @brief 发射方向选择
 
         // 粒子参数
-        RandomRange ParticleLifeTime = { 0, 0 };  ///< @brief 粒子生命期
-        RandomRange Speed = { 0, 0 };  ///< @brief 粒子初始速度
-        RandomRange Gravity = { 0, 0 };  ///< @brief 粒子重力加速度
+        RandomRange ParticleLifeTime = { 0.f, 0.f };  ///< @brief 粒子生命期
+        RandomRange Speed = { 0.f, 0.f };  ///< @brief 粒子初始速度
+        RandomRange Gravity = { 0.f, 0.f };  ///< @brief 粒子重力加速度
         glm::vec2 GravityDirection = { 0, 1.f };  ///< @brief 重力方向
-        RandomRange RadialAcceleration = { 0, 0 };  ///< @brief 线加速度
-        RandomRange TangentialAcceleration = { 0, 0 };  ///< @brief 角加速度
+        RandomRange RadialAcceleration = { 0.f, 0.f };  ///< @brief 线加速度
+        RandomRange TangentialAcceleration = { 0.f, 0.f };  ///< @brief 角加速度
         float SizeInitial = 0.f;  ///< @brief 起始大小
         float SizeFinal = 0.f;  ///< @brief 最终大小
         float SizeVariant = 0.f;  ///< @brief 大小抖动值

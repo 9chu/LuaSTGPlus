@@ -1,0 +1,95 @@
+/**
+ * @file
+ * @author 9chu
+ * @date 2022/7/22
+ * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
+ */
+#include <lstg/Core/ECS/Entity.hpp>
+
+#include <lstg/Core/ECS/World.hpp>
+
+using namespace std;
+using namespace lstg;
+using namespace lstg::ECS;
+
+Entity::Entity(World* world, EntityId id) noexcept
+    : m_pWorld(world), m_uId(id)
+{
+}
+
+Entity::operator bool() const noexcept
+{
+    if (!m_pWorld)
+        return false;
+    if (m_uId == kInvalidEntityId)
+        return false;
+
+    auto& archetype = m_pWorld->GetArchetype(GetEntityArchetypeId(m_uId));
+
+    auto archetypeEntityId = GetEntityArchetypeEntityId(m_uId);
+    assert(archetypeEntityId != kInvalidArchetypeEntityId);
+    auto state = archetype.GetEntityState(archetypeEntityId);
+
+    // 没有在使用
+    if (!state.Used)
+        return false;
+
+    // 序列号有变化
+    auto seq = GetEntitySeq(m_uId);
+    if (seq != state.Seq)
+        return false;
+    return true;
+}
+
+void Entity::Destroy() noexcept
+{
+    if (m_uId == kInvalidEntityId)
+        return;
+    m_pWorld->GetArchetype(GetEntityArchetypeId(m_uId)).Free(GetEntityArchetypeEntityId(m_uId));
+    m_uId = kInvalidEntityId;
+    m_stLastComponentCache = { 0, nullptr };
+}
+
+bool Entity::HasComponent(ComponentId id) const noexcept
+{
+    auto archetypeId = GetEntityArchetypeId(m_uId);
+    auto& archetype = m_pWorld->GetArchetype(archetypeId);
+    return (archetype.GetTypeId() & (1u << id)) != 0;
+}
+
+void* Entity::GetComponent(ComponentId id) noexcept
+{
+    assert(m_pWorld && m_uId != kInvalidEntityId);
+
+    // cache
+    if (m_stLastComponentCache.second && m_stLastComponentCache.first == id)
+        return m_stLastComponentCache.second;
+
+    auto archetypeId = GetEntityArchetypeId(m_uId);
+    auto archetypeEntityId = GetEntityArchetypeEntityId(m_uId);
+    auto& archetype = m_pWorld->GetArchetype(archetypeId);
+    auto ret = archetype.GetComponent(archetypeEntityId, id);
+
+    m_stLastComponentCache = { id, ret };
+    return ret;
+}
+
+void* Entity::TryGetComponent(ComponentId id) noexcept
+{
+    if (!m_pWorld || m_uId == kInvalidEntityId)
+        return nullptr;
+
+    // cache
+    if (m_stLastComponentCache.second && m_stLastComponentCache.first == id)
+        return m_stLastComponentCache.second;
+
+    auto archetypeId = GetEntityArchetypeId(m_uId);
+    auto& archetype = m_pWorld->GetArchetype(archetypeId);
+    if ((archetype.GetTypeId() & (1u << id)) == 0)
+        return nullptr;
+    auto archetypeEntityId = GetEntityArchetypeEntityId(m_uId);
+    auto ret = archetype.GetComponent(archetypeEntityId, id);
+
+    m_stLastComponentCache = { id, ret };
+    return ret;
+}

@@ -125,7 +125,8 @@ void ParticleEmitter::Update(double elapsed) noexcept
     // 产生新的粒子
     if (m_bAlive)
     {
-        float particlesToCreate = static_cast<float>(m_pConfig->EmissionPerSecond) * delta + m_fEmissionResidue;
+        float emission = m_stEmissionOverride ? *m_stEmissionOverride : static_cast<float>(m_pConfig->EmissionPerSecond);
+        float particlesToCreate = emission * delta + m_fEmissionResidue;
         auto particlesToCreateFloor = ::floor(particlesToCreate);
         m_fEmissionResidue = particlesToCreate - particlesToCreateFloor;
 

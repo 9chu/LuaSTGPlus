@@ -105,7 +105,7 @@ Result<Subsystem::Asset::CreateAssetResult> SpriteSequenceAssetFactory::CreateAs
             collider = ellipseShape;
         }
 
-        auto asset = make_shared<SpriteSequenceAsset>(string{name}, std::move(texture), std::move(frames), collider);
+        auto asset = make_shared<SpriteSequenceAsset>(string{name}, std::move(texture), std::move(frames), *interval, collider);
         auto loader = make_shared<SpriteSequenceAssetLoader>(asset);
         return Subsystem::Asset::CreateAssetResult {
             static_pointer_cast<Subsystem::Asset::Asset>(asset),

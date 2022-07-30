@@ -81,7 +81,8 @@ void TextureAsset::FreeResource() noexcept
         assert(textureAsset->GetId() != Subsystem::Asset::kEmptyAssetId);
 
         auto pool = textureAsset->GetPool().lock();
-        pool->RemoveAsset(textureAsset->GetId());
+        if (pool)
+            pool->RemoveAsset(textureAsset->GetId());
         textureAsset.reset();
     }
 }

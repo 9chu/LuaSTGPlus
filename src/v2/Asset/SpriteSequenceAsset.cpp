@@ -20,9 +20,10 @@ Subsystem::Asset::AssetTypeId SpriteSequenceAsset::GetAssetTypeIdStatic() noexce
     return uniqueTypeName.Id;
 }
 
-SpriteSequenceAsset::SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frames, ColliderShape colliderShape)
+SpriteSequenceAsset::SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frames, int32_t interval,
+    ColliderShape colliderShape)
     : Subsystem::Asset::Asset(std::move(name)), m_pTextureAsset(std::move(texture)), m_stSequences(std::move(frames)),
-      m_stColliderShape(colliderShape)
+    m_iInterval(std::max<int32_t>(1, interval)), m_stColliderShape(colliderShape)
 {
     assert(!m_stSequences.empty());
 

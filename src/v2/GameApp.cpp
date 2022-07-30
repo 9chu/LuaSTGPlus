@@ -50,7 +50,7 @@ static const char* kEventOnRender = "RenderFunc";
 extern "C" int luaopen_cjson(lua_State* L);
 
 GameApp::GameApp(int argc, char** argv)
-    : m_stDesiredSolution(640, 480), m_stCommandExecutor(*GetSubsystem<Subsystem::RenderSystem>())
+    : m_stDesiredSolution(640, 480), m_stCommandExecutor(*GetSubsystem<Subsystem::RenderSystem>()), m_stDefaultWorld(*this)
 {
     // 初始化文件系统
     //  - assets

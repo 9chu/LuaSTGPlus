@@ -28,9 +28,58 @@ namespace lstg::Subsystem::Render::Drawing2D
 
     public:
         /**
+         * 获取关联的粒子配置
+         */
+        const ParticleConfig* GetConfig() const noexcept { return m_pConfig; }
+
+        /**
+         * 获取粒子数
+         */
+        size_t GetParticleCount() const noexcept { return m_stParticles.size(); }
+
+        /**
          * 是否存活
          */
         bool IsAlive() const noexcept { return m_bAlive; }
+
+        /**
+         * 获取存活时间
+         */
+        float GetAge() const noexcept { return m_fAge; }
+
+        /**
+         * 设置为存活
+         */
+        void SetAlive() noexcept
+        {
+            m_bAlive = true;
+            m_fAge = 0;
+        }
+
+        /**
+         * 设置失效
+         */
+        void SetDead() noexcept
+        {
+            m_bAlive = false;
+        }
+
+        /**
+         * 发射密度覆盖量
+         */
+        std::optional<float> GetEmissionOverride() const noexcept { return m_stEmissionOverride; }
+
+        /**
+         * 设置发射密度覆盖量
+         * @param v 值
+         */
+        void SetEmissionOverride(std::optional<float> v) noexcept
+        {
+            if (v)
+                m_stEmissionOverride = std::max(0.f, *v);
+            else
+                m_stEmissionOverride = {};
+        }
 
         /**
          * 获取当前位置
@@ -90,6 +139,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         bool m_bAlive = true;
         float m_fAge = 0.;
         float m_fEmissionResidue = 0.f;  // 发射量缺口
+        std::optional<float> m_stEmissionOverride;  // 发射密度覆盖
 
         // 变换
         glm::vec2 m_stPosition { 0.f, 0.f };

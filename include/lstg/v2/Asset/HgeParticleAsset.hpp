@@ -66,4 +66,6 @@ namespace lstg::v2::Asset
         Subsystem::Render::Drawing2D::ParticleConfig m_stParticleConfig;
         ColliderShape m_stColliderShape;  // 碰撞外形
     };
+
+    using HgeParticleAssetPtr = std::shared_ptr<HgeParticleAsset>;
 }

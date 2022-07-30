@@ -63,8 +63,11 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Wextra -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-noexcept-type")
 endif()
 
+# 工具
 add_subdirectory(tool/LuaAutoBridgeTool)
+add_subdirectory(tool/PerfectHashTool)
 
+# 库 & 主程序
 add_subdirectory(src/Core)
 add_subdirectory(src/v2)
 

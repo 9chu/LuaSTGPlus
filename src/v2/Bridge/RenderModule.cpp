@@ -275,6 +275,12 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
     assert(asset->GetAssetTypeId() == Asset::HgeFontAsset::GetAssetTypeIdStatic());
 
     auto font = static_pointer_cast<Asset::HgeFontAsset>(asset);
+    if (font->GetState() != Subsystem::Asset::AssetStates::Loaded)
+    {
+        LSTG_LOG_WARN_CAT(RenderModule, "textured font '{}' not ready", name);
+        return;
+    }
+
     const auto& blendMode = font->GetDefaultBlendMode();
 
     // 生成 Style
@@ -391,6 +397,11 @@ void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const c
     assert(asset->GetAssetTypeId() == Asset::TrueTypeFontAsset::GetAssetTypeIdStatic());
 
     auto font = static_pointer_cast<Asset::TrueTypeFontAsset>(asset);
+    if (font->GetState() != Subsystem::Asset::AssetStates::Loaded)
+    {
+        LSTG_LOG_WARN_CAT(RenderModule, "ttf font '{}' not ready", name);
+        return;
+    }
 
     // 生成 Style
     assert(blend);

@@ -6,6 +6,8 @@
  */
 #include "HgeFontLoadError.hpp"
 
+#include <cassert>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::Font::detail;

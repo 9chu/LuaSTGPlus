@@ -6,6 +6,8 @@
  */
 #include <lstg/Core/Text/IniParsingError.hpp>
 
+#include <cassert>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Text;

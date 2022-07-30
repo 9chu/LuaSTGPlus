@@ -70,6 +70,11 @@ namespace lstg::Subsystem::Script
 
         // 转发到 debug.traceback
         int PCallErrorHandler(lua_State* L);
+
+        constexpr int ToAbsStackIndex(lua_State* L, int i) noexcept
+        {
+            return (i > 0 || i <= LUA_REGISTRYINDEX) ? i : ::lua_gettop(L) + i + 1;
+        }
     }
 
     /**
@@ -148,6 +153,9 @@ namespace lstg::Subsystem::Script
         {
             return m_pState;
         }
+
+        bool operator==(const LuaStack& rhs) const noexcept { return m_pState == rhs.m_pState; }
+        bool operator!=(const LuaStack& rhs) const noexcept { return !operator==(rhs); }
 
     public:
         /**
@@ -347,6 +355,8 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline void RawGet(int idx, T&& key)
         {
+            idx = detail::ToAbsStackIndex(m_pState, idx);  // 需要转换到绝对索引
+
             auto cnt = PushValue(std::forward<T>(key));
             assert(cnt > 0);
             if (cnt > 1)
@@ -370,7 +380,7 @@ namespace lstg::Subsystem::Script
          * @param idx 被赋值对象的索引，栈顶放置 value
          * @param slot 表的下标
          *
-         * [-, +0]
+         * [-1, +0]
          */
         inline void RawSet(int idx, int slot)
         {
@@ -388,6 +398,8 @@ namespace lstg::Subsystem::Script
         template <typename TKey, typename TValue>
         inline void RawSet(int idx, TKey&& key, TValue&& value)
         {
+            idx = detail::ToAbsStackIndex(m_pState, idx);  // 需要转换到绝对索引
+
             auto cnt = PushValue(std::forward<TKey>(key));
             assert(cnt > 0);
             if (cnt > 1)
@@ -411,12 +423,28 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline void RawSet(int idx, int slot, T&& value)
         {
+            idx = detail::ToAbsStackIndex(m_pState, idx);  // 需要转换到绝对索引
+
             auto cnt = PushValue(std::forward<T>(value));
             assert(cnt > 0);
             if (cnt > 1)
                 Pop(cnt - 1);
 
             lua_rawseti(m_pState, idx, slot);
+        }
+
+        /**
+         * 检查是否存在值
+         * @param idx 对象索引
+         * @param slot 数组下标
+         * @return 是否存在
+         */
+        inline bool RawHas(int idx, int slot)
+        {
+            lua_rawgeti(m_pState, idx, slot);
+            bool contains = !lua_isnil(m_pState, -1);
+            lua_pop(m_pState, 1);
+            return contains;
         }
 
         /**
@@ -455,6 +483,8 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline void SetField(int idx, const char* field, T&& value)
         {
+            idx = detail::ToAbsStackIndex(m_pState, idx);  // 需要转换到绝对索引
+
             auto cnt = PushValue(std::forward<T>(value));
             assert(cnt > 0);
             if (cnt > 1)
@@ -524,6 +554,8 @@ namespace lstg::Subsystem::Script
         template <typename T>
         inline void SetFunctionEnvironment(int idx, T&& value)
         {
+            idx = detail::ToAbsStackIndex(m_pState, idx);  // 需要转换到绝对索引
+
             auto cnt = PushValue(std::forward<T>(value));
             assert(cnt > 0);
             if (cnt > 1)
@@ -691,6 +723,42 @@ namespace lstg::Subsystem::Script
             lua_insert(m_pState, base);
             auto ret = lua_pcall(m_pState, static_cast<int>(nargs), static_cast<int>(nrets), base);
             lua_remove(m_pState, base);
+            if (ret == 0)
+                return {};
+            return make_error_code(static_cast<LuaError>(ret));
+        }
+
+        /**
+         * 安全调用函数
+         * @tparam T 函数类型
+         * @param callback 函数
+         * @param leaveErrorMessage 是否在栈上保留错误信息
+         * @return 是否成功
+         *
+         * [-0, +(0|1)]
+         */
+        template <typename T>
+        Result<void> ProtectedCallNative(T callback, bool leaveErrorMessage = false) noexcept
+        {
+            auto top = ::lua_gettop(m_pState);
+            auto ret = ::lua_cpcall(m_pState, [](lua_State* L) noexcept {
+                auto ud = reinterpret_cast<T*>(lua_touserdata(L, 1));
+                try
+                {
+                    (*ud)(L);
+                }
+                catch (const std::exception& ex)
+                {
+                    luaL_error(L, ex.what());
+                }
+                catch (...)
+                {
+                    luaL_error(L, "unexpected exception caught");
+                }
+                return 0;
+            }, &callback);
+            if (!leaveErrorMessage)
+                ::lua_settop(m_pState, top);
             if (ret == 0)
                 return {};
             return make_error_code(static_cast<LuaError>(ret));

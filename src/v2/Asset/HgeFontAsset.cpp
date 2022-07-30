@@ -48,7 +48,8 @@ void HgeFontAsset::FreeResource() noexcept
         assert(m_pFontTexture->GetId() != Subsystem::Asset::kEmptyAssetId);
 
         auto pool = m_pFontTexture->GetPool().lock();
-        pool->RemoveAsset(m_pFontTexture->GetId());
+        if (pool)
+            pool->RemoveAsset(m_pFontTexture->GetId());
         m_pFontTexture.reset();
     }
 }

@@ -13,5 +13,6 @@ namespace lstg::v2
 {
     // 这里定义 GamePlay 所用的数据结构
     using Vec2 = glm::vec<2, double, glm::defaultp>;
+    using WorldRectangle = Math::Rectangle<double, Math::BottomUpTag>;
     using ColliderShape = Math::Collider2D::ColliderShape<double>;
 }

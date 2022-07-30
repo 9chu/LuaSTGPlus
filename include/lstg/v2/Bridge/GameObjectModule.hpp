@@ -29,7 +29,7 @@ namespace lstg::v2::Bridge
          * @warning 慎用
          */
         LSTG_METHOD(ObjTable)
-        static AbsIndex GetObjectTable();
+        static void GetObjectTable();
 
         /**
          * 获取对象池中对象个数
@@ -58,7 +58,7 @@ namespace lstg::v2::Bridge
          * @warning 只能在Lua主线程调用
          */
         LSTG_METHOD(ObjFrame)
-        static void UpdateObjects();
+        static void UpdateObjects(LuaStack& stack);
 
         /**
          * 渲染所有对象
@@ -66,7 +66,7 @@ namespace lstg::v2::Bridge
          * @warning 只能在Lua主线程调用
          */
         LSTG_METHOD(ObjRender)
-        static void RenderObjects();
+        static void RenderObjects(LuaStack& stack);
 
         /**
          * 设置边界
@@ -84,7 +84,7 @@ namespace lstg::v2::Bridge
          * @warning 只能在Lua主线程调用
          */
         LSTG_METHOD()
-        static void BoundCheck();
+        static void BoundCheck(LuaStack& stack);
 
         /**
          * 对组 A 和组 B 进行碰撞检测
@@ -94,7 +94,7 @@ namespace lstg::v2::Bridge
          * @param groupIdB 组 B
          */
         LSTG_METHOD()
-        static void CollisionCheck(int32_t groupIdA, int32_t groupIdB);
+        static void CollisionCheck(LuaStack& stack, int32_t groupIdA, int32_t groupIdB);
 
         /**
          * 刷新对象的坐标
@@ -107,7 +107,7 @@ namespace lstg::v2::Bridge
          * @warning 只能在Lua主线程调用
          */
         LSTG_METHOD()
-        static void UpdateXY();
+        static void UpdateXY(LuaStack& stack);
 
         /**
          * 刷新对象的timer和ani_timer
@@ -116,7 +116,7 @@ namespace lstg::v2::Bridge
          * @warning 只能在Lua主线程调用
          */
         LSTG_METHOD()
-        static void AfterFrame();
+        static void AfterFrame(LuaStack& stack);
 
         /**
          * 创建新对象
@@ -158,7 +158,7 @@ namespace lstg::v2::Bridge
          * @param cls 类
          */
         LSTG_METHOD(New)
-        static void NewObject(LuaStack& stack, AbsIndex cls);
+        static LuaStack::AbsIndex NewObject(LuaStack& stack, AbsIndex cls);
 
         /**
          * 通知删除一个对象
@@ -182,9 +182,10 @@ namespace lstg::v2::Bridge
          * 检查对象是否有效
          * @param stack Lua栈
          * @param object 对象
+         * @return 对象是否有效
          */
         LSTG_METHOD(IsValid)
-        static void IsObjectValid(LuaStack& stack, AbsIndex object);
+        static bool IsObjectValid(LuaStack& stack, AbsIndex object);
 
         /**
          * 获取对象的速度
@@ -204,7 +205,7 @@ namespace lstg::v2::Bridge
          * @param track 是否同时设置旋转
          */
         LSTG_METHOD(SetV)
-        static void SetObjectVelocity(LuaStack& stack, AbsIndex object, double velocity, double angle, bool track);
+        static void SetObjectVelocity(LuaStack& stack, AbsIndex object, double velocity, double angle, std::optional<bool> track);
 
         /**
          * 设置资源状态
@@ -256,12 +257,12 @@ namespace lstg::v2::Bridge
          * @param object 对象
          * @param left 左边
          * @param right 右边
-         * @param top 顶边
          * @param bottom 底边
+         * @param top 顶边
          * @return 是否在范围内
          */
         LSTG_METHOD()
-        static bool BoxCheck(LuaStack& stack, AbsIndex object, double left, double right, double top, double bottom);
+        static bool BoxCheck(LuaStack& stack, AbsIndex object, double left, double right, double bottom, double top);
 
         /**
          * 清空并回收所有对象
@@ -284,7 +285,7 @@ namespace lstg::v2::Bridge
          * @return 返回的第一个参数为id（luastg中为idx），第二个参数为对象
          */
         LSTG_METHOD()
-        static Unpack<int32_t, AbsIndex> NextObject(int32_t groupId, int32_t id);
+        static int NextObject(lua_State* L);
 
         /**
          * 产生组遍历迭代器
@@ -292,7 +293,21 @@ namespace lstg::v2::Bridge
          * @return NextObject, groupId, id
          */
         LSTG_METHOD(ObjList)
-        static Unpack<AbsIndex, int32_t, int32_t> EnumerateObjectList(int32_t groupId);
+        static Unpack<AbsIndex, int32_t, int32_t> EnumerateObjectList(LuaStack& stack, int32_t groupId);
+
+        /**
+         * __index 方法
+         * @param L 栈
+         */
+        LSTG_METHOD(GetAttr)
+        static int GetObjectAttribute(lua_State* L);
+
+        /**
+         * __newindex 方法
+         * @param L 栈
+         */
+        LSTG_METHOD(SetAttr)
+        static int SetObjectAttribute(lua_State* L);
 
         /**
          * 启动绑定在对象上的粒子发射器
@@ -327,7 +342,7 @@ namespace lstg::v2::Bridge
          * @return 个/秒
          */
         LSTG_METHOD()
-        static int32_t ParticleGetEmission(LuaStack& stack, AbsIndex object);
+        static float ParticleGetEmission(LuaStack& stack, AbsIndex object);
 
         /**
          * 设置绑定在对象上粒子发射器的发射密度
@@ -336,6 +351,6 @@ namespace lstg::v2::Bridge
          * @param count 发射密度（个/秒）
          */
         LSTG_METHOD()
-        static void ParticleSetEmission(LuaStack& stack, AbsIndex object, int32_t count);
+        static void ParticleSetEmission(LuaStack& stack, AbsIndex object, float count);
     };
 }

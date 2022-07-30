@@ -57,7 +57,7 @@ Result<void> HgeFontFace::AppendGlyph(char32_t ch, float x, float y, float w, fl
     try
     {
         assert(m_stGlyphs.size() != 0);
-        m_stCodePoint2GlyphId.emplace(info.CodePoint, m_stGlyphs.size());
+        m_stCodePoint2GlyphId.emplace(static_cast<char32_t>(info.CodePoint), static_cast<FontGlyphId>(m_stGlyphs.size()));
     }
     catch (...)  // bad_alloc
     {

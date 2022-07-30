@@ -17,14 +17,14 @@ namespace lstg::Subsystem::Script
     public:
         LuaReference() noexcept = default;
 
-        LuaReference(LuaStack& stack, int index)
+        LuaReference(LuaStack stack, int index)
             : m_stMainThread(stack)
         {
             lua_checkstack(m_stMainThread, 1);
 
             // 获取主线程
             lua_getfield(stack, LUA_REGISTRYINDEX, "_mainthread");
-            if (!lua_istable(stack, -1))
+            if (!lua_isthread(stack, -1))
             {
                 assert(false);
             }

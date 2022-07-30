@@ -8,9 +8,16 @@ lstg_gen_auto_bridge_cpp(
     NAMESPACE "lstg::v2::Bridge"
     FILES ${LSTG_V2_BRIDGE_SOURCES})
 
+# 完美哈希生成
+lstg_gen_perfect_hasher(
+    DECL "${CMAKE_CURRENT_SOURCE_DIR}/ScriptObjectAttributes.json"
+    OUT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.hpp"
+    OUT_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+
 # 跨平台源码
 file(GLOB_RECURSE LSTG_V2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
 list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp")
+list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
 
 # 目标
 if(WIN32)

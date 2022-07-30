@@ -30,7 +30,8 @@ namespace lstg::v2::Asset
         [[nodiscard]] static Subsystem::Asset::AssetTypeId GetAssetTypeIdStatic() noexcept;
 
     public:
-        SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frames, ColliderShape colliderShape);
+        SpriteSequenceAsset(std::string name, TextureAssetPtr texture, SequenceContainer frames, int32_t interval,
+            ColliderShape colliderShape);
 
     public:
         /**
@@ -42,6 +43,11 @@ namespace lstg::v2::Asset
          * 获取帧序列
          */
         [[nodiscard]] const SequenceContainer& GetSequences() const noexcept { return m_stSequences; }
+
+        /**
+         * 获取帧间隔
+         */
+        [[nodiscard]] int32_t GetInterval() const noexcept { return m_iInterval; }
 
         /**
          * 获取锚点
@@ -96,8 +102,11 @@ namespace lstg::v2::Asset
     private:
         TextureAssetPtr m_pTextureAsset;
         SequenceContainer m_stSequences;  // 精灵列表
+        int32_t m_iInterval = 1;  // 帧时间
         ColliderShape m_stColliderShape;  // 碰撞外形
         BlendMode m_stDefaultBlendMode;  // 默认混合模式
         Subsystem::Render::Drawing2D::SpriteColorComponents m_stDefaultBlendColor = { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu };
     };
+
+    using SpriteSequenceAssetPtr = std::shared_ptr<SpriteSequenceAsset>;
 }
