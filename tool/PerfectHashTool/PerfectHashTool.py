@@ -231,11 +231,13 @@ def generate_code(output_header_file, output_src_file, keys, enums, enum_name, h
 
     # 写出源文件
     with open(output_src_file, 'w', encoding='utf-8') as f:
-        f.write(f'#include "{os.path.relpath(output_header_file, output_src_file)}"\n')
+        f.write(f'#include "{os.path.relpath(output_header_file, os.path.dirname(output_src_file))}"\n')
+        f.write(f'\n')
+        f.write(f'#include <cassert>\n')
         f.write(f'\n')
         f.write(f'static const char* kKeys[] = {{\n')
         for k in keys:
-            f.write(f'    "{repr(k)}",\n')
+            f.write(f'    "{k}",\n')
         f.write(f'}};\n')
         f.write(f'static const {enum_name} kEnums[] = {{\n')
         for k in keys:
@@ -246,13 +248,12 @@ def generate_code(output_header_file, output_src_file, keys, enums, enum_name, h
         f.write(f'    ')
         for i in range(0, len(G)):
             f.write(f'{G[i]}, ')
-            if i % 10 == 0:
+            if (i + 1) % 10 == 0:
                 f.write(f'\n    ')
         f.write(f'\n}};\n')
         f.write(f'\n')
         f.write(f'static const size_t kPerfectHashGCount = {len(G)};\n')
         f.write(f'static_assert(sizeof(kPerfectHashG) / sizeof(kPerfectHashG[0]) == kPerfectHashGCount);\n')
-        f.write(f'static_assert(sizeof(kKeys) / sizeof(kKeys[0]) == kPerfectHashGCount);\n')
         f.write(f'\n')
         f.write(f'static const char kHashSalt1[] = {{ {str_to_char_seq(f1.salt)} }};\n')
         f.write(f'static const char kHashSalt2[] = {{ {str_to_char_seq(f2.salt)} }};\n')
@@ -271,9 +272,11 @@ def generate_code(output_header_file, output_src_file, keys, enums, enum_name, h
         f.write('    return sum % kPerfectHashGCount;\n')
         f.write('}\n')
         f.write('\n')
-        f.write(f'static std::optional<{enum_name}> {hash_func_name}(std::string_view key) noexcept\n')
+        f.write(f'std::optional<{enum_name}> {hash_func_name}(std::string_view key) noexcept\n')
         f.write(f'{{\n')
         f.write(f'    auto index = (kPerfectHashG[HashF(key, kHashSalt1)] + kPerfectHashG[HashF(key, kHashSalt2)]) % kPerfectHashGCount;\n')
+        f.write(f'    if (sizeof(kKeys) / sizeof(kKeys[0]) <= index)\n')
+        f.write(f'        return {{}};\n')
         f.write(f'    if (kKeys[index] == key)\n')
         f.write(f'        return kEnums[index];\n')
         f.write(f'    return {{}};\n')

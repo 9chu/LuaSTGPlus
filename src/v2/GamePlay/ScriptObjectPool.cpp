@@ -193,6 +193,7 @@ void ScriptObjectPool::Free(Subsystem::Script::LuaStack stack, ScriptObjectId sc
     assert(stack.RawHas(-1, static_cast<int>(scriptId)));
     stack.PushValue(nullptr_t {});  // ... t(objectTable) n
     stack.RawSet(-2, static_cast<int>(scriptId));  // ... t(objectTable)
+    stack.Pop(1);
 
     --m_uCurrentObjects;
 }

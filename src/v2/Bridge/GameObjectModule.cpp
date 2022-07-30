@@ -29,7 +29,7 @@ LSTG_DEF_LOG_CATEGORY(GameObjectModule);
 
 void GameObjectModule::GetObjectTable()
 {
-    LSTG_LOG_WARN_CAT(GameObjectModule, "ObjTable is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(GameObjectModule, ObjTable);
 }
 
 int32_t GameObjectModule::GetObjectCount()
@@ -40,7 +40,7 @@ int32_t GameObjectModule::GetObjectCount()
 
 void GameObjectModule::UpdateObjectList()
 {
-    LSTG_LOG_WARN_CAT(GameObjectModule, "UpdateObjList is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(GameObjectModule, UpdateObjList);
 }
 
 void GameObjectModule::UpdateObjects(LuaStack& stack)

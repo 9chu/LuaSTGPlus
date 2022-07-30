@@ -254,7 +254,7 @@ void AssetManagerModule::SetImageCenter(LuaStack& stack, const char* name, doubl
 
 void AssetManagerModule::SetImageScale(double factor)
 {
-    LSTG_LOG_WARN_CAT(AssetManagerModule, "SetImageScale is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(AssetManagerModule, SetImageScale);
 }
 
 void AssetManagerModule::LoadAnimation(LuaStack& stack, const char* name, const char* textureName, double x, double y, double w, double h,
@@ -435,7 +435,7 @@ void AssetManagerModule::SetTexturedFontState(LuaStack& stack, const char* name,
 
 void AssetManagerModule::SetTexturedFontState2()
 {
-    LSTG_LOG_WARN_CAT(AssetManagerModule, "SetFontState2 is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(AssetManagerModule, SetFontState2);
 }
 
 void AssetManagerModule::LoadTrueTypeFont(LuaStack& stack, const char* name, const char* path, double width, std::optional<double> height)
@@ -477,7 +477,7 @@ void AssetManagerModule::LoadTrueTypeFont(LuaStack& stack, const char* name, con
 
 void AssetManagerModule::RegTTF()
 {
-    LSTG_LOG_WARN_CAT(AssetManagerModule, "RegTTF is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(AssetManagerModule, RegTTF);
 }
 
 void AssetManagerModule::LoadSound(const char* name, const char* path)

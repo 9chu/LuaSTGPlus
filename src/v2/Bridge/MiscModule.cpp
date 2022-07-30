@@ -7,6 +7,7 @@
 #include <lstg/v2/Bridge/MiscModule.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include "detail/Helper.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -16,7 +17,7 @@ LSTG_DEF_LOG_CATEGORY(MiscModule);
 
 void MiscModule::Registry()
 {
-    LSTG_LOG_WARN_CAT(MiscModule, "Registry is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(MiscModule, Registry);
 }
 
 void MiscModule::CaptureSnapshot(const char* path)
@@ -29,7 +30,7 @@ bool MiscModule::Execute(const char* path, std::optional<std::string_view> argum
     std::optional<bool> wait /* =true */)
 {
     // NOTE: 出于跨平台限定的考虑，不再提供 Execute 的支持
-    LSTG_LOG_WARN_CAT(MiscModule, "Execute is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(MiscModule, Execute);
     return false;
 }
 

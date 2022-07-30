@@ -17,3 +17,14 @@ namespace lstg::v2::Bridge::detail
         return *static_cast<GameApp*>(&GameApp::GetInstance());
     }
 }
+
+#define LSTG_LOG_DEPRECATED(MODULE, METHOD) \
+    do \
+    { \
+        static bool kPrinted = false; \
+        if (!kPrinted) \
+        { \
+            LSTG_LOG_WARN_CAT(MODULE, #METHOD " is deprecated and has no effect anymore"); \
+            kPrinted = true; \
+        } \
+    } while (false)

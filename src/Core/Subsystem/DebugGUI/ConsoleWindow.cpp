@@ -23,7 +23,11 @@ using namespace lstg::Subsystem::Script;
 
 static const DebugWindowFlags kWindowStyle = DebugWindowFlags::NoSavedSettings;
 
+#ifdef LSTG_DEVELOPMENT
+static const unsigned kMaxLogItems = 200;
+#else
 static const unsigned kMaxLogItems = 50;
+#endif
 
 static const char* kScriptReturn = "return ";
 static const unsigned kScriptReturnLen = strlen(kScriptReturn);

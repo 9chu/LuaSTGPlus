@@ -35,6 +35,24 @@ void Renderer::Reset() noexcept
     NextInChain = nullptr;
 }
 
+std::string_view Renderer::GetAssetName() noexcept
+{
+    switch (RenderData.index())
+    {
+        case 0:
+            return {};
+        case 1:
+            return std::get<1>(RenderData).Asset->GetName();
+        case 2:
+            return std::get<2>(RenderData).Asset->GetName();
+        case 3:
+            return std::get<3>(RenderData).Asset->GetName();
+        default:
+            assert(false);
+            return {};
+    }
+}
+
 // </editor-fold>
 // <editor-fold desc="RendererRoot">
 

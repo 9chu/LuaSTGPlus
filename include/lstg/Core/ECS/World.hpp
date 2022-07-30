@@ -45,9 +45,9 @@ namespace lstg::ECS
          * @return
          */
         template <typename TComponents, typename TCallback>
-        void VisitEntities(TCallback&& callback) noexcept
+        void VisitEntities(TCallback callback) noexcept
         {
-            VisitEntitiesHelper<TComponents>{}(this, std::forward<TCallback>(callback));
+            VisitEntitiesHelper<TComponents>{}(this, callback);
         }
 
     private:
@@ -59,7 +59,7 @@ namespace lstg::ECS
         {
             template <typename TCallback, std::size_t... Indices>
             void operator()(Entity ent, TCallback& callback, Chunk* (&chunks)[sizeof...(TComponents)], ArchetypeEntityId entId,
-                std::index_sequence<Indices...>) noexcept
+                std::integer_sequence<size_t, Indices...>) noexcept
             {
                 callback(ent, chunks[Indices]->template GetComponent<TComponents>(entId)...);
             }
@@ -72,7 +72,7 @@ namespace lstg::ECS
         struct VisitEntitiesHelper<std::tuple<TArgs...>>
         {
             template <typename TCallback>
-            void operator()(World* self, TCallback callback) noexcept
+            void operator()(World* self, TCallback& callback) noexcept
             {
                 self->template VisitEntities<TCallback, TArgs...>(callback);
             }

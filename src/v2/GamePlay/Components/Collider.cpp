@@ -36,6 +36,25 @@ void Collider::Reset() noexcept
     NextInChain = nullptr;
 }
 
+void Collider::RefreshAABB() noexcept
+{
+    switch (Shape.index())
+    {
+        case 0:
+            AABBHalfSize.x = AABBHalfSize.y = glm::length(std::get<0>(Shape).HalfSize);
+            break;
+        case 1:
+            AABBHalfSize.x = AABBHalfSize.y = std::get<1>(Shape).Radius;
+            break;
+        case 2:
+            AABBHalfSize.x = AABBHalfSize.y = std::max(std::get<2>(Shape).A, std::get<2>(Shape).B);
+            break;
+        default:
+            assert(false);
+            break;
+    }
+}
+
 // </editor-fold>
 // <editor-fold desc="ColliderRoot">
 

@@ -29,9 +29,10 @@ namespace lstg::v2::GamePlay::Components
 
         /**
          * 外接矩形半大小
+         * 这里的外接矩形考虑了任意旋转下的大小，故总是有 X = Y。
          * 受 Shape 影响。
          */
-        glm::vec2 AABBHalfSize { 0, 0 };
+        Vec2 AABBHalfSize { 0, 0 };
 
         /**
          * 碰撞组
@@ -43,6 +44,7 @@ namespace lstg::v2::GamePlay::Components
         Collider* NextInChain = nullptr;
 
         void Reset() noexcept;
+        void RefreshAABB() noexcept;
     };
 
     constexpr uint32_t GetComponentId(Collider*) noexcept

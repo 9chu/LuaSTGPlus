@@ -1,6 +1,6 @@
 {
   "enum_name": "ScriptObjectAttributes",
-  "hasher_name": "FromString",
+  "hasher_name": "TranslateScriptObjectAttributes",
   "enums": {
     "X": 1,
     "Y": 2,

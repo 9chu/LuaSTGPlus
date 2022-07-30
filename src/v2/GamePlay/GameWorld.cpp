@@ -8,6 +8,8 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
+#include <lstg/Core/Subsystem/Script/LuaPush.hpp>
+#include <lstg/Core/Subsystem/Script/LuaRead.hpp>
 #include <lstg/Core/Subsystem/Render/Drawing2D/SpriteDrawing.hpp>
 #include <lstg/v2/GameApp.hpp>
 #include <lstg/v2/GamePlay/Components/Collider.hpp>
@@ -16,6 +18,10 @@
 #include <lstg/v2/GamePlay/Components/Renderer.hpp>
 #include <lstg/v2/GamePlay/Components/Script.hpp>
 #include <lstg/v2/GamePlay/Components/Transform.hpp>
+#include <lstg/v2/Asset/SpriteAsset.hpp>
+#include <lstg/v2/Asset/SpriteSequenceAsset.hpp>
+#include <lstg/v2/Asset/HgeParticleAsset.hpp>
+#include <ScriptObjectAttributes.gen.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -376,9 +382,9 @@ void GameWorld::AfterFrame() noexcept
 
     // 更新动画计时器
     m_stWorld.VisitEntities<tuple<Renderer>>([](ECS::Entity ent, Renderer& renderer) {
-        if (renderer.RenderData.index() == 1)
+        if (renderer.RenderData.index() == 2)
         {
-            auto& spriteSequenceData = std::get<Renderer::SpriteSequenceRenderer>(renderer.RenderData);
+            auto& spriteSequenceData = std::get<2>(renderer.RenderData);
             ++spriteSequenceData.Timer;
         }
     });
@@ -508,12 +514,592 @@ void GameWorld::Clear() noexcept
 
 int GameWorld::OnGetAttribute(LuaStack stack, ECS::EntityId id, std::string_view key)
 {
-    // TODO
-    return 0;
+    auto attr = TranslateScriptObjectAttributes(key);
+    if (!attr)
+        return 0;
+
+    ECS::Entity ent {&m_stWorld, id};
+    Transform* transformComponent = nullptr;
+    Movement* movementComponent = nullptr;
+    LifeTime* lifeTimeComponent = nullptr;
+    Renderer* rendererComponent = nullptr;
+    Collider* colliderComponent = nullptr;
+    Script* scriptComponent = nullptr;
+
+    switch (*attr)
+    {
+        case ScriptObjectAttributes::X:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return 0;
+            stack.PushValue(transformComponent->Location.x);
+            return 1;
+        case ScriptObjectAttributes::Y:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return 0;
+            stack.PushValue(transformComponent->Location.y);
+            return 1;
+        case ScriptObjectAttributes::DeltaX:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return 0;
+            stack.PushValue(transformComponent->LocationDelta.x);
+            return 1;
+        case ScriptObjectAttributes::DeltaY:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return 0;
+            stack.PushValue(transformComponent->LocationDelta.y);
+            return 1;
+        case ScriptObjectAttributes::Rotation:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return 0;
+            stack.PushValue(glm::degrees(transformComponent->Rotation));
+            return 1;
+        case ScriptObjectAttributes::AngularVelocity:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(glm::degrees(movementComponent->AngularVelocity));
+            return 1;
+        case ScriptObjectAttributes::Timer:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+                return 0;
+            stack.PushValue(lifeTimeComponent->Timer);
+            return 1;
+        case ScriptObjectAttributes::VelocityX:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(movementComponent->Velocity.x);
+            return 1;
+        case ScriptObjectAttributes::VelocityY:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(movementComponent->Velocity.y);
+            return 1;
+        case ScriptObjectAttributes::AccelVelocityX:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(movementComponent->AccelVelocity.x);
+            return 1;
+        case ScriptObjectAttributes::AccelVelocityY:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(movementComponent->AccelVelocity.y);
+            return 1;
+        case ScriptObjectAttributes::Layer:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return 0;
+            stack.PushValue(rendererComponent->Layer);
+            return 1;
+        case ScriptObjectAttributes::Group:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return 0;
+            stack.PushValue(colliderComponent->Group);
+            return 1;
+        case ScriptObjectAttributes::Invisible:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return 0;
+            stack.PushValue(rendererComponent->Invisible);
+            return 1;
+        case ScriptObjectAttributes::BoundaryCheck:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+                return 0;
+            stack.PushValue(lifeTimeComponent->OutOfBoundaryAutoRemove);
+            return 1;
+        case ScriptObjectAttributes::TrackDirection:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return 0;
+            stack.PushValue(movementComponent->RotateToSpeedDirection);
+            return 1;
+        case ScriptObjectAttributes::CollisionCheck:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return 0;
+            stack.PushValue(colliderComponent->Enabled);
+            return 1;
+        case ScriptObjectAttributes::Status:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+                return 0;
+            switch (lifeTimeComponent->Status)
+            {
+                case LifeTimeStatus::Alive:
+                    stack.PushValue("normal");
+                    return 1;
+                case LifeTimeStatus::Deleted:
+                    stack.PushValue("del");
+                    return 1;
+                case LifeTimeStatus::Killed:
+                    stack.PushValue("kill");
+                    return 1;
+                default:
+                    assert(false);
+                    return 0;
+            }
+        case ScriptObjectAttributes::ScaleX:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return 0;
+            stack.PushValue(rendererComponent->Scale.x);
+            return 1;
+        case ScriptObjectAttributes::ScaleY:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return 0;
+            stack.PushValue(rendererComponent->Scale.y);
+            return 1;
+        case ScriptObjectAttributes::Class:
+            if (!(scriptComponent = ent.TryGetComponent<Script>()))
+                return 0;
+            assert(scriptComponent->Pool == &m_stScriptObjectPool);
+            m_stScriptObjectPool.PushScriptObject(stack, scriptComponent->ScriptObjectId);
+            if (stack.TypeOf(-1) == LUA_TNIL)
+            {
+                assert(false);
+                return 1;
+            }
+            stack.RawGet(-1, kIndexOfClassInObject);
+            stack.Remove(-2);
+            return 1;
+        case ScriptObjectAttributes::ColliderX:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return 0;
+            switch (colliderComponent->Shape.index())
+            {
+                case 0:
+                    stack.PushValue(std::get<0>(colliderComponent->Shape).HalfSize.x);
+                    return 1;
+                case 1:
+                    stack.PushValue(std::get<1>(colliderComponent->Shape).Radius);
+                    return 1;
+                case 2:
+                    stack.PushValue(std::get<2>(colliderComponent->Shape).A);
+                    return 1;
+                default:
+                    assert(false);
+                    return 0;
+            }
+        case ScriptObjectAttributes::ColliderY:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return 0;
+            switch (colliderComponent->Shape.index())
+            {
+                case 0:
+                    stack.PushValue(std::get<0>(colliderComponent->Shape).HalfSize.y);
+                    return 1;
+                case 1:
+                    stack.PushValue(std::get<1>(colliderComponent->Shape).Radius);
+                    return 1;
+                case 2:
+                    stack.PushValue(std::get<2>(colliderComponent->Shape).B);
+                    return 1;
+                default:
+                    assert(false);
+                    return 0;
+            }
+        case ScriptObjectAttributes::RectangleCollider:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return 0;
+            stack.PushValue(colliderComponent->Shape.index() == 0);
+            return 1;
+        case ScriptObjectAttributes::Image:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+            {
+                return 0;
+            }
+            else
+            {
+                string_view name = rendererComponent->GetAssetName();
+                if (name.empty())
+                    return 0;
+                stack.PushValue(ExtractAssetName(name));  // 兼容 lstg：返回无前缀资源名
+                return 1;
+            }
+        case ScriptObjectAttributes::Animation:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return 0;
+            if (rendererComponent->RenderData.index() == 2)
+            {
+                auto& ani = std::get<2>(rendererComponent->RenderData);
+                stack.PushValue(ani.Timer);
+                return 1;
+            }
+            stack.PushValue(0);
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 bool GameWorld::OnSetAttribute(LuaStack stack, ECS::EntityId id, std::string_view key, LuaStack::AbsIndex value)
 {
-    // TODO
-    return false;
+    auto attr = TranslateScriptObjectAttributes(key);
+    if (!attr)
+        return false;
+
+    ECS::Entity ent {&m_stWorld, id};
+    Transform* transformComponent = nullptr;
+    Movement* movementComponent = nullptr;
+    LifeTime* lifeTimeComponent = nullptr;
+    Renderer* rendererComponent = nullptr;
+    Collider* colliderComponent = nullptr;
+    Script* scriptComponent = nullptr;
+
+    switch (*attr)
+    {
+        case ScriptObjectAttributes::X:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return false;
+            transformComponent->Location.x = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::Y:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return false;
+            transformComponent->Location.y = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::DeltaX:
+            stack.Error("property 'dx' is readonly");
+            return false;
+        case ScriptObjectAttributes::DeltaY:
+            stack.Error("property 'dy' is readonly");
+            return false;
+        case ScriptObjectAttributes::Rotation:
+            if (!(transformComponent = ent.TryGetComponent<Transform>()))
+                return false;
+            transformComponent->Rotation = glm::radians(stack.ReadValue<double>(value));
+            return true;
+        case ScriptObjectAttributes::AngularVelocity:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->AngularVelocity = glm::radians(stack.ReadValue<double>(value));
+            return true;
+        case ScriptObjectAttributes::Timer:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+                return false;
+            lifeTimeComponent->Timer = static_cast<uint32_t>(max(0, stack.ReadValue<int32_t>(value)));
+            return true;
+        case ScriptObjectAttributes::VelocityX:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->Velocity.x = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::VelocityY:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->Velocity.y = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::AccelVelocityX:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->AccelVelocity.x = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::AccelVelocityY:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->AccelVelocity.y = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::Layer:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return false;
+            rendererComponent->Layer = stack.ReadValue<double>(value);
+            ListInsertSort(rendererComponent, RendererSortFunction);  // 刷新渲染顺序
+            return true;
+        case ScriptObjectAttributes::Group:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+            {
+                return false;
+            }
+            else
+            {
+                auto group = static_cast<uint32_t>(max(0, stack.ReadValue<int32_t>(value)));
+                if (group >= kColliderGroupCount)
+                    group = 0;
+                assert(0 <= group && group < kColliderGroupCount);
+                if (group != colliderComponent->Group)
+                {
+                    ListRemove(colliderComponent);  // 从原先的组脱离
+                    colliderComponent->Group = group;
+                    ListInsertBefore(&m_pColliderRoot->ColliderGroupTailers[group], colliderComponent);  // 插入新的组
+                    ListInsertSort(colliderComponent, ColliderSortFunction);  // 排序
+                }
+            }
+            return true;
+        case ScriptObjectAttributes::Invisible:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return false;
+            rendererComponent->Invisible = stack.ReadValue<bool>(value);
+            return true;
+        case ScriptObjectAttributes::BoundaryCheck:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+                return false;
+            lifeTimeComponent->OutOfBoundaryAutoRemove = stack.ReadValue<bool>(value);
+            return true;
+        case ScriptObjectAttributes::TrackDirection:
+            if (!(movementComponent = ent.TryGetComponent<Movement>()))
+                return false;
+            movementComponent->RotateToSpeedDirection = stack.ReadValue<bool>(value);
+            return true;
+        case ScriptObjectAttributes::CollisionCheck:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return false;
+            colliderComponent->Enabled = stack.ReadValue<bool>(value);
+            return true;
+        case ScriptObjectAttributes::Status:
+            if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
+            {
+                return false;
+            }
+            else
+            {
+                auto val = stack.ReadValue<const char*>(value);
+                if (::strcmp(val, "normal") == 0)
+                    lifeTimeComponent->Status = LifeTimeStatus::Alive;
+                else if (::strcmp(val, "del") == 0)
+                    lifeTimeComponent->Status = LifeTimeStatus::Deleted;
+                else if (::strcmp(val, "kill") == 0)
+                    lifeTimeComponent->Status = LifeTimeStatus::Killed;
+                else
+                    stack.Error("invalid argument for property 'status'.");
+            }
+            return true;
+        case ScriptObjectAttributes::ScaleX:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return false;
+            rendererComponent->Scale.x = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::ScaleY:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+                return false;
+            rendererComponent->Scale.y = stack.ReadValue<double>(value);
+            return true;
+        case ScriptObjectAttributes::Class:
+            if (!(scriptComponent = ent.TryGetComponent<Script>()))
+                return 0;
+            assert(scriptComponent->Pool == &m_stScriptObjectPool);
+            m_stScriptObjectPool.PushScriptObject(stack, scriptComponent->ScriptObjectId);
+            if (stack.TypeOf(-1) == LUA_TNIL)
+            {
+                assert(false);
+                stack.Pop(1);
+                return false;
+            }
+            stack.PushValue(value);
+            stack.RawSet(-2, kIndexOfClassInObject);
+            stack.Pop(1);
+            return true;
+        case ScriptObjectAttributes::ColliderX:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return false;
+            switch (colliderComponent->Shape.index())
+            {
+                case 0:
+                    std::get<0>(colliderComponent->Shape).HalfSize.x = stack.ReadValue<double>(value);
+                    break;
+                case 1:
+                    {
+                        auto& circleShape = std::get<1>(colliderComponent->Shape);
+                        auto v = stack.ReadValue<double>(value);
+                        if (v != circleShape.Radius)  // 提升为椭圆
+                        {
+                            auto ellipseShape = Math::Collider2D::EllipseShape<double>();
+                            ellipseShape.A = v;
+                            ellipseShape.B = circleShape.Radius;
+                            colliderComponent->Shape = ellipseShape;
+                        }
+                    }
+                    break;
+                case 2:
+                    {
+                        auto& ellipseShape = std::get<2>(colliderComponent->Shape);
+                        ellipseShape.A = stack.ReadValue<double>(value);
+                        if (ellipseShape.A == ellipseShape.B)  // 降级为圆
+                        {
+                            auto circleShape = Math::Collider2D::CircleShape<double>();
+                            circleShape.Radius = ellipseShape.A;
+                            colliderComponent->Shape = circleShape;
+                        }
+                    }
+                    break;
+                default:
+                    assert(false);
+                    return false;
+            }
+            colliderComponent->RefreshAABB();
+            return true;
+        case ScriptObjectAttributes::ColliderY:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+                return false;
+            switch (colliderComponent->Shape.index())
+            {
+                case 0:
+                    std::get<0>(colliderComponent->Shape).HalfSize.y = stack.ReadValue<double>(value);
+                    break;
+                case 1:
+                    {
+                        auto& circleShape = std::get<1>(colliderComponent->Shape);
+                        auto v = stack.ReadValue<double>(value);
+                        if (v != circleShape.Radius)  // 提升为椭圆
+                        {
+                            auto ellipseShape = Math::Collider2D::EllipseShape<double>();
+                            ellipseShape.A = circleShape.Radius;
+                            ellipseShape.B = v;
+                            colliderComponent->Shape = ellipseShape;
+                        }
+                    }
+                    break;
+                case 2:
+                    {
+                        auto& ellipseShape = std::get<2>(colliderComponent->Shape);
+                        ellipseShape.B = stack.ReadValue<double>(value);
+                        if (ellipseShape.A == ellipseShape.B)  // 降级为圆
+                        {
+                            auto circleShape = Math::Collider2D::CircleShape<double>();
+                            circleShape.Radius = ellipseShape.A;
+                            colliderComponent->Shape = circleShape;
+                        }
+                    }
+                    break;
+                default:
+                    assert(false);
+                    return false;
+            }
+            colliderComponent->RefreshAABB();
+            return true;
+        case ScriptObjectAttributes::RectangleCollider:
+            if (!(colliderComponent = ent.TryGetComponent<Collider>()))
+            {
+                return false;
+            }
+            else
+            {
+                auto v = stack.ReadValue<bool>(value);
+                switch (colliderComponent->Shape.index())
+                {
+                    case 0:
+                        if (!v)
+                        {
+                            auto& obbShape = std::get<0>(colliderComponent->Shape);
+                            if (obbShape.HalfSize.x == obbShape.HalfSize.y)
+                            {
+                                // 提升为圆形碰撞
+                                auto circleShape = Math::Collider2D::CircleShape<double>();
+                                circleShape.Radius = obbShape.HalfSize.x;
+                                colliderComponent->Shape = circleShape;
+                            }
+                            else
+                            {
+                                // 提升为椭圆碰撞
+                                auto ellipseShape = Math::Collider2D::EllipseShape<double>();
+                                ellipseShape.A = obbShape.HalfSize.x;
+                                ellipseShape.B = obbShape.HalfSize.y;
+                                colliderComponent->Shape = ellipseShape;
+                            }
+                        }
+                        break;
+                    case 1:
+                        if (v)
+                        {
+                            auto r = std::get<1>(colliderComponent->Shape).Radius;
+                            auto obbShape = Math::Collider2D::OBBShape<double>();
+                            obbShape.HalfSize.x = obbShape.HalfSize.y = r;
+                            colliderComponent->Shape = obbShape;
+                        }
+                        break;
+                    case 2:
+                        if (v)
+                        {
+                            auto obbShape = Math::Collider2D::OBBShape<double>();
+                            obbShape.HalfSize.x = std::get<2>(colliderComponent->Shape).A;
+                            obbShape.HalfSize.y = std::get<2>(colliderComponent->Shape).B;
+                            colliderComponent->Shape = obbShape;
+                        }
+                        break;
+                    default:
+                        assert(false);
+                        return false;
+                }
+                colliderComponent->RefreshAABB();
+                return true;
+            }
+        case ScriptObjectAttributes::Image:
+            if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
+            {
+                return false;
+            }
+            else
+            {
+                if (stack.TypeOf(value) == LUA_TNIL)
+                {
+                    // 释放资源
+                    rendererComponent->RenderData = {};
+                    return true;
+                }
+                else
+                {
+                    auto newName = stack.ReadValue<const char*>(value);
+                    string_view name = rendererComponent->GetAssetName();
+                    if (!name.empty() && ExtractAssetName(name) == newName)  // 如果名字一样，不做任何处理
+                        return true;
+
+                    // 设置资源的时候会自动设置资源上绑定的碰撞信息
+                    colliderComponent = ent.TryGetComponent<Collider>();
+
+                    // 发起资源查找流程: Sprite -> Animation -> Particle
+                    auto asset = m_stApp.GetAssetPools()->FindAsset(AssetTypes::Image, newName);
+                    if (asset)
+                    {
+                        Renderer::SpriteRenderer spriteRenderer;
+                        spriteRenderer.Asset = static_pointer_cast<v2::Asset::SpriteAsset>(asset);
+                        if (colliderComponent)
+                        {
+                            colliderComponent->Shape = spriteRenderer.Asset->GetColliderShape();
+                            colliderComponent->RefreshAABB();
+                        }
+                        rendererComponent->RenderData = std::move(spriteRenderer);
+                        return true;
+                    }
+
+                    asset = m_stApp.GetAssetPools()->FindAsset(AssetTypes::Animation, newName);
+                    if (asset)
+                    {
+                        Renderer::SpriteSequenceRenderer spriteSequenceRenderer;
+                        spriteSequenceRenderer.Asset = static_pointer_cast<v2::Asset::SpriteSequenceAsset>(asset);
+                        spriteSequenceRenderer.Timer = 0;
+                        if (colliderComponent)
+                        {
+                            colliderComponent->Shape = spriteSequenceRenderer.Asset->GetColliderShape();
+                            colliderComponent->RefreshAABB();
+                        }
+                        rendererComponent->RenderData = std::move(spriteSequenceRenderer);
+                        return true;
+                    }
+
+                    asset = m_stApp.GetAssetPools()->FindAsset(AssetTypes::Particle, newName);
+                    if (asset)
+                    {
+                        Renderer::ParticleRenderer particleRenderer;
+                        particleRenderer.Asset = static_pointer_cast<v2::Asset::HgeParticleAsset>(asset);
+                        particleRenderer.Pool = make_shared<Subsystem::Render::Drawing2D::ParticlePool>();
+                        auto ret = particleRenderer.Pool->AddEmitter(&particleRenderer.Asset->GetParticleConfig());
+                        if (!ret)
+                        {
+                            particleRenderer = {};
+                            stack.Error("AddEmitter error: %s", ret.GetError().message().c_str());
+                            return false;
+                        }
+                        particleRenderer.Emitter = &particleRenderer.Pool->GetEmitter(0);
+                        assert(particleRenderer.Emitter);
+
+                        if (colliderComponent)
+                        {
+                            colliderComponent->Shape = particleRenderer.Asset->GetColliderShape();
+                            colliderComponent->RefreshAABB();
+                        }
+                        rendererComponent->RenderData = std::move(particleRenderer);
+                        return true;
+                    }
+
+                    stack.Error("can't find resource '%s' in image/animation/particle pool.", newName);
+                    return false;
+                }
+            }
+        case ScriptObjectAttributes::Animation:
+            stack.Error("property 'ani' is readonly");
+            return false;
+        default:
+            return false;
+    }
 }

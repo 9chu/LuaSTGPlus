@@ -66,6 +66,7 @@ namespace lstg::v2::GamePlay::Components
         Renderer* NextInChain = nullptr;
 
         void Reset() noexcept;
+        std::string_view GetAssetName() noexcept;
     };
 
     constexpr uint32_t GetComponentId(Renderer*) noexcept

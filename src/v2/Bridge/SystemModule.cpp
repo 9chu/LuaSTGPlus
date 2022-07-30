@@ -12,6 +12,7 @@
 #include <lstg/Core/Subsystem/RenderSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/v2/Bridge/Helper.hpp>
+#include "detail/Helper.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -177,7 +178,7 @@ void SystemModule::UnloadPack(Script::LuaStack& stack, const char* path)
 
 void SystemModule::ExtractRes(const char* path, const char* target)
 {
-    LSTG_LOG_WARN_CAT(SystemModule, "ExtractRes is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(SystemModule, ExtractRes);
 }
 
 void SystemModule::DoFile(LuaStack& stack, const char* path)
@@ -189,5 +190,5 @@ void SystemModule::DoFile(LuaStack& stack, const char* path)
 
 void SystemModule::ShowSplashWindow(std::optional<std::string_view> path)
 {
-    LSTG_LOG_WARN_CAT(SystemModule, "ShowSplashWindow is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(SystemModule, ShowSplashWindow);
 }

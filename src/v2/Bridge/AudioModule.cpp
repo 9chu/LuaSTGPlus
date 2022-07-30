@@ -7,6 +7,7 @@
 #include <lstg/v2/Bridge/AudioModule.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include "detail/Helper.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -138,7 +139,7 @@ const char* AudioModule::GetMusicState(const char* name)
 
 void AudioModule::UpdateSound()
 {
-    LSTG_LOG_WARN_CAT(AudioModule, "UpdateSound is deprecated and has no effect anymore");
+    LSTG_LOG_DEPRECATED(AudioModule, UpdateSound);
 }
 
 void AudioModule::SetSEVolume(double vol)
