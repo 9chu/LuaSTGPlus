@@ -58,13 +58,13 @@ do
             float4 MultiplierColor: COLOR1;
         };
 
-        void main(in VSInput input, out VSOutput output)
+        void main(in VSInput inVert, out VSOutput outVert)
         {
-            output.Position = mul(_CameraProjectViewMatrix, float4(input.Position.xyz, 1.0));
-            output.WorldPosition = mul(_CameraViewMatrix, float4(input.Position.xyz, 1.0));
-            output.UV = input.UV;
-            output.AdditiveColor = input.AdditiveColor;
-            output.MultiplierColor = input.MultiplierColor;
+            outVert.Position = mul(_CameraProjectViewMatrix, float4(inVert.Position.xyz, 1.0));
+            outVert.WorldPosition = mul(_CameraViewMatrix, float4(inVert.Position.xyz, 1.0));
+            outVert.UV = inVert.UV;
+            outVert.AdditiveColor = inVert.AdditiveColor;
+            outVert.MultiplierColor = inVert.MultiplierColor;
         }
     ]=]
         :name("Default 2D Vertex Shader")
@@ -92,25 +92,25 @@ do
         float4 UnpackRGBA32(uint rgba32)
         {
             return float4(
-                ((rgba32 & 0xFF000000u) >> 24u) / 255.f,
-                ((rgba32 & 0x00FF0000u) >> 16u) / 255.f,
-                ((rgba32 & 0x0000FF00u) >> 8u) / 255.f,
-                (rgba32 & 0x000000FFu) / 255.f);
+                float((rgba32 & 0xFF000000u) >> 24u) / 255.f,
+                float((rgba32 & 0x00FF0000u) >> 16u) / 255.f,
+                float((rgba32 & 0x0000FF00u) >> 8u) / 255.f,
+                float(rgba32 & 0x000000FFu) / 255.f);
         }
 
-        float4 main(in PSInput input) : SV_Target
+        float4 main(in PSInput outVert) : SV_Target
         {
             // 过去实现中，顶点颜色的 Alpha 通道可以被用于控制物体的透明度，并不参与乘算和加算的表现
             // 在当前可编程管线上，我们总是将两种颜色乘起来，使得原有的逻辑保持一致
-            float4 texRGBA = MainTexture.Sample(MainTextureSampler, input.UV);
-            float3 blendColor = min(texRGBA.xyz * input.MultiplierColor.xyz + input.AdditiveColor.xyz, float3(1, 1, 1));
-            float blendAlpha = texRGBA.w * input.MultiplierColor.w * input.AdditiveColor.w;
+            float4 texRGBA = MainTexture.Sample(MainTextureSampler, outVert.UV);
+            float3 blendColor = min(texRGBA.xyz * outVert.MultiplierColor.xyz + outVert.AdditiveColor.xyz, float3(1, 1, 1));
+            float blendAlpha = texRGBA.w * outVert.MultiplierColor.w * outVert.AdditiveColor.w;
 
             // 模拟 D3D9 固管的逐像素雾
             // https://docs.microsoft.com/en-us/windows/win32/direct3d9/fog-formulas
             float f = 1.f;
             float4 fogRGBA = UnpackRGBA32(FogColorRGBA32);
-            float distToEye = length(input.WorldPosition.xyz);  // 2D 渲染时没有 WorldTranslation，在计算过 ViewMatrix 后总是以 (0,0,0) 作为观察点
+            float distToEye = length(outVert.WorldPosition.xyz);  // 2D 渲染时没有 WorldTranslation，在计算过 ViewMatrix 后总是以 (0,0,0) 作为观察点
             if (FogType == FOG_LINEAR)
                 f = clamp((FogArg2 - distToEye) / (FogArg2 - FogArg1), 0.f, 1.f);
             else if (FogType == FOG_EXP1)
@@ -410,6 +410,7 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
     // 获取相机
     assert(queueData.CameraId < drawData.CameraList.size());
     const auto& camera = drawData.CameraList[queueData.CameraId];
+    assert(camera.get());
     m_stRenderSystem.SetCamera(*camera.get());
 
     // 清理

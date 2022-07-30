@@ -222,30 +222,48 @@ if(${icu_ADDED})
     # 构建工具
     file(GLOB icu_TOOL_DIRS ${icu_SOURCE_DIR}/icu4c/source/tools/*)
     set(icu_TOOLS gencnval gencfu makeconv genbrk gensprep gendict icupkg genrb pkgdata)
+    if(CMAKE_CROSSCOMPILING)
+        # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Cross%20Compiling%20With%20CMake.html
+        find_package(IcuBuildTools)
+    else()
+        foreach(icu_TMP_FILENAME ${icu_TOOL_DIRS})
+            if(IS_DIRECTORY ${icu_TMP_FILENAME})
+                get_filename_component(icu_TMP_TOOL_NAME ${icu_TMP_FILENAME} NAME)
+                if("${icu_TMP_TOOL_NAME}" IN_LIST icu_TOOLS)
+                    file(GLOB icu_TMP_TOOL_SOURCES ${icu_TMP_FILENAME}/*.c ${icu_TMP_FILENAME}/*.cpp)
+                    # 特殊处理 genrb
+                    foreach(icu_TMP_TOOL_SRC ${icu_TMP_TOOL_SOURCES})
+                        if("${icu_TMP_TOOL_SRC}" MATCHES ".*derb.cpp")
+                            list(REMOVE_ITEM icu_TMP_TOOL_SOURCES "${icu_TMP_TOOL_SRC}")
+                        endif()
+                    endforeach()
+                    add_executable(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_SOURCES})
+                    target_link_libraries(${icu_TMP_TOOL_NAME} icutu)
+                endif()
+            endif()
+        endforeach()
+        export(TARGETS ${icu_TOOLS} FILE "${CMAKE_BINARY_DIR}/IcuBuildToolsConfig.cmake")
+    endif()
+
+    # 移动构建工具到目录
+    set(icu_PREPARE_TOOLS)
     foreach(icu_TMP_FILENAME ${icu_TOOL_DIRS})
         if(IS_DIRECTORY ${icu_TMP_FILENAME})
             get_filename_component(icu_TMP_TOOL_NAME ${icu_TMP_FILENAME} NAME)
             if("${icu_TMP_TOOL_NAME}" IN_LIST icu_TOOLS)
-                file(GLOB icu_TMP_TOOL_SOURCES ${icu_TMP_FILENAME}/*.c ${icu_TMP_FILENAME}/*.cpp)
-                # 特殊处理 genrb
-                foreach(icu_TMP_TOOL_SRC ${icu_TMP_TOOL_SOURCES})
-                    if("${icu_TMP_TOOL_SRC}" MATCHES ".*derb.cpp")
-                        list(REMOVE_ITEM icu_TMP_TOOL_SOURCES "${icu_TMP_TOOL_SRC}")
-                    endif()
-                endforeach()
-                add_executable(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_SOURCES})
-                target_link_libraries(${icu_TMP_TOOL_NAME} icutu)
-
                 # 构建后移动到固定目录
                 if(WIN32)
-                    add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
-                            "${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME}/${icu_TMP_TOOL_NAME}.exe")
+                    add_custom_target(PrepareTool_${icu_TMP_TOOL_NAME} COMMAND
+                        "${CMAKE_COMMAND}" -E copy_if_different
+                        "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
+                        "${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME}/${icu_TMP_TOOL_NAME}.exe")
                 else()
-                    add_custom_command(TARGET ${icu_TMP_TOOL_NAME} POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${icu_TMP_TOOL_NAME}>
-                            ${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME})
+                    add_custom_target(PrepareTool_${icu_TMP_TOOL_NAME} COMMAND
+                        "${CMAKE_COMMAND}" -E copy_if_different
+                        "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
+                        "${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME}")
                 endif()
+                list(APPEND icu_PREPARE_TOOLS PrepareTool_${icu_TMP_TOOL_NAME})
             endif()
         endif()
     endforeach()
@@ -301,7 +319,7 @@ if(${icu_ADDED})
             -i "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}.dat"
             -n "kIcuDataContent"
             -o "${CMAKE_BINARY_DIR}/icudata/icudata.cpp"
-        DEPENDS ${icu_TOOLS}
+        DEPENDS ${icu_TOOLS} ${icu_PREPARE_TOOLS}
         COMMENT "Running icu data builder" VERBATIM)
     add_library(IcuData STATIC ${icu_DATA_OUTPUT})
 endif()

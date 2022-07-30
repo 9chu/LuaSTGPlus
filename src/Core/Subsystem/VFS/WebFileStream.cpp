@@ -19,7 +19,7 @@ using namespace lstg::Subsystem::VFS;
 
 using WebFileSystemError = lstg::Subsystem::VFS::detail::WebFileSystemError;
 
-static const size_t kBufferSize = 4 * 1024;  // 4k
+static const size_t kBufferSize = 8 * 1024;  // 8k
 
 LSTG_DEF_LOG_CATEGORY(WebFileStream);
 
@@ -202,8 +202,8 @@ Result<size_t> WebFileStream::Read(uint8_t* buffer, size_t length) noexcept
 #else
     auto requestTime = -1;
 #endif
-    LSTG_LOG_TRACE_CAT(WebFileStream, "Server response {}, url: {}, cost: {}ms, try read: {}", fetch->status, m_stUrl, requestTime,
-        dataToRead);
+//    LSTG_LOG_TRACE_CAT(WebFileStream, "Server response {}, url: {}, cost: {}ms, try read: {}", fetch->status, m_stUrl, requestTime,
+//        dataToRead);
 
     if (fetch->status != 200 && fetch->status != 206)
     {

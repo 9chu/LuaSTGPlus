@@ -45,7 +45,7 @@ void RenderModule::SetViewport(double left, double right, double bottom, double 
     auto scale = bound.Width() / detail::GetGlobalApp().GetDesiredResolution().x;
     Math::ImageRectangleFloat desiredViewport = {
         static_cast<float>(bound.Left() + left * scale),
-        static_cast<float>(bound.Top() + top * scale),
+        static_cast<float>(bound.Top() + bound.Height() - top * scale),
         static_cast<float>(std::abs(right - left) * scale),
         static_cast<float>(std::abs(top - bottom) * scale)
     };

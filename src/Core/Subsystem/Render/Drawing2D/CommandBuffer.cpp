@@ -240,6 +240,7 @@ size_t CommandBuffer::AllocCamera()
     auto ptr = m_stCameraFreeList.Alloc();
     if (*(ptr.get()) == nullptr)
         *(ptr.get()) = make_shared<Render::Camera>();
+    assert(ptr.get());
 
     // 设置参数
     Render::Camera* camera = (*(ptr.get())).get();

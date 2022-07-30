@@ -17,6 +17,26 @@ using namespace lstg::Subsystem::Script;
 
 LSTG_DEF_LOG_CATEGORY(ScriptObjectPool);
 
+namespace
+{
+#if !defined(LUA_VERSION_NUM) || LUA_VERSION_NUM < 502
+    static void luaL_setfuncs(lua_State *l, const luaL_Reg *reg, int nup) noexcept
+    {
+        int i;
+        luaL_checkstack(l, nup, "too many upvalues");
+        for (; reg->name != nullptr; reg++)
+        {
+            /* fill the table with given functions */
+            for (i = 0; i < nup; i++)  /* copy upvalues to the top */
+                lua_pushvalue(l, -nup);
+            lua_pushcclosure(l, reg->func, nup);  /* closure with those upvalues */
+            lua_setfield(l, -(nup + 2), reg->name);
+        }
+        lua_pop(l, nup);  /* remove upvalues */
+    }
+#endif
+}
+
 static const size_t kMaxObjectCount = std::numeric_limits<uint16_t>::max();
 
 const char* v2::GamePlay::ToString(ScriptCallbackFunctions functions) noexcept
