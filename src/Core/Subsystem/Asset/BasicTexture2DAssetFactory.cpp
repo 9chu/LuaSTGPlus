@@ -32,7 +32,7 @@ Result<CreateAssetResult> BasicTexture2DAssetFactory::CreateAsset(AssetSystem& a
 {
     auto path = JsonHelper::ReadValue<string>(arguments, "/path");
     auto mipmaps = JsonHelper::ReadValue<bool>(arguments, "/mipmaps", true);
-    if (!path)
+    if (!path || path->empty())
         return make_error_code(AssetError::MissingRequiredArgument);
 
     try

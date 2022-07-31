@@ -43,7 +43,7 @@ namespace lstg::Subsystem::Script
         template <typename T>
         struct CountArgs<Unpack<T>>
         {
-            static constexpr int Value = CountArgs<T>::value;
+            static constexpr int Value = CountArgs<T>::Value;
         };
 
         template <typename T, typename... TArgs>

@@ -93,7 +93,7 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
     float yOffset = 0;
     if (style.LayoutStyle.VerticalAlignment != TextVerticalAlignment::Top)
     {
-        yOffset = rect.Height() - shapedTextInfo->LayoutHeight;
+        yOffset = shapedTextInfo->LayoutHeight - rect.Height();
         if (style.LayoutStyle.VerticalAlignment == TextVerticalAlignment::Middle)
             yOffset /= 2.f;
     }

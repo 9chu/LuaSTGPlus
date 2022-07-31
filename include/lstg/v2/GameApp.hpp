@@ -142,5 +142,8 @@ namespace lstg::v2
 
         // 游戏世界
         GamePlay::GameWorld m_stDefaultWorld;
+
+        // 输入状态
+
     };
 }

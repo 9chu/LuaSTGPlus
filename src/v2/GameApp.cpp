@@ -165,9 +165,6 @@ GameApp::GameApp(int argc, char** argv)
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
 
-    // 分配对象池
-    // TODO
-
     // 执行 launch 脚本
     {
         LSTG_LOG_TRACE_CAT(GameApp, "Execute \"{}\"", kScriptEntryFile);
@@ -175,9 +172,6 @@ GameApp::GameApp(int argc, char** argv)
         if (!ret)
             LSTG_THROW(AppInitializeFailedException, "Fail to execute \"{}\": {}", kScriptEntryFile, ret.GetError());
     }
-
-    // PostInit，根据 launch 配置初始化框架
-    // TODO
 
     // 执行 core.lua 脚本
     {
@@ -372,6 +366,10 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
                         LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnLostFocus, ret.GetError());
                 }
             }
+            else if (sdlEvent->type == SDL_TEXTINPUT)
+            {
+                sdlEvent->text;
+            }
         }
     }
 }
@@ -403,6 +401,11 @@ void GameApp::OnRender(double elapsed) noexcept
 
     // 结束场景
     auto drawData = m_stCommandBuffer.End();
+
+    // 上传字体图集
+    auto atlasRet = m_pFontGlyphAtlas->Commit();
+    if (!atlasRet)
+        LSTG_LOG_ERROR_CAT(GameApp, "Fail to commit glyph atlas: {}", atlasRet.GetError());
 
     // 渲染
     m_stCommandExecutor.Execute(drawData);

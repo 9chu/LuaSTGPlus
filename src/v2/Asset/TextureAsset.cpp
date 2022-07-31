@@ -59,6 +59,26 @@ Subsystem::Render::Camera::OutputViews& TextureAsset::GetOutputViews() noexcept
     return std::get<1>(m_stUnderlay);
 }
 
+double TextureAsset::GetWidth() const noexcept
+{
+    if (!IsRenderTarget() && !m_stDrawingTexture.GetUnderlayTexture())
+    {
+        // 如果异步加载未完成，需要向 Asset 进行请求，阻塞地获取纹理大小
+        return std::get<0>(m_stUnderlay)->GetWidth() / m_stDrawingTexture.GetPixelPerUnit();
+    }
+    return m_stDrawingTexture.GetWidth();
+}
+
+double TextureAsset::GetHeight() const noexcept
+{
+    if (!IsRenderTarget() && !m_stDrawingTexture.GetUnderlayTexture())
+    {
+        // 如果异步加载未完成，需要向 Asset 进行请求，阻塞地获取纹理大小
+        return std::get<0>(m_stUnderlay)->GetHeight() / m_stDrawingTexture.GetPixelPerUnit();
+    }
+    return m_stDrawingTexture.GetHeight();
+}
+
 Subsystem::Asset::AssetTypeId TextureAsset::GetAssetTypeId() const noexcept
 {
     return GetAssetTypeIdStatic();

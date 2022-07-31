@@ -64,13 +64,13 @@ namespace lstg::v2::Asset
          * 获得宽度
          * = 实际像素宽度 / PPU
          */
-        [[nodiscard]] double GetWidth() const noexcept { return m_stDrawingTexture.GetWidth(); }
+        [[nodiscard]] double GetWidth() const noexcept;
 
         /**
          * 获取高度
          * = 实际像素高度 / PPU
          */
-        [[nodiscard]] double GetHeight() const noexcept { return m_stDrawingTexture.GetHeight(); }
+        [[nodiscard]] double GetHeight() const noexcept;
 
     protected:  // Asset
         [[nodiscard]] Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;

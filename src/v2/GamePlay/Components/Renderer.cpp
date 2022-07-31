@@ -29,7 +29,7 @@ void Renderer::Reset() noexcept
     Invisible = false;
     Scale = { 1., 1. };
     Layer = 0.;
-    RenderData = SpriteRenderer { nullptr };
+    RenderData = {};
     BindingEntity = {};
     PrevInChain = nullptr;
     NextInChain = nullptr;
@@ -42,10 +42,13 @@ std::string_view Renderer::GetAssetName() noexcept
         case 0:
             return {};
         case 1:
+            assert(std::get<1>(RenderData).Asset);
             return std::get<1>(RenderData).Asset->GetName();
         case 2:
+            assert(std::get<2>(RenderData).Asset);
             return std::get<2>(RenderData).Asset->GetName();
         case 3:
+            assert(std::get<3>(RenderData).Asset);
             return std::get<3>(RenderData).Asset->GetName();
         default:
             assert(false);

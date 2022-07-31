@@ -113,7 +113,7 @@ void HgeFontAssetLoader::Update() noexcept
                 if (!texAsset)
                 {
                     LSTG_LOG_ERROR_CAT(HgeFontAssetLoader, "Load font texture from \"{}\" fail: {}", texPath.ToStringView(),
-                        face.GetError());
+                        texAsset.GetError());
                     SetState(AssetLoadingStates::Error);
                     return;
                 }

@@ -124,7 +124,7 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
         return;
     }
 
-    drawing->Transform(rot ? static_cast<float>(*rot) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
+    drawing->Transform(rot ? static_cast<float>(glm::radians(*rot)) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
         vscale ? static_cast<float>(*vscale) : 1.f);
     drawing->Translate(x, y, 0);
 }
@@ -287,6 +287,10 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
     TextDrawingStyle style;
     style.FontSize = 12;  // 对于 TexturedFont，无所谓 FontSize 填值
     style.FontScale = scale ? static_cast<float>(*scale) : 1.f;
+
+    // 注意在此种渲染方式下，我们自己计算位置，故对于 TextDrawingStyle 总是左上角对齐
+    TextHorizontalAlignment horizontalAlignment = TextHorizontalAlignment::Center;
+    TextVerticalAlignment verticalAlignment = TextVerticalAlignment::Middle;
     if (align)
     {
         // 低1-2位 表示横向左中右对齐
@@ -294,13 +298,13 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
         {
             default:
             case 0:
-                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Left;
+                horizontalAlignment = TextHorizontalAlignment::Left;
                 break;
             case 1:
-                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Center;
+                horizontalAlignment = TextHorizontalAlignment::Center;
                 break;
             case 2:
-                style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Right;
+                horizontalAlignment = TextHorizontalAlignment::Right;
                 break;
         }
         // 低3-4位
@@ -308,21 +312,15 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
         {
             default:
             case 0:
-                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Top;
+                verticalAlignment = TextVerticalAlignment::Top;
                 break;
             case 1:
-                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Middle;
+                verticalAlignment = TextVerticalAlignment::Middle;
                 break;
             case 2:
-                style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Bottom;
+                verticalAlignment = TextVerticalAlignment::Bottom;
                 break;
         }
-    }
-    else
-    {
-        // 默认中间对齐
-        style.LayoutStyle.HorizontalAlignment = TextHorizontalAlignment::Center;
-        style.LayoutStyle.VerticalAlignment = TextVerticalAlignment::Middle;
     }
 
     if (blendMode.VertexColorBlend == v2::VertexColorBlendMode::Additive)
@@ -347,7 +345,7 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
 
     // 计算渲染位置
     Math::XYRectangle rect { static_cast<float>(x), static_cast<float>(y), sizeRet->x, sizeRet->y };
-    switch (style.LayoutStyle.HorizontalAlignment)
+    switch (horizontalAlignment)
     {
         default:
         case TextHorizontalAlignment::Left:
@@ -359,7 +357,7 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
             rect.SetLeft(rect.Left() - sizeRet->x);
             break;
     }
-    switch (style.LayoutStyle.VerticalAlignment)
+    switch (verticalAlignment)
     {
         default:
         case TextVerticalAlignment::Top:
@@ -381,7 +379,7 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
 }
 
 void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const char* text, double left, double right, double bottom,
-    double top, int32_t fmt, LSTGColor* blend)
+    double top, int32_t fmt, LSTGColor* blend, std::optional<double> scale)
 {
     using namespace Subsystem::Render::Drawing2D;
 
@@ -407,6 +405,7 @@ void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const c
     assert(blend);
     TextDrawingStyle style;
     style.FontSize = font->GetFontSize();
+    style.FontScale = (scale ? static_cast<float>(*scale) : 1.f) * 0.5f;  // 老版本渲染时给了 0.5 的缩放系数
     style.AdditiveTextColor = *blend;  // TTF 字体总是使用加算
     style.MultiplyTextColor = 0xFFFFFFFF;
 

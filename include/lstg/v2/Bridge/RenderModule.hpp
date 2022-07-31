@@ -207,10 +207,11 @@ namespace lstg::v2::Bridge
          * @param top 顶边距离
          * @param fmt 格式
          * @param blend 混合颜色
+         * @param scale 缩放
          */
         LSTG_METHOD(RenderTTF)
         static void RenderTrueTypeFont(LuaStack& stack, const char* name, const char* text, double left, double right, double bottom,
-            double top, int32_t fmt, LSTGColor* blend);
+            double top, int32_t fmt, LSTGColor* blend, std::optional<double> scale);
 
         /**
          * 推入RT到堆栈

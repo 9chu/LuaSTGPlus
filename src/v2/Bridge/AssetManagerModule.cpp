@@ -14,6 +14,7 @@
 #include <lstg/v2/Asset/TrueTypeFontAsset.hpp>
 #include <lstg/v2/Asset/HgeFontAsset.hpp>
 #include <lstg/v2/Asset/EffectAsset.hpp>
+#include <lstg/v2/Asset/HgeParticleAsset.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -373,14 +374,14 @@ void AssetManagerModule::LoadParticle(LuaStack& stack, const char* name, const c
     // 构造参数
     nlohmann::json args {
         {"path", path},
-        {"sprite", imgName},
+        {"sprite", MakeFullAssetName(AssetTypes::Image, imgName)},
         {"colliderHalfSizeX", a ? *a : 0.},
         {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
         {"colliderIsRect", rect && *rect},
     };
 
     // 执行加载
-    auto ret = assetSystem->CreateAsset<Asset::HgeFontAsset>(currentAssetPool, fullName, args);
+    auto ret = assetSystem->CreateAsset<Asset::HgeParticleAsset>(currentAssetPool, fullName, args);
     if (!ret)
         stack.Error("load particle \"%s\" fail: %s", name, ret.GetError().message().c_str());
 }

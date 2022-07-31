@@ -41,12 +41,13 @@ Result<ArchetypeId> World::GetOrRegisterArchetype(Span<const ComponentDescriptor
     assert(m_stArchetypes.size() < std::numeric_limits<uint16_t>::max());
     try
     {
-        m_stArchetypes.emplace_back(static_cast<ArchetypeId>(m_stArchetypes.size()), desc);
+        auto archetypeId = static_cast<ArchetypeId>(m_stArchetypes.size());
+        m_stArchetypes.emplace_back(archetypeId, desc);
+        m_stArchetypeTypes.emplace(typeId, archetypeId);
+        return archetypeId;
     }
     catch (...)  // bad_alloc
     {
         return make_error_code(errc::not_enough_memory);
     }
-    assert(!m_stArchetypes.empty());
-    return static_cast<ArchetypeId>(m_stArchetypes.size() - 1);
 }
