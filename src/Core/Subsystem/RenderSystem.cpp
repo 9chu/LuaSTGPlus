@@ -14,6 +14,7 @@
 #include <lstg/Core/Subsystem/Render/GraphicsDefinitionCache.hpp>
 #include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
+#include "Render/detail/ClearHelper.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceD3D11.hpp"
@@ -213,6 +214,9 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
     // 创建默认纹理
     m_pDefaultTexture2D = GenerateDefaultTexture2D(this);
+
+    // 创建清屏工具
+    m_pClearHelper = make_shared<Render::detail::ClearHelper>(m_pRenderDevice.get());
 }
 
 // <editor-fold desc="资源分配">
@@ -359,7 +363,7 @@ Result<Render::TexturePtr> RenderSystem::CreateRenderTarget(uint32_t width, uint
     desc.MipLevels = 1;
     desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_RENDER_TARGET;
     desc.Usage = Diligent::USAGE_DEFAULT;
-    desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().ColorBufferFormat;
+    desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().ColorBufferFormat;  // 需要和 SwapChain 一致
 
     Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
     m_pRenderDevice->GetDevice()->CreateTexture(desc, nullptr, &texture);
@@ -468,8 +472,8 @@ Result<void> RenderSystem::BeginFrame() noexcept
     }
 
     // 切换 VP 到全屏
+    auto sz = GetCurrentOutputViewSize();
     {
-        auto sz = GetCurrentOutputViewSize();
         Diligent::Viewport vp;
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
@@ -477,8 +481,19 @@ Result<void> RenderSystem::BeginFrame() noexcept
         vp.Height = static_cast<float>(std::get<1>(sz));
         vp.TopLeftX = 0.f;
         vp.TopLeftY = 0.f;
-        m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
+        context->SetViewports(1, &vp, 0, 0);
         m_stCurrentViewport = { 0.f, 0.f, vp.Width, vp.Height };  // 这里必须强制写出大小
+    }
+
+    // 提交裁剪状态
+    {
+        Diligent::Rect scissor {
+            0,
+            0,
+            static_cast<int32_t>(std::get<0>(sz)),
+            static_cast<int32_t>(std::get<1>(sz)),
+        };
+        context->SetScissorRects(1, &scissor, std::get<0>(sz), std::get<1>(sz));
     }
 
     // 清空 RT
@@ -604,19 +619,38 @@ Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, 
         depthStencilView = swapChain->GetDepthBufferDSV();
     }
 
-    if (clearColor)
+    // 全屏清可以直接清 RT
+    auto sz = GetCurrentOutputViewSize();
+    if (m_stCurrentViewport.Left == 0 && static_cast<float>(std::get<0>(sz)) == m_stCurrentViewport.Width &&
+        m_stCurrentViewport.Top == 0 && static_cast<float>(std::get<1>(sz)) == m_stCurrentViewport.Height)
     {
-        const float color[4] = { clearColor->r() / 255.f, clearColor->g() / 255.f, clearColor->b() / 255.f, clearColor->a() / 255.f };
-        context->ClearRenderTarget(renderTargetView, color, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        if (clearColor)
+        {
+            const float color[4] = { clearColor->r() / 255.f, clearColor->g() / 255.f, clearColor->b() / 255.f, clearColor->a() / 255.f };
+            context->ClearRenderTarget(renderTargetView, color, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        }
+        if (clearZDepth || clearStencil)
+        {
+            auto flag = static_cast<Diligent::CLEAR_DEPTH_STENCIL_FLAGS>((clearZDepth ? Diligent::CLEAR_DEPTH_FLAG : 0) |
+                                                                         (clearStencil ? Diligent::CLEAR_STENCIL_FLAG : 0));
+            auto depth = clearZDepth ? *clearZDepth : 1.0f;
+            auto stencil = clearStencil ? *clearStencil : 0;
+            context->ClearDepthStencil(depthStencilView, flag, depth, stencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        }
     }
-    if (clearZDepth || clearStencil)
+    else
     {
-        auto flag = static_cast<Diligent::CLEAR_DEPTH_STENCIL_FLAGS>((clearZDepth ? Diligent::CLEAR_DEPTH_FLAG : 0) |
-            (clearStencil ? Diligent::CLEAR_STENCIL_FLAG : 0));
-        auto depth = clearZDepth ? *clearZDepth : 1.0f;
-        auto stencil = clearStencil ? *clearStencil : 0;
-        context->ClearDepthStencil(depthStencilView, flag, depth, stencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        assert(!clearStencil);  // not implemented yet
+
+        // 需要调用清屏工具
+        if (clearColor && clearZDepth)
+            m_pClearHelper->ClearDepthColor(*clearColor, *clearZDepth);
+        else if (clearColor)
+            m_pClearHelper->ClearColor(*clearColor);
+        else if (clearZDepth)
+            m_pClearHelper->ClearDepth(*clearZDepth);
     }
+
     return {};
 }
 
@@ -764,6 +798,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
     }
 
     // 提交 Viewport
+    auto sz = GetCurrentOutputViewSize();
     if (!(m_stCurrentViewport == viewport) || forceUpdateViewport)
     {
         if (!viewport.IsAutoViewport())
@@ -781,7 +816,6 @@ Result<void> RenderSystem::CommitCamera() noexcept
         }
         else
         {
-            auto sz = GetCurrentOutputViewSize();
             Render::Camera::Viewport targetViewport = {0.f, 0.f, static_cast<float>(std::get<0>(sz)), static_cast<float>(std::get<1>(sz))};
             if (!(targetViewport == m_stCurrentViewport))
             {
@@ -797,6 +831,17 @@ Result<void> RenderSystem::CommitCamera() noexcept
                 viewportChanged = true;
             }
         }
+    }
+
+    // 提交裁剪状态
+    {
+        Diligent::Rect scissor {
+            0,
+            0,
+            static_cast<int32_t>(std::get<0>(sz)),
+            static_cast<int32_t>(std::get<1>(sz)),
+        };
+        context->SetScissorRects(1, &scissor, std::get<0>(sz), std::get<1>(sz));
     }
 
     // 提交相机参数

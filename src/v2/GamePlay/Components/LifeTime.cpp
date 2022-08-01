@@ -28,8 +28,23 @@ const char* v2::GamePlay::Components::ToString(LifeTimeStatus status) noexcept
 
 // <editor-fold desc="LifeTime">
 
+LifeTime::LifeTime(LifeTime&& org) noexcept
+    : Status(org.Status), OutOfBoundaryAutoRemove(org.OutOfBoundaryAutoRemove), Timer(org.Timer), UniqueId(org.UniqueId),
+    BindingEntity(org.BindingEntity), PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+{
+    // 调整链表指向
+    if (PrevInChain)
+        PrevInChain->NextInChain = this;
+    if (NextInChain)
+        NextInChain->PrevInChain = this;
+    org.PrevInChain = nullptr;
+    org.NextInChain = nullptr;
+}
+
 void LifeTime::Reset() noexcept
 {
+    assert(!BindingEntity || Status != LifeTimeStatus::Alive);
+
     // 从链表脱开
     if (PrevInChain)
     {
@@ -59,6 +74,11 @@ LifeTimeRoot::LifeTimeRoot() noexcept
     // Header <-> Tailer
     LifeTimeHeader.NextInChain = &LifeTimeTailer;
     LifeTimeTailer.PrevInChain = &LifeTimeHeader;
+}
+
+LifeTimeRoot::LifeTimeRoot(LifeTimeRoot&&) noexcept
+{
+    assert(false);
 }
 
 void LifeTimeRoot::Reset() noexcept

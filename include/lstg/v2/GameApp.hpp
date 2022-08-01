@@ -100,6 +100,23 @@ namespace lstg::v2
          */
         Subsystem::Render::Font::DynamicFontGlyphAtlas* GetFontGlyphAtlas() noexcept { return m_pFontGlyphAtlas.get(); }
 
+    public:  // 输入系统
+        /**
+         * 获取最后一次输入的字符
+         */
+        const std::string& GetLastInputChar() const noexcept { return m_stLastInputChar; }
+
+        /**
+         * 获取最后一次输入的键代码
+         */
+        int32_t GetLastInputKeyCode() const noexcept;
+
+        /**
+         * 检查按键是否按下
+         * @param keyCode 键代码
+         */
+        bool IsKeyDown(int32_t keyCode) const noexcept;
+
     public:  // GamePlay
         /**
          * 获取游戏世界
@@ -140,10 +157,13 @@ namespace lstg::v2
         Subsystem::Render::Font::TextShaperPtr m_pTextShaper;
         Subsystem::Render::Font::DynamicFontGlyphAtlasPtr m_pFontGlyphAtlas;
 
+        // 输入状态
+        uint32_t m_uInputWindowID = 0;  // 输入窗口 ID
+        std::string m_stLastInputChar;  // 最后一次输入的字符（UTF-8）
+        int32_t m_iLastInputKeyCode = '\0';  // 最后一次输入的按键
+        std::vector<bool> m_stKeyStateMap;  // 按键状态，使用 vector<bool> 等价于 bitmap
+
         // 游戏世界
         GamePlay::GameWorld m_stDefaultWorld;
-
-        // 输入状态
-
     };
 }

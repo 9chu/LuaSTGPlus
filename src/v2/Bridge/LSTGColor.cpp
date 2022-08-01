@@ -48,17 +48,14 @@ LSTGColor LSTGColor::Multiply(std::variant<double, const LSTGColor*> lhs, std::v
     return LSTGColor {*std::get<1>(lhs) * *std::get<1>(rhs)};
 }
 
+Subsystem::Script::Unpack<int, int, int, int> LSTGColor::ToARGB() const noexcept
+{
+    return { ColorRGBA32::a(), ColorRGBA32::r(), ColorRGBA32::g(), ColorRGBA32::b() };
+}
+
 std::string LSTGColor::ToString() const
 {
     return fmt::format("lstg.Color({},{},{},{})", ColorRGBA32::a(), ColorRGBA32::r(), ColorRGBA32::g(), ColorRGBA32::b());
-}
-
-// </editor-fold>
-// <editor-fold desc="LSTGColorModule">
-
-Subsystem::Script::Unpack<int, int, int, int> LSTGColorModule::ToARGB(const LSTGColor& color)
-{
-    return { color.a(), color.r(), color.g(), color.b() };
 }
 
 // </editor-fold>

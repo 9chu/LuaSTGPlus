@@ -12,6 +12,19 @@ using namespace lstg::v2::GamePlay::Components;
 
 // <editor-fold desc="Collider">
 
+Collider::Collider(Collider&& org) noexcept
+    : Enabled(org.Enabled), Shape(org.Shape), AABBHalfSize(org.AABBHalfSize), Group(org.Group), BindingEntity(org.BindingEntity),
+      PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+{
+    // 调整链表指向
+    if (PrevInChain)
+        PrevInChain->NextInChain = this;
+    if (NextInChain)
+        NextInChain->PrevInChain = this;
+    org.PrevInChain = nullptr;
+    org.NextInChain = nullptr;
+}
+
 void Collider::Reset() noexcept
 {
     // 从链表脱开

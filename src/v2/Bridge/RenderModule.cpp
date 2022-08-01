@@ -104,6 +104,9 @@ void RenderModule::SetFog(std::optional<double> near, std::optional<double> far,
 void RenderModule::Render(LuaStack& stack, const char* imageName, double x, double y, std::optional<double> rot /* =0 */,
     std::optional<double> hscale /* =1 */, std::optional<double> vscale /* =1 */, std::optional<double> z /* =0.5 */)
 {
+    if (hscale && !vscale)
+        vscale = hscale;
+
     auto assetPools = detail::GetGlobalApp().GetAssetPools();
 
     // 获取精灵对象
@@ -126,7 +129,7 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
 
     drawing->Transform(rot ? static_cast<float>(glm::radians(*rot)) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
         vscale ? static_cast<float>(*vscale) : 1.f);
-    drawing->Translate(x, y, 0);
+    drawing->Translate(x, y, z ? *z : 0.5f);
 }
 
 void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)
@@ -152,6 +155,7 @@ void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double lef
     }
 
     drawing->Vertices(glm::vec2(left, top), glm::vec2(right, top), glm::vec2(right, bottom), glm::vec2(left, bottom));
+    drawing->Translate(0, 0, 0.5f);
 }
 
 void RenderModule::RenderVertex(LuaStack& stack, const char* imageName, double x1, double y1, double z1, double x2, double y2, double z2,
@@ -198,7 +202,10 @@ void RenderModule::RenderTexture(LuaStack& stack, const char* textureName, const
     assert(asset);
     assert(asset->GetAssetTypeId() == Asset::TextureAsset::GetAssetTypeIdStatic());
 
-    auto tex = static_pointer_cast<Asset::TextureAsset>(asset)->GetDrawingTexture().GetUnderlayTexture();
+    auto textureAsset = static_pointer_cast<Asset::TextureAsset>(asset);
+    auto tex = textureAsset->GetDrawingTexture().GetUnderlayTexture();
+    auto width = textureAsset->GetWidth();
+    auto height = textureAsset->GetHeight();
 
     // 转换 BlendMode
     v2::BlendMode blendMode(blend);
@@ -224,11 +231,11 @@ void RenderModule::RenderTexture(LuaStack& stack, const char* textureName, const
 
         lua_pushinteger(stack, 4);
         lua_gettable(stack, vert);
-        auto u = static_cast<float>(lua_tonumber(stack, -1));
+        auto u = static_cast<float>(lua_tonumber(stack, -1) / width);
 
         lua_pushinteger(stack, 5);
         lua_gettable(stack, vert);
-        auto v = static_cast<float>(lua_tonumber(stack, -1));
+        auto v = static_cast<float>(lua_tonumber(stack, -1) / height);
 
         lua_pushinteger(stack, 6);
         lua_gettable(stack, vert);
@@ -287,6 +294,7 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
     TextDrawingStyle style;
     style.FontSize = 12;  // 对于 TexturedFont，无所谓 FontSize 填值
     style.FontScale = scale ? static_cast<float>(*scale) : 1.f;
+    style.LayoutStyle.ParagraphInnerLineGap = { TextLineGapTypes::Times, 0.5f };  // 0.5倍行间距
 
     // 注意在此种渲染方式下，我们自己计算位置，故对于 TextDrawingStyle 总是左上角对齐
     TextHorizontalAlignment horizontalAlignment = TextHorizontalAlignment::Center;
@@ -406,8 +414,9 @@ void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const c
     TextDrawingStyle style;
     style.FontSize = font->GetFontSize();
     style.FontScale = (scale ? static_cast<float>(*scale) : 1.f) * 0.5f;  // 老版本渲染时给了 0.5 的缩放系数
-    style.AdditiveTextColor = *blend;  // TTF 字体总是使用加算
-    style.MultiplyTextColor = 0xFFFFFFFF;
+    style.AdditiveTextColor = 0x000000FF;
+    style.MultiplyTextColor = *blend;  // TTF 字体总是使用乘算
+    style.LayoutStyle.ParagraphInnerLineGap = { TextLineGapTypes::Times, 0.5f };  // 0.5倍行间距
 
     // 由于 lstg 最早使用 GDI 渲染文本，这里需要根据 GDI 的枚举对 fmt 进行转换
     // reference: https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-drawtext

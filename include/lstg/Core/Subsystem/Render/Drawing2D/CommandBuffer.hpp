@@ -66,6 +66,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         struct DrawCommand
         {
             ColorBlendMode ColorBlendMode = ColorBlendMode::Alpha;  // 颜色混合模式
+            bool NoDepth = false;  // 是否关闭深度
             FogTypes FogType = FogTypes::Disabled;  // 雾类型
             float FogArg1 = 0.f;  // 雾参数1
             float FogArg2 = 0.f;  // 雾参数2
@@ -158,6 +159,12 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @param m 混合模式
          */
         void SetColorBlendMode(ColorBlendMode m) noexcept;
+
+        /**
+         * 设置是否关闭深度
+         * @param b 是否关闭深度
+         */
+        void SetNoDepth(bool b) noexcept;
 
         /**
          * 设置雾
@@ -257,6 +264,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         glm::mat4x4 m_stCurrentProjection;
         Camera::Viewport m_stCurrentViewport;
         ColorBlendMode m_iCurrentColorBlendMode = ColorBlendMode::Alpha;
+        bool m_bNoDepth = false;
         FogTypes m_iCurrentFogType = FogTypes::Disabled;
         float m_fCurrentFogArg1 = 0.f;
         float m_fCurrentFogArg2 = 0.f;

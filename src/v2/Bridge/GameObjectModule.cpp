@@ -264,26 +264,26 @@ void GameObjectModule::SetImageStateByObject(LuaStack& stack, AbsIndex object, c
         stack.Error("invalid lstg object for 'SetImgState'.");
 
     // 获取渲染组件
-    auto movementComponent = entity->TryGetComponent<Components::Renderer>();
-    if (!movementComponent)
+    auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
+    if (!rendererComponent)
         stack.Error("invalid lstg object for 'SetImgState'.");
 
     // 设置混合模式
     BlendMode mode(blend);
     Subsystem::Render::ColorRGBA32 color(std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255), std::clamp(a, 0, 255));
     Subsystem::Render::Drawing2D::SpriteColorComponents colors = { color, color, color, color };
-    switch (movementComponent->RenderData.index())
+    switch (rendererComponent->RenderData.index())
     {
         case 1:
             {
-                auto& spriteRenderer = std::get<1>(movementComponent->RenderData);
+                auto& spriteRenderer = std::get<1>(rendererComponent->RenderData);
                 spriteRenderer.Asset->SetDefaultBlendMode(mode);
                 spriteRenderer.Asset->SetDefaultBlendColor(colors);
             }
             break;
         case 2:
             {
-                auto& spriteSequenceRenderer = std::get<2>(movementComponent->RenderData);
+                auto& spriteSequenceRenderer = std::get<2>(rendererComponent->RenderData);
                 spriteSequenceRenderer.Asset->SetDefaultBlendMode(mode);
                 spriteSequenceRenderer.Asset->SetDefaultBlendColor(colors);
             }

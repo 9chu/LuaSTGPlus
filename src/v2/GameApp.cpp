@@ -10,6 +10,8 @@
 #include <glm/ext.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Encoding/Unicode.hpp>
+#include <lstg/Core/Encoding/Convert.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
@@ -18,6 +20,7 @@
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include "detail/KeyMapping.hpp"
 
 // 资源类型
 #include <lstg/v2/Asset/TextureAsset.hpp>
@@ -35,6 +38,28 @@
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
+
+namespace
+{
+    /**
+     * 向 string 中追加 char32_t
+     * @param out 输出 UTF-8 串
+     * @param ch Unicode字符
+     * @return 是否成功
+     */
+    bool AppendUtf8(std::string& out, char32_t ch) noexcept
+    {
+        uint32_t encodedCount = 0;
+        array<char, Encoding::Utf8::Encoder::kMaxOutputCount> state {};
+        Encoding::Utf8::Encoder encoder;
+        if (Encoding::EncodingResult::Accept != encoder(ch, state, encodedCount))
+            return false;
+        assert(encodedCount > 0);
+        // out 总是预留了足够空间，不会出现分配问题
+        out.append(state.data(), encodedCount);
+        return true;
+    }
+}
 
 LSTG_DEF_LOG_CATEGORY(GameApp);
 
@@ -122,6 +147,7 @@ GameApp::GameApp(int argc, char** argv)
 
         // 刷初始渲染状态
         m_stCommandBuffer.Begin();
+        m_stCommandBuffer.SetNoDepth(true);  // 默认关闭深度测试
         m_stCommandBuffer.SetView(glm::identity<glm::mat4x4>());
         m_stCommandBuffer.SetProjection(glm::ortho<float>(0.f, static_cast<float>(m_stViewportBound.Width()),
                                                           0.f, static_cast<float>(m_stViewportBound.Height()),
@@ -133,6 +159,13 @@ GameApp::GameApp(int argc, char** argv)
         // 初始化文字渲染组件
         m_pTextShaper = Subsystem::Render::Font::CreateHarfBuzzTextShaper();
         m_pFontGlyphAtlas = make_shared<Subsystem::Render::Font::DynamicFontGlyphAtlas>(renderSystem);
+    }
+
+    // 初始化输入系统
+    {
+        m_uInputWindowID = ::SDL_GetWindowID(GetSubsystem<Subsystem::WindowSystem>()->GetNativeHandle());
+        m_stLastInputChar.reserve(16);
+        m_stKeyStateMap.resize(SDL_NUM_SCANCODES);
     }
 
     // 初始化函数库
@@ -161,6 +194,22 @@ GameApp::GameApp(int argc, char** argv)
         }
         lua_setfield(state, -2, "args");  // t
         lua_pop(state, 1);
+
+        // 修补高版本没有 math.mod
+        lua_getglobal(state, "math");  // t
+        assert(!lua_isnil(state, -1));
+        lua_getfield(state, -1, "mod");  // t f|n
+        if (lua_isnil(state, -1))
+        {
+            lua_pop(state, 1);  // t
+            lua_getfield(state, -1, "fmod");  // t f
+            lua_setfield(state, -2, "mod");  // t
+            lua_pop(state, 1);
+        }
+        else
+        {
+            lua_pop(state, 2);
+        }
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
@@ -316,6 +365,19 @@ Subsystem::Render::Drawing2D::CommandBuffer& GameApp::GetCommandBuffer() noexcep
     return m_stCommandBuffer;
 }
 
+int32_t GameApp::GetLastInputKeyCode() const noexcept
+{
+    return detail::SDLScancodeToVKCode(static_cast<SDL_Scancode>(m_iLastInputKeyCode));
+}
+
+bool GameApp::IsKeyDown(int32_t keyCode) const noexcept
+{
+    auto scanCode = detail::VKCodeToSDLScanCode(keyCode);
+    if (0 <= scanCode && scanCode < m_stKeyStateMap.size())
+        return m_stKeyStateMap[scanCode];
+    return false;
+}
+
 void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 {
     AppBase::OnEvent(event);
@@ -368,7 +430,50 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
             }
             else if (sdlEvent->type == SDL_TEXTINPUT)
             {
-                sdlEvent->text;
+                if (sdlEvent->text.windowID == m_uInputWindowID)  // 过滤非主窗口事件
+                {
+                    char32_t lastChar = '\0';
+                    auto inputText = Span<const char>(sdlEvent->text.text, ::strlen(sdlEvent->text.text));
+
+                    // 兼容性处理，取出输入的最后一个字符
+                    Encoding::EncodingView<Encoding::Utf8::Decoder> view(inputText);
+                    auto it = view.begin(), jt = view.end();
+                    while (it != jt)
+                    {
+                        auto ret = *it;
+                        if (!ret)
+                        {
+                            LSTG_LOG_ERROR_CAT(GameApp, "Decode input text error: {}", ret.GetError());
+                            break;
+                        }
+                        assert(ret->GetSize() == 1);
+                        lastChar = (*ret)[0];
+                        ++it;
+                    }
+
+                    if (lastChar)
+                    {
+                        m_stLastInputChar.clear();
+                        if (!AppendUtf8(m_stLastInputChar, lastChar))
+                            LSTG_LOG_ERROR_CAT(GameApp, "Encode input text error");
+                    }
+                }
+            }
+            else if (sdlEvent->type == SDL_KEYDOWN || sdlEvent->type == SDL_KEYUP)
+            {
+                if (sdlEvent->text.windowID == m_uInputWindowID)  // 过滤非主窗口事件
+                {
+                    auto scanCode = sdlEvent->key.keysym.scancode;
+                    assert(m_stKeyStateMap.size() == SDL_NUM_SCANCODES);
+                    if (0 <= scanCode && scanCode < m_stKeyStateMap.size())
+                        m_stKeyStateMap[scanCode] = (sdlEvent->key.state == SDL_PRESSED);
+
+                    // 更新最后一次键入 Key
+                    if (sdlEvent->key.state == SDL_PRESSED)
+                        m_iLastInputKeyCode = sdlEvent->key.keysym.scancode;
+                    else if (sdlEvent->key.keysym.scancode == m_iLastInputKeyCode)
+                        m_iLastInputKeyCode = '\0';
+                }
             }
         }
     }
@@ -386,6 +491,12 @@ void GameApp::OnUpdate(double elapsed) noexcept
     {
         LSTG_LOG_TRACE_CAT(GameApp, "{} -> true, exit main loop", kEventOnUpdate);
         Stop();
+    }
+
+    // 帧末清理单帧输入状态
+    {
+        m_stLastInputChar.clear();
+        m_iLastInputKeyCode = '\0';
     }
 }
 

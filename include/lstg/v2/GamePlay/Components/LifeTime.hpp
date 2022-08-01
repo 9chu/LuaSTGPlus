@@ -52,6 +52,9 @@ namespace lstg::v2::GamePlay::Components
         LifeTime* PrevInChain = nullptr;
         LifeTime* NextInChain = nullptr;
 
+        LifeTime() noexcept = default;
+        LifeTime(LifeTime&& org) noexcept;
+
         void Reset() noexcept;
     };
 
@@ -69,6 +72,7 @@ namespace lstg::v2::GamePlay::Components
         LifeTime LifeTimeTailer;
 
         LifeTimeRoot() noexcept;
+        LifeTimeRoot(LifeTimeRoot&&) noexcept;
         void Reset() noexcept;
     };
 

@@ -44,9 +44,9 @@ namespace lstg::Subsystem::Render::Drawing2D
 
         // 效果选择器
         const GraphDef::EffectDefinition* m_pLastSelectEffect = nullptr;
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAlphaBlendGroup = nullptr;
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAddBlendGroup = nullptr;
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectSubtractBlendGroup = nullptr;
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectReverseSubtractBlendGroup = nullptr;
+        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAlphaBlendGroup[2] = { nullptr, nullptr };
+        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAddBlendGroup[2] = { nullptr, nullptr };
+        const GraphDef::EffectPassGroupDefinition* m_pLastSelectSubtractBlendGroup[2] = { nullptr, nullptr };
+        const GraphDef::EffectPassGroupDefinition* m_pLastSelectReverseSubtractBlendGroup[2] = { nullptr, nullptr };
     };
 }

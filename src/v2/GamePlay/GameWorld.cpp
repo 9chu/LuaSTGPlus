@@ -306,7 +306,7 @@ void GameWorld::Frame() noexcept
 
         // 更新粒子系统（若有）
         auto rendererComponent = entity.TryGetComponent<Renderer>();
-        if (transformComponent && rendererComponent && rendererComponent->RenderData.index() == 2)
+        if (transformComponent && rendererComponent && rendererComponent->RenderData.index() == 3)
         {
             auto& particleData = std::get<Renderer::ParticleRenderer>(rendererComponent->RenderData);
 
@@ -327,6 +327,10 @@ void GameWorld::Frame() noexcept
                 particleData.Pool->Update(1.0f / 1.60f);  // 总是使用 60fps 的速度 Tick
         }
 
+        // 迭代器可能失效
+        p = &entity.GetComponent<LifeTime>();
+
+        assert(p->NextInChain);
         p = p->NextInChain;
     }
 }
@@ -353,9 +357,13 @@ void GameWorld::Render() noexcept
                     // 当没有用户定义渲染方法时，调用默认渲染方法
                     RenderEntityDefault(entity);
                 }
+
+                // 迭代器可能失效
+                p = &entity.GetComponent<Renderer>();
             }
         }
 
+        assert(p->NextInChain);
         p = p->NextInChain;
     }
 }
@@ -382,11 +390,7 @@ void GameWorld::AfterFrame() noexcept
 
     // 更新动画计时器
     m_stWorld.VisitEntities<tuple<Renderer>>([](ECS::Entity ent, Renderer& renderer) {
-        if (renderer.RenderData.index() == 2)
-        {
-            auto& spriteSequenceData = std::get<2>(renderer.RenderData);
-            ++spriteSequenceData.Timer;
-        }
+        ++renderer.AnimationTimer;
     });
 }
 
@@ -422,10 +426,14 @@ void GameWorld::DeleteOutOfBoundaryEntities() noexcept
                         m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponent->ScriptObjectId,
                             ScriptCallbackFunctions::OnDelete, 0);
                     }
+
+                    // 此时迭代器可能失效
+                    p = &entity.GetComponent<LifeTime>();
                 }
             }
         }
 
+        assert(p->NextInChain);
         p = p->NextInChain;
     }
 }
@@ -436,7 +444,7 @@ void GameWorld::RenderEntityDefault(ECS::Entity entity) noexcept
     if (transformComponent)
     {
         auto rendererComponent = entity.TryGetComponent<Renderer>();
-        if (rendererComponent)
+        if (rendererComponent && !rendererComponent->Invisible)
         {
             auto& cmdBuffer = m_stApp.GetCommandBuffer();
 
@@ -466,7 +474,7 @@ void GameWorld::RenderEntityDefault(ECS::Entity entity) noexcept
                         auto& spriteSequenceRenderer = std::get<2>(rendererComponent->RenderData);
                         auto& asset = spriteSequenceRenderer.Asset;
                         assert(asset && !asset->GetSequences().empty());
-                        auto frame = (spriteSequenceRenderer.Timer / spriteSequenceRenderer.Asset->GetInterval()) %
+                        auto frame = (rendererComponent->AnimationTimer / spriteSequenceRenderer.Asset->GetInterval()) %
                             asset->GetSequences().size();
                         auto draw = spriteSequenceRenderer.Asset->GetSequences()[frame].Draw(cmdBuffer);
                         if (!draw)
@@ -506,6 +514,7 @@ void GameWorld::Clear() noexcept
     while (p != &m_pLifeTimeRoot->LifeTimeTailer)
     {
         auto next = p->NextInChain;
+        p->Status = LifeTimeStatus::Deleted;
         p->BindingEntity.Destroy();
         p = next;
     }
@@ -711,13 +720,7 @@ int GameWorld::OnGetAttribute(LuaStack stack, ECS::EntityId id, std::string_view
         case ScriptObjectAttributes::Animation:
             if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
                 return 0;
-            if (rendererComponent->RenderData.index() == 2)
-            {
-                auto& ani = std::get<2>(rendererComponent->RenderData);
-                stack.PushValue(ani.Timer);
-                return 1;
-            }
-            stack.PushValue(0);
+            stack.PushValue(rendererComponent->AnimationTimer);
             return 1;
         default:
             return 0;
@@ -1057,7 +1060,6 @@ bool GameWorld::OnSetAttribute(LuaStack stack, ECS::EntityId id, std::string_vie
                     {
                         Renderer::SpriteSequenceRenderer spriteSequenceRenderer;
                         spriteSequenceRenderer.Asset = static_pointer_cast<v2::Asset::SpriteSequenceAsset>(asset);
-                        spriteSequenceRenderer.Timer = 0;
                         if (colliderComponent)
                         {
                             colliderComponent->Shape = spriteSequenceRenderer.Asset->GetColliderShape();

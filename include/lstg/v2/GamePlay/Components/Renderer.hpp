@@ -27,7 +27,6 @@ namespace lstg::v2::GamePlay::Components
         struct SpriteSequenceRenderer
         {
             Asset::SpriteSequenceAssetPtr Asset;
-            uint32_t Timer = 0;
         };
 
         struct ParticleRenderer
@@ -58,12 +57,20 @@ namespace lstg::v2::GamePlay::Components
         std::variant<std::monostate, SpriteRenderer, SpriteSequenceRenderer, ParticleRenderer> RenderData;
 
         /**
+         * 动画计时器
+         */
+        uint32_t AnimationTimer = 0;
+
+        /**
          * 链表域
          * 用于保持渲染顺序。
          */
         ECS::Entity BindingEntity;
         Renderer* PrevInChain = nullptr;
         Renderer* NextInChain = nullptr;
+
+        Renderer() noexcept = default;
+        Renderer(Renderer&& org) noexcept;
 
         void Reset() noexcept;
         std::string_view GetAssetName() noexcept;

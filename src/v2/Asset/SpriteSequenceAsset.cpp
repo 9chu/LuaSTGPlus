@@ -87,13 +87,13 @@ void SpriteSequenceAsset::SyncBlendMode(bool updateVertex) noexcept
         f.SetColorBlendMode(m_stDefaultBlendMode.ColorBlend);
         if (m_stDefaultBlendMode.VertexColorBlend == VertexColorBlendMode::Additive)
         {
-            f.SetAdditiveBlendColor(m_stDefaultBlendColor, false);
+            f.SetAdditiveBlendColor(m_stDefaultBlendColor, updateVertex);
             f.SetMultiplyBlendColor(SpriteColorComponents { 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu }, updateVertex);
         }
         else
         {
             assert(m_stDefaultBlendMode.VertexColorBlend == VertexColorBlendMode::Multiply);
-            f.SetAdditiveBlendColor(SpriteColorComponents { 0x000000FFu, 0x000000FFu, 0x000000FFu, 0x000000FFu }, false);
+            f.SetAdditiveBlendColor(SpriteColorComponents { 0x000000FFu, 0x000000FFu, 0x000000FFu, 0x000000FFu }, updateVertex);
             f.SetMultiplyBlendColor(m_stDefaultBlendColor, updateVertex);
         }
     }

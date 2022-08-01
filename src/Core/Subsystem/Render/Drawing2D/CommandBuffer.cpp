@@ -100,6 +100,14 @@ void CommandBuffer::SetColorBlendMode(ColorBlendMode m) noexcept
     m_iCurrentColorBlendMode = m;
 }
 
+void CommandBuffer::SetNoDepth(bool b) noexcept
+{
+    if (b == m_bNoDepth)
+        return;
+    PrepareNewCommand();
+    m_bNoDepth = b;
+}
+
 void CommandBuffer::SetFog(FogTypes fog, ColorRGBA32 fogColor, float arg1, float arg2) noexcept
 {
     if (fog == m_iCurrentFogType && arg1 == m_fCurrentFogArg1 && arg2 == m_fCurrentFogArg2)
@@ -336,6 +344,7 @@ Result<void> CommandBuffer::InstantialCommand() noexcept
         {
             auto command = DrawCommand {
                 m_iCurrentColorBlendMode,
+                m_bNoDepth,
                 m_iCurrentFogType,
                 m_fCurrentFogArg1,
                 m_fCurrentFogArg2,

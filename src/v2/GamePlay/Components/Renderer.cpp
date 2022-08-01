@@ -12,6 +12,19 @@ using namespace lstg::v2::GamePlay::Components;
 
 // <editor-fold desc="Renderer">
 
+Renderer::Renderer(Renderer&& org) noexcept
+    : Invisible(org.Invisible), Scale(org.Scale), Layer(org.Layer), RenderData(std::move(org.RenderData)), BindingEntity(org.BindingEntity),
+    PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+{
+    // 调整链表指向
+    if (PrevInChain)
+        PrevInChain->NextInChain = this;
+    if (NextInChain)
+        NextInChain->PrevInChain = this;
+    org.PrevInChain = nullptr;
+    org.NextInChain = nullptr;
+}
+
 void Renderer::Reset() noexcept
 {
     // 从链表脱开
@@ -30,6 +43,7 @@ void Renderer::Reset() noexcept
     Scale = { 1., 1. };
     Layer = 0.;
     RenderData = {};
+    AnimationTimer = 0;
     BindingEntity = {};
     PrevInChain = nullptr;
     NextInChain = nullptr;

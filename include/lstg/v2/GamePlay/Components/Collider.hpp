@@ -43,6 +43,9 @@ namespace lstg::v2::GamePlay::Components
         Collider* PrevInChain = nullptr;
         Collider* NextInChain = nullptr;
 
+        Collider() noexcept = default;
+        Collider(Collider&& org) noexcept;
+
         void Reset() noexcept;
         void RefreshAABB() noexcept;
     };

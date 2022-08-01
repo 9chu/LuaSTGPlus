@@ -47,7 +47,6 @@ void Entity::Destroy() noexcept
         return;
     m_pWorld->GetArchetype(GetEntityArchetypeId(m_uId)).Free(GetEntityArchetypeEntityId(m_uId));
     m_uId = kInvalidEntityId;
-    m_stLastComponentCache = { 0, nullptr };
 }
 
 bool Entity::HasComponent(ComponentId id) const noexcept
@@ -60,17 +59,10 @@ bool Entity::HasComponent(ComponentId id) const noexcept
 void* Entity::GetComponent(ComponentId id) noexcept
 {
     assert(m_pWorld && m_uId != kInvalidEntityId);
-
-    // cache
-    if (m_stLastComponentCache.second && m_stLastComponentCache.first == id)
-        return m_stLastComponentCache.second;
-
     auto archetypeId = GetEntityArchetypeId(m_uId);
     auto archetypeEntityId = GetEntityArchetypeEntityId(m_uId);
     auto& archetype = m_pWorld->GetArchetype(archetypeId);
     auto ret = archetype.GetComponent(archetypeEntityId, id);
-
-    m_stLastComponentCache = { id, ret };
     return ret;
 }
 
@@ -79,17 +71,11 @@ void* Entity::TryGetComponent(ComponentId id) noexcept
     if (!m_pWorld || m_uId == kInvalidEntityId)
         return nullptr;
 
-    // cache
-    if (m_stLastComponentCache.second && m_stLastComponentCache.first == id)
-        return m_stLastComponentCache.second;
-
     auto archetypeId = GetEntityArchetypeId(m_uId);
     auto& archetype = m_pWorld->GetArchetype(archetypeId);
     if ((archetype.GetTypeId() & (1u << id)) == 0)
         return nullptr;
     auto archetypeEntityId = GetEntityArchetypeEntityId(m_uId);
     auto ret = archetype.GetComponent(archetypeEntityId, id);
-
-    m_stLastComponentCache = { id, ret };
     return ret;
 }

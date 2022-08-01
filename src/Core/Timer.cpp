@@ -75,7 +75,14 @@ uint64_t Timer::Update(uint64_t idleWait) noexcept
                 now = Pal::GetCurrentTick();
             }
 
-            top = m_stHeap.GetTop();
+            auto nextTop = m_stHeap.GetTop();
+            if (nextTop == top)  // 防止陷入死循环
+            {
+                idleWait = 0;
+                top = nullptr;
+                break;
+            }
+            top = nextTop;
         }
         else
         {

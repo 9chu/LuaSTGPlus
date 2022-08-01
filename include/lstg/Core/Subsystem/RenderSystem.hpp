@@ -20,6 +20,11 @@
 #include "Render/Texture2DData.hpp"
 #include "Render/ColorRGBA32.hpp"
 
+namespace lstg::Subsystem::Render::detail
+{
+    class ClearHelper;
+}
+
 namespace lstg::Subsystem
 {
     /**
@@ -249,6 +254,9 @@ namespace lstg::Subsystem
 
         // 内建默认纹理
         Render::TexturePtr m_pDefaultTexture2D;
+
+        // 内建清屏工具
+        std::shared_ptr<Render::detail::ClearHelper> m_pClearHelper;
 
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;

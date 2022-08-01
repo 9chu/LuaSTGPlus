@@ -205,10 +205,7 @@ namespace lstg::ECS
         void* TryGetComponent(ComponentId id) noexcept;
 
     private:
-        using ComponentCache = std::pair<ComponentId, void*>;
-
         World* m_pWorld = nullptr;
         EntityId m_uId = kInvalidEntityId;
-        mutable ComponentCache m_stLastComponentCache { 0, nullptr };
     };
 }

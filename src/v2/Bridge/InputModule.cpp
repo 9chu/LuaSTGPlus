@@ -6,31 +6,28 @@
  */
 #include <lstg/v2/Bridge/InputModule.hpp>
 
+#include "detail/Helper.hpp"
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
 
 bool InputModule::GetKeyState(int32_t vkCode)
 {
-    // TODO
-//    lua_pushboolean(L, LAPP.GetKeyState(luaL_checkinteger(L, -1)));
-//    return 1;
-    return false;
+    auto& app = detail::GetGlobalApp();
+    return app.IsKeyDown(vkCode);
 }
 
 int32_t InputModule::GetLastKey()
 {
-    // TODO
-//    lua_pushinteger(L, LAPP.GetLastKey());
-//    return 1;
-    return 0;
+    auto& app = detail::GetGlobalApp();
+    return app.GetLastInputKeyCode();
 }
 
 const char* InputModule::GetLastChar()
 {
-    // TODO
-//    return LAPP.GetLastChar(L);
-    return "";
+    auto& app = detail::GetGlobalApp();
+    return app.GetLastInputChar().c_str();
 }
 
 Subsystem::Script::Unpack<double, double> InputModule::GetMousePosition()

@@ -104,20 +104,21 @@ AssetManagerModule::Unpack<AssetManagerModule::AbsIndex, AssetManagerModule::Abs
         assetPools->GetStageAssetPool().get()
     };
 
+    auto base = stack.GetTop();
     for (auto assetPool : pools)
     {
         size_t idx = 1;
         lua_newtable(stack);
         assetPool->Visit([&](const AssetPtr& asset) -> std::tuple<bool, monostate> {
             if (IsAssetNameMatchType(asset->GetName(), type))
-                lua_setfield(stack, static_cast<int>(idx++), ExtractAssetName(asset->GetName()).c_str());
+                stack.RawSet(-1, static_cast<int>(idx++), ExtractAssetName(asset->GetName()).c_str());
             return { false, {} };
         });
     }
-    assert(stack.GetTop() == 2);
-    assert(stack.TypeOf(1) == LUA_TTABLE);
-    assert(stack.TypeOf(2) == LUA_TTABLE);
-    return { AbsIndex(1u), AbsIndex(2u) };
+    assert(stack.GetTop() == base + 2);
+    assert(stack.TypeOf(base + 1) == LUA_TTABLE);
+    assert(stack.TypeOf(base + 2) == LUA_TTABLE);
+    return { AbsIndex(base + 1u), AbsIndex(base + 2u) };
 }
 
 AssetManagerModule::Unpack<double, double> AssetManagerModule::GetTextureSize(LuaStack& stack, const char* name)

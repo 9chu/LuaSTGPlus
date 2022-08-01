@@ -121,9 +121,11 @@ Result<void> DynamicFontGlyphAtlas::Commit() noexcept
     {
         if (atlas.ImageDirtyRegion.Width() != 0 && atlas.ImageDirtyRegion.Height() != 0)
         {
+            auto dirtyRegionStart = atlas.TextureData.GetBuffer().GetData() + atlas.ImageDirtyRegion.Top() * atlas.TextureData.GetStride() +
+                atlas.ImageDirtyRegion.Left() * 4;
+            auto dirtyRegionSize = atlas.ImageDirtyRegion.Height() * atlas.TextureData.GetStride();
             auto ret = atlas.Texture->Commit({ atlas.ImageDirtyRegion.Left(), atlas.ImageDirtyRegion.Top(), atlas.ImageDirtyRegion.Width(),
-                atlas.ImageDirtyRegion.Height() }, { atlas.TextureData.GetBuffer().GetData(), atlas.TextureData.GetBuffer().GetSize() },
-                atlas.TextureData.GetStride());
+                atlas.ImageDirtyRegion.Height() }, { dirtyRegionStart, dirtyRegionSize }, atlas.TextureData.GetStride());
             if (!ret)
                 return ret.GetError();
             atlas.ImageDirtyRegion = { 0, 0, 0, 0 };

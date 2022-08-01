@@ -57,6 +57,8 @@ namespace lstg::Text
             try
             {
                 auto p = nlohmann::json::json_pointer(std::string{path});
+                if (!object.contains(p))
+                    return std::move(defaultValue);
                 auto ref = object.at(p);
                 return ref.get<T>();
             }

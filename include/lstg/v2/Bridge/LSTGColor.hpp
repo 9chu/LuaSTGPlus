@@ -37,18 +37,10 @@ namespace lstg::v2::Bridge
         LSTG_METHOD(__mul)
         static LSTGColor Multiply(std::variant<double, const LSTGColor*> lhs, std::variant<double, const LSTGColor*> rhs) noexcept;
 
+        LSTG_METHOD(ARGB)
+        Subsystem::Script::Unpack<int, int, int, int> ToARGB() const noexcept;
+
         LSTG_METHOD(__tostring)
         std::string ToString() const;
-    };
-
-    /**
-     * 颜色模块
-     */
-    LSTG_MODULE(lstgColor, GLOBAL)
-    class LSTGColorModule
-    {
-    public:
-        LSTG_METHOD(ARGB)
-        static Subsystem::Script::Unpack<int, int, int, int> ToARGB(const LSTGColor& color);
     };
 }

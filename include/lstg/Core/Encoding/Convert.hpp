@@ -123,7 +123,7 @@ namespace lstg::Encoding
                 }
                 else if (m_iState == STATE_PENDING_FINISH_READING)
                 {
-                    QX_ASSERT(m_uPosition >= m_stSource.size());
+                    assert(m_uPosition >= m_stSource.size());
                     m_iState = STATE_FINISHED;
                     return *this;
                 }
@@ -178,6 +178,11 @@ namespace lstg::Encoding
             {
                 return m_stSource.data() == rhs.m_stSource.data() && m_stSource.size() == rhs.m_stSource.size() &&
                     m_pFallback == rhs.m_pFallback && m_iState == rhs.m_iState && m_uPosition == rhs.m_uPosition;
+            }
+
+            bool operator!=(const Iterator& rhs) const noexcept
+            {
+                return !operator==(rhs);
             }
 
         private:

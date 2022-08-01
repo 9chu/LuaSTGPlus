@@ -108,18 +108,21 @@ do
 
             // 模拟 D3D9 固管的逐像素雾
             // https://docs.microsoft.com/en-us/windows/win32/direct3d9/fog-formulas
+            // https://github.com/walbourn/directx-sdk-samples/blob/main/FixedFuncEMUFX11/FixedFuncEMU.fx
             float f = 1.f;
             float4 fogRGBA = UnpackRGBA32(FogColorRGBA32);
             float distToEye = length(outVert.WorldPosition.xyz);  // 2D 渲染时没有 WorldTranslation，在计算过 ViewMatrix 后总是以 (0,0,0) 作为观察点
             if (FogType == FOG_LINEAR)
-                f = clamp((FogArg2 - distToEye) / (FogArg2 - FogArg1), 0.f, 1.f);
+                f = (FogArg2 - distToEye) / (FogArg2 - FogArg1);
             else if (FogType == FOG_EXP1)
                 f = 1.f / exp(distToEye * FogArg1);
             else if (FogType == FOG_EXP2)
                 f = 1.f / exp(pow(distToEye * FogArg1, 2.f));
+            f = clamp(f, 0.f, 1.f);
 
             // 最终颜色
-            return f * float4(blendColor, blendAlpha) + (1.f - f) * fogRGBA;
+            float3 finalColor = f * blendColor + (1.f - f) * fogRGBA.xyz;
+            return float4(finalColor, blendAlpha);
         }
     ]=]
         :name("Default 2D Pixel Shader")
@@ -225,12 +228,108 @@ do
         :build()
 end
 
+-- PassGroup: Alpha Blend No Depth
+local passGroupAlphaBlendNoDepth
+do
+    local pass0 = pass "pass0"
+        :blendState(BlendStates.ENABLE, 1)
+        :blendState(BlendStates.SOURCE_BLEND, BlendFactors.SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_BLEND, BlendFactors.INVERT_SOURCE_ALPHA)
+        :blendState(BlendStates.BLEND_OPERATION, BlendOperations.ADD)
+        :blendState(BlendStates.SOURCE_ALPHA_BLEND, BlendFactors.INVERT_SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_ALPHA_BLEND, BlendFactors.ZERO)
+        :blendState(BlendStates.ALPHA_BLEND_OPERATION, BlendOperations.ADD)
+        :rasterizerState(RasterizerStates.CULL_MODE, CullModes.NONE)
+        :depthStencilState(DepthStencilStates.DEPTH_ENABLE, 0)
+        :vertexShader(vs)
+        :pixelShader(ps)
+        :build()
+    passGroupAlphaBlendNoDepth = passGroup "AlphaBlendNoDepth"
+        :tag("Blend", "Alpha")
+        :tag("NoDepth", "1")
+        :pass(pass0)
+        :build()
+end
+
+-- PassGroup: Add Blend No Depth
+local passGroupAddBlendNoDepth
+do
+    local pass0 = pass "pass0"
+        :blendState(BlendStates.ENABLE, 1)
+        :blendState(BlendStates.SOURCE_BLEND, BlendFactors.SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_BLEND, BlendFactors.ONE)
+        :blendState(BlendStates.BLEND_OPERATION, BlendOperations.ADD)
+        :blendState(BlendStates.SOURCE_ALPHA_BLEND, BlendFactors.INVERT_SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_ALPHA_BLEND, BlendFactors.ZERO)
+        :blendState(BlendStates.ALPHA_BLEND_OPERATION, BlendOperations.ADD)
+        :rasterizerState(RasterizerStates.CULL_MODE, CullModes.NONE)
+        :depthStencilState(DepthStencilStates.DEPTH_ENABLE, 0)
+        :vertexShader(vs)
+        :pixelShader(ps)
+        :build()
+    passGroupAddBlendNoDepth = passGroup "AddBlendNoDepth"
+        :tag("Blend", "Add")
+        :tag("NoDepth", "1")
+        :pass(pass0)
+        :build()
+end
+
+-- PassGroup: Subtract Blend No Depth
+local passGroupSubtractBlendNoDepth
+do
+    local pass0 = pass "pass0"
+        :blendState(BlendStates.ENABLE, 1)
+        :blendState(BlendStates.SOURCE_BLEND, BlendFactors.SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_BLEND, BlendFactors.ONE)
+        :blendState(BlendStates.BLEND_OPERATION, BlendOperations.SUBTRACT)
+        :blendState(BlendStates.SOURCE_ALPHA_BLEND, BlendFactors.INVERT_SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_ALPHA_BLEND, BlendFactors.ZERO)
+        :blendState(BlendStates.ALPHA_BLEND_OPERATION, BlendOperations.ADD)
+        :rasterizerState(RasterizerStates.CULL_MODE, CullModes.NONE)
+        :depthStencilState(DepthStencilStates.DEPTH_ENABLE, 0)
+        :vertexShader(vs)
+        :pixelShader(ps)
+        :build()
+    passGroupSubtractBlendNoDepth = passGroup "SubtractBlendNoDepth"
+        :tag("Blend", "Subtract")
+        :tag("NoDepth", "1")
+        :pass(pass0)
+        :build()
+end
+
+-- PassGroup: Revert Subtract Blend No Depth
+local passGroupRevertSubtractBlendNoDepth
+do
+    local pass0 = pass "pass0"
+        :blendState(BlendStates.ENABLE, 1)
+        :blendState(BlendStates.SOURCE_BLEND, BlendFactors.SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_BLEND, BlendFactors.ONE)
+        :blendState(BlendStates.BLEND_OPERATION, BlendOperations.REVERT_SUBTRACT)
+        :blendState(BlendStates.SOURCE_ALPHA_BLEND, BlendFactors.INVERT_SOURCE_ALPHA)
+        :blendState(BlendStates.DEST_ALPHA_BLEND, BlendFactors.ZERO)
+        :blendState(BlendStates.ALPHA_BLEND_OPERATION, BlendOperations.ADD)
+        :rasterizerState(RasterizerStates.CULL_MODE, CullModes.NONE)
+        :depthStencilState(DepthStencilStates.DEPTH_ENABLE, 0)
+        :vertexShader(vs)
+        :pixelShader(ps)
+        :build()
+    passGroupRevertSubtractBlendNoDepth = passGroup "RevertSubtractBlendNoDepth"
+        :tag("Blend", "RevertSubtract")
+        :tag("NoDepth", "1")
+        :pass(pass0)
+        :build()
+end
+
 -- Effect
 return effect()
     :passGroup(passGroupAlphaBlend)
     :passGroup(passGroupAddBlend)
     :passGroup(passGroupSubtractBlend)
     :passGroup(passGroupRevertSubtractBlend)
+    :passGroup(passGroupAlphaBlendNoDepth)
+    :passGroup(passGroupAddBlendNoDepth)
+    :passGroup(passGroupSubtractBlendNoDepth)
+    :passGroup(passGroupRevertSubtractBlendNoDepth)
     :build()
 )EFFECT";
 
@@ -358,28 +457,31 @@ const Subsystem::Render::GraphDef::EffectPassGroupDefinition* CommandExecutor::O
         else if (it->second == "ReverseSubtract")
             targetBlend = ColorBlendMode::ReverseSubtract;
     }
+    it = tags.find("NoDepth");
+    auto noDepth = (it != tags.end() && it->second == "1") ? 1 : 0;
 
     // 如果跟上次判断的特效是否是同一个，否则直接复用
     if (effect != m_pLastSelectEffect)
     {
         m_pLastSelectEffect = effect;
-        m_pLastSelectAlphaBlendGroup = nullptr;
-        m_pLastSelectAddBlendGroup = nullptr;
-        m_pLastSelectSubtractBlendGroup = nullptr;
-        m_pLastSelectReverseSubtractBlendGroup = nullptr;
+        m_pLastSelectAlphaBlendGroup[0] = m_pLastSelectAlphaBlendGroup[1] = nullptr;
+        m_pLastSelectAddBlendGroup[0] = m_pLastSelectAddBlendGroup[1] = nullptr;
+        m_pLastSelectSubtractBlendGroup[0] = m_pLastSelectSubtractBlendGroup[1] = nullptr;
+        m_pLastSelectReverseSubtractBlendGroup[0] = m_pLastSelectReverseSubtractBlendGroup[1] = nullptr;
         if (effect)
         {
             for (const auto& group : effect->GetGroups())
             {
                 auto tag = group->GetTag("Blend");
+                auto noDepth = group->GetTag("NoDepth") == "1" ? 1 : 0;
                 if (tag == "Alpha")
-                    m_pLastSelectAlphaBlendGroup = group.get();
+                    m_pLastSelectAlphaBlendGroup[noDepth] = group.get();
                 else if (tag == "Add")
-                    m_pLastSelectAddBlendGroup = group.get();
+                    m_pLastSelectAddBlendGroup[noDepth] = group.get();
                 else if (tag == "Subtract")
-                    m_pLastSelectSubtractBlendGroup = group.get();
+                    m_pLastSelectSubtractBlendGroup[noDepth] = group.get();
                 else if (tag == "ReverseSubtract")
-                    m_pLastSelectReverseSubtractBlendGroup = group.get();
+                    m_pLastSelectReverseSubtractBlendGroup[noDepth] = group.get();
             }
         }
     }
@@ -388,13 +490,13 @@ const Subsystem::Render::GraphDef::EffectPassGroupDefinition* CommandExecutor::O
     switch (targetBlend)
     {
         case ColorBlendMode::Alpha:
-            return m_pLastSelectAlphaBlendGroup;
+            return m_pLastSelectAlphaBlendGroup[noDepth];
         case ColorBlendMode::Add:
-            return m_pLastSelectAddBlendGroup;
+            return m_pLastSelectAddBlendGroup[noDepth];
         case ColorBlendMode::Subtract:
-            return m_pLastSelectSubtractBlendGroup;
+            return m_pLastSelectSubtractBlendGroup[noDepth];
         case ColorBlendMode::ReverseSubtract:
-            return m_pLastSelectReverseSubtractBlendGroup;
+            return m_pLastSelectReverseSubtractBlendGroup[noDepth];
     }
     return nullptr;
 }
@@ -446,6 +548,9 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
                 m_stRenderSystem.SetRenderTag("Blend", "ReverseSubtract");
                 break;
         }
+
+        // 设置深度状态
+        m_stRenderSystem.SetRenderTag("NoDepth", cmd.NoDepth ? "1" : "0");
 
         // 设置材质参数
         Result<void> ret;

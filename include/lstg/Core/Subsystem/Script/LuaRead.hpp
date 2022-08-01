@@ -252,6 +252,12 @@ namespace lstg::Subsystem::Script
      * @param out 输出绝对索引
      * @return 读取个数
      */
+    inline int LuaRead(LuaStack& stack, int idx, Result<LuaStack::AbsIndex>& out) noexcept
+    {
+        auto abs = (idx > 0) ? idx : (idx <= LUA_REGISTRYINDEX) ? idx : (::lua_gettop(stack) + 1 + idx);
+        out = LuaStack::AbsIndex { static_cast<unsigned>(abs) };
+        return 1;
+    }
     inline int LuaRead(LuaStack& stack, int idx, LuaStack::AbsIndex& out)
     {
         auto abs = (idx > 0) ? idx : (idx <= LUA_REGISTRYINDEX) ? idx : (::lua_gettop(stack) + 1 + idx);
@@ -426,7 +432,8 @@ namespace lstg::Subsystem::Script
             (detail::IsUnpack<detail::Unqualified<TArgs>>::value || ...)
         ), LuaStack&>::type stack, int idx, std::variant<TArgs...>& out)
     {
-        detail::ReadVariant<sizeof...(TArgs) - 1, TArgs...>(stack, idx, out);
+        if (!detail::ReadVariant<sizeof...(TArgs) - 1, TArgs...>(stack, idx, out))
+            luaL_argerror(stack, idx, "unexpected type");
         return 1;
     }
 }
