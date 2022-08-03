@@ -34,8 +34,9 @@ namespace lstg::Subsystem::Render::detail
          * 从文件加载纹理
          * 支持 stb_image 所兼容格式
          * @param stream 数据流
+         * @param convertToRGBA32 是否转换到 RGBA32
          */
-        Texture2DDataImpl(VFS::StreamPtr stream);
+        Texture2DDataImpl(VFS::StreamPtr stream, bool convertToRGBA32 = true);
 
         /**
          * 创建空白纹理

@@ -75,10 +75,15 @@ void GameObjectModule::BoundCheck(LuaStack& stack)
 
 void GameObjectModule::CollisionCheck(LuaStack& stack, int32_t groupIdA, int32_t groupIdB)
 {
-    // TODO
-//    LPOOL.CheckIsMainThread(L);
-//    LPOOL.CollisionCheck(luaL_checkinteger(L, 1), luaL_checkinteger(L, 2));
-//    return 0;
+    auto& world = detail::GetGlobalApp().GetDefaultWorld();
+    if (!world.GetScriptObjectPool().IsOnMainThread(stack))
+        stack.Error("CollisionCheck should be called on main thread");
+    if (groupIdA >= static_cast<int32_t>(Components::kColliderGroupCount) ||
+        groupIdB >= static_cast<int32_t>(Components::kColliderGroupCount) || groupIdA < 0 || groupIdB < 0)
+    {
+        stack.Error("Invalid group id");
+    }
+    world.CollisionCheck(groupIdA, groupIdB);
 }
 
 void GameObjectModule::UpdateXY(LuaStack& stack)
@@ -238,7 +243,7 @@ void GameObjectModule::SetObjectVelocity(LuaStack& stack, AbsIndex object, doubl
     angle = glm::radians(angle);
     movementComponent->Velocity.x = velocity * ::cos(angle);
     movementComponent->Velocity.y = velocity * ::sin(angle);
-    if (track)
+    if (track && *track)
     {
         assert(transformComponent);
         transformComponent->Rotation = angle;
@@ -337,7 +342,7 @@ double GameObjectModule::CalculateAngle(LuaStack& stack, std::variant<double, Ab
         if (a.index() != 0 || b.index() != 0 || !c || !d)
             stack.Error("invalid arguments for 'Angle'.");
 
-        auto dt = v2::Vec2 { *d - std::get<0>(b), *c - std::get<0>(a) };
+        auto dt = v2::Vec2 { *c - std::get<0>(a), *d - std::get<0>(b) };
         return dt.x == 0 && dt.y == 0 ? 0 : glm::degrees(::atan2(dt.y, dt.x));
     }
 }
@@ -445,7 +450,9 @@ void GameObjectModule::DefaultRenderFunc(LuaStack& stack, AbsIndex object)
 int GameObjectModule::NextObject(lua_State* L)
 {
     auto groupId = static_cast<int32_t>(luaL_checkinteger(L, 1));  // i(groupId)
-    auto id = static_cast<ScriptObjectId>(luaL_checkinteger(L, 2));  // id
+    auto id = static_cast<ScriptObjectId>(luaL_checknumber(L, 2));  // id
+    if (id == std::numeric_limits<ScriptObjectId>::max())
+        return 0;
 
     auto& world = detail::GetGlobalApp().GetDefaultWorld();
 
@@ -454,75 +461,84 @@ int GameObjectModule::NextObject(lua_State* L)
     if (!entity)
         return 0;
 
+    optional<ScriptObjectId> nextObjectId;
+
     // 检查需要在组中遍历还是在全局对象中遍历
     if (groupId < 0 || groupId >= static_cast<int32_t>(Components::kColliderGroupCount))
     {
         auto& lifeTime = world.GetLifeTimeRoot();
-        auto& tailer = lifeTime.LifeTimeTailer;
+        auto* tailer = &lifeTime.LifeTimeTailer;
+        auto nextEntity = entity;
 
         while (true)
         {
-            auto lifeTimeComponent = entity->TryGetComponent<Components::LifeTime>();
+            auto lifeTimeComponent = nextEntity->TryGetComponent<Components::LifeTime>();
             if (!lifeTimeComponent)
             {
                 assert(false);
-                return 0;
+                break;
             }
-            if (!lifeTimeComponent->NextInChain || lifeTimeComponent->NextInChain == &tailer)
-                return 0;
+            if (!lifeTimeComponent->NextInChain || lifeTimeComponent->NextInChain == tailer)
+                break;  // 迭代终止
 
-            entity = lifeTimeComponent->NextInChain->BindingEntity;
-            assert(entity);
+            nextEntity = lifeTimeComponent->NextInChain->BindingEntity;
+            assert(nextEntity);
 
             // 获取下一个ID
-            auto scriptComponent = entity->TryGetComponent<Components::Script>();
+            auto scriptComponent = nextEntity->TryGetComponent<Components::Script>();
             if (!scriptComponent)
                 continue;
+            assert(scriptComponent->Pool == &world.GetScriptObjectPool());
 
-            lua_pushinteger(L, static_cast<int32_t>(scriptComponent->ScriptObjectId));
-            world.GetScriptObjectPool().PushScriptObject(L, scriptComponent->ScriptObjectId);
-            return 2;
+            nextObjectId = static_cast<int32_t>(scriptComponent->ScriptObjectId);
+            break;
         }
     }
     else
     {
         auto& collider = world.GetColliderRoot();
         auto& tailer = collider.ColliderGroupTailers[groupId];
+        auto nextEntity = entity;
 
         while (true)
         {
-            auto colliderComponent = entity->TryGetComponent<Components::Collider>();
+            auto colliderComponent = nextEntity->TryGetComponent<Components::Collider>();
             if (!colliderComponent)
             {
                 assert(false);
-                return 0;
+                break;
             }
             if (colliderComponent->Group != static_cast<uint32_t>(groupId))
             {
 #ifdef LSTG_DEVELOPMENT
                 LSTG_LOG_WARN_CAT(GameObjectModule, "Collider group changed while iterating");
 #endif
-                return 0;
+                break;
             }
             if (!colliderComponent->NextInChain || colliderComponent->NextInChain == &tailer)
-                return 0;
+                break;  // 迭代终止
 
-            entity = colliderComponent->NextInChain->BindingEntity;
-            assert(entity);
+            nextEntity = colliderComponent->NextInChain->BindingEntity;
+            assert(nextEntity);
 
             // 获取下一个ID
-            auto scriptComponent = entity->TryGetComponent<Components::Script>();
+            auto scriptComponent = nextEntity->TryGetComponent<Components::Script>();
             if (!scriptComponent)
                 continue;
+            assert(scriptComponent->Pool == &world.GetScriptObjectPool());
 
-            lua_pushinteger(L, static_cast<int32_t>(scriptComponent->ScriptObjectId));
-            world.GetScriptObjectPool().PushScriptObject(L, scriptComponent->ScriptObjectId);
-            return 2;
+            nextObjectId = static_cast<int32_t>(scriptComponent->ScriptObjectId);
+            break;
         }
     }
+
+    // 推入下一个ID和当前对象
+    lua_pushnumber(L, nextObjectId ? *nextObjectId : std::numeric_limits<ScriptObjectId>::max());
+    world.GetScriptObjectPool().PushScriptObject(L, id);
+    return 2;
 }
 
-GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, int32_t> GameObjectModule::EnumerateObjectList(LuaStack& stack,
+GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, double> GameObjectModule::EnumerateObjectList(LuaStack& stack,
     int32_t groupId)
 {
     auto& world = detail::GetGlobalApp().GetDefaultWorld();
@@ -532,10 +548,10 @@ GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, int32_t> GameObjec
     if (groupId < 0 || groupId >= static_cast<int32_t>(Components::kColliderGroupCount))
     {
         auto& lifeTime = world.GetLifeTimeRoot();
-        auto* current = &lifeTime.LifeTimeHeader;
-        auto& tailer = lifeTime.LifeTimeTailer;
+        auto* current = lifeTime.LifeTimeHeader.NextInChain;
+        auto* tailer = &lifeTime.LifeTimeTailer;
 
-        while (current && current != &tailer)
+        while (current && current != tailer)
         {
             auto& entity = current->BindingEntity;
             current = current->NextInChain;
@@ -551,10 +567,10 @@ GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, int32_t> GameObjec
     else
     {
         auto& collider = world.GetColliderRoot();
-        auto* current = &collider.ColliderGroupHeaders[groupId];
-        auto& tailer = collider.ColliderGroupTailers[groupId];
+        auto* current = collider.ColliderGroupHeaders[groupId].NextInChain;
+        auto* tailer = &collider.ColliderGroupTailers[groupId];
 
-        while (current && current != &tailer)
+        while (current && current != tailer)
         {
             auto& entity = current->BindingEntity;
             current = current->NextInChain;
@@ -569,7 +585,7 @@ GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, int32_t> GameObjec
     }
 
     stack.PushValue(NextObject);
-    return { AbsIndex {stack.GetTop()}, groupId, firstObjectId };
+    return { AbsIndex {stack.GetTop()}, groupId, firstObjectId };  // 返回组ID，第一个对象ID
 }
 
 int GameObjectModule::GetObjectAttribute(lua_State* L)

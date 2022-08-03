@@ -218,13 +218,11 @@ void ParticleEmitter::Update(double elapsed) noexcept
 
 Result<void> ParticleEmitter::Draw(CommandBuffer& buffer) noexcept
 {
-    buffer.SetColorBlendMode(m_pConfig->ColorBlend);
-
     for (auto index : m_stParticles)
     {
         auto& particle = m_pPool->GetParticle(index);
 
-        auto draw = m_pConfig->ParticleSprite->Draw(buffer);
+        auto draw = m_pConfig->ParticleSprite->Draw(buffer, m_pConfig->ColorBlend);
         if (!draw)
             return draw.GetError();
 

@@ -105,9 +105,10 @@ namespace lstg::Subsystem::Render::Drawing2D
          * 绘制
          * 使用预计算顶点绘制基本形状。
          * @param buffer 绘制缓冲区
+         * @param blendModeOverride 混合模式覆盖
          * @return 绘制工具
          */
-        Result<SpriteDrawing> Draw(CommandBuffer& buffer) const noexcept;
+        Result<SpriteDrawing> Draw(CommandBuffer& buffer, std::optional<ColorBlendMode> blendModeOverride = {}) const noexcept;
 
     private:
         void PrecomputedVertex(int what) noexcept;

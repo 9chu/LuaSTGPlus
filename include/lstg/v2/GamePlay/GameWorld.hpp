@@ -140,6 +140,13 @@ namespace lstg::v2::GamePlay
         void RenderEntityDefault(ECS::Entity entity) noexcept;
 
         /**
+         * 执行碰撞检测
+         * @param groupA 碰撞组A
+         * @param groupB 碰撞组B
+         */
+        void CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept;
+
+        /**
          * 回收所有对象
          */
         void Clear() noexcept;

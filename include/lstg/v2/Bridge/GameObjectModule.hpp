@@ -293,7 +293,7 @@ namespace lstg::v2::Bridge
          * @return NextObject, groupId, id
          */
         LSTG_METHOD(ObjList)
-        static Unpack<AbsIndex, int32_t, int32_t> EnumerateObjectList(LuaStack& stack, int32_t groupId);
+        static Unpack<AbsIndex, int32_t, double> EnumerateObjectList(LuaStack& stack, int32_t groupId);
 
         /**
          * __index 方法

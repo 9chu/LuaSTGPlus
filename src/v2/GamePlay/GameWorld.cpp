@@ -7,6 +7,7 @@
 #include <lstg/v2/GamePlay/GameWorld.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Math/Collider2D/IntersectCheck.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaPush.hpp>
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
@@ -292,6 +293,9 @@ void GameWorld::Frame() noexcept
             assert(scriptComponent->Pool == &m_stScriptObjectPool);
             m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponent->ScriptObjectId,
                 ScriptCallbackFunctions::OnFrame, 0);
+
+            // 迭代器可能失效
+            p = &entity.GetComponent<LifeTime>();
         }
 
         // 更新对象运动状态
@@ -324,11 +328,8 @@ void GameWorld::Frame() noexcept
 
             // 更新所有发射器
             if (particleData.Pool)
-                particleData.Pool->Update(1.0f / 1.60f);  // 总是使用 60fps 的速度 Tick
+                particleData.Pool->Update(1.f / 60.f);  // 总是使用 60fps 的速度 Tick
         }
-
-        // 迭代器可能失效
-        p = &entity.GetComponent<LifeTime>();
 
         assert(p->NextInChain);
         p = p->NextInChain;
@@ -425,10 +426,10 @@ void GameWorld::DeleteOutOfBoundaryEntities() noexcept
                         assert(scriptComponent->Pool == &m_stScriptObjectPool);
                         m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponent->ScriptObjectId,
                             ScriptCallbackFunctions::OnDelete, 0);
-                    }
 
-                    // 此时迭代器可能失效
-                    p = &entity.GetComponent<LifeTime>();
+                        // 此时迭代器可能失效
+                        p = &entity.GetComponent<LifeTime>();
+                    }
                 }
             }
         }
@@ -503,6 +504,94 @@ void GameWorld::RenderEntityDefault(ECS::Entity entity) noexcept
                     break;
             }
         }
+    }
+}
+
+void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
+{
+    assert(groupA < kColliderGroupCount && groupB < kColliderGroupCount);
+
+    assert(m_pColliderRoot);
+    Collider* pA = m_pColliderRoot->ColliderGroupHeaders[groupA].NextInChain;
+    assert(pA);
+    while (pA != &m_pColliderRoot->ColliderGroupTailers[groupA])
+    {
+        if (pA->Enabled)  // 忽略未开启碰撞的对象
+        {
+            auto entityA = pA->BindingEntity;
+
+            auto transformComponentA = entityA.TryGetComponent<Transform>();
+            if (!transformComponentA)
+                goto CONTINUE_A;
+
+            auto scriptComponentA = entityA.TryGetComponent<Script>();
+            if (!scriptComponentA)  // 对于没有脚本系统的对象，不予进行碰撞检测（因为无法传递事件，下同）
+                goto CONTINUE_A;
+            assert(scriptComponentA->Pool == &m_stScriptObjectPool);
+
+            // 计算对象 A 的 AABB 范围
+            auto leftA = transformComponentA->Location.x - pA->AABBHalfSize.x;
+            auto rightA = transformComponentA->Location.x + pA->AABBHalfSize.x;
+            auto topA = transformComponentA->Location.y + pA->AABBHalfSize.y;
+            auto bottomA = transformComponentA->Location.y - pA->AABBHalfSize.y;
+
+            // 沿着 groupB 的链表进行逐个碰撞检查
+            Collider* pB = m_pColliderRoot->ColliderGroupHeaders[groupB].NextInChain;
+            assert(pB);
+            while (pB != &m_pColliderRoot->ColliderGroupTailers[groupB])
+            {
+                if (pB->Enabled)  // 忽略未开启碰撞的对象
+                {
+                    auto entityB = pB->BindingEntity;
+
+                    auto transformComponentB = entityB.TryGetComponent<Transform>();
+                    if (!transformComponentB)
+                        goto CONTINUE_B;
+
+                    auto scriptComponentB = entityB.TryGetComponent<Script>();
+                    if (!scriptComponentB)
+                        goto CONTINUE_B;
+                    assert(scriptComponentB->Pool == &m_stScriptObjectPool);
+
+                    // 计算对象 B 的 AABB 范围
+                    auto leftB = transformComponentB->Location.x - pB->AABBHalfSize.x;
+                    auto rightB = transformComponentB->Location.x + pB->AABBHalfSize.x;
+                    auto topB = transformComponentB->Location.y + pB->AABBHalfSize.y;
+                    auto bottomB = transformComponentB->Location.y - pB->AABBHalfSize.y;
+
+                    // 使用 AABB 进行快速判断
+                    Vec2 na { std::max(leftA, leftB), std::min(topA, topB) };
+                    Vec2 nb { std::min(rightA , rightB), std::max(bottomA, bottomB) };
+                    if (na.x <= nb.x && na.y >= nb.y)
+                    {
+                        // 执行碰撞检查
+                        if (Math::Collider2D::IsIntersect(transformComponentA->Location, transformComponentA->Rotation, pA->Shape,
+                            transformComponentB->Location, transformComponentB->Rotation, pB->Shape))
+                        {
+                            // 产生脚本事件
+                            m_stScriptObjectPool.PushScriptObject(m_stScriptObjectPool.GetState(), scriptComponentB->ScriptObjectId);
+                            m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponentA->ScriptObjectId,
+                                ScriptCallbackFunctions::OnCollision, 1);
+
+                            // 此时迭代器可能失效
+                            pA = &entityA.GetComponent<Collider>();
+                            transformComponentA = entityA.TryGetComponent<Transform>();
+                            scriptComponentA = entityA.TryGetComponent<Script>();
+
+                            pB = &entityB.GetComponent<Collider>();
+                        }
+                    }
+                }
+
+            CONTINUE_B:
+                assert(pB->NextInChain);
+                pB = pB->NextInChain;
+            }
+        }
+
+    CONTINUE_A:
+        assert(pA->NextInChain);
+        pA = pA->NextInChain;
     }
 }
 

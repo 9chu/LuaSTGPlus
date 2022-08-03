@@ -56,4 +56,17 @@ namespace lstg::Math
         vec2 = Normalize(vec2);
         return ::acosf(glm::dot(vec1, vec2));
     }
+
+    /**
+     * 计算叉积
+     * @tparam T 数值类型
+     * @param lhs 2D 向量1
+     * @param rhs 2D 向量2
+     * @return 叉积
+     */
+    template <typename T = float>
+    inline T Cross(glm::vec<2, T, glm::defaultp> lhs, glm::vec<2, T, glm::defaultp> rhs) noexcept
+    {
+        return lhs.x * rhs.y - lhs.y * rhs.x;
+    }
 }

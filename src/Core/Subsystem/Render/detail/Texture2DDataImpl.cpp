@@ -88,7 +88,7 @@ Result<void> Texture2DDataImpl::ReadImageInfoFromStream(uint32_t& width, uint32_
     return {};
 }
 
-Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
+Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream, bool convertToRGBA32)
 {
     assert(stream);
     auto seekableStream = ConvertToSeekableStream(std::move(stream));
@@ -114,24 +114,32 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
     m_stDesc.Type = Diligent::RESOURCE_DIM_TEX_2D;
     m_stDesc.Width = static_cast<uint32_t>(x);
     m_stDesc.Height = static_cast<uint32_t>(y);
-    switch (channels)
+    if (convertToRGBA32)
     {
-        case 1:
-            m_stDesc.Format = Diligent::TEX_FORMAT_R8_UNORM;
-            componentSize = 1;
-            break;
-        case 2:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RG8_UNORM;
-            componentSize = 2;
-            break;
-        case 3:
-        case 4:
-            m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
-            componentSize = 4;
-            break;
-        default:
-            assert(false);
-            throw system_error(make_error_code(errc::invalid_argument));
+        m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
+        componentSize = 4;
+    }
+    else
+    {
+        switch (channels)
+        {
+            case 1:
+                m_stDesc.Format = Diligent::TEX_FORMAT_R8_UNORM;
+                componentSize = 1;
+                break;
+            case 2:
+                m_stDesc.Format = Diligent::TEX_FORMAT_RG8_UNORM;
+                componentSize = 2;
+                break;
+            case 3:
+            case 4:
+                m_stDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
+                componentSize = 4;
+                break;
+            default:
+                assert(false);
+                throw system_error(make_error_code(errc::invalid_argument));
+        }
     }
 
     // 发起数据拷贝并进行对齐
@@ -152,15 +160,36 @@ Texture2DDataImpl::Texture2DDataImpl(VFS::StreamPtr stream)
         }
         else
         {
-            assert(channels == 3 && componentSize == 4);
+            assert(componentSize == 4);
             auto dest = destLineStart;
             auto src = srcLineStart;
             for (int w = 0; w < x; ++w)
             {
-                dest[0] = src[0];  // r
-                dest[1] = src[1];  // g
-                dest[2] = src[2];  // b
-                dest[3] = 0xFF;  // a
+                if (channels == 3)
+                {
+                    dest[0] = src[0];  // r
+                    dest[1] = src[1];  // g
+                    dest[2] = src[2];  // b
+                    dest[3] = 0xFF;  // a
+                }
+                else if (channels == 2)
+                {
+                    dest[0] = src[0];  // r
+                    dest[1] = src[0];  // g
+                    dest[2] = src[0];  // b
+                    dest[3] = src[1];  // a
+                }
+                else if (channels == 1)
+                {
+                    dest[0] = src[0];  // r
+                    dest[1] = src[0];  // g
+                    dest[2] = src[0];  // b
+                    dest[3] = 0xFF;  // a
+                }
+                else
+                {
+                    assert(false);
+                }
                 dest += componentSize;
                 src += channels;
             }

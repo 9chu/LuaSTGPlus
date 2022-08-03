@@ -96,9 +96,9 @@ void Sprite::UpdatePrecomputedVertex() noexcept
     PrecomputedVertex(SHAPE_CHANGED | UV_CHANGED | ADDITIVE_COLOR_CHANGED | MULTIPLY_COLOR_CHANGED);
 }
 
-Result<SpriteDrawing> Sprite::Draw(CommandBuffer& buffer) const noexcept
+Result<SpriteDrawing> Sprite::Draw(CommandBuffer& buffer, std::optional<ColorBlendMode> blendModeOverride) const noexcept
 {
-    buffer.SetColorBlendMode(m_iBlendMode);
+    buffer.SetColorBlendMode(blendModeOverride ? *blendModeOverride : m_iBlendMode);
     return SpriteDrawing::Draw(buffer, m_pTexture ? m_pTexture->GetUnderlayTexture() : nullptr, m_stPrecomputedVertex);
 }
 
