@@ -129,7 +129,7 @@ void RenderModule::Render(LuaStack& stack, const char* imageName, double x, doub
 
     drawing->Transform(rot ? static_cast<float>(glm::radians(*rot)) : 0.f, hscale ? static_cast<float>(*hscale) : 1.f,
         vscale ? static_cast<float>(*vscale) : 1.f);
-    drawing->Translate(x, y, z ? *z : 0.5f);
+    drawing->Translate(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z ? *z : 0.5));
 }
 
 void RenderModule::RenderRect(LuaStack& stack, const char* imageName, double left, double right, double bottom, double top)

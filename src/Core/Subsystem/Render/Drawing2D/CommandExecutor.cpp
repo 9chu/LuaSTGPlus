@@ -52,17 +52,18 @@ do
         struct VSOutput
         {
             float4 Position: SV_POSITION;
-            float4 WorldPosition: POSITION0;
             float2 UV: TEXCOORD0;
+            float FogDepth: FOGDISTANCE;
             float4 AdditiveColor: COLOR0;
             float4 MultiplierColor: COLOR1;
         };
 
         void main(in VSInput inVert, out VSOutput outVert)
         {
+            float4 cameraViewPos = mul(_CameraViewMatrix, float4(inVert.Position.xyz, 1.0));
             outVert.Position = mul(_CameraProjectViewMatrix, float4(inVert.Position.xyz, 1.0));
-            outVert.WorldPosition = mul(_CameraViewMatrix, float4(inVert.Position.xyz, 1.0));
             outVert.UV = inVert.UV;
+            outVert.FogDepth = cameraViewPos.z;
             outVert.AdditiveColor = inVert.AdditiveColor;
             outVert.MultiplierColor = inVert.MultiplierColor;
         }
@@ -83,8 +84,8 @@ do
         struct PSInput
         {
             float4 Position: SV_POSITION;
-            float4 WorldPosition: POSITION0;
             float2 UV: TEXCOORD0;
+            float FogDepth: FOGDISTANCE;
             float4 AdditiveColor: COLOR0;
             float4 MultiplierColor: COLOR1;
         };
@@ -111,13 +112,12 @@ do
             // https://github.com/walbourn/directx-sdk-samples/blob/main/FixedFuncEMUFX11/FixedFuncEMU.fx
             float f = 1.f;
             float4 fogRGBA = UnpackRGBA32(FogColorRGBA32);
-            float distToEye = length(outVert.WorldPosition.xyz);  // 2D 渲染时没有 WorldTranslation，在计算过 ViewMatrix 后总是以 (0,0,0) 作为观察点
             if (FogType == FOG_LINEAR)
-                f = (FogArg2 - distToEye) / (FogArg2 - FogArg1);
+                f = (FogArg2 - outVert.FogDepth) / (FogArg2 - FogArg1);
             else if (FogType == FOG_EXP1)
-                f = 1.f / exp(distToEye * FogArg1);
+                f = 1.f / exp(outVert.FogDepth * FogArg1);
             else if (FogType == FOG_EXP2)
-                f = 1.f / exp(pow(distToEye * FogArg1, 2.f));
+                f = 1.f / exp(pow(outVert.FogDepth * FogArg1, 2.f));
             f = clamp(f, 0.f, 1.f);
 
             // 最终颜色
