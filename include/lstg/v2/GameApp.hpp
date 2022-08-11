@@ -19,6 +19,11 @@
 
 namespace lstg::v2
 {
+    namespace Asset
+    {
+        class TextureAsset;
+    }
+
     LSTG_DEFINE_EXCEPTION(AppInitializeFailedException);
 
     /**
@@ -100,6 +105,26 @@ namespace lstg::v2
          */
         Subsystem::Render::Font::DynamicFontGlyphAtlas* GetFontGlyphAtlas() noexcept { return m_pFontGlyphAtlas.get(); }
 
+        /**
+         * 推入 RT
+         */
+        Result<void> PushRenderTarget(Subsystem::Render::TexturePtr rt) noexcept;
+
+        /**
+         * 弹出 RT
+         */
+        Result<Subsystem::Render::TexturePtr> PopRenderTarget() noexcept;
+
+        /**
+         * 检查 RT 是否在栈上
+         */
+        bool IsRenderTargetInStack(Subsystem::Render::Texture* rt) noexcept;
+
+        /**
+         * 获取默认后备 RT
+         */
+        Result<Subsystem::Render::TexturePtr> GetDefaultRenderTarget() noexcept;
+
     public:  // 输入系统
         /**
          * 获取最后一次输入的字符
@@ -131,11 +156,6 @@ namespace lstg::v2
 
     private:
         /**
-         * 处理窗口大小变化
-         */
-        void HandleWindowResize() noexcept;
-
-        /**
          * 根据设定调整自适应 VP 大小
          */
         void AdjustViewport() noexcept;
@@ -144,6 +164,7 @@ namespace lstg::v2
         // 资源系统
         std::shared_ptr<Subsystem::VFS::OverlayFileSystem> m_pAssetsFileSystem;
         AssetPoolsPtr m_pAssetPools;
+        Subsystem::Asset::AssetPoolPtr m_pInternalAssetPool;  // 仅内部使用
 
         // 渲染
         glm::vec2 m_stNativeSolution;  // 原生分辨率
@@ -156,6 +177,10 @@ namespace lstg::v2
         Subsystem::Render::Drawing2D::TextDrawing::ShapedTextCache m_stShapedTextCache;
         Subsystem::Render::Font::TextShaperPtr m_pTextShaper;
         Subsystem::Render::Font::DynamicFontGlyphAtlasPtr m_pFontGlyphAtlas;
+
+        // RT Stack
+        std::shared_ptr<Asset::TextureAsset> m_pDefaultRenderTargetAsset;
+        std::vector<Subsystem::Render::TexturePtr> m_stRenderTargetStack;
 
         // 输入状态
         uint32_t m_uInputWindowID = 0;  // 输入窗口 ID

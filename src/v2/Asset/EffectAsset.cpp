@@ -28,10 +28,11 @@ Subsystem::Asset::AssetTypeId EffectAsset::GetAssetTypeId() const noexcept
     return GetAssetTypeIdStatic();
 }
 
-void EffectAsset::UpdateResource(Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr def) noexcept
+void EffectAsset::UpdateResource(Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr def, Subsystem::Render::MaterialPtr mat) noexcept
 {
-    assert(def);
+    assert(def && mat);
     m_pEffectDef = std::move(def);
+    m_pDefaultMaterial = std::move(mat);
 
 #if LSTG_ASSET_HOT_RELOAD
     UpdateVersion();

@@ -72,6 +72,8 @@ static const char* kEventOnLostFocus = "FocusLoseFunc";
 static const char* kEventOnUpdate = "FrameFunc";
 static const char* kEventOnRender = "RenderFunc";
 
+static size_t kMaxRenderTargetStackDepth = 8u;
+
 extern "C" int luaopen_cjson(lua_State* L);
 
 GameApp::GameApp(int argc, char** argv)
@@ -130,6 +132,7 @@ GameApp::GameApp(int argc, char** argv)
 
         // 创建资源池
         m_pAssetPools = make_unique<AssetPools>();
+        m_pInternalAssetPool = make_shared<Subsystem::Asset::AssetPool>();
 
         // 绑定资产解析器
         assetSystem->SetDependencyResolver(m_pAssetPools.get());
@@ -159,6 +162,9 @@ GameApp::GameApp(int argc, char** argv)
         // 初始化文字渲染组件
         m_pTextShaper = Subsystem::Render::Font::CreateHarfBuzzTextShaper();
         m_pFontGlyphAtlas = make_shared<Subsystem::Render::Font::DynamicFontGlyphAtlas>(renderSystem);
+
+        // 初始化 RT Stack
+        m_stRenderTargetStack.reserve(kMaxRenderTargetStackDepth);
     }
 
     // 初始化输入系统
@@ -242,6 +248,8 @@ GameApp::GameApp(int argc, char** argv)
     GetSubsystem<Subsystem::WindowSystem>()->Show();
 }
 
+// <editor-fold desc="资源系统">
+
 Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string_view> password) noexcept
 {
     if (!path)
@@ -306,6 +314,9 @@ Result<void> GameApp::UnmountAssetPack(const char* path) noexcept
     return make_error_code(errc::no_such_file_or_directory);
 }
 
+// </editor-fold>
+// <editor-fold desc="渲染系统">
+
 glm::vec2 GameApp::GetNativeResolution() const noexcept
 {
     return m_stNativeSolution;
@@ -365,6 +376,65 @@ Subsystem::Render::Drawing2D::CommandBuffer& GameApp::GetCommandBuffer() noexcep
     return m_stCommandBuffer;
 }
 
+Result<void> GameApp::PushRenderTarget(Subsystem::Render::TexturePtr rt) noexcept
+{
+    if (m_stRenderTargetStack.size() >= kMaxRenderTargetStackDepth)
+    {
+        LSTG_LOG_ERROR_CAT(GameApp, "RT stack reaches limitation");
+        return make_error_code(errc::invalid_argument);
+    }
+
+    // 检查是否已经在栈上
+    if (IsRenderTargetInStack(rt.get()))
+    {
+        LSTG_LOG_ERROR_CAT(GameApp, "RT is already in stack");
+        return make_error_code(errc::invalid_argument);
+    }
+
+    m_stRenderTargetStack.emplace_back(std::move(rt));  // never throws
+    return {};
+}
+
+Result<Subsystem::Render::TexturePtr> GameApp::PopRenderTarget() noexcept
+{
+    if (m_stRenderTargetStack.empty())
+        return make_error_code(errc::invalid_argument);
+    auto ret = std::move(m_stRenderTargetStack.back());
+    m_stRenderTargetStack.pop_back();
+    return ret;
+}
+
+bool GameApp::IsRenderTargetInStack(Subsystem::Render::Texture* rt) noexcept
+{
+    for (const auto& e : m_stRenderTargetStack)
+    {
+        if (rt == e.get())
+            return true;
+    }
+    return false;
+}
+
+Result<Subsystem::Render::TexturePtr> GameApp::GetDefaultRenderTarget() noexcept
+{
+    // 延迟构造 DefaultRT
+    if (!m_pDefaultRenderTargetAsset)
+    {
+        auto assetSystem = GetSubsystem<Subsystem::AssetSystem>();
+        assert(assetSystem);
+        auto rtAsset = assetSystem->CreateAsset<Asset::TextureAsset>(m_pInternalAssetPool, "DefaultRT", {
+            { "rt", true }
+        });
+        if (!rtAsset)
+            return rtAsset.GetError();
+        m_pDefaultRenderTargetAsset = std::move(*rtAsset);
+    }
+
+    return m_pDefaultRenderTargetAsset->GetDrawingTexture().GetUnderlayTexture();
+}
+
+// </editor-fold>
+// <editor-fold desc="输入系统">
+
 int32_t GameApp::GetLastInputKeyCode() const noexcept
 {
     return detail::SDLScancodeToVKCode(static_cast<SDL_Scancode>(m_iLastInputKeyCode));
@@ -377,6 +447,9 @@ bool GameApp::IsKeyDown(int32_t keyCode) const noexcept
         return m_stKeyStateMap[scanCode];
     return false;
 }
+
+// </editor-fold>
+// <editor-fold desc="框架事件">
 
 void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 {
@@ -521,6 +594,8 @@ void GameApp::OnRender(double elapsed) noexcept
     // 渲染
     m_stCommandExecutor.Execute(drawData);
 }
+
+// </editor-fold>
 
 void GameApp::AdjustViewport() noexcept
 {

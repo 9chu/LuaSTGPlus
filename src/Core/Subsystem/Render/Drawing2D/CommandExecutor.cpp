@@ -246,7 +246,7 @@ do
         :build()
     passGroupAlphaBlendNoDepth = passGroup "AlphaBlendNoDepth"
         :tag("Blend", "Alpha")
-        :tag("NoDepth", "1")
+        :tag("DepthDisabled", "1")
         :pass(pass0)
         :build()
 end
@@ -269,7 +269,7 @@ do
         :build()
     passGroupAddBlendNoDepth = passGroup "AddBlendNoDepth"
         :tag("Blend", "Add")
-        :tag("NoDepth", "1")
+        :tag("DepthDisabled", "1")
         :pass(pass0)
         :build()
 end
@@ -292,7 +292,7 @@ do
         :build()
     passGroupSubtractBlendNoDepth = passGroup "SubtractBlendNoDepth"
         :tag("Blend", "Subtract")
-        :tag("NoDepth", "1")
+        :tag("DepthDisabled", "1")
         :pass(pass0)
         :build()
 end
@@ -315,7 +315,7 @@ do
         :build()
     passGroupRevertSubtractBlendNoDepth = passGroup "RevertSubtractBlendNoDepth"
         :tag("Blend", "RevertSubtract")
-        :tag("NoDepth", "1")
+        :tag("DepthDisabled", "1")
         :pass(pass0)
         :build()
 end
@@ -335,6 +335,9 @@ return effect()
 
 LSTG_DEF_LOG_CATEGORY(CommandExecutor);
 
+static const char* kBlendTagName = "Blend";
+static const char* kDepthDisabledTagName = "DepthDisabled";
+
 CommandExecutor::CommandExecutor(RenderSystem& renderSystem)
     : m_stRenderSystem(renderSystem), m_pDefaultTexture(renderSystem.GetDefaultTexture2D())
 {
@@ -353,7 +356,7 @@ CommandExecutor::CommandExecutor(RenderSystem& renderSystem)
         LSTG_LOG_ERROR_CAT(CommandExecutor, "Create default 2d material fail: {}", material.GetError());
         material.ThrowIfError();
     }
-    m_pMaterial = std::move(*material);
+    m_pDefaultMaterial = std::move(*material);
 
     // 创建动态 Mesh
     Render::GraphDef::MeshDefinition meshDefinition;
@@ -400,16 +403,14 @@ Result<void> CommandExecutor::Execute(CommandBuffer::DrawData& drawData) noexcep
         oldCamera = m_stRenderSystem.GetCamera();
         oldMaterial = m_stRenderSystem.GetMaterial();
         oldSelector = m_stRenderSystem.GetEffectGroupSelectCallback();
-        m_stOldBlendTag = string{ m_stRenderSystem.GetRenderTag("Blend") };
+        m_stOldBlendTag = string{ m_stRenderSystem.GetRenderTag(kBlendTagName) };
+        m_stOldDepthDisabledTag = string{ m_stRenderSystem.GetRenderTag(kDepthDisabledTagName) };
 
         // 设置新的 Selector
         m_stRenderSystem.SetEffectGroupSelectCallback([this](const GraphDef::EffectDefinition* effect,
             const std::map<std::string, std::string, std::less<>>& tags) {
             return OnSelectEffectGroup(effect, tags);
         });
-
-        // 设置 Material
-        m_stRenderSystem.SetMaterial(m_pMaterial);
     }
     catch (...)
     {
@@ -435,70 +436,91 @@ Result<void> CommandExecutor::Execute(CommandBuffer::DrawData& drawData) noexcep
     m_stRenderSystem.SetCamera(oldCamera);
     m_stRenderSystem.SetMaterial(oldMaterial);
     m_stRenderSystem.SetEffectGroupSelectCallback(std::move(oldSelector));
-    m_stRenderSystem.SetRenderTag("Blend", std::move(m_stOldBlendTag));
+    m_stRenderSystem.SetRenderTag(kBlendTagName, std::move(m_stOldBlendTag));
+    m_stRenderSystem.SetRenderTag(kDepthDisabledTagName, std::move(m_stOldDepthDisabledTag));
     return {};
 }
 
 const Subsystem::Render::GraphDef::EffectPassGroupDefinition* CommandExecutor::OnSelectEffectGroup(const GraphDef::EffectDefinition* effect,
     const std::map<std::string, std::string, std::less<>>& tags) noexcept
 {
-    ColorBlendMode targetBlend = ColorBlendMode::Alpha;
+    // 选择 Effect 组
+    SelectableEffectPassGroups* passGroups = nullptr;
+    if (m_stEffectGroupSelector.Contains(effect))
+    {
+        passGroups = &m_stEffectGroupSelector[effect];
+        assert(passGroups);
+    }
+    else
+    {
+        assert(effect);
+
+        // 构造 Effect 组并缓存
+        SelectableEffectPassGroups cacheGroup;
+        for (const auto& group : effect->GetGroups())
+        {
+            auto blendTag = group->GetTag(kBlendTagName);
+            auto depthDisabledTag = group->GetTag(kDepthDisabledTagName) == "1" ? 1 : 0;
+            if (blendTag == "Alpha")
+                cacheGroup.AlphaBlendGroup[depthDisabledTag] = group.get();
+            else if (blendTag == "Add")
+                cacheGroup.AddBlendGroup[depthDisabledTag] = group.get();
+            else if (blendTag == "Subtract")
+                cacheGroup.SubtractBlendGroup[depthDisabledTag] = group.get();
+            else if (blendTag == "ReverseSubtract")
+                cacheGroup.ReverseSubtractBlendGroup[depthDisabledTag] = group.get();
+        }
+
+        try
+        {
+            passGroups = m_stEffectGroupSelector.Emplace(effect, cacheGroup);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (!passGroups)
+    {
+        assert(false);  // 当且仅当内存分配失败会走这个路径
+        return nullptr;
+    }
 
     // 获取当前渲染标签
-    auto it = tags.find("Blend");
-    if (it != tags.end())
+    ColorBlendMode targetBlend = ColorBlendMode::Alpha;
+    int depthDisabled = 0;
     {
-        if (it->second == "Alpha")
-            targetBlend = ColorBlendMode::Alpha;
-        else if (it->second == "Add")
-            targetBlend = ColorBlendMode::Add;
-        else if (it->second == "Subtract")
-            targetBlend = ColorBlendMode::Subtract;
-        else if (it->second == "ReverseSubtract")
-            targetBlend = ColorBlendMode::ReverseSubtract;
-    }
-    it = tags.find("NoDepth");
-    auto noDepth = (it != tags.end() && it->second == "1") ? 1 : 0;
-
-    // 如果跟上次判断的特效是否是同一个，否则直接复用
-    if (effect != m_pLastSelectEffect)
-    {
-        m_pLastSelectEffect = effect;
-        m_pLastSelectAlphaBlendGroup[0] = m_pLastSelectAlphaBlendGroup[1] = nullptr;
-        m_pLastSelectAddBlendGroup[0] = m_pLastSelectAddBlendGroup[1] = nullptr;
-        m_pLastSelectSubtractBlendGroup[0] = m_pLastSelectSubtractBlendGroup[1] = nullptr;
-        m_pLastSelectReverseSubtractBlendGroup[0] = m_pLastSelectReverseSubtractBlendGroup[1] = nullptr;
-        if (effect)
+        auto it = tags.find(kBlendTagName);
+        if (it != tags.end())
         {
-            for (const auto& group : effect->GetGroups())
-            {
-                auto tag = group->GetTag("Blend");
-                auto noDepth = group->GetTag("NoDepth") == "1" ? 1 : 0;
-                if (tag == "Alpha")
-                    m_pLastSelectAlphaBlendGroup[noDepth] = group.get();
-                else if (tag == "Add")
-                    m_pLastSelectAddBlendGroup[noDepth] = group.get();
-                else if (tag == "Subtract")
-                    m_pLastSelectSubtractBlendGroup[noDepth] = group.get();
-                else if (tag == "ReverseSubtract")
-                    m_pLastSelectReverseSubtractBlendGroup[noDepth] = group.get();
-            }
+            if (it->second == "Alpha")
+                targetBlend = ColorBlendMode::Alpha;
+            else if (it->second == "Add")
+                targetBlend = ColorBlendMode::Add;
+            else if (it->second == "Subtract")
+                targetBlend = ColorBlendMode::Subtract;
+            else if (it->second == "ReverseSubtract")
+                targetBlend = ColorBlendMode::ReverseSubtract;
         }
+
+        it = tags.find(kDepthDisabledTagName);
+        depthDisabled = (it != tags.end() && it->second == "1") ? 1 : 0;
     }
 
     // 取缓存的组
     switch (targetBlend)
     {
         case ColorBlendMode::Alpha:
-            return m_pLastSelectAlphaBlendGroup[noDepth];
+            return passGroups->AlphaBlendGroup[depthDisabled];
         case ColorBlendMode::Add:
-            return m_pLastSelectAddBlendGroup[noDepth];
+            return passGroups->AddBlendGroup[depthDisabled];
         case ColorBlendMode::Subtract:
-            return m_pLastSelectSubtractBlendGroup[noDepth];
+            return passGroups->SubtractBlendGroup[depthDisabled];
         case ColorBlendMode::ReverseSubtract:
-            return m_pLastSelectReverseSubtractBlendGroup[noDepth];
+            return passGroups->ReverseSubtractBlendGroup[depthDisabled];
+        default:
+            return nullptr;
     }
-    return nullptr;
 }
 
 void CommandExecutor::OnDrawGroup(CommandBuffer::DrawData& drawData, CommandBuffer::CommandGroup& groupData) noexcept
@@ -530,40 +552,64 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
     {
         // 获取纹理
         assert(cmd.TextureId < drawData.TextureList.size());
-        const auto& tex2d = drawData.TextureList[cmd.TextureId];
+        auto tex2d = drawData.TextureList[cmd.TextureId];
+        if (!tex2d) // 空白纹理时 fallback 到默认纹理
+            tex2d = m_pDefaultTexture;
+
+        // 获取材质
+        assert(cmd.MaterialId < drawData.MaterialList.size());
+        auto mat = drawData.MaterialList[cmd.MaterialId];
+        if (!mat) // 没有指定材质时，fallback 到默认材质
+            mat = m_pDefaultMaterial;
 
         // 设置混合状态
         switch (cmd.ColorBlendMode)
         {
             case ColorBlendMode::Alpha:
-                m_stRenderSystem.SetRenderTag("Blend", "Alpha");
+                m_stRenderSystem.SetRenderTag(kBlendTagName, "Alpha");
                 break;
             case ColorBlendMode::Add:
-                m_stRenderSystem.SetRenderTag("Blend", "Add");
+                m_stRenderSystem.SetRenderTag(kBlendTagName, "Add");
                 break;
             case ColorBlendMode::Subtract:
-                m_stRenderSystem.SetRenderTag("Blend", "Subtract");
+                m_stRenderSystem.SetRenderTag(kBlendTagName, "Subtract");
                 break;
             case ColorBlendMode::ReverseSubtract:
-                m_stRenderSystem.SetRenderTag("Blend", "ReverseSubtract");
+                m_stRenderSystem.SetRenderTag(kBlendTagName, "ReverseSubtract");
                 break;
         }
 
         // 设置深度状态
-        m_stRenderSystem.SetRenderTag("NoDepth", cmd.NoDepth ? "1" : "0");
+        m_stRenderSystem.SetRenderTag(kDepthDisabledTagName, cmd.NoDepth ? "1" : "0");
+
+        // 设置材质
+        assert(mat);
+        m_stRenderSystem.SetMaterial(mat);
+
+#define SET_UNIFORM_WITH_LOG(TYPE, NAME, VALUE) \
+        do \
+        { \
+            if (!(ret = mat->SetUniform<TYPE>(#NAME, VALUE))) \
+            { \
+                if (ret.GetError() != make_error_code(GraphDef::DefinitionError::SymbolNotFound)) \
+                    LSTG_LOG_ERROR_CAT(CommandExecutor, "Set uniform '" #NAME "' fail: {}", ret.GetError()); \
+            } \
+        } while (false)
+
+        Result<void> ret;
 
         // 设置材质参数
-        Result<void> ret;
-        if (!(ret = m_pMaterial->SetUniform<uint32_t>("FogType", static_cast<uint32_t>(cmd.FogType))))
-            LSTG_LOG_ERROR_CAT(CommandExecutor, "Set FogType fail: {}", ret.GetError());
-        if (!(ret = m_pMaterial->SetUniform<uint32_t>("FogColorRGBA32", cmd.FogColor.rgba32())))
-            LSTG_LOG_ERROR_CAT(CommandExecutor, "Set FogColorRGBA32 fail: {}", ret.GetError());
-        if (!(ret = m_pMaterial->SetUniform<float>("FogArg1", cmd.FogArg1)))
-            LSTG_LOG_ERROR_CAT(CommandExecutor, "Set FogArg1 fail: {}", ret.GetError());
-        if (!(ret = m_pMaterial->SetUniform<float>("FogArg2", cmd.FogArg2)))
-            LSTG_LOG_ERROR_CAT(CommandExecutor, "Set FogArg2 fail: {}", ret.GetError());
-        if (!(ret = m_pMaterial->SetTexture("MainTexture", tex2d ? tex2d : m_pDefaultTexture)))
+        SET_UNIFORM_WITH_LOG(uint32_t, FogType, (static_cast<uint32_t>(cmd.FogType)));
+        SET_UNIFORM_WITH_LOG(uint32_t, FogColorRGBA32, (cmd.FogColor.rgba32()));
+        SET_UNIFORM_WITH_LOG(float, FogArg1, (cmd.FogArg1));
+        SET_UNIFORM_WITH_LOG(float, FogArg2, (cmd.FogArg2));
+
+        // 设置主纹理
+        assert(tex2d);
+        if (!(ret = mat->SetTexture("MainTexture", tex2d)))
             LSTG_LOG_ERROR_CAT(CommandExecutor, "Set MainTexture fail: {}", ret.GetError());
+
+#undef SET_UNIFORM_WITH_LOG
 
         // 绘制
         ret = m_stRenderSystem.Draw(m_pMesh.get(), cmd.IndexCount, cmd.BaseVertexIndex, cmd.IndexStart);

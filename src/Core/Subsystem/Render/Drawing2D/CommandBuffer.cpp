@@ -27,6 +27,8 @@ void CommandBuffer::Begin() noexcept
     m_stCameraMapping.clear();
     m_stTextureReferences.clear();
     m_stTextureMapping.clear();
+    m_stMaterialReferences.clear();
+    m_stMaterialMapping.clear();
     m_uCurrentBaseVertexIndex = 0;
     m_stVertices.clear();
     m_stIndexes.clear();
@@ -49,6 +51,7 @@ CommandBuffer::DrawData CommandBuffer::End() noexcept
         m_stIndexes,
         m_stCameraReferences,
         m_stTextureReferences,
+        m_stMaterialReferences,
     };
 }
 
@@ -57,6 +60,13 @@ Subsystem::Render::TexturePtr CommandBuffer::FindTextureById(size_t id) const no
     if (id >= m_stTextureReferences.size())
         return {};
     return m_stTextureReferences[id];
+}
+
+Subsystem::Render::MaterialPtr CommandBuffer::FindMaterialById(size_t id) const noexcept
+{
+    if (id >= m_stMaterialReferences.size())
+        return {};
+    return m_stMaterialReferences[id];
 }
 
 void CommandBuffer::SetGroupId(uint64_t id) noexcept
@@ -90,6 +100,23 @@ void CommandBuffer::SetViewport(float l, float t, float w, float h) noexcept
         return;
     PrepareNewQueue();
     m_stCurrentViewport = vp;
+}
+
+void CommandBuffer::SetOutputViews(TexturePtr colorView, TexturePtr depthStencilView) noexcept
+{
+    Render::Camera::OutputViews ov { std::move(colorView), std::move(depthStencilView) };
+    if (ov == m_stCurrentOutputViews)
+        return;
+    PrepareNewQueue();
+    m_stCurrentOutputViews = std::move(ov);
+}
+
+void CommandBuffer::SetMaterial(MaterialPtr material) noexcept
+{
+    if (material == m_pCurrentMaterial)
+        return;
+    PrepareNewCommand();
+    m_pCurrentMaterial = std::move(material);
 }
 
 void CommandBuffer::SetColorBlendMode(ColorBlendMode m) noexcept
@@ -138,6 +165,11 @@ Result<Span<Vertex>> CommandBuffer::DrawQuadInPlace(TexturePtr tex2d) noexcept
     if (!texId)
         return texId.GetError();
 
+    // 创建材质
+    auto matId = AllocMaterial(m_pCurrentMaterial);
+    if (!matId)
+        return matId.GetError();
+
     // 创建命令（若没有）
     auto ret = InstantialCommand();
     if (!ret)
@@ -145,11 +177,13 @@ Result<Span<Vertex>> CommandBuffer::DrawQuadInPlace(TexturePtr tex2d) noexcept
 
     if ((*m_stCurrentDrawCommand)->TextureId == static_cast<size_t>(-1))
     {
-        // 此时是新创建的命令，直接设置 TextureId
+        // 此时是新创建的命令，直接设置 TextureId 和 MatId
+        assert((*m_stCurrentDrawCommand)->MaterialId == static_cast<size_t>(-1));
         assert((*m_stCurrentDrawCommand)->IndexCount == 0);
         (*m_stCurrentDrawCommand)->TextureId = *texId;
+        (*m_stCurrentDrawCommand)->MaterialId = *matId;
     }
-    else if ((*m_stCurrentDrawCommand)->TextureId != *texId)
+    else if ((*m_stCurrentDrawCommand)->TextureId != *texId || (*m_stCurrentDrawCommand)->MaterialId != *matId)
     {
         // 此时需要创建新的 Command
         PrepareNewCommand();
@@ -157,7 +191,9 @@ Result<Span<Vertex>> CommandBuffer::DrawQuadInPlace(TexturePtr tex2d) noexcept
         if (!ret)
             return ret.GetError();
         assert((*m_stCurrentDrawCommand)->TextureId == static_cast<size_t>(-1));
+        assert((*m_stCurrentDrawCommand)->MaterialId == static_cast<size_t>(-1));
         (*m_stCurrentDrawCommand)->TextureId = *texId;
+        (*m_stCurrentDrawCommand)->MaterialId = *matId;
     }
 
     // 防止索引越界
@@ -235,7 +271,7 @@ void CommandBuffer::PrepareNewCommand() noexcept
 size_t CommandBuffer::AllocCamera()
 {
     // 先检查是否存在重复的相机，此时可以直接复用
-    CameraStateKey state { {}, m_stCurrentView, m_stCurrentProjection, m_stCurrentViewport };
+    CameraStateKey state { {}, m_stCurrentView, m_stCurrentProjection, m_stCurrentViewport, m_stCurrentOutputViews };
     auto it = m_stCameraMapping.find(state);
     if (it != m_stCameraMapping.end())
     {
@@ -256,6 +292,7 @@ size_t CommandBuffer::AllocCamera()
     camera->SetViewMatrix(m_stCurrentView);
     camera->SetProjectMatrix(m_stCurrentProjection);
     camera->SetViewport(m_stCurrentViewport);
+    camera->SetOutputViews(m_stCurrentOutputViews);
 
     m_stCameraReferences.emplace_back(std::move(ptr));
     m_stCameraMapping.emplace(state, m_stCameraReferences.size() - 1);
@@ -273,6 +310,26 @@ Result<size_t> CommandBuffer::AllocTexture(TexturePtr tex2d) noexcept
             m_stTextureReferences.emplace_back(std::move(tex2d));
             m_stTextureMapping.emplace(p, m_stTextureReferences.size() - 1);
             return m_stTextureReferences.size() - 1;
+        }
+        catch (...)  // bad_alloc
+        {
+            return make_error_code(errc::not_enough_memory);
+        }
+    }
+    return it->second;
+}
+
+Result<size_t> CommandBuffer::AllocMaterial(MaterialPtr mat) noexcept
+{
+    auto p = mat.get();
+    auto it = m_stMaterialMapping.find(p);
+    if (it == m_stMaterialMapping.end())
+    {
+        try
+        {
+            m_stMaterialReferences.emplace_back(std::move(mat));
+            m_stMaterialMapping.emplace(p, m_stMaterialReferences.size() - 1);
+            return m_stMaterialReferences.size() - 1;
         }
         catch (...)  // bad_alloc
         {
@@ -349,6 +406,7 @@ Result<void> CommandBuffer::InstantialCommand() noexcept
                 m_fCurrentFogArg1,
                 m_fCurrentFogArg2,
                 m_stCurrentFogColor,
+                static_cast<size_t>(-1),
                 static_cast<size_t>(-1),
                 m_stIndexes.size(),
                 0,

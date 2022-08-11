@@ -8,6 +8,7 @@
 #include "../Material.hpp"
 #include "../Mesh.hpp"
 #include "CommandBuffer.hpp"
+#include "../../../LRUCache.hpp"
 
 namespace lstg::Subsystem::Render::Drawing2D
 {
@@ -34,19 +35,24 @@ namespace lstg::Subsystem::Render::Drawing2D
         virtual void OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuffer::CommandQueue& queueData) noexcept;
 
     protected:
+        struct SelectableEffectPassGroups
+        {
+            const GraphDef::EffectPassGroupDefinition* AlphaBlendGroup[2] = { nullptr, nullptr };
+            const GraphDef::EffectPassGroupDefinition* AddBlendGroup[2] = { nullptr, nullptr };
+            const GraphDef::EffectPassGroupDefinition* SubtractBlendGroup[2] = { nullptr, nullptr };
+            const GraphDef::EffectPassGroupDefinition* ReverseSubtractBlendGroup[2] = { nullptr, nullptr };
+        };
+
         RenderSystem& m_stRenderSystem;
         Render::TexturePtr m_pDefaultTexture;
-        Render::MaterialPtr m_pMaterial;
+        Render::MaterialPtr m_pDefaultMaterial;
         Render::MeshPtr m_pMesh;
 
         // 临时变量
         std::string m_stOldBlendTag;
+        std::string m_stOldDepthDisabledTag;
 
         // 效果选择器
-        const GraphDef::EffectDefinition* m_pLastSelectEffect = nullptr;
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAlphaBlendGroup[2] = { nullptr, nullptr };
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectAddBlendGroup[2] = { nullptr, nullptr };
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectSubtractBlendGroup[2] = { nullptr, nullptr };
-        const GraphDef::EffectPassGroupDefinition* m_pLastSelectReverseSubtractBlendGroup[2] = { nullptr, nullptr };
+        LRUCache<const GraphDef::EffectDefinition*, SelectableEffectPassGroups, 16> m_stEffectGroupSelector;
     };
 }

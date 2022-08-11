@@ -60,8 +60,8 @@ endif()
 CPMAddPackage(
     NAME SDL
     GITHUB_REPOSITORY libsdl-org/SDL
-    #GIT_TAG release-2.0.20
-    GIT_TAG main
+    GIT_TAG release-2.0.22
+    # GIT_TAG main
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"

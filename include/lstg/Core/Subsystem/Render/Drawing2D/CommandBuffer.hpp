@@ -72,6 +72,7 @@ namespace lstg::Subsystem::Render::Drawing2D
             float FogArg2 = 0.f;  // 雾参数2
             ColorRGBA32 FogColor = 0x00000000;  // 雾颜色
             size_t TextureId = 0;  // 纹理ID
+            size_t MaterialId = 0;  // 材质ID
             size_t IndexStart = 0;  // Index起始下标
             size_t IndexCount = 0;  // Index个数
             size_t BaseVertexIndex = 0;  // 基准顶点索引
@@ -104,6 +105,7 @@ namespace lstg::Subsystem::Render::Drawing2D
             std::vector<uint16_t>& IndexBuffer;
             std::vector<FreeListPtr<CameraPtr>>& CameraList;
             std::vector<TexturePtr>& TextureList;
+            std::vector<MaterialPtr>& MaterialList;
         };
 
     public:
@@ -126,6 +128,13 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @return 纹理对象
          */
         [[nodiscard]] TexturePtr FindTextureById(size_t id) const noexcept;
+
+        /**
+         * 通过 ID 查询缓存的材质
+         * @param id ID
+         * @return 材质对象
+         */
+        [[nodiscard]] MaterialPtr FindMaterialById(size_t id) const noexcept;
 
         /**
          * 设置渲染组 ID
@@ -153,6 +162,24 @@ namespace lstg::Subsystem::Render::Drawing2D
          * @param h 高度
          */
         void SetViewport(float l, float t, float w, float h) noexcept;
+
+        /**
+         * 设置输出缓冲
+         * @param colorView 颜色缓冲
+         * @param depthStencilView 深度缓冲
+         */
+        void SetOutputViews(TexturePtr colorView, TexturePtr depthStencilView) noexcept;
+
+        /**
+         * 获取当前的材质
+         */
+        const MaterialPtr& GetMaterial() const noexcept { return m_pCurrentMaterial; }
+
+        /**
+         * 设置材质
+         * @param material 材质
+         */
+        void SetMaterial(MaterialPtr material) noexcept;
 
         /**
          * 设置颜色混合模式
@@ -203,6 +230,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         void PrepareNewCommand() noexcept;
         size_t AllocCamera();
         Result<size_t> AllocTexture(TexturePtr tex2d) noexcept;
+        Result<size_t> AllocMaterial(MaterialPtr mat) noexcept;
         Result<void> InstantialGroup() noexcept;
         Result<void> InstantialQueue() noexcept;
         Result<void> InstantialCommand() noexcept;
@@ -215,10 +243,11 @@ namespace lstg::Subsystem::Render::Drawing2D
             glm::mat4x4 View;
             glm::mat4x4 Projection;
             Camera::Viewport Viewport;
+            Camera::OutputViews OutputViews;
 
             bool operator==(const CameraStateKey& rhs) const noexcept
             {
-                return View == rhs.View && Projection == rhs.Projection && Viewport == rhs.Viewport;
+                return View == rhs.View && Projection == rhs.Projection && Viewport == rhs.Viewport && OutputViews == rhs.OutputViews;
             }
         };
 
@@ -229,7 +258,9 @@ namespace lstg::Subsystem::Render::Drawing2D
                 if (key.Hash)
                     return *key.Hash;
                 key.Hash = MurmurHash3({reinterpret_cast<const uint8_t*>(&key.Projection), sizeof(key.Projection)}) ^
-                    MurmurHash3({reinterpret_cast<const uint8_t*>(&key.Viewport), sizeof(key.Viewport)});
+                    MurmurHash3({reinterpret_cast<const uint8_t*>(&key.Viewport), sizeof(key.Viewport)}) ^
+                    static_cast<uint32_t>(std::hash<void*>{}(key.OutputViews.ColorView.get())) ^
+                    static_cast<uint32_t>(std::hash<void*>{}(key.OutputViews.DepthStencilView.get()));
                 return *key.Hash;
             }
         };
@@ -246,6 +277,8 @@ namespace lstg::Subsystem::Render::Drawing2D
         UniqueCameraCache m_stCameraMapping;
         std::vector<TexturePtr> m_stTextureReferences;
         std::map<Texture*, size_t> m_stTextureMapping;
+        std::vector<MaterialPtr> m_stMaterialReferences;
+        std::map<Material*, size_t> m_stMaterialMapping;
 
         // 正在生成的图元
         size_t m_uCurrentBaseVertexIndex = 0;
@@ -263,6 +296,8 @@ namespace lstg::Subsystem::Render::Drawing2D
         glm::mat4x4 m_stCurrentView;
         glm::mat4x4 m_stCurrentProjection;
         Camera::Viewport m_stCurrentViewport;
+        Camera::OutputViews m_stCurrentOutputViews;
+        MaterialPtr m_pCurrentMaterial;
         ColorBlendMode m_iCurrentColorBlendMode = ColorBlendMode::Alpha;
         bool m_bNoDepth = false;
         FogTypes m_iCurrentFogType = FogTypes::Disabled;

@@ -57,8 +57,17 @@ Result<void> EffectAssetLoader::PreLoad() noexcept
         m_stSourceAttribute = *attribute;
 #endif
 
+    // 创建 Material
+    auto material = renderSystem.CreateMaterial(*effect);
+    if (!material)
+    {
+        LSTG_LOG_ERROR_CAT(EffectAssetLoader, "Create material from \"{}\" fail: {}", asset->GetPath(), effect.GetError());
+        SetState(AssetLoadingStates::Error);
+        return effect.GetError();
+    }
+
     // 提交资源
-    asset->UpdateResource(std::move(*effect));
+    asset->UpdateResource(std::move(*effect), std::move(*material));
 
     SetState(AssetLoadingStates::Loaded);
     return {};

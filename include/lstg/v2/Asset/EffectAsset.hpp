@@ -6,6 +6,7 @@
  */
 #pragma once
 #include <lstg/Core/Subsystem/Render/GraphDef/EffectDefinition.hpp>
+#include <lstg/Core/Subsystem/Render/Material.hpp>
 #include <lstg/Core/Subsystem/Asset/Asset.hpp>
 
 namespace lstg::v2::Asset
@@ -37,15 +38,21 @@ namespace lstg::v2::Asset
          */
         [[nodiscard]] const Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr& GetEffect() const noexcept { return m_pEffectDef; }
 
+        /**
+         * 获取默认材质实例
+         */
+        [[nodiscard]] const Subsystem::Render::MaterialPtr& GetDefaultMaterial() const noexcept { return m_pDefaultMaterial; }
+
     protected:  // Asset
         [[nodiscard]] Subsystem::Asset::AssetTypeId GetAssetTypeId() const noexcept override;
 
     private:
-        void UpdateResource(Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr def) noexcept;
+        void UpdateResource(Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr def, Subsystem::Render::MaterialPtr mat) noexcept;
 
     private:
         std::string m_stPath;
         Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr m_pEffectDef;
+        Subsystem::Render::MaterialPtr m_pDefaultMaterial;
     };
 
     using EffectAssetPtr = std::shared_ptr<EffectAsset>;
