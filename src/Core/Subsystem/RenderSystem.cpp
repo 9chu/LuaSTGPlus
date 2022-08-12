@@ -364,6 +364,11 @@ Result<Render::TexturePtr> RenderSystem::CreateRenderTarget(uint32_t width, uint
     desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_RENDER_TARGET;
     desc.Usage = Diligent::USAGE_DEFAULT;
     desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().ColorBufferFormat;  // 需要和 SwapChain 一致
+    desc.ClearValue.Format = desc.Format;
+    desc.ClearValue.Color[0] = 0.f;
+    desc.ClearValue.Color[1] = 0.f;
+    desc.ClearValue.Color[2] = 0.f;
+    desc.ClearValue.Color[3] = 0.f;
 
     Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
     m_pRenderDevice->GetDevice()->CreateTexture(desc, nullptr, &texture);
@@ -382,6 +387,9 @@ Result<Render::TexturePtr> RenderSystem::CreateDepthStencil(uint32_t width, uint
     desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_DEPTH_STENCIL;
     desc.Usage = Diligent::USAGE_DEFAULT;
     desc.Format = m_pRenderDevice->GetSwapChain()->GetDesc().DepthBufferFormat;
+    desc.ClearValue.Format = desc.Format;
+    desc.ClearValue.DepthStencil.Depth = 1;
+    desc.ClearValue.DepthStencil.Stencil = 0;
 
     Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
     m_pRenderDevice->GetDevice()->CreateTexture(desc, nullptr, &texture);

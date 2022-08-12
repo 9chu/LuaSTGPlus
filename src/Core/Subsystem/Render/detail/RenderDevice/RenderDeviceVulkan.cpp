@@ -51,6 +51,7 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
     SwapChainDesc swapChainDesc;
     swapChainDesc.Width = std::get<0>(windowSize);
     swapChainDesc.Height = std::get<1>(windowSize);
+    swapChainDesc.Usage |= SWAP_CHAIN_USAGE_COPY_SOURCE;  // 截屏需要
 #if LSTG_PLATFORM_MACOS
     // We need at least 3 buffers in Metal to avoid massive
     // performance degradation in full screen mode.

@@ -26,6 +26,14 @@ namespace lstg::v2
 
     LSTG_DEFINE_EXCEPTION(AppInitializeFailedException);
 
+    enum class MouseButtons : uint32_t
+    {
+        Left = 0,
+        Middle,
+        Right,
+        MAX
+    };
+
     /**
      * 游戏程序实现
      */
@@ -78,6 +86,13 @@ namespace lstg::v2
          * @param height 高度
          */
         void ChangeDesiredResolution(uint32_t width, uint32_t height) noexcept;
+
+        /**
+         * 原生窗口坐标转设计坐标
+         * @param pos 窗口坐标
+         * @return 设计坐标
+         */
+        glm::vec2 WindowCoordToDesiredCoord(glm::vec2 pos) noexcept;
 
         /**
          * 切换全屏/窗口模式
@@ -142,6 +157,18 @@ namespace lstg::v2
          */
         bool IsKeyDown(int32_t keyCode) const noexcept;
 
+        /**
+         * 获取鼠标位置
+         */
+        glm::vec2 GetMousePosition() const noexcept;
+
+        /**
+         * 获取鼠标是否按下
+         * @param button 按钮
+         * @return 是否按下
+         */
+        bool IsMouseButtonDown(MouseButtons button) const noexcept;
+
     public:  // GamePlay
         /**
          * 获取游戏世界
@@ -187,6 +214,8 @@ namespace lstg::v2
         std::string m_stLastInputChar;  // 最后一次输入的字符（UTF-8）
         int32_t m_iLastInputKeyCode = '\0';  // 最后一次输入的按键
         std::vector<bool> m_stKeyStateMap;  // 按键状态，使用 vector<bool> 等价于 bitmap
+        glm::vec2 m_stMousePosition { 0, 0 };  // 鼠标位置
+        bool m_stMouseButtonStateMap[static_cast<uint32_t>(MouseButtons::MAX)];  // 鼠标按键状态
 
         // 游戏世界
         GamePlay::GameWorld m_stDefaultWorld;

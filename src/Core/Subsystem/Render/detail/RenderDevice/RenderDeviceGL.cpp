@@ -55,6 +55,7 @@ RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
     SwapChainDesc swapChainDesc;
     swapChainDesc.Width = std::get<0>(windowSize);
     swapChainDesc.Height = std::get<1>(windowSize);
+    swapChainDesc.Usage |= SWAP_CHAIN_USAGE_COPY_SOURCE;  // 截屏需要
     EngineGLCreateInfo engineCreateInfo;
     engineCreateInfo.Window = nativeWindow;
     factory->CreateDeviceAndSwapChainGL(engineCreateInfo, &m_pRenderDevice, &m_pRenderContext, swapChainDesc, &m_pSwapChain);

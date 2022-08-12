@@ -66,6 +66,19 @@ void HgeFontAssetLoader::Update() noexcept
         // 在这里读取文件
         if (!m_bWaitForTextureLoaded)
         {
+#if LSTG_ASSET_HOT_RELOAD
+            auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
+            if (!attribute)
+            {
+                LSTG_LOG_ERROR_CAT(HgeFontAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(),
+                                   attribute.GetError());
+            }
+            else
+            {
+                m_stSourceAttribute = *attribute;
+            }
+#endif
+
             // 加载字体文件
             auto stream = AssetSystem::GetInstance().OpenAssetStream(asset->GetPath());
             if (!stream)
@@ -74,18 +87,6 @@ void HgeFontAssetLoader::Update() noexcept
                 SetState(AssetLoadingStates::Error);
                 return;
             }
-#if LSTG_ASSET_HOT_RELOAD
-            auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
-            if (!attribute)
-            {
-                LSTG_LOG_ERROR_CAT(HgeFontAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(),
-                    attribute.GetError());
-            }
-            else
-            {
-                m_stSourceAttribute = *attribute;
-            }
-#endif
 
             // 加载字体
             m_stTextureFilename.clear();

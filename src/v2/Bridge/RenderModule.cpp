@@ -513,7 +513,7 @@ namespace
         auto effect = static_pointer_cast<v2::Asset::EffectAsset>(effectAsset);
         if (effect->GetState() != Subsystem::Asset::AssetStates::Loaded)
         {
-            LSTG_LOG_WARN_CAT(RenderModule, "Effect '%s' is not loaded", fx);
+            LSTG_LOG_WARN_CAT(RenderModule, "Effect '{}' is not loaded", fx);
             return;
         }
 

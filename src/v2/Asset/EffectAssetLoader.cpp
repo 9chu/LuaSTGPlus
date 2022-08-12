@@ -38,6 +38,14 @@ Result<void> EffectAssetLoader::PreLoad() noexcept
         return make_error_code(AssetError::LoadingCancelled);
     }
 
+#if LSTG_ASSET_HOT_RELOAD
+    auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
+    if (!attribute)
+        LSTG_LOG_ERROR_CAT(EffectAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(), attribute.GetError());
+    else
+        m_stSourceAttribute = *attribute;  // 时间刷新需要前置防止加载失败时反复重试
+#endif
+
     // 获取 RenderSystem
     auto& renderSystem = AssetSystem::GetInstance().GetRenderSystem();
 
@@ -49,13 +57,6 @@ Result<void> EffectAssetLoader::PreLoad() noexcept
         SetState(AssetLoadingStates::Error);
         return effect.GetError();
     }
-#if LSTG_ASSET_HOT_RELOAD
-    auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
-    if (!attribute)
-        LSTG_LOG_ERROR_CAT(EffectAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(), attribute.GetError());
-    else
-        m_stSourceAttribute = *attribute;
-#endif
 
     // 创建 Material
     auto material = renderSystem.CreateMaterial(*effect);

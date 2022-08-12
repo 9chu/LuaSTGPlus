@@ -172,6 +172,7 @@ GameApp::GameApp(int argc, char** argv)
         m_uInputWindowID = ::SDL_GetWindowID(GetSubsystem<Subsystem::WindowSystem>()->GetNativeHandle());
         m_stLastInputChar.reserve(16);
         m_stKeyStateMap.resize(SDL_NUM_SCANCODES);
+        ::memset(m_stMouseButtonStateMap, 0, sizeof(m_stMouseButtonStateMap));
     }
 
     // 初始化函数库
@@ -352,6 +353,33 @@ void GameApp::ChangeDesiredResolution(uint32_t width, uint32_t height) noexcept
     }
 }
 
+glm::vec2 GameApp::WindowCoordToDesiredCoord(glm::vec2 pos) noexcept
+{
+    auto windowSystem = GetSubsystem<Subsystem::WindowSystem>();
+    auto windowSize = windowSystem->GetSize();
+
+    // 相对窗口坐标系的 scale
+    auto sx = pos.x / static_cast<float>(std::max(1, std::get<0>(windowSize)));
+    auto sy = pos.y / static_cast<float>(std::max(1, std::get<1>(windowSize)));
+
+    // 转换到原生坐标系下
+    auto nx = m_stNativeSolution.x * sx;
+    auto ny = m_stNativeSolution.y * sy;
+
+    // 计算到视口左上角的偏移量
+    auto topLeft = m_stViewportBound.GetTopLeft();
+    auto ox = (nx - topLeft.x) / m_stViewportBound.Width();
+    auto oy = (ny - topLeft.y) / m_stViewportBound.Height();
+
+    // 计算到设计分辨率的坐标（以左上角为原点，Y向下）
+    auto dx = ox * m_stDesiredSolution.x;
+    auto dy = oy * m_stDesiredSolution.y;
+
+    // 需要转换到以左下角为原点
+    dy = m_stDesiredSolution.y - dy;
+    return { dx, dy };
+}
+
 void GameApp::ToggleFullScreen(bool fullscreen) noexcept
 {
     auto windowSystem = GetSubsystem<Subsystem::WindowSystem>();
@@ -391,6 +419,9 @@ Result<void> GameApp::PushRenderTarget(Subsystem::Render::TexturePtr rt) noexcep
         return make_error_code(errc::invalid_argument);
     }
 
+    // 设置到 CommandBuffer
+    m_stCommandBuffer.SetOutputViews(rt, nullptr);
+
     m_stRenderTargetStack.emplace_back(std::move(rt));  // never throws
     return {};
 }
@@ -401,6 +432,13 @@ Result<Subsystem::Render::TexturePtr> GameApp::PopRenderTarget() noexcept
         return make_error_code(errc::invalid_argument);
     auto ret = std::move(m_stRenderTargetStack.back());
     m_stRenderTargetStack.pop_back();
+
+    // 恢复栈顶的 RT
+    if (!m_stRenderTargetStack.empty())
+        m_stCommandBuffer.SetOutputViews(m_stRenderTargetStack.back(), nullptr);
+    else
+        m_stCommandBuffer.SetOutputViews(nullptr, nullptr);
+
     return ret;
 }
 
@@ -446,6 +484,17 @@ bool GameApp::IsKeyDown(int32_t keyCode) const noexcept
     if (0 <= scanCode && scanCode < m_stKeyStateMap.size())
         return m_stKeyStateMap[scanCode];
     return false;
+}
+
+glm::vec2 GameApp::GetMousePosition() const noexcept
+{
+    return m_stMousePosition;
+}
+
+bool GameApp::IsMouseButtonDown(MouseButtons button) const noexcept
+{
+    assert(button < MouseButtons::MAX);
+    return m_stMouseButtonStateMap[static_cast<uint32_t>(button)];
 }
 
 // </editor-fold>
@@ -534,7 +583,7 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
             }
             else if (sdlEvent->type == SDL_KEYDOWN || sdlEvent->type == SDL_KEYUP)
             {
-                if (sdlEvent->text.windowID == m_uInputWindowID)  // 过滤非主窗口事件
+                if (sdlEvent->key.windowID == m_uInputWindowID)  // 过滤非主窗口事件
                 {
                     auto scanCode = sdlEvent->key.keysym.scancode;
                     assert(m_stKeyStateMap.size() == SDL_NUM_SCANCODES);
@@ -546,6 +595,37 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
                         m_iLastInputKeyCode = sdlEvent->key.keysym.scancode;
                     else if (sdlEvent->key.keysym.scancode == m_iLastInputKeyCode)
                         m_iLastInputKeyCode = '\0';
+                }
+            }
+            else if (sdlEvent->type == SDL_MOUSEMOTION)
+            {
+                if (sdlEvent->motion.windowID == m_uInputWindowID)  // 过滤非主窗口事件
+                {
+                    m_stMousePosition = WindowCoordToDesiredCoord({
+                        static_cast<float>(sdlEvent->motion.x),
+                        static_cast<float>(sdlEvent->motion.y)
+                    });
+                }
+            }
+            else if (sdlEvent->type == SDL_MOUSEBUTTONDOWN || sdlEvent->type == SDL_MOUSEBUTTONUP)
+            {
+                if (sdlEvent->button.windowID == m_uInputWindowID)  // 过滤非主窗口事件
+                {
+                    MouseButtons button = MouseButtons::MAX;
+                    switch (sdlEvent->button.button)
+                    {
+                        case SDL_BUTTON_LEFT:
+                            button = MouseButtons::Left;
+                            break;
+                        case SDL_BUTTON_RIGHT:
+                            button = MouseButtons::Right;
+                            break;
+                        case SDL_BUTTON_MIDDLE:
+                            button = MouseButtons::Middle;
+                            break;
+                    }
+                    if (button != MouseButtons::MAX)
+                        m_stMouseButtonStateMap[static_cast<uint32_t>(button)] = (sdlEvent->button.state == SDL_PRESSED);
                 }
             }
         }
@@ -582,6 +662,14 @@ void GameApp::OnRender(double elapsed) noexcept
     auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnRender);
     if (!ret)
         LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnRender, ret.GetError());
+
+    // 检查所有的 RT 是否从栈上弹出
+    if (!m_stRenderTargetStack.empty())
+    {
+        LSTG_LOG_ERROR_CAT(GameApp, "Render target stack is not balanced");
+        while (!m_stRenderTargetStack.empty())
+            PopRenderTarget();
+    }
 
     // 结束场景
     auto drawData = m_stCommandBuffer.End();

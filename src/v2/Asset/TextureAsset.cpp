@@ -30,7 +30,7 @@ TextureAsset::TextureAsset(std::string name, Subsystem::Asset::BasicTexture2DAss
 TextureAsset::TextureAsset(std::string name, Subsystem::Render::Camera::OutputViews view, float pixelPerUnit)
     : Subsystem::Asset::Asset(std::move(name)), m_stUnderlay(std::move(view))
 {
-    assert(std::get<0>(m_stUnderlay));
+    assert(std::get<1>(m_stUnderlay).ColorView);
     m_stDrawingTexture.SetUnderlayTexture(std::get<1>(m_stUnderlay).ColorView);
     m_stDrawingTexture.SetPixelPerUnit(std::abs(pixelPerUnit) <= std::numeric_limits<float>::epsilon() ? 1.f : pixelPerUnit);
 }

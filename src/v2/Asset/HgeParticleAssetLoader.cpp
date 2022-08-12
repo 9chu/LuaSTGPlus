@@ -39,14 +39,6 @@ Result<void> HgeParticleAssetLoader::PreLoad() noexcept
         return make_error_code(AssetError::LoadingCancelled);
     }
 
-    // 在主线程打开文件流
-    auto stream = AssetSystem::GetInstance().OpenAssetStream(asset->GetPath());
-    if (!stream)
-    {
-        LSTG_LOG_ERROR_CAT(HgeParticleAssetLoader, "Open asset stream from \"{}\" fail: {}", asset->GetPath(), stream.GetError());
-        SetState(AssetLoadingStates::Error);
-        return stream.GetError();
-    }
 #if LSTG_ASSET_HOT_RELOAD
     auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
     if (!attribute)
@@ -59,6 +51,15 @@ Result<void> HgeParticleAssetLoader::PreLoad() noexcept
         m_stSourceAttribute = *attribute;
     }
 #endif
+
+    // 在主线程打开文件流
+    auto stream = AssetSystem::GetInstance().OpenAssetStream(asset->GetPath());
+    if (!stream)
+    {
+        LSTG_LOG_ERROR_CAT(HgeParticleAssetLoader, "Open asset stream from \"{}\" fail: {}", asset->GetPath(), stream.GetError());
+        SetState(AssetLoadingStates::Error);
+        return stream.GetError();
+    }
 
     // 直接读取配置
     m_stParticleConfig = {};

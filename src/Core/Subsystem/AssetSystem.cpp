@@ -42,7 +42,7 @@ static AssetSystem* s_pInstance = nullptr;
 static const uint32_t kMaxTaskExecuteTimeMs = 100;
 #if LSTG_ASSET_HOT_RELOAD
 static const uint32_t kMaxHotReloadCheckTimeMs = 5;
-static const size_t kMaxWatchTaskPerFrame = 3;  // 一帧就检查 3 个资源
+static const size_t kMaxWatchTaskPerFrame = 3;  // 一帧最多检查 3 个资源
 #endif
 
 AssetSystem& AssetSystem::GetInstance() noexcept
@@ -289,6 +289,19 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                     LSTG_LOG_ERROR_CAT(AssetSystem, "Asset #{} reload fail", asset->GetId());
                 else
                     LSTG_LOG_ERROR_CAT(AssetSystem, "Asset {} reload fail", asset->GetName());
+            }
+
+            // 失败后也要放回监控任务列表
+            if (task->SupportHotReload())
+            {
+                try
+                {
+                    m_stWatchTasks.push_back(task);
+                }
+                catch (...)  // bad_alloc
+                {
+                    LSTG_LOG_ERROR_CAT(AssetSystem, "Cannot alloc memory");
+                }
             }
 #else
             assert(asset->GetState() == Asset::AssetStates::Uninitialized);

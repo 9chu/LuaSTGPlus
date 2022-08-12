@@ -42,6 +42,7 @@ RenderDeviceD3D11::RenderDeviceD3D11(WindowSystem* window)
     SwapChainDesc swapChainDesc;
     swapChainDesc.Width = std::get<0>(windowSize);
     swapChainDesc.Height = std::get<1>(windowSize);
+    swapChainDesc.Usage |= SWAP_CHAIN_USAGE_COPY_SOURCE;  // 截屏需要
     EngineD3D11CreateInfo engineCreateInfo;
     engineCreateInfo.GraphicsAPIVersion = {11, 0};
 #if !(defined(NDEBUG) || defined(LSTG_SHIPPING))

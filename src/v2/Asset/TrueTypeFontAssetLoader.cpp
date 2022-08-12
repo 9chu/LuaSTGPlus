@@ -41,6 +41,14 @@ Result<void> TrueTypeFontAssetLoader::PreLoad() noexcept
         return make_error_code(AssetError::LoadingCancelled);
     }
 
+#if LSTG_ASSET_HOT_RELOAD
+    auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
+    if (!attribute)
+        LSTG_LOG_ERROR_CAT(TrueTypeFontAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(), attribute.GetError());
+    else
+        m_stSourceAttribute = *attribute;
+#endif
+
     // 在主线程打开文件流
     auto stream = AssetSystem::GetInstance().OpenAssetStream(asset->GetPath());
     if (!stream)
@@ -49,13 +57,6 @@ Result<void> TrueTypeFontAssetLoader::PreLoad() noexcept
         SetState(AssetLoadingStates::Error);
         return stream.GetError();
     }
-#if LSTG_ASSET_HOT_RELOAD
-    auto attribute = AssetSystem::GetInstance().GetAssetStreamAttribute(asset->GetPath());
-    if (!attribute)
-        LSTG_LOG_ERROR_CAT(TrueTypeFontAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(), attribute.GetError());
-    else
-        m_stSourceAttribute = *attribute;
-#endif
 
     // FreeTypeLibrary 原则上不能跨线程使用，需要上锁
     // 故我们直接在主线程加载，不使用异步过程

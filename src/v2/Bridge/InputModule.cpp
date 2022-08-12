@@ -32,18 +32,28 @@ const char* InputModule::GetLastChar()
 
 Subsystem::Script::Unpack<double, double> InputModule::GetMousePosition()
 {
-    // TODO
-//    fcyVec2 tPos = LAPP.GetMousePosition();
-//    lua_pushnumber(L, tPos.x);
-//    lua_pushnumber(L, tPos.y);
-//    return 2;
-    return {0, 0};
+    auto& app = detail::GetGlobalApp();
+    auto pos = app.GetMousePosition();
+    return { pos.x, pos.y };
 }
 
 bool InputModule::GetMouseState(int32_t button)
 {
-    // TODO
-//    lua_pushboolean(L, LAPP.GetMouseState(luaL_checkinteger(L, 1)));
-//    return 1;
-    return false;
+    auto& app = detail::GetGlobalApp();
+    MouseButtons transButton = MouseButtons::MAX;
+    switch (button)
+    {
+        case 0:
+            transButton = MouseButtons::Left;
+            break;
+        case 1:
+            transButton = MouseButtons::Middle;
+            break;
+        case 2:
+            transButton = MouseButtons::Right;
+            break;
+        default:
+            return false;
+    }
+    return app.IsMouseButtonDown(transButton);
 }
