@@ -101,4 +101,12 @@ namespace lstg::Subsystem::Render
     private:
         std::shared_ptr<detail::Texture2DDataImpl> m_pImpl;
     };
+
+    /**
+     * 保存到 PNG
+     * @param out 输出流，由主调方负责 Seek 到原点
+     * @param data 输入纹理数据
+     * @return 是否成功
+     */
+    Result<void> SaveToPng(Subsystem::VFS::IStream* out, const Texture2DData* data) noexcept;
 }

@@ -7,6 +7,8 @@
 #include <lstg/v2/Bridge/MiscModule.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/RenderSystem.hpp>
+#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -22,8 +24,41 @@ void MiscModule::Registry()
 
 void MiscModule::CaptureSnapshot(const char* path)
 {
-    // TODO
-//    LAPP.SnapShot(luaL_checkstring(L, 1));
+    auto& app = detail::GetGlobalApp();
+    auto& renderSystem = *app.GetSubsystem<Subsystem::RenderSystem>();
+
+    // 构造文件名
+    Subsystem::VFS::Path savePathBase {"/storage"};
+    Subsystem::VFS::Path savePath {path};
+    savePath = savePathBase / savePath;
+
+    // 发起截图操作
+    renderSystem.CaptureScreen([savePath](Result<const Subsystem::Render::Texture2DData*> data) {
+        if (!data)
+        {
+            LSTG_LOG_ERROR_CAT(MiscModule, "Capture screen fail: {}", data.GetError());
+            return;
+        }
+
+        // 打开数据流
+        auto& app = detail::GetGlobalApp();
+        auto& vfs = *app.GetSubsystem<Subsystem::VirtualFileSystem>();
+        auto stream = vfs.OpenFile(savePath.ToStringView(), Subsystem::VFS::FileAccessMode::Write, Subsystem::VFS::FileOpenFlags::Truncate);
+        if (!stream)
+        {
+            LSTG_LOG_ERROR_CAT(MiscModule, "Open screenshot file '{}' fail: {}", savePath.ToStringView(), stream.GetError());
+            return;
+        }
+
+        // 写出截图
+        auto texData = *data;
+        assert(texData);
+        auto ret = Subsystem::Render::SaveToPng(stream->get(), texData);
+        if (!ret)
+            LSTG_LOG_ERROR_CAT(MiscModule, "Write screenshot fail: {}", ret.GetError());
+        else
+            LSTG_LOG_INFO_CAT(MiscModule, "Screenshot save to '{}'", savePath.ToStringView());
+    });
 }
 
 bool MiscModule::Execute(const char* path, std::optional<std::string_view> arguments, std::optional<const char*> directory,
@@ -58,15 +93,14 @@ LSTGColor MiscModule::NewColor(Subsystem::Script::LuaStack& stack)
     auto r = luaL_checkinteger(stack, 2);
     auto g = luaL_checkinteger(stack, 3);
     auto b = luaL_checkinteger(stack, 4);
-    ret.r(std::clamp<int>(r, 0, 255));
-    ret.g(std::clamp<int>(g, 0, 255));
-    ret.b(std::clamp<int>(b, 0, 255));
-    ret.a(std::clamp<int>(a, 0, 255));
+    ret.r(std::clamp<int>(static_cast<int>(r), 0, 255));
+    ret.g(std::clamp<int>(static_cast<int>(g), 0, 255));
+    ret.b(std::clamp<int>(static_cast<int>(b), 0, 255));
+    ret.a(std::clamp<int>(static_cast<int>(a), 0, 255));
     return ret;
 }
 
 LSTGBentLaserData MiscModule::NewBentLaserData()
 {
-    // TODO
-    return LSTGBentLaserData {};
+    return {};
 }

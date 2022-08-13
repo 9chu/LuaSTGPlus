@@ -6,11 +6,15 @@
  */
 #include <lstg/Core/Subsystem/Render/Texture2DData.hpp>
 
+#include <stb_image_write.h>
+#include <lstg/Core/Logging.hpp>
 #include "detail/Texture2DDataImpl.hpp"
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render;
+
+LSTG_DEF_LOG_CATEGORY(Texture2DData);
 
 Texture2DData::Texture2DData(VFS::StreamPtr stream)
     : m_pImpl(make_shared<detail::Texture2DDataImpl>(std::move(stream)))
@@ -68,4 +72,53 @@ Result<void> Texture2DData::GenerateMipmap(size_t count) noexcept
 {
     assert(m_pImpl);
     return m_pImpl->GenerateMipmap(count);
+}
+
+Result<void> Subsystem::Render::SaveToPng(Subsystem::VFS::IStream* out, const Texture2DData* data) noexcept
+{
+    assert(out && data);
+
+    int comp;
+    switch (data->GetFormat())
+    {
+        case Texture2DFormats::R8:
+            comp = 1;
+            break;
+        case Texture2DFormats::R8G8:
+            comp = 2;
+            break;
+        case Texture2DFormats::R8G8B8A8:
+        case Texture2DFormats::R8G8B8A8_SRGB:
+            comp = 4;
+            break;
+        default:
+            LSTG_LOG_ERROR_CAT(Texture2DData, "Unsupported format for png saver, format={}", static_cast<int>(data->GetFormat()));
+            return make_error_code(errc::invalid_argument);
+    }
+
+    struct WriteContext
+    {
+        Result<void> ErrorCode;
+        VFS::IStream* Stream;
+    } context { {}, out };
+
+    auto ret = ::stbi_write_png_to_func([](void* context, void* data, int size) {
+            auto writeContext = static_cast<WriteContext*>(context);
+            assert(writeContext && writeContext->Stream);
+            if (!writeContext->ErrorCode)
+                return;
+            writeContext->ErrorCode = writeContext->Stream->Write(reinterpret_cast<const uint8_t*>(data), static_cast<size_t>(size));
+        },
+        &context,
+        static_cast<int>(data->GetWidth()),
+        static_cast<int>(data->GetHeight()),
+        comp,
+        data->GetBuffer().GetData(),
+        static_cast<int>(data->GetStride()));
+    if (ret == 0)
+    {
+        LSTG_LOG_ERROR_CAT(Texture2DData, "Write PNG fail, ret={}", ret);
+        return make_error_code(errc::invalid_argument);
+    }
+    return context.ErrorCode;
 }

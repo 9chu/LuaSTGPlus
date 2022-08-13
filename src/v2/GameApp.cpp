@@ -9,6 +9,7 @@
 #include <SDL.h>
 #include <glm/ext.hpp>
 
+#include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Encoding/Unicode.hpp>
 #include <lstg/Core/Encoding/Convert.hpp>
@@ -87,6 +88,8 @@ GameApp::GameApp(int argc, char** argv)
     // 为了保持与老 API 的兼容性，默认资源寻找均从 assets 开始。
     // 可以通过 ../ 来访问其他路径。
     {
+        auto& virtualFileSystem = *GetSubsystem<Subsystem::VirtualFileSystem>();
+
         // assets 目录通过 OverlayFileSystem 实现
         // 最下面是 LocalFileSystem，这使得在其他 FileSystem 上搜索不到时会到本地文件系统进行搜寻
         m_pAssetsFileSystem = make_shared<Subsystem::VFS::OverlayFileSystem>();
@@ -108,12 +111,20 @@ GameApp::GameApp(int argc, char** argv)
         m_pAssetsFileSystem->PushFileSystem(std::move(localFileSystem));
 
         // 挂载
-        auto ret = GetSubsystem<Subsystem::VirtualFileSystem>()->Mount("assets", m_pAssetsFileSystem);
+        auto ret = virtualFileSystem.Mount("assets", m_pAssetsFileSystem);
         if (!ret)
             LSTG_THROW(AppInitializeFailedException, "Fail to mount \"assets\" virtual directory: {}", ret.GetError());
 
         // 设置资源系统基准目录
-        GetSubsystem<Subsystem::VirtualFileSystem>()->SetAssetBaseDirectory("assets");
+        virtualFileSystem.SetAssetBaseDirectory("assets");
+
+        // 准备数据存储目录
+        auto localStorageFileSystem = make_shared<Subsystem::VFS::LocalFileSystem>(Pal::GetUserStorageDirectory());
+
+        // 挂载
+        ret = virtualFileSystem.Mount("storage", localStorageFileSystem);
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to mount \"storage\" virtual directory: {}", ret.GetError());
     }
 
     // 初始化资源系统

@@ -6,96 +6,50 @@
  */
 #include <lstg/v2/Bridge/LSTGBentLaserData.hpp>
 
+#include <lstg/v2/GamePlay/ScriptObjectPool.hpp>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
 
-LSTGBentLaserData::~LSTGBentLaserData()
+void LSTGBentLaserData::Update(LuaStack& stack, AbsIndex baseObject, int32_t length, uint32_t width)
 {
-    Release();
-}
+    assert(baseObject == 2);
 
-void LSTGBentLaserData::Update(LuaStack& stack, AbsIndex baseObject, uint32_t length, uint32_t width)
-{
-    // TODO
-//    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-//    if (!p->handle)
-//        return luaL_error(L, "lstgBentLaserData was released.");
-//    if (!lua_istable(L, 2))
-//        return luaL_error(L, "invalid lstg object for 'Update'.");
-//    lua_rawgeti(L, 2, 2);  // self t(object) ??? id
-//    size_t id = (size_t)luaL_checkinteger(L, -1);
-//    lua_pop(L, 1);
-//    if (!p->handle->Update(id, luaL_checkinteger(L, 3), (float)luaL_checknumber(L, 4)))
-//        return luaL_error(L, "invalid lstg object for 'Update'.");
-//    return 0;
+    // 检查参数
+    if (stack.TypeOf(baseObject) != LUA_TTABLE)
+        stack.Error("invalid argument #1, luastg object required for 'Update'.");
+    stack.RawGet(baseObject, GamePlay::kIndexOfScriptObjectIdInObject);  // t(object) ... n(id)
+    auto id = static_cast<GamePlay::ScriptObjectId>(luaL_checkinteger(stack, -1));
+    stack.Pop(1);  // t(object) ...
+
+    if (!m_stImplementation.Update(id, length, width))
+        stack.Error("invalid lstg object for 'Update'.");
 }
 
 void LSTGBentLaserData::Release()
 {
-    // TODO
-//    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-//    if (p->handle)
-//    {
-//        GameObjectBentLaser::FreeInstance(p->handle);
-//        p->handle = nullptr;
-//    }
-//    return 0;
 }
 
-void LSTGBentLaserData::Render(const char* texture, const char* blend, LSTGColor* color, double texLeft, double texTop, double texWidth,
-    double texHeight, std::optional<double> scale /* =1 */) const
+void LSTGBentLaserData::Render(LuaStack& stack, const char* texture, const char* blend, LSTGColor* color, double texLeft, double texTop,
+    double texWidth, double texHeight, std::optional<double> scale /* =1 */) const
 {
-    // TODO
-//    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-//    if (!p->handle)
-//        return luaL_error(L, "lstgBentLaserData was released.");
-//    if (!p->handle->Render(
-//        luaL_checkstring(L, 2),
-//        TranslateBlendMode(L, 3),
-//        *static_cast<fcyColor*>(luaL_checkudata(L, 4, TYPENAME_COLOR)),
-//        (float)luaL_checknumber(L, 5),
-//        (float)luaL_checknumber(L, 6),
-//        (float)luaL_checknumber(L, 7),
-//        (float)luaL_checknumber(L, 8),
-//        (float)luaL_optnumber(L, 9, 1.) * LRES.GetGlobalImageScaleFactor()
-//    ))
-//    {
-//        return luaL_error(L, "can't render object with texture '%s'.", luaL_checkstring(L, 2));
-//    }
-//    return 0;
+    Math::UVRectangle rect {
+        static_cast<float>(texLeft), static_cast<float>(texTop), static_cast<float>(texWidth), static_cast<float>(texHeight)
+    };
+    if (!m_stImplementation.Render(texture, v2::BlendMode(blend), *color, rect, scale ? *scale : 1.))
+        stack.Error("can't render object with texture '%s'.", texture);
 }
 
 bool LSTGBentLaserData::CollisionCheck(double x, double y, std::optional<double> rot /* =0 */, std::optional<double> a /* =0 */,
     std::optional<double> b /* =0 */, std::optional<bool> rect /* =false */) const
 {
-    // TODO
-//    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-//    if (!p->handle)
-//        return luaL_error(L, "lstgBentLaserData was released.");
-//    bool r = p->handle->CollisionCheck(
-//        (float)luaL_checknumber(L, 2),
-//        (float)luaL_checknumber(L, 3),
-//        (float)luaL_optnumber(L, 4, 0),
-//        (float)luaL_optnumber(L, 5, 0),
-//        (float)luaL_optnumber(L, 6, 0),
-//        lua_toboolean(L, 7) == 0 ? false : true
-//    );
-//    lua_pushboolean(L, r);
-//    return 1;
-    return false;
+    return m_stImplementation.CollisionCheck(x, y, rot ? *rot : 0., a ? *a : 0., b ? *b : 0., rect ? *rect : false);
 }
 
 bool LSTGBentLaserData::BoundCheck() const
 {
-    // TODO
-//    Wrapper* p = static_cast<Wrapper*>(luaL_checkudata(L, 1, TYPENAME_BENTLASER));
-//    if (!p->handle)
-//        return luaL_error(L, "lstgBentLaserData was released.");
-//    bool r = p->handle->BoundCheck();
-//    lua_pushboolean(L, r);
-//    return 1;
-    return false;
+    return m_stImplementation.BoundCheck();
 }
 
 std::string LSTGBentLaserData::ToString() const

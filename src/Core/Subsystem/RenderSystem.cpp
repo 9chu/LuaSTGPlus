@@ -15,6 +15,7 @@
 #include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/ClearHelper.hpp"
+#include "Render/detail/ScreenCaptureHelper.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceD3D11.hpp"
@@ -217,6 +218,9 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
     // 创建清屏工具
     m_pClearHelper = make_shared<Render::detail::ClearHelper>(m_pRenderDevice.get());
+
+    // 创建截图工具
+    m_pScreenCaptureHelper = make_shared<Render::detail::ScreenCaptureHelper>(m_pRenderDevice.get());
 }
 
 // <editor-fold desc="资源分配">
@@ -516,20 +520,24 @@ Result<void> RenderSystem::BeginFrame() noexcept
 
 void RenderSystem::EndFrame() noexcept
 {
-    auto swapChain = m_pRenderDevice->GetSwapChain();
     auto context = m_pRenderDevice->GetImmediateContext();
 
-    auto* renderTargetView = swapChain->GetCurrentBackBufferRTV();
-    auto* depthStencilView = swapChain->GetDepthBufferDSV();
-
-    // 再次设置 RT，防止渲染过程中的变动
+    // 此时需要撇去 RT，进行后续的截屏动作
     {
-        context->SetRenderTargets(1, &renderTargetView, depthStencilView, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        context->SetRenderTargets(0, nullptr, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_NONE);
         m_stCurrentOutputViews = {};
     }
 
+    // 执行截屏任务
+    m_pScreenCaptureHelper->ProcessCaptureTasks();
+
     // 执行 Present
     m_pRenderDevice->Present();
+}
+
+Result<void> RenderSystem::CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)> callback, bool clearAlpha) noexcept
+{
+    return m_pScreenCaptureHelper->AddCaptureTask(std::move(callback), clearAlpha);
 }
 
 void RenderSystem::SetCamera(Render::CameraPtr camera) noexcept

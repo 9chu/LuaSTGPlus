@@ -23,6 +23,7 @@
 namespace lstg::Subsystem::Render::detail
 {
     class ClearHelper;
+    class ScreenCaptureHelper;
 }
 
 namespace lstg::Subsystem
@@ -165,6 +166,13 @@ namespace lstg::Subsystem
         void EndFrame() noexcept;
 
         /**
+         * 截取屏幕
+         * @param callback 截图数据回调
+         * @param clearAlpha 清空 Alpha 通道
+         */
+        Result<void> CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)> callback, bool clearAlpha = true) noexcept;
+
+        /**
          * 获取相机
          */
         [[nodiscard]] Render::CameraPtr GetCamera() const noexcept { return m_pCurrentCamera; }
@@ -255,8 +263,9 @@ namespace lstg::Subsystem
         // 内建默认纹理
         Render::TexturePtr m_pDefaultTexture2D;
 
-        // 内建清屏工具
+        // 内建工具
         std::shared_ptr<Render::detail::ClearHelper> m_pClearHelper;
+        std::shared_ptr<Render::detail::ScreenCaptureHelper> m_pScreenCaptureHelper;
 
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;

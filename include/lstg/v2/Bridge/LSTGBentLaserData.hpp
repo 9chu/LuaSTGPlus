@@ -7,6 +7,7 @@
 #pragma once
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
 #include <lstg/Core/Subsystem/Script/AutoBridgeHint.hpp>
+#include "../GamePlay/BentLaser.hpp"
 #include "LSTGColor.hpp"
 
 namespace lstg::v2::Bridge
@@ -23,7 +24,6 @@ namespace lstg::v2::Bridge
 
     public:
         LSTGBentLaserData() = default;
-        ~LSTGBentLaserData();
 
     public:
         /**
@@ -34,7 +34,7 @@ namespace lstg::v2::Bridge
          * @param width 曲光宽度，同时用于影响碰撞
          */
         LSTG_METHOD()
-        void Update(LuaStack& stack, AbsIndex baseObject, uint32_t length, uint32_t width);
+        void Update(LuaStack& stack, AbsIndex baseObject, int32_t length, uint32_t width);
 
         /**
          * 回收对象
@@ -55,8 +55,8 @@ namespace lstg::v2::Bridge
          * @param scale 缩放，仅控制图像的纵向缩放（我们假定曲光素材总是横向摆放的）
          */
         LSTG_METHOD()
-        void Render(const char* texture, const char* blend, LSTGColor* color, double texLeft, double texTop, double texWidth,
-            double texHeight, std::optional<double> scale /* =1 */) const;
+        void Render(LuaStack& stack, const char* texture, const char* blend, LSTGColor* color, double texLeft, double texTop,
+            double texWidth, double texHeight, std::optional<double> scale /* =1 */) const;
 
         /**
          * 碰撞检查
@@ -84,5 +84,8 @@ namespace lstg::v2::Bridge
          */
         LSTG_METHOD(__tostring)
         std::string ToString() const;
+
+    private:
+        GamePlay::BentLaser m_stImplementation;
     };
 }
