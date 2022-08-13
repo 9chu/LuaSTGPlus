@@ -28,9 +28,12 @@ namespace lstg::Subsystem::DebugGUI
         struct FrameTime
         {
             double Total = 0.;
+
+#ifdef LSTG_DEVELOPMENT
             double EventDispatchTimeStack = 0.;
             double UpdateTimeStack = 0.;
             double RenderTimeStack = 0.;
+#endif
         };
 
         std::vector<FrameTime> m_stFrames;

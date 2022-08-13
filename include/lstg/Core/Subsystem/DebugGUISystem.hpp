@@ -6,6 +6,7 @@
  */
 #pragma once
 #include <map>
+#include <string_view>
 #include "RenderSystem.hpp"
 #include "WindowSystem.hpp"
 #include "DebugGUI/Window.hpp"
@@ -55,6 +56,13 @@ namespace lstg::Subsystem
         Result<bool> AppendWindow(std::shared_ptr<DebugGUI::Window> window) noexcept;
 
         /**
+         * 寻找窗口
+         * @param name 窗口名称
+         * @return 存在则返回对应的窗口对象
+         */
+        std::shared_ptr<DebugGUI::Window> FindWindow(std::string_view name) noexcept;
+
+        /**
          * 获取迷你状态窗口
          */
         [[nodiscard]] const auto& GetMiniStatusWindow() const noexcept { return m_pMiniStatusWindow; }
@@ -95,7 +103,7 @@ namespace lstg::Subsystem
         std::shared_ptr<DebugGUI::detail::ImGuiRenderer> m_pRenderer;
 
         // 子窗口
-        std::map<std::string, std::shared_ptr<DebugGUI::Window>> m_stWindows;
+        std::map<std::string, std::shared_ptr<DebugGUI::Window>, std::less<>> m_stWindows;
 
         // 内建窗口
         std::shared_ptr<DebugGUI::MiniStatusWindow> m_pMiniStatusWindow;

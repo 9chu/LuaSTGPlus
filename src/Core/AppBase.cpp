@@ -202,7 +202,12 @@ double AppBase::LoopOnce() noexcept
 {
     // 更新定时器
     auto suggestedSleepTime = m_stMainTaskTimer.Update(std::numeric_limits<uint64_t>::max());
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    if (suggestedSleepTime == std::numeric_limits<uint64_t>::max())  // EMSCRIPTEN 由于逻辑重入，此时可能出现 Timer 中没有可调度的对象
+        return 0;
+#else
     assert(suggestedSleepTime != std::numeric_limits<uint64_t>::max());
+#endif
 
     // 计算Sleep时间
     return static_cast<double>(suggestedSleepTime) / m_stSleeper.GetFrequency();
@@ -215,7 +220,9 @@ void AppBase::Frame() noexcept
 
     // 更新消息
     {
-        LSTG_PER_FRAME_PROFILE("EventDispatchTime");
+#ifdef LSTG_DEVELOPMENT
+        LSTG_PER_FRAME_PROFILE(EventDispatchTime);
+#endif
 
         // SDL 消息
         SDL_Event event;
@@ -251,7 +258,9 @@ void AppBase::Frame() noexcept
 
 void AppBase::Update() noexcept
 {
-    LSTG_PER_FRAME_PROFILE("UpdateTime");
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(UpdateTime);
+#endif
 
     // 计算更新时间间隔
     auto now = Pal::GetCurrentTick();
@@ -281,7 +290,9 @@ void AppBase::Update() noexcept
 
 void AppBase::Render() noexcept
 {
-    LSTG_PER_FRAME_PROFILE("RenderTime");
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(RenderTime);
+#endif
 
     // 计算渲染时间间隔
     auto now = Pal::GetCurrentTick();

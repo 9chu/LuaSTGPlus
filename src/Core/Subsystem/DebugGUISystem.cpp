@@ -166,6 +166,7 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
     io.BackendPlatformName = "LSTGPlus/SDL";
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+    io.IniFilename = nullptr;  // 关闭存储
 
     // 构造渲染器
     m_pRenderer = make_shared<lstg::Subsystem::DebugGUI::detail::ImGuiRenderer>(m_pRenderSystem->GetRenderDevice(), io);
@@ -218,7 +219,6 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
 
 #ifdef LSTG_DEVELOPMENT
         m_pMiniStatusWindow->Show();
-        m_pFrameTimeMonitor->Show();
 #endif
     }
 }
@@ -255,6 +255,14 @@ Result<bool> DebugGUISystem::AppendWindow(std::shared_ptr<DebugGUI::Window> wind
         return make_error_code(errc::not_enough_memory);
     }
     return true;
+}
+
+std::shared_ptr<DebugGUI::Window> DebugGUISystem::FindWindow(std::string_view name) noexcept
+{
+    auto it = m_stWindows.find(name);
+    if (it == m_stWindows.end())
+        return {};
+    return it->second;
 }
 
 void DebugGUISystem::OnUpdate(double elapsedTime) noexcept

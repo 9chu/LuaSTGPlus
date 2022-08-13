@@ -122,4 +122,4 @@ namespace lstg::Subsystem
 }
 
 #define LSTG_PER_FRAME_PROFILE(NAME) \
-    lstg::Subsystem::detail::RunningTimeProfileHelper<lstg::Subsystem::PerformanceCounterTypes::PerFrame, true> profiler_{#NAME}
+    lstg::Subsystem::detail::RunningTimeProfileHelper<lstg::Subsystem::PerformanceCounterTypes::PerFrame, true> NAME##Profiler_{#NAME}

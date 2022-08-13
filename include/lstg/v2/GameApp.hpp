@@ -29,9 +29,9 @@ namespace lstg::v2
     enum class MouseButtons : uint32_t
     {
         Left = 0,
-        Middle,
-        Right,
-        MAX
+        Middle = 1,
+        Right = 2,
+        MAX = 3
     };
 
     /**

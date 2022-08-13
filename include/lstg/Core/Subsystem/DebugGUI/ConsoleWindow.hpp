@@ -5,6 +5,9 @@
  * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
  */
 #pragma once
+#include <optional>
+#include <vector>
+#include <functional>
 #include "Window.hpp"
 #include "../../Logging.hpp"
 
@@ -17,6 +20,8 @@ namespace lstg::Subsystem::DebugGUI
         class ConsoleLogSink;
     }
 
+    using ConsoleContextMenuCallback = std::function<void() /* noexcept */>;
+
     /**
      * 控制台窗口
      */
@@ -28,6 +33,13 @@ namespace lstg::Subsystem::DebugGUI
         ~ConsoleWindow();
 
     public:
+        /**
+         * 增加上下文菜单项
+         * @param item 菜单名
+         * @param callback 回调
+         */
+        Result<void> AddContextMenuItem(std::string_view item, ConsoleContextMenuCallback callback) noexcept;
+
         /**
          * 清空日志
          */
@@ -46,5 +58,12 @@ namespace lstg::Subsystem::DebugGUI
         bool m_bScrollToBottomNextTime = true;
         char m_stInputBuffer[1024];
         std::shared_ptr<detail::ConsoleLogSink> m_pConsoleLogSink;
+
+        // 上下文菜单
+        std::vector<std::pair<std::string, ConsoleContextMenuCallback>> m_stContextMenuItems;
+
+        // 历史
+        std::optional<size_t> m_stCurrentSelectHistoryIndex;
+        std::vector<std::string> m_stHistory;
     };
 }

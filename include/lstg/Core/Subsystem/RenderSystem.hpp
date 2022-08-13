@@ -170,7 +170,8 @@ namespace lstg::Subsystem
          * @param callback 截图数据回调
          * @param clearAlpha 清空 Alpha 通道
          */
-        Result<void> CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)> callback, bool clearAlpha = true) noexcept;
+        Result<void> CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)/* noexcept */> callback,
+            bool clearAlpha = true) noexcept;
 
         /**
          * 获取相机

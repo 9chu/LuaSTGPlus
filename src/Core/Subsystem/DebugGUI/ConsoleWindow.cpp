@@ -12,6 +12,7 @@
 #include <mutex>
 #include <imgui.h>
 #include <lstg/Core/AppBase.hpp>
+#include <lstg/Core/Subsystem/DebugGUISystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaState.hpp>
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
@@ -25,8 +26,10 @@ static const DebugWindowFlags kWindowStyle = DebugWindowFlags::NoSavedSettings;
 
 #ifdef LSTG_DEVELOPMENT
 static const unsigned kMaxLogItems = 200;
+static const unsigned kMaxHistoryItems = 100;
 #else
 static const unsigned kMaxLogItems = 50;
+static const unsigned kMaxHistoryItems = 10;
 #endif
 
 static const char* kScriptReturn = "return ";
@@ -282,6 +285,23 @@ ConsoleWindow::ConsoleWindow()
     Logging::GetInstance().AddCustomSink(m_pConsoleLogSink);
 
     strcpy(m_stInputBuffer, kScriptReturn);
+
+    // 内建窗口开关
+    AddContextMenuItem("Toggle MiniStatusWindow", []() {
+        auto& instance = AppBase::GetInstance();
+        auto& debug = *instance.GetSubsystem<Subsystem::DebugGUISystem>();
+        auto window = debug.GetMiniStatusWindow();
+        window->IsVisible() ? window->Hide() : window->Show();
+    });
+    AddContextMenuItem("Toggle FrameTimeMonitor", []() {
+        auto& instance = AppBase::GetInstance();
+        auto& debug = *instance.GetSubsystem<Subsystem::DebugGUISystem>();
+        auto window = debug.GetFrameTimeMonitor();
+        window->IsVisible() ? window->Hide() : window->Show();
+    });
+
+    // 初始化历史数
+    m_stHistory.reserve(kMaxHistoryItems);
 }
 
 ConsoleWindow::~ConsoleWindow()
@@ -289,6 +309,19 @@ ConsoleWindow::~ConsoleWindow()
     bool ok = Logging::GetInstance().RemoveCustomSink(m_pConsoleLogSink.get());
     static_cast<void>(ok);
     assert(ok);
+}
+
+Result<void> ConsoleWindow::AddContextMenuItem(std::string_view item, ConsoleContextMenuCallback callback) noexcept
+{
+    try
+    {
+        m_stContextMenuItems.emplace_back(std::make_pair<string, ConsoleContextMenuCallback>(string{item}, std::move(callback)));
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+    return {};
 }
 
 void ConsoleWindow::ClearLog() noexcept
@@ -325,6 +358,27 @@ void ConsoleWindow::OnRender() noexcept
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footerHeightToReserve), false, ImGuiWindowFlags_None);
         if (ImGui::BeginPopupContextWindow())
         {
+            if (!m_stContextMenuItems.empty())
+            {
+                for (auto& e : m_stContextMenuItems)
+                {
+                    if (ImGui::Selectable(e.first.c_str()))
+                    {
+                        if (e.second)
+                        {
+                            try
+                            {
+                                e.second();
+                            }
+                            catch (...)
+                            {
+                                assert(false);
+                            }
+                        }
+                    }
+                }
+                ImGui::Separator();
+            }
             if (ImGui::Selectable("Clear"))
                 ClearLog();
             ImGui::EndPopup();
@@ -352,7 +406,7 @@ void ConsoleWindow::OnRender() noexcept
 
     bool reclaimFocus = false;
     ImGuiInputTextFlags inputTextFlags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion |
-        ImGuiInputTextFlags_CallbackHistory;
+        ImGuiInputTextFlags_CallbackHistory | ImGuiInputTextFlags_CallbackEdit;
     if (ImGui::InputText("##EnterCmd", m_stInputBuffer + kScriptReturnLen, IM_ARRAYSIZE(m_stInputBuffer), inputTextFlags,
         [](ImGuiInputTextCallbackData* data) {
             auto self = static_cast<ConsoleWindow*>(data->UserData);
@@ -381,9 +435,22 @@ void ConsoleWindow::ExecCommand() noexcept
         auto cmd = StrTrimRight(m_stInputBuffer);
         if (cmd.length() > kScriptReturnLen)
         {
+            auto inputCmd = string_view {cmd.data() + kScriptReturnLen, cmd.size() - kScriptReturnLen};
+
             // 追加输入
-            m_pConsoleLogSink->AppendRaw(kColorUserInput, fmt::format("] {}",
-                string_view {cmd.data() + kScriptReturnLen, cmd.size() - kScriptReturnLen}));
+            m_pConsoleLogSink->AppendRaw(kColorUserInput, fmt::format("] {}", inputCmd));
+
+            // 写入历史
+            try
+            {
+                m_stCurrentSelectHistoryIndex = {};
+                if (m_stHistory.size() >= kMaxHistoryItems)
+                    m_stHistory.erase(m_stHistory.begin());
+                m_stHistory.emplace_back(inputCmd);
+            }
+            catch (...)  // bad_alloc
+            {
+            }
 
             // 执行脚本
             string errorOutput;
@@ -408,7 +475,63 @@ int ConsoleWindow::OnTextEdit(ImGuiInputTextCallbackData* data) noexcept
             // FIXME: 实现自动完成
             break;
         case ImGuiInputTextFlags_CallbackHistory:
-            // FIXME: 实现历史
+            if (m_stHistory.empty())
+            {
+                m_stCurrentSelectHistoryIndex = {};
+            }
+            else
+            {
+                if (m_stCurrentSelectHistoryIndex && *m_stCurrentSelectHistoryIndex >= m_stHistory.size())
+                    m_stCurrentSelectHistoryIndex = {};
+
+                if (data->EventKey == ImGuiKey_UpArrow)
+                {
+                    if (!m_stCurrentSelectHistoryIndex)
+                    {
+                        m_stCurrentSelectHistoryIndex = m_stHistory.size() - 1;
+                    }
+                    else
+                    {
+                        assert(!m_stHistory.empty());
+                        if (*m_stCurrentSelectHistoryIndex == 0)
+                        {
+                            m_stCurrentSelectHistoryIndex = m_stHistory.size() - 1;
+                        }
+                        else
+                        {
+                            m_stCurrentSelectHistoryIndex = *m_stCurrentSelectHistoryIndex - 1;
+                        }
+                    }
+                }
+                else if (data->EventKey == ImGuiKey_DownArrow)
+                {
+                    if (!m_stCurrentSelectHistoryIndex)
+                    {
+                        m_stCurrentSelectHistoryIndex = 0;
+                    }
+                    else
+                    {
+                        assert(!m_stHistory.empty());
+                        if (*m_stCurrentSelectHistoryIndex >= m_stHistory.size() - 1)
+                        {
+                            m_stCurrentSelectHistoryIndex = 0;
+                        }
+                        else
+                        {
+                            m_stCurrentSelectHistoryIndex = *m_stCurrentSelectHistoryIndex + 1;
+                        }
+                    }
+                }
+
+                assert(m_stCurrentSelectHistoryIndex);
+                string& selectedHistory = m_stHistory[*m_stCurrentSelectHistoryIndex];
+                data->DeleteChars(0, data->BufTextLen);
+                data->InsertChars(0, selectedHistory.c_str());
+                data->SelectionStart = data->SelectionEnd = data->BufTextLen;
+            }
+            break;
+        case ImGuiInputTextFlags_CallbackEdit:
+            m_stCurrentSelectHistoryIndex = {};
             break;
     }
     return 0;
