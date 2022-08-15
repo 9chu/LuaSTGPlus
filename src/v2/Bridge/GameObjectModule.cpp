@@ -653,7 +653,7 @@ void GameObjectModule::ParticleFire(LuaStack& stack, AbsIndex object)
     auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
     if (!rendererComponent || rendererComponent->RenderData.index() != 3)
     {
-        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contains particle system");
+        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contain particle system");
         return;
     }
 
@@ -683,7 +683,7 @@ void GameObjectModule::ParticleStop(LuaStack& stack, AbsIndex object)
     auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
     if (!rendererComponent || rendererComponent->RenderData.index() != 3)
     {
-        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contains particle system");
+        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contain particle system");
         return;
     }
 
@@ -713,7 +713,7 @@ int32_t GameObjectModule::ParticleGetCount(LuaStack& stack, AbsIndex object)
     auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
     if (!rendererComponent || rendererComponent->RenderData.index() != 3)
     {
-        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contains particle system");
+        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contain particle system");
         return 0;
     }
 
@@ -743,7 +743,7 @@ float GameObjectModule::ParticleGetEmission(LuaStack& stack, AbsIndex object)
     auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
     if (!rendererComponent || rendererComponent->RenderData.index() != 3)
     {
-        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contains particle system");
+        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contain particle system");
         return 0;
     }
 
@@ -777,7 +777,7 @@ void GameObjectModule::ParticleSetEmission(LuaStack& stack, AbsIndex object, flo
     auto rendererComponent = entity->TryGetComponent<Components::Renderer>();
     if (!rendererComponent || rendererComponent->RenderData.index() != 3)
     {
-        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contains particle system");
+        LSTG_LOG_WARN_CAT(GameObjectModule, "entity doesn't contain particle system");
         return;
     }
 

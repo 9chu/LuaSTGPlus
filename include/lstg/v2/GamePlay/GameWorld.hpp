@@ -151,6 +151,14 @@ namespace lstg::v2::GamePlay
          */
         void Clear() noexcept;
 
+    public:
+        /**
+         * 框架内部的 Update 方法
+         * 无论 Frame 是否调用，Update 总是每帧执行一次
+         * @param elapsedTime 流逝时间
+         */
+        void Update(double elapsedTime) noexcept;
+
     protected:  // IScriptObjectBridge
         int OnGetAttribute(Subsystem::Script::LuaStack stack, ECS::EntityId id, std::string_view key) override;
         bool OnSetAttribute(Subsystem::Script::LuaStack stack, ECS::EntityId id, std::string_view key,

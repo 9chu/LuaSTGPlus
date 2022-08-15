@@ -17,10 +17,14 @@
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
+#include <lstg/Core/Subsystem/DebugGUISystem.hpp>
+#include <lstg/Core/Subsystem/DebugGUI/MiniStatusWindow.hpp>
+#include <lstg/Core/Subsystem/DebugGUI/ConsoleWindow.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include <lstg/v2/DebugGUI/PerformanceMonitor.hpp>
 #include "detail/KeyMapping.hpp"
 
 // 资源类型
@@ -186,6 +190,24 @@ GameApp::GameApp(int argc, char** argv)
         ::memset(m_stMouseButtonStateMap, 0, sizeof(m_stMouseButtonStateMap));
     }
 
+    // 初始化性能分析系统
+    {
+        auto& debugGUI = *GetSubsystem<Subsystem::DebugGUISystem>();
+
+        // 增加对象数计数显示
+        // GameWorld.cpp:Update
+        debugGUI.GetMiniStatusWindow()->AddCounter("OBJ", Subsystem::PerformanceCounterTypes::PerFrame, "GameWorld_EntityCount");
+
+#ifdef LSTG_DEVELOPMENT
+        // 增加 PerformanceMonitor
+        auto pm = make_shared<v2::DebugGUI::PerformanceMonitor>();
+        debugGUI.AppendWindow(pm).ThrowIfError();
+        debugGUI.GetConsoleWindow()->AddContextMenuItem("Toggle PerformanceMonitor", [pm]() {
+            pm->IsVisible() ? pm->Hide() : pm->Show();
+        }).ThrowIfError();
+#endif
+    }
+
     // 初始化函数库
     {
         auto& state = GetSubsystem<Subsystem::ScriptSystem>()->GetState();
@@ -256,7 +278,7 @@ GameApp::GameApp(int argc, char** argv)
             LSTG_THROW(AppInitializeFailedException, "Fail to call \"{}\": {}", kEventOnGameInit, ret.GetError());
     }
 
-    // TODO
+    // 显示主窗口
     GetSubsystem<Subsystem::WindowSystem>()->Show();
 }
 
@@ -656,6 +678,9 @@ void GameApp::OnUpdate(double elapsed) noexcept
         LSTG_LOG_TRACE_CAT(GameApp, "{} -> true, exit main loop", kEventOnUpdate);
         Stop();
     }
+
+    // 更新 GameWorld 的内部状态
+    m_stDefaultWorld.Update(elapsed);
 
     // 帧末清理单帧输入状态
     {

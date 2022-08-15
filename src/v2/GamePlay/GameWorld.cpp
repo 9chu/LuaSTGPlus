@@ -8,6 +8,7 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Math/Collider2D/IntersectCheck.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaPush.hpp>
 #include <lstg/Core/Subsystem/Script/LuaRead.hpp>
@@ -161,6 +162,10 @@ GameWorld::GameWorld(GameApp& app)
 
 Result<LuaStack::AbsIndex> GameWorld::CreateEntity(LuaStack stack, LuaStack::AbsIndex classIndex) noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_New);
+#endif
+
     // 创建实例
     auto entity = m_stWorld.CreateEntity<Transform, Collider, Movement, Renderer, LifeTime, Script>();
     if (!entity)
@@ -223,6 +228,10 @@ std::optional<ECS::Entity> GameWorld::GetEntityByScriptObjectId(ScriptObjectId i
 
 bool GameWorld::DeleteEntity(Subsystem::Script::LuaStack stack, ScriptObjectId scriptId, unsigned args) noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_Del);
+#endif
+
     // 获取 ECS 实例
     auto entity = GetEntityByScriptObjectId(scriptId);
     if (!entity)
@@ -250,6 +259,10 @@ bool GameWorld::DeleteEntity(Subsystem::Script::LuaStack stack, ScriptObjectId s
 
 bool GameWorld::KillEntity(Subsystem::Script::LuaStack stack, ScriptObjectId scriptId, unsigned args) noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_Kill);
+#endif
+
     // 获取 ECS 实例
     auto entity = GetEntityByScriptObjectId(scriptId);
     if (!entity)
@@ -277,6 +290,10 @@ bool GameWorld::KillEntity(Subsystem::Script::LuaStack stack, ScriptObjectId scr
 
 void GameWorld::Frame() noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_ObjFrame);
+#endif
+
     // 为了保证与 luastg 行为的兼容性，这里通过 LifeTime 上的链表更新所有对象
     // 这并不符合 ECS 的使用规范，无法得到 cache friendly 的优势
     assert(m_pLifeTimeRoot);
@@ -338,6 +355,10 @@ void GameWorld::Frame() noexcept
 
 void GameWorld::Render() noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_ObjRender);
+#endif
+
     assert(m_pRendererRoot);
     Renderer* p = m_pRendererRoot->RendererHeader.NextInChain;
     assert(p);
@@ -371,6 +392,10 @@ void GameWorld::Render() noexcept
 
 void GameWorld::UpdateCoordinate() noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_UpdateXY);
+#endif
+
     m_stWorld.VisitEntities<tuple<Transform, Movement>>(
         [](ECS::Entity ent, Transform& transform, Movement& movement) {
             transform.LocationDelta = transform.Location - transform.LastLocation;
@@ -382,6 +407,10 @@ void GameWorld::UpdateCoordinate() noexcept
 
 void GameWorld::AfterFrame() noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_AfterFrame);
+#endif
+
     // 更新生命周期
     m_stWorld.VisitEntities<tuple<LifeTime>>([](ECS::Entity ent, LifeTime& lifeTime) {
         ++lifeTime.Timer;
@@ -509,6 +538,10 @@ void GameWorld::RenderEntityDefault(ECS::Entity entity) noexcept
 
 void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    LSTG_PER_FRAME_PROFILE(GameWorld_CollisionCheck);
+#endif
+
     assert(groupA < kColliderGroupCount && groupB < kColliderGroupCount);
 
     assert(m_pColliderRoot);
@@ -608,6 +641,29 @@ void GameWorld::Clear() noexcept
         p = next;
     }
     assert(m_stScriptObjectPool.GetCurrentObjects() == 0);
+}
+
+void GameWorld::Update(double elapsedTime) noexcept
+{
+#define ADD_COUNTER(NAME, WHAT) \
+    Subsystem::ProfileSystem::GetInstance().IncrementPerformanceCounter(Subsystem::PerformanceCounterTypes::PerFrame, #NAME, WHAT)
+
+    // 更新对象数
+    ADD_COUNTER(GameWorld_EntityCount, static_cast<double>(GetScriptObjectPool().GetCurrentObjects()));
+
+#ifdef LSTG_DEVELOPMENT
+    // 更新内存占用
+    auto ecsUsedMemoryKb = m_stWorld.GetUsedMemorySize() / 1024;
+    auto ecsMemoryKb = m_stWorld.GetAllocatedMemorySize() / 1024;
+    auto ecsUsedEntityCount = m_stWorld.GetUsedEntityCount();
+    auto ecsAllocatedEntityCount = m_stWorld.GetFreeEntityCount() + ecsUsedEntityCount;
+    ADD_COUNTER(GameWorld_ECSUsed, static_cast<double>(ecsUsedMemoryKb));
+    ADD_COUNTER(GameWorld_ECSAllocated, static_cast<double>(ecsMemoryKb));
+    ADD_COUNTER(GameWorld_ECSUsedCount, static_cast<double>(ecsUsedEntityCount));
+    ADD_COUNTER(GameWorld_ECSAllocatedCount, static_cast<double>(ecsAllocatedEntityCount));
+#endif
+
+#undef ADD_COUNTER
 }
 
 int GameWorld::OnGetAttribute(LuaStack stack, ECS::EntityId id, std::string_view key)

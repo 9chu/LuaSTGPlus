@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaPush.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 
@@ -178,6 +179,19 @@ Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexc
 void ScriptSystem::OnUpdate(double elapsedTime) noexcept
 {
     m_stSandBox.Update(elapsedTime);
+
+    {
+#ifdef LSTG_DEVELOPMENT
+        LSTG_PER_FRAME_PROFILE(ScriptSystem_AggressiveGC);
+#endif
+        lua_gc(m_stState, LUA_GCSTEP, 100);  // 每帧主动回收 100kb
+    }
+
+#ifdef LSTG_DEVELOPMENT
+    auto vmMemoryKb = lua_gc(m_stState, LUA_GCCOUNT, 0);
+    Subsystem::ProfileSystem::GetInstance().SetPerformanceCounter(Subsystem::PerformanceCounterTypes::PerFrame, "ScriptSystem_VMHeapSize",
+        static_cast<double>(vmMemoryKb));
+#endif
 }
 
 void ScriptSystem::LogCallFail(const char* func, const char* what) noexcept

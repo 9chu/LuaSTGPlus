@@ -148,6 +148,16 @@ namespace lstg::ECS
             return const_cast<Archetype*>(this)->GetChunk(componentId);
         }
 
+        /**
+         * 获取分配的内存大小
+         */
+        size_t GetAllocatedMemorySize() const noexcept;
+
+        /**
+         * 获取使用中的内存大小
+         */
+        size_t GetUsedMemorySize() const noexcept;
+
     private:
         struct EntityInfo : public EntityState
         {
@@ -164,5 +174,6 @@ namespace lstg::ECS
         ArchetypeEntityId m_uFirstFreeEntity = kInvalidArchetypeEntityId;  // 首个空闲的 Entity
         size_t m_uUsedEntity = 0u;
         size_t m_uFreeEntity = 0u;
+        size_t m_uComponentSizeOfOneEntity = 0u;
     };
 }

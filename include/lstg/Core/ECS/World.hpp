@@ -50,6 +50,26 @@ namespace lstg::ECS
             VisitEntitiesHelper<TComponents>{}(this, callback);
         }
 
+        /**
+         * 获取分配的内存大小
+         */
+        size_t GetAllocatedMemorySize() const noexcept;
+
+        /**
+         * 获取使用中的内存大小
+         */
+        size_t GetUsedMemorySize() const noexcept;
+
+        /**
+         * 获取总对象数
+         */
+        size_t GetUsedEntityCount() const noexcept;
+
+        /**
+         * 获取空闲对象数
+         */
+        size_t GetFreeEntityCount() const noexcept;
+
     private:
         Result<Entity> CreateEntity(Span<const ComponentDescriptor*> desc) noexcept;
         Result<ArchetypeId> GetOrRegisterArchetype(Span<const ComponentDescriptor*> desc) noexcept;

@@ -16,6 +16,38 @@ Archetype& World::GetArchetype(ArchetypeId id) noexcept
     return m_stArchetypes[id];
 }
 
+size_t World::GetAllocatedMemorySize() const noexcept
+{
+    size_t ret = 0;
+    for (const auto& archetype : m_stArchetypes)
+        ret += archetype.GetAllocatedMemorySize();
+    return ret;
+}
+
+size_t World::GetUsedMemorySize() const noexcept
+{
+    size_t ret = 0;
+    for (const auto& archetype : m_stArchetypes)
+        ret += archetype.GetUsedMemorySize();
+    return ret;
+}
+
+size_t World::GetUsedEntityCount() const noexcept
+{
+    size_t ret = 0;
+    for (const auto& archetype : m_stArchetypes)
+        ret += archetype.GetUsedEntityCount();
+    return ret;
+}
+
+size_t World::GetFreeEntityCount() const noexcept
+{
+    size_t ret = 0;
+    for (const auto& archetype : m_stArchetypes)
+        ret += archetype.GetFreeEntityCount();
+    return ret;
+}
+
 Result<Entity> World::CreateEntity(Span<const ComponentDescriptor*> desc) noexcept
 {
     assert(!desc.IsEmpty());

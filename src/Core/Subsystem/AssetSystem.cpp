@@ -8,6 +8,7 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include "Asset/detail/WeakPtrTraits.hpp"
 
 // Core 中预定义的 Factory
@@ -168,7 +169,12 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             }
 
             // 调用 Update
-            task->Update();
+            {
+#ifdef LSTG_DEVELOPMENT
+                LSTG_PER_FRAME_PROFILE(AssetTask_Update);
+#endif
+                task->Update();
+            }
 
             // 等待依赖加载或者正在加载，此时跳过
             if (state == Asset::AssetLoadingStates::DependencyLoading || state == Asset::AssetLoadingStates::AsyncLoadCommitted ||
@@ -181,6 +187,10 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             // 可以发起加载过程
             if (executeEnabled && state == Asset::AssetLoadingStates::Pending)
             {
+#ifdef LSTG_DEVELOPMENT
+                LSTG_PER_FRAME_PROFILE(AssetTask_PreLoad);
+#endif
+
                 auto ret = task->PreLoad();
                 state = task->GetState();
 
@@ -215,6 +225,9 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             // 如果异步加载成功
             if (executeEnabled && state == Asset::AssetLoadingStates::AsyncLoaded)
             {
+#ifdef LSTG_DEVELOPMENT
+                LSTG_PER_FRAME_PROFILE(AssetTask_PostLoad);
+#endif
                 auto ret = task->PostLoad();
                 state = task->GetState();
 
@@ -319,6 +332,10 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
     // 刷新所有监控任务的状态
     if (!m_stWatchTasks.empty())
     {
+#ifdef LSTG_DEVELOPMENT
+        LSTG_PER_FRAME_PROFILE(AssetTask_WatchTasks);
+#endif
+
         auto begin = std::chrono::steady_clock::now();
         auto end = begin;
 
@@ -349,7 +366,12 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                     m_stLoadingTasks.emplace_back(task);
 
                     // 发起重新加载操作
-                    task->PrepareToReload();
+                    {
+#ifdef LSTG_DEVELOPMENT
+                        LSTG_PER_FRAME_PROFILE(AssetTask_PrepareToReload);
+#endif
+                        task->PrepareToReload();
+                    }
 
                     // 从队列删除
                     m_stWatchTasks.erase(m_stWatchTasks.begin() + static_cast<ptrdiff_t>(m_uLastCheckedTask));
@@ -373,7 +395,12 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 #endif
 
     // 更新线程池
-    m_stAsyncLoadingThread.Update();
+    {
+#ifdef LSTG_DEVELOPMENT
+        LSTG_PER_FRAME_PROFILE(AssetTask_ThreadUpdate);
+#endif
+        m_stAsyncLoadingThread.Update();
+    }
 }
 
 void AssetSystem::RegisterCoreAssetFactories()

@@ -26,6 +26,7 @@ Archetype::Archetype(ArchetypeId id, Span<const ComponentDescriptor*> descriptor
         chunk.Expand().ThrowIfError();  // 分配一块内存
         entityCount = entityCount ? std::min(*entityCount, chunk.GetCapacity()) : chunk.GetCapacity();
         m_stChunks.emplace(desc->Id, std::move(chunk));
+        m_uComponentSizeOfOneEntity += desc->SizeOfComponent;  // 统计单个 Entity 占用的内存大小
     }
     assert(entityCount);
 
@@ -205,4 +206,17 @@ ArchetypeEntityId Archetype::PrevEntity(ArchetypeEntityId id) noexcept
     assert(id < m_stEntities.size());
     auto& state = m_stEntities[id];
     return state.Prev;
+}
+
+size_t Archetype::GetAllocatedMemorySize() const noexcept
+{
+    size_t ret = 0;
+    for (const auto& chunk : m_stChunks)
+        ret += chunk.second.GetMemorySize();
+    return ret;
+}
+
+size_t Archetype::GetUsedMemorySize() const noexcept
+{
+    return GetUsedEntityCount() * m_uComponentSizeOfOneEntity;
 }

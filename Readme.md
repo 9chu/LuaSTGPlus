@@ -20,7 +20,7 @@
 - [x] RT & PostEffect 支持
 - [x] 鼠标输入事件
 - [x] 截图支持
-- [ ] Profile 数据 & Debug 界面调整
+- [x] Profile 数据 & Debug 界面调整
 - [ ] 内存泄漏 BUG 修复
 - [ ] WebASM 调优
   - [ ] SRGB 处理

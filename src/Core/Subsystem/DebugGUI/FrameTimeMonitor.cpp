@@ -54,7 +54,7 @@ void FrameTimeMonitor::OnUpdate(double elapsedTime) noexcept
 
 void FrameTimeMonitor::OnRender() noexcept
 {
-    if (ImPlot::BeginPlot("##NoTitle", ImVec2(300.f, 150.f)))
+    if (ImPlot::BeginPlot("##NoTitle", ImVec2(350.f, 150.f)))
     {
         auto totalSamples = static_cast<int>(m_stFrames.size());
         auto beginOfTotalTime = reinterpret_cast<double*>(reinterpret_cast<uint8_t*>(m_stFrames.data()) + offsetof(FrameTime, Total));
@@ -72,9 +72,9 @@ void FrameTimeMonitor::OnRender() noexcept
         ImPlot::SetupAxesLimits(0, totalSamples, 0, 5.0);
         ImPlot::PlotLine("Frame", beginOfTotalTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
 #ifdef LSTG_DEVELOPMENT
-        ImPlot::PlotLine("EventDispatch", beginOfEventDispatchTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
-        ImPlot::PlotLine("Update", beginOfEventUpdateTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
-        ImPlot::PlotLine("Render", beginOfEventRenderTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+        ImPlot::PlotLine("Event (stack)", beginOfEventDispatchTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+        ImPlot::PlotLine("Update (stack)", beginOfEventUpdateTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+        ImPlot::PlotLine("Render (stack)", beginOfEventRenderTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
 #endif
         ImPlot::EndPlot();
     }
