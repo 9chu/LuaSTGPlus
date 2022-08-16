@@ -429,6 +429,7 @@ Result<void> CommandExecutor::Execute(CommandBuffer::DrawData& drawData) noexcep
     }
 
     // 遍历命令
+    m_uDrawCalls = 0;
     for (const auto& group : drawData.CommandGroup)
         OnDrawGroup(drawData, *group.get());
 
@@ -615,5 +616,6 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
         ret = m_stRenderSystem.Draw(m_pMesh.get(), cmd.IndexCount, cmd.BaseVertexIndex, cmd.IndexStart);
         if (!ret)
             LSTG_LOG_ERROR_CAT(CommandExecutor, "Draw index={}, start={} fail: {}", cmd.IndexCount, cmd.IndexStart, ret.GetError());
+        ++m_uDrawCalls;
     }
 }

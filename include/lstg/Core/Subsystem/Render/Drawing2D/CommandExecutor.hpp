@@ -28,6 +28,11 @@ namespace lstg::Subsystem::Render::Drawing2D
          */
         Result<void> Execute(CommandBuffer::DrawData& drawData) noexcept;
 
+        /**
+         * 获取最后一次执行产生的 DrawCall 数量
+         */
+        size_t GetLastExecutedDrawCalls() const noexcept { return m_uDrawCalls; }
+
     protected:
         virtual const GraphDef::EffectPassGroupDefinition* OnSelectEffectGroup(const GraphDef::EffectDefinition* effect,
             const std::map<std::string, std::string, std::less<>>& tags) noexcept;
@@ -54,5 +59,8 @@ namespace lstg::Subsystem::Render::Drawing2D
 
         // 效果选择器
         LRUCache<const GraphDef::EffectDefinition*, SelectableEffectPassGroups, 16> m_stEffectGroupSelector;
+
+        // 数据统计
+        size_t m_uDrawCalls = 0;
     };
 }

@@ -716,7 +716,24 @@ void GameApp::OnRender(double elapsed) noexcept
         LSTG_LOG_ERROR_CAT(GameApp, "Fail to commit glyph atlas: {}", atlasRet.GetError());
 
     // 渲染
-    m_stCommandExecutor.Execute(drawData);
+    {
+#ifdef LSTG_DEVELOPMENT
+        LSTG_PER_FRAME_PROFILE(Draw_ExecutionTime);
+#endif
+
+        m_stCommandExecutor.Execute(drawData);
+
+#ifdef LSTG_DEVELOPMENT
+#define ADD_COUNTER(NAME, WHAT) \
+        Subsystem::ProfileSystem::GetInstance().IncrementPerformanceCounter(Subsystem::PerformanceCounterTypes::PerFrame, #NAME, WHAT)
+
+        // 绘图统计
+        ADD_COUNTER(Draw_VertexCount, static_cast<double>(drawData.VertexBuffer.size()));
+        ADD_COUNTER(Draw_PrimitiveCount, static_cast<double>(drawData.IndexBuffer.size() / 6));
+        ADD_COUNTER(Draw_DrawCallCount, static_cast<double>(m_stCommandExecutor.GetLastExecutedDrawCalls()));
+#undef ADD_COUNTER
+#endif
+    }
 }
 
 // </editor-fold>

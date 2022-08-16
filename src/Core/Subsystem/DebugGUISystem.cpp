@@ -15,6 +15,10 @@
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include "DebugGUI/detail/ImGuiRenderer.hpp"
 
+#ifdef FindWindow
+#undef FindWindow
+#endif
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem;

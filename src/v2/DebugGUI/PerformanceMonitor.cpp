@@ -36,6 +36,12 @@ PerformanceMonitor::PerformanceMonitor()
     AddInstrument("GameWorld - Memory", "Memory Usage (KB)", "ECSAllocated", "GameWorld_ECSAllocated");
     AddInstrument("GameWorld - Memory", "Memory Usage (KB)", "ECSUsed", "GameWorld_ECSUsed");
 
+    // GameApp.cpp
+    AddInstrument("Draw", "Execution Time", "Time", "Draw_ExecutionTime");
+    AddInstrument("Draw", "Primitives", "Vertex", "Draw_VertexCount");
+    AddInstrument("Draw", "Primitives", "Primitive", "Draw_PrimitiveCount");
+    AddInstrument("Draw", "Draw Calls", "Count", "Draw_DrawCallCount");
+
     // ScriptSystem.cpp
     AddInstrument("ScriptSystem", "VM Memory Usage (KB)", "Usage", "ScriptSystem_VMHeapSize");
     AddInstrument("ScriptSystem", "GC Time", "Aggressive GC", "ScriptSystem_AggressiveGC");
