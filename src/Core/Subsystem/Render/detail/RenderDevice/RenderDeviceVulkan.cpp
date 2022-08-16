@@ -62,6 +62,7 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
 #ifdef LSTG_DEVELOPMENT
     engineCreateInfo.SetValidationLevel(VALIDATION_LEVEL_1);
 #endif
+    engineCreateInfo.DynamicHeapSize = 32 * 1024 * 1024;  // 32MB 动态内存空间，用于存放 VertexBuffer
     factory->CreateDeviceAndContextsVk(engineCreateInfo, &m_pRenderDevice, &m_pRenderContext);
     if (!m_pRenderDevice)
         LSTG_THROW(RenderDeviceInitializeFailedException, "Unable to initialize Vulkan render device");
