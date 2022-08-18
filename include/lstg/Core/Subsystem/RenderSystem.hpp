@@ -23,6 +23,7 @@
 namespace lstg::Subsystem::Render::detail
 {
     class ClearHelper;
+    class GammaCorrectHelper;
     class ScreenCaptureHelper;
 }
 
@@ -266,6 +267,9 @@ namespace lstg::Subsystem
 
         // 内建工具
         std::shared_ptr<Render::detail::ClearHelper> m_pClearHelper;
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+        std::shared_ptr<Render::detail::GammaCorrectHelper> m_pGammaCorrectHelper;
+#endif
         std::shared_ptr<Render::detail::ScreenCaptureHelper> m_pScreenCaptureHelper;
 
         // 渲染状态

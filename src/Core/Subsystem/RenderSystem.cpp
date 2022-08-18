@@ -15,6 +15,7 @@
 #include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/ClearHelper.hpp"
+#include "Render/detail/GammaCorrectHelper.hpp"
 #include "Render/detail/ScreenCaptureHelper.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
@@ -31,6 +32,22 @@ static const unsigned kDefaultTexture2DHeight = 16;
 
 namespace
 {
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    extern "C" void glEnable(unsigned int cap);
+    extern "C" unsigned int glGetError();
+
+    /**
+     * 检查是否可以使用 SRGB FrameBuffer
+     */
+    bool IsSRGBFrameBufferAvailable() noexcept
+    {
+        ::glEnable(/* GL_FRAMEBUFFER_SRGB */ 0x8DB9);
+        if (::glGetError() != /* GL_NO_ERROR */ 0)
+            return false;
+        return true;
+    }
+#endif
+
     /**
      * Diligent 调试日志转发
      */
@@ -218,6 +235,15 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
     // 创建清屏工具
     m_pClearHelper = make_shared<Render::detail::ClearHelper>(m_pRenderDevice.get());
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    // 创建 Gamma 校准工具
+    if (!IsSRGBFrameBufferAvailable())
+    {
+        LSTG_LOG_INFO_CAT(RenderSystem, "SRGB framebuffer not available, adding gamma correction post effect");
+        m_pGammaCorrectHelper = make_shared<Render::detail::GammaCorrectHelper>(m_pRenderDevice.get());
+    }
+#endif
 
     // 创建截图工具
     m_pScreenCaptureHelper = make_shared<Render::detail::ScreenCaptureHelper>(m_pRenderDevice.get());
@@ -474,7 +500,11 @@ Result<void> RenderSystem::BeginFrame() noexcept
     auto swapChain = m_pRenderDevice->GetSwapChain();
     auto context = m_pRenderDevice->GetImmediateContext();
 
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    auto* renderTargetView = m_pGammaCorrectHelper ? m_pGammaCorrectHelper->GetRenderTargetView() : swapChain->GetCurrentBackBufferRTV();
+#else
     auto* renderTargetView = swapChain->GetCurrentBackBufferRTV();
+#endif
     auto* depthStencilView = swapChain->GetDepthBufferDSV();
 
     // 在帧开始切换 RT 到 SwapChain 上的 Buffer
@@ -521,6 +551,19 @@ Result<void> RenderSystem::BeginFrame() noexcept
 void RenderSystem::EndFrame() noexcept
 {
     auto context = m_pRenderDevice->GetImmediateContext();
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    // 切换到默认 RT，完成 Gamma 校准步骤
+    if (m_pGammaCorrectHelper)
+    {
+        auto swapChain = m_pRenderDevice->GetSwapChain();
+        auto* renderTargetView = swapChain->GetCurrentBackBufferRTV();
+        auto* depthStencilView = swapChain->GetDepthBufferDSV();
+
+        context->SetRenderTargets(1, &renderTargetView, depthStencilView, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pGammaCorrectHelper->DrawFrameBuffer();
+    }
+#endif
 
     // 此时需要撇去 RT，进行后续的截屏动作
     {
@@ -623,7 +666,11 @@ Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, 
     }
     else
     {
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+        renderTargetView = m_pGammaCorrectHelper ? m_pGammaCorrectHelper->GetRenderTargetView() : swapChain->GetCurrentBackBufferRTV();
+#else
         renderTargetView = swapChain->GetCurrentBackBufferRTV();
+#endif
     }
     if (m_stCurrentOutputViews.DepthStencilView)
     {
@@ -793,7 +840,11 @@ Result<void> RenderSystem::CommitCamera() noexcept
         }
         else
         {
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            renderTargetView = m_pGammaCorrectHelper ? m_pGammaCorrectHelper->GetRenderTargetView() : swapChain->GetCurrentBackBufferRTV();
+#else
             renderTargetView = swapChain->GetCurrentBackBufferRTV();
+#endif
         }
         if (outputViews.DepthStencilView)
         {
@@ -1028,6 +1079,9 @@ void RenderSystem::OnEvent(SubsystemEvent& event) noexcept
             {
                 LSTG_LOG_INFO_CAT(RenderSystem, "Swap chain resize {}x{} -> {}x{}", desc.Width, desc.Height, newWidth, newHeight);
                 swapChain->Resize(newWidth, newHeight);
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+                m_pGammaCorrectHelper->ResizeFrameBuffer();
+#endif
             }
         }
     }

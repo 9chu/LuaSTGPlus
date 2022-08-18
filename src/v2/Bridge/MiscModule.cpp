@@ -81,11 +81,11 @@ LSTGColor MiscModule::NewColor(Subsystem::Script::LuaStack& stack)
     LSTGColor ret {};
     if (stack.GetTop() == 1)
     {
-        auto argb = luaL_checkinteger(stack, 1);
-        ret.r((argb & 0x00FF0000) >> 16);
-        ret.g((argb & 0x0000FF00) >> 8);
-        ret.b(argb & 0x000000FF);
-        ret.a((argb & 0xFF000000) >> 24);
+        auto argb = static_cast<uint32_t>(luaL_checknumber(stack, 1));  // 使用 checkinteger 会在 lua51 下得到意外结果
+        ret.r((argb & 0x00FF0000u) >> 16u);
+        ret.g((argb & 0x0000FF00u) >> 8u);
+        ret.b(argb & 0x000000FFu);
+        ret.a((argb & 0xFF000000u) >> 24u);
         return ret;
     }
 
