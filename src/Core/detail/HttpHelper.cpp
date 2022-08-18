@@ -15,11 +15,11 @@
 
 using namespace std;
 using namespace lstg;
-using namespace lstg::Subsystem::VFS::detail;
+using namespace lstg::detail;
 
 LSTG_DEF_LOG_CATEGORY(HttpHelper);
 
-int lstg::Subsystem::VFS::detail::CaseInsensitiveCompare(std::string_view s1, std::string_view s2) noexcept
+int lstg::detail::CaseInsensitiveCompare(std::string_view s1, std::string_view s2) noexcept
 {
     static unsigned char kCaseInsensitiveMap[] = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -69,7 +69,7 @@ int lstg::Subsystem::VFS::detail::CaseInsensitiveCompare(std::string_view s1, st
     }
 }
 
-Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view buf) noexcept
+Result<time_t> lstg::detail::ParseHttpDateTime(std::string_view buf) noexcept
 {
     static const char* kMonths[12] = {
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -101,10 +101,10 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
     ::memset(&tm, 0, sizeof(tm));
 
 #define APPEND_TO_BUFFER(CH) \
-    {                                                                        \
-        if (bufferLength >= sizeof(buffer))                                  \
-            return make_error_code(WebFileSystemError::InvalidHttpDateTime); \
-        buffer[bufferLength ++] = CH;                                        \
+    {                                                           \
+        if (bufferLength >= sizeof(buffer))                     \
+            return make_error_code(std::errc::no_buffer_space); \
+        buffer[bufferLength ++] = CH;                           \
     } while (false)
 
 
@@ -122,7 +122,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                 else                                                                                                      \
                 {                                                                                                         \
                     LSTG_LOG_DEBUG_CAT(HttpHelper, "Unexpected character '{}'", ch);                                      \
-                    return make_error_code(WebFileSystemError::InvalidHttpDateTime);                                      \
+                    return make_error_code(std::errc::bad_message);                                                       \
                 }                                                                                                         \
                 break;                                                                                                    \
             case PARSE_STATE:                                                                                             \
@@ -136,7 +136,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                     if (ec != std::errc())                                                                                \
                     {                                                                                                     \
                         LSTG_LOG_DEBUG_CAT(HttpHelper, "Parse number \"{}\" fail", string_view{buffer, bufferLength});    \
-                        return make_error_code(WebFileSystemError::InvalidHttpDateTime);                                  \
+                        return make_error_code(std::errc::bad_message);                                                   \
                     }                                                                                                     \
                     bufferLength = 0;                                                                                     \
                     state = NEXT_STATE;                                                                                   \
@@ -144,7 +144,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                 else                                                                                                      \
                 {                                                                                                         \
                     LSTG_LOG_DEBUG_CAT(HttpHelper, "Unexpected character '{}'", ch);                                      \
-                    return make_error_code(WebFileSystemError::InvalidHttpDateTime);                                      \
+                    return make_error_code(std::errc::bad_message);                                                       \
                 }                                                                                                         \
                 break
 
@@ -157,7 +157,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
         {
             case STATE_LOCATE_COMMA:
                 if (ch == '\0')
-                    return make_error_code(WebFileSystemError::InvalidHttpDateTime);
+                    return make_error_code(std::errc::bad_message);
                 else if (ch == ',')
                     state = STATE_LOOK_FOR_DAY;
                 break;
@@ -175,7 +175,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                 else
                 {
                     LSTG_LOG_DEBUG_CAT(HttpHelper, "Unexpected character '{}'", ch);
-                    return make_error_code(WebFileSystemError::InvalidHttpDateTime);
+                    return make_error_code(std::errc::bad_message);
                 }
                 break;
             case STATE_PARSE_MONTH:
@@ -197,7 +197,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                     if (tm.tm_mon < 0)
                     {
                         LSTG_LOG_DEBUG_CAT(HttpHelper, "Unexpected month \"{}\"", string_view{buffer, bufferLength});
-                        return make_error_code(WebFileSystemError::InvalidHttpDateTime);
+                        return make_error_code(std::errc::bad_message);
                     }
                     bufferLength = 0;
                     state = STATE_LOOK_FOR_YEAR;
@@ -205,7 +205,7 @@ Result<time_t> lstg::Subsystem::VFS::detail::ParseHttpDateTime(std::string_view 
                 else
                 {
                     LSTG_LOG_DEBUG_CAT(HttpHelper, "Unexpected character '{}'", ch);
-                    return make_error_code(WebFileSystemError::InvalidHttpDateTime);
+                    return make_error_code(std::errc::bad_message);
                 }
                 break;
             GEN_PARSE_NUMBER_STATE(STATE_LOOK_FOR_YEAR, (ch == ' '), STATE_PARSE_YEAR, (ch == ' '), tm.tm_year, STATE_LOOK_FOR_HOURS);

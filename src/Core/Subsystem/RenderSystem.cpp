@@ -822,10 +822,10 @@ Result<void> RenderSystem::CommitCamera() noexcept
             Diligent::Viewport vp;
             vp.MinDepth = 0.0f;
             vp.MaxDepth = 1.0f;
-            vp.Width = viewport.Width;
-            vp.Height = viewport.Height;
-            vp.TopLeftX = viewport.Left;
-            vp.TopLeftY = viewport.Top;
+            vp.Width = ::floor(viewport.Width);  // 需要整数，glViewportIndexedf 可能不支持
+            vp.Height = ::floor(viewport.Height);
+            vp.TopLeftX = ::floor(viewport.Left);
+            vp.TopLeftY = ::floor(viewport.Top);
             m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
             m_stCurrentViewport = viewport;
             viewportChanged = true;
@@ -838,10 +838,10 @@ Result<void> RenderSystem::CommitCamera() noexcept
                 Diligent::Viewport vp;
                 vp.MinDepth = 0.0f;
                 vp.MaxDepth = 1.0f;
-                vp.Width = targetViewport.Width;
-                vp.Height = targetViewport.Height;
-                vp.TopLeftX = targetViewport.Left;
-                vp.TopLeftY = targetViewport.Top;
+                vp.Width = ::floor(targetViewport.Width);  // 需要整数，glViewportIndexedf 可能不支持
+                vp.Height = ::floor(targetViewport.Height);
+                vp.TopLeftX = ::floor(targetViewport.Left);
+                vp.TopLeftY = ::floor(targetViewport.Top);
                 m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
                 m_stCurrentViewport = viewport;
                 viewportChanged = true;

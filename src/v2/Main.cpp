@@ -15,21 +15,6 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
 
-#ifdef __EMSCRIPTEN__
-/**
- * 这些方法在新版 emscripten 中必须定义 USE_PTHREAD 才能使用
- * 由于 SDL 引用了这些方法，这里写死单线程情况下的实现，以避免找不到符号
- */
-extern "C"
-{
-    int emscripten_sync_run_in_main_runtime_thread_(unsigned int sig, void *func_ptr, ...)
-    {
-        assert(false);
-        return 0;
-    }
-}
-#endif
-
 extern "C" int main(int argc, char** argv)
 {
     // 强制日志系统初始化
@@ -44,17 +29,15 @@ extern "C" int main(int argc, char** argv)
     try
     {
         app = std::make_unique<GameApp>(argc, argv);
+
+        // 启动
+        app->Run();
     }
     catch (const std::exception& ex)
     {
         Pal::FatalError(ex.what(), false);
         return 1;
     }
-
-    // 启动
-    app->Run();
-
-    // FIXME: emscripten 的情况下需要一个机制获知程序退出
 
     return 0;
 }

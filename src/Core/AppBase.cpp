@@ -15,6 +15,20 @@
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include "detail/EmFileDownloader.hpp"
+
+/**
+ * 这些方法在新版 emscripten 中必须定义 USE_PTHREAD 才能使用
+ * 由于 SDL 引用了这些方法，这里写死单线程情况下的实现，以避免找不到符号
+ */
+extern "C"
+{
+    int emscripten_sync_run_in_main_runtime_thread_(unsigned int sig, void *func_ptr, ...)
+    {
+        assert(false);
+        return 0;
+    }
+}
 #endif
 
 // 所有子系统
@@ -73,6 +87,10 @@ AppBase::AppBase()
     m_pEventBusSystem = m_stSubsystemContainer.Get<Subsystem::EventBusSystem>();
     m_pRenderSystem = m_stSubsystemContainer.Get<Subsystem::RenderSystem>();
     m_pProfileSystem = m_stSubsystemContainer.Get<Subsystem::ProfileSystem>();
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    m_pFileDownloader = make_shared<detail::EmFileDownloader>();
+#endif
 }
 
 AppBase::~AppBase()
@@ -91,9 +109,17 @@ void AppBase::SetFrameRate(double rate) noexcept
     m_dFrameInterval = 1. / std::max(1., rate);
 }
 
-Result<void> AppBase::Run() noexcept
+void AppBase::Run()
 {
     m_bShouldStop = false;
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    // 执行预初始化
+    PreInit();
+#else
+    // 调用 OnStartup 执行初始化
+    OnStartup();
+#endif
 
     auto start = Pal::GetCurrentTick();
     m_ullLastUpdateTick = start;
@@ -113,7 +139,6 @@ Result<void> AppBase::Run() noexcept
         // 睡眠
         m_stSleeper.Sleep(timeToSleep);
     }
-    return {};
 #else
     // 初始化逻辑定时器
     m_lTimeoutId = ::emscripten_set_timeout(OnWebLoopOnce, 0., this);
@@ -122,17 +147,17 @@ Result<void> AppBase::Run() noexcept
     // 初始化渲染循环
     // 当设置 fps = 0 时，使用 requestAnimationFrame 保证渲染不发生撕裂
     // 我们用这个方法来跑渲染循环
-    ::emscripten_set_main_loop_arg(OnWebRender, this, 0, false);
-
-    // EMSCRIPTEN 在启用异常后，如果 main_loop 模拟无限循环，会抛出异常，导致 unwind
-    // 因此我们不使用这个功能，在这里通过 interrupted 告诉外界
-    return make_error_code(errc::interrupted);
+    ::emscripten_set_main_loop_arg(OnWebRender, this, 0, true);
 #endif
 }
 
 void AppBase::Stop() noexcept
 {
     m_bShouldStop = true;
+}
+
+void AppBase::OnStartup()
+{
 }
 
 void AppBase::OnEvent(Subsystem::SubsystemEvent& event) noexcept
@@ -196,18 +221,155 @@ void AppBase::OnWebRender(void* userdata) noexcept
         self->Render();
     }
 }
+
+EM_JS(int, GetPreloadAssetCount_, (), {
+    return getPreloadAssetCount();
+});
+
+EM_JS(const char*, GetPreloadAssetUrl_, (int i), {
+    let s = getPreloadAssetUrl(i);
+    if (!s)
+        return null;
+    let length = lengthBytesUTF8(s) + 1;
+    let str = _malloc(length);
+    stringToUTF8(s, str, length);
+    return str;
+});
+
+EM_JS(const char*, GetPreloadAssetSaveAs_, (int i), {
+    let s = getPreloadAssetSaveAs(i);
+    if (!s)
+        return null;
+    let length = lengthBytesUTF8(s) + 1;
+    let str = _malloc(length);
+    stringToUTF8(s, str, length);
+    return str;
+});
+
+void AppBase::PreInit()
+{
+    struct JsStringDeleter
+    {
+        void operator()(const char* p) noexcept
+        {
+            ::free(const_cast<char*>(p));
+        }
+    };
+
+    if (m_iAppState != STATE_NOT_READY)
+        return;
+    m_iAppState = STATE_PRE_INIT;
+
+    // 获取需要预载的资源列表
+    auto preloadAssets = GetPreloadAssetCount_();
+    if (preloadAssets > 0)
+    {
+        // 显示进度窗口
+        auto progressWindow = GetSubsystem<Subsystem::DebugGUISystem>()->GetProgressWindow();
+        progressWindow->Show();
+
+        for (auto i = 0; i < preloadAssets; ++i)
+        {
+            shared_ptr<const char> url {GetPreloadAssetUrl_(i), JsStringDeleter{}};
+            shared_ptr<const char> saveAs {GetPreloadAssetSaveAs_(i), JsStringDeleter{}};
+
+            // 发起任务
+            m_pFileDownloader->AddTask(url.get(), saveAs.get(), [this, url, saveAs, progressWindow](Result<void> ret) noexcept {
+                // 检查是否有错误
+                if (!ret)
+                {
+                    LSTG_LOG_ERROR_CAT(AppBase, "Download asset from url '{}' fail: {}", url.get(), ret.GetError());
+                    m_pFileDownloader->CancelPendingTasks();  // 取消所有在途任务
+                    m_iAppState = STATE_ERROR;
+                    try
+                    {
+                        progressWindow->SetPercent(0);
+                        progressWindow->SetHintText(fmt::format("Fail to download {}: {}", saveAs.get(), ret.GetError()));
+                    }
+                    catch (...)
+                    {
+                    }
+                    return;
+                }
+
+                // 检查是否所有下载任务完成
+                if (m_pFileDownloader->GetTaskCount() == 0)
+                {
+                    LSTG_LOG_INFO_CAT(AppBase, "All preload asset downloaded");
+
+                    optional<string> errorString;
+                    try
+                    {
+                        progressWindow->SetPercent(1);
+                        progressWindow->SetHintText("Initializing game app");
+
+                        OnStartup();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        try
+                        {
+                            errorString.emplace(ex.what());
+                        }
+                        catch (...)
+                        {
+                            errorString.emplace(string{});
+                        }
+                    }
+                    catch (...)
+                    {
+                        try
+                        {
+                            errorString.emplace("Out of memory");
+                        }
+                        catch (...)
+                        {
+                            errorString.emplace(string{});
+                        }
+                    }
+
+                    if (!errorString)
+                    {
+                        m_iAppState = STATE_INITED;
+                        progressWindow->Hide();
+                    }
+                    else
+                    {
+                        m_iAppState = STATE_ERROR;
+                        try
+                        {
+                            progressWindow->SetPercent(0);
+                            progressWindow->SetHintText(fmt::format("Fail to init game: {}", *errorString));
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                }
+            }, [progressWindow](std::string_view url, std::string_view saveAs, float percent) noexcept {
+                try
+                {
+                    progressWindow->SetPercent(percent);
+                    progressWindow->SetHintText(fmt::format("Downloading {}", saveAs));
+                }
+                catch (...)
+                {
+                }
+            });
+        }
+    }
+    else
+    {
+        m_iAppState = STATE_INITED;
+    }
+}
 #endif
 
 double AppBase::LoopOnce() noexcept
 {
     // 更新定时器
     auto suggestedSleepTime = m_stMainTaskTimer.Update(std::numeric_limits<uint64_t>::max());
-#ifdef LSTG_PLATFORM_EMSCRIPTEN
-    if (suggestedSleepTime == std::numeric_limits<uint64_t>::max())  // EMSCRIPTEN 由于逻辑重入，此时可能出现 Timer 中没有可调度的对象
-        return 0;
-#else
     assert(suggestedSleepTime != std::numeric_limits<uint64_t>::max());
-#endif
 
     // 计算Sleep时间
     return static_cast<double>(suggestedSleepTime) / m_stSleeper.GetFrequency();
@@ -229,7 +391,19 @@ void AppBase::Frame() noexcept
         while (::SDL_PollEvent(&event) != 0)
         {
             Subsystem::SubsystemEvent transformed(&event);
-            OnEvent(transformed);
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            if (m_iAppState == STATE_INITED)
+#endif
+            {
+                OnEvent(transformed);
+            }
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            else
+            {
+                AppBase::OnEvent(transformed);
+            }
+#endif
         }
 
         // 总线消息
@@ -238,7 +412,19 @@ void AppBase::Frame() noexcept
             auto subsystemEvent = m_pEventBusSystem->PollEvent();
             if (!subsystemEvent)
                 break;
-            OnEvent(*subsystemEvent);
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            if (m_iAppState == STATE_INITED)
+#endif
+            {
+                OnEvent(*subsystemEvent);
+            }
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            else
+            {
+                AppBase::OnEvent(*subsystemEvent);
+            }
+#endif
         }
     }
 
@@ -268,8 +454,12 @@ void AppBase::Update() noexcept
     m_ullLastUpdateTick = now;
 
     // 更新一帧
+    m_stSubsystemContainer.Update(elapsed);
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    m_pFileDownloader->Update();
+    if (m_iAppState == STATE_INITED)
+#endif
     {
-        m_stSubsystemContainer.Update(elapsed);
         OnUpdate(elapsed);
     }
     ++m_uUpdateFramesInSecond;
@@ -303,7 +493,12 @@ void AppBase::Render() noexcept
     {
         m_pRenderSystem->BeginFrame();
         m_stSubsystemContainer.BeforeRender(elapsed);
-        OnRender(elapsed);
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+        if (m_iAppState == STATE_INITED)
+#endif
+        {
+            OnRender(elapsed);
+        }
         m_stSubsystemContainer.AfterRender(elapsed);
         m_pRenderSystem->EndFrame();
     }

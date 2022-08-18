@@ -13,6 +13,7 @@
 #include "DebugGUI/MiniStatusWindow.hpp"
 #include "DebugGUI/FrameTimeMonitor.hpp"
 #include "DebugGUI/ConsoleWindow.hpp"
+#include "DebugGUI/ProgressWindow.hpp"
 
 struct SDL_Cursor;
 struct ImGuiIO;
@@ -77,6 +78,11 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] const auto& GetConsoleWindow() const noexcept { return m_pConsoleWindow; }
 
+        /**
+         * 获取进度窗口
+         */
+        [[nodiscard]] const auto& GetProgressWindow() const noexcept { return m_pProgressWindow; }
+
     protected:  // ISubsystem
         void OnUpdate(double elapsedTime) noexcept override;
         void OnAfterRender(double elapsedTime) noexcept override;
@@ -109,5 +115,6 @@ namespace lstg::Subsystem
         std::shared_ptr<DebugGUI::MiniStatusWindow> m_pMiniStatusWindow;
         std::shared_ptr<DebugGUI::FrameTimeMonitor> m_pFrameTimeMonitor;
         std::shared_ptr<DebugGUI::ConsoleWindow> m_pConsoleWindow;
+        std::shared_ptr<DebugGUI::ProgressWindow> m_pProgressWindow;
     };
 }

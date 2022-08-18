@@ -221,6 +221,9 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
         m_pConsoleWindow = make_shared<DebugGUI::ConsoleWindow>();
         AppendWindow(m_pConsoleWindow);
 
+        m_pProgressWindow = make_shared<DebugGUI::ProgressWindow>();
+        AppendWindow(m_pProgressWindow);
+
 #ifdef LSTG_DEVELOPMENT
         m_pMiniStatusWindow->Show();
 #endif

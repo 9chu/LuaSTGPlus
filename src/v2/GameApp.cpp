@@ -22,7 +22,6 @@
 #include <lstg/Core/Subsystem/DebugGUI/ConsoleWindow.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
-#include <lstg/Core/Subsystem/VFS/WebFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
 #include <lstg/v2/DebugGUI/PerformanceMonitor.hpp>
 #include "detail/KeyMapping.hpp"
@@ -97,13 +96,6 @@ GameApp::GameApp(int argc, char** argv)
         // assets 目录通过 OverlayFileSystem 实现
         // 最下面是 LocalFileSystem，这使得在其他 FileSystem 上搜索不到时会到本地文件系统进行搜寻
         m_pAssetsFileSystem = make_shared<Subsystem::VFS::OverlayFileSystem>();
-
-#ifdef LSTG_PLATFORM_EMSCRIPTEN
-        // WEB 下创建 WebFileSystem
-        // 在 LocalFileSystem (memfs) 中找不到才去 WebFileSystem 搜索
-        auto webFileSystem = make_shared<Subsystem::VFS::WebFileSystem>("");
-        m_pAssetsFileSystem->PushFileSystem(std::move(webFileSystem));
-#endif
 
         // 准备 LocalFileSystem
 #ifdef LSTG_SHIPPING
@@ -253,33 +245,6 @@ GameApp::GameApp(int argc, char** argv)
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
-
-    // 执行 launch 脚本
-    {
-        LSTG_LOG_TRACE_CAT(GameApp, "Execute \"{}\"", kScriptEntryFile);
-        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->LoadScript(kScriptEntryFile);
-        if (!ret)
-            LSTG_THROW(AppInitializeFailedException, "Fail to execute \"{}\": {}", kScriptEntryFile, ret.GetError());
-    }
-
-    // 执行 core.lua 脚本
-    {
-        LSTG_LOG_TRACE_CAT(GameApp, "Execute \"{}\"", kScriptCoreFile);
-        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->LoadScript(kScriptCoreFile);
-        if (!ret)
-            LSTG_THROW(AppInitializeFailedException, "Fail to execute \"{}\": {}", kScriptCoreFile, ret.GetError());
-    }
-
-    // 执行框架 GameInit 方法
-    {
-        LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGameInit);
-        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnGameInit);
-        if (!ret)
-            LSTG_THROW(AppInitializeFailedException, "Fail to call \"{}\": {}", kEventOnGameInit, ret.GetError());
-    }
-
-    // 显示主窗口
-    GetSubsystem<Subsystem::WindowSystem>()->Show();
 }
 
 // <editor-fold desc="资源系统">
@@ -533,6 +498,38 @@ bool GameApp::IsMouseButtonDown(MouseButtons button) const noexcept
 // </editor-fold>
 // <editor-fold desc="框架事件">
 
+void GameApp::OnStartup()
+{
+    LSTG_LOG_TRACE_CAT(GameApp, "Startup script layer");
+
+    // 执行 launch 脚本
+    {
+        LSTG_LOG_TRACE_CAT(GameApp, "Execute \"{}\"", kScriptEntryFile);
+        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->LoadScript(kScriptEntryFile);
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to execute \"{}\": {}", kScriptEntryFile, ret.GetError());
+    }
+
+    // 执行 core.lua 脚本
+    {
+        LSTG_LOG_TRACE_CAT(GameApp, "Execute \"{}\"", kScriptCoreFile);
+        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->LoadScript(kScriptCoreFile);
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to execute \"{}\": {}", kScriptCoreFile, ret.GetError());
+    }
+
+    // 执行框架 GameInit 方法
+    {
+        LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGameInit);
+        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnGameInit);
+        if (!ret)
+            LSTG_THROW(AppInitializeFailedException, "Fail to call \"{}\": {}", kEventOnGameInit, ret.GetError());
+    }
+
+    // 显示主窗口
+    GetSubsystem<Subsystem::WindowSystem>()->Show();
+}
+
 void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 {
     AppBase::OnEvent(event);
@@ -547,40 +544,45 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
 
             if (sdlEvent->type == SDL_WINDOWEVENT)
             {
-                if (sdlEvent->window.event == SDL_WINDOWEVENT_RESIZED)
+                if (sdlEvent->window.windowID == m_uInputWindowID)  // 过滤非主窗口事件
                 {
-                    // 获取渲染系统的分辨率
-                    auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
-                    assert(renderDevice);
+                    if (sdlEvent->window.event == SDL_WINDOWEVENT_RESIZED)
+                    {
+                        LSTG_LOG_INFO_CAT(GameApp, "Window resize to {}x{}", sdlEvent->window.data1, sdlEvent->window.data2);
 
-                    auto renderWidth = renderDevice->GetRenderOutputWidth();
-                    auto renderHeight = renderDevice->GetRenderOutputHeight();
-                    m_stNativeSolution = { renderWidth, renderHeight };
+                        // 获取渲染系统的分辨率
+                        auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
+                        assert(renderDevice);
 
-                    // 调整视口
-                    AdjustViewport();
+                        auto renderWidth = renderDevice->GetRenderOutputWidth();
+                        auto renderHeight = renderDevice->GetRenderOutputHeight();
+                        m_stNativeSolution = { renderWidth, renderHeight };
 
-                    // 调整所有 RenderTarget 的大小
-                    auto textureAssetFactory = static_pointer_cast<Asset::TextureAssetFactory>(
-                        GetSubsystem<Subsystem::AssetSystem>()->FindAssetFactory<Asset::TextureAsset>());
-                    assert(textureAssetFactory);
-                    textureAssetFactory->ResizeRenderTarget(renderWidth, renderHeight);
-                }
-                else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-                {
-                    // 执行框架 FocusGainFunc 方法
-                    LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGainFocus);
-                    auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnGainFocus);
-                    if (!ret)
-                        LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnGainFocus, ret.GetError());
-                }
-                else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
-                {
-                    // 执行框架 FocusLoseFunc 方法
-                    LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnLostFocus);
-                    auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnLostFocus);
-                    if (!ret)
-                        LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnLostFocus, ret.GetError());
+                        // 调整视口
+                        AdjustViewport();
+
+                        // 调整所有 RenderTarget 的大小
+                        auto textureAssetFactory = static_pointer_cast<Asset::TextureAssetFactory>(
+                            GetSubsystem<Subsystem::AssetSystem>()->FindAssetFactory<Asset::TextureAsset>());
+                        assert(textureAssetFactory);
+                        textureAssetFactory->ResizeRenderTarget(renderWidth, renderHeight);
+                    }
+                    else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                    {
+                        // 执行框架 FocusGainFunc 方法
+                        LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGainFocus);
+                        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnGainFocus);
+                        if (!ret)
+                            LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnGainFocus, ret.GetError());
+                    }
+                    else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                    {
+                        // 执行框架 FocusLoseFunc 方法
+                        LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnLostFocus);
+                        auto ret = GetSubsystem<Subsystem::ScriptSystem>()->CallGlobal<void>(kEventOnLostFocus);
+                        if (!ret)
+                            LSTG_LOG_ERROR_CAT(GameApp, "Fail to call \"{}\": {}", kEventOnLostFocus, ret.GetError());
+                    }
                 }
             }
             else if (sdlEvent->type == SDL_TEXTINPUT)

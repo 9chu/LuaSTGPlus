@@ -12,6 +12,11 @@
 
 namespace lstg
 {
+    namespace detail
+    {
+        class EmFileDownloader;
+    }
+
     namespace Subsystem
     {
         class EventBusSystem;
@@ -63,7 +68,7 @@ namespace lstg
         /**
          * 启动应用程序循环
          */
-        Result<void> Run() noexcept;
+        void Run();
 
         /**
          * 通知应用程序终止
@@ -73,6 +78,11 @@ namespace lstg
         // </editor-fold>
 
     protected:  // 框架事件
+        /**
+         * 当调用 Run 时触发
+         */
+        virtual void OnStartup();
+
         /**
          * 当收到消息时触发
          * @param event 消息
@@ -95,6 +105,7 @@ namespace lstg
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
         static void OnWebLoopOnce(void* userdata) noexcept;
         static void OnWebRender(void* userdata) noexcept;
+        void PreInit();
 #endif
         double LoopOnce() noexcept;
         void Frame() noexcept;
@@ -126,5 +137,17 @@ namespace lstg
         double m_dFrameRateCounterTimer = 0;
         unsigned m_uUpdateFramesInSecond = 0;
         unsigned m_uRenderFramesInSecond = 0;
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+        // Emscripten 环境下，我们需要在启动程序前完成资源包下载
+        // 因此在 AppBase 下控制相关流程
+        enum {
+            STATE_NOT_READY,
+            STATE_PRE_INIT,
+            STATE_INITED,
+            STATE_ERROR,
+        } m_iAppState = STATE_NOT_READY;
+        std::shared_ptr<detail::EmFileDownloader> m_pFileDownloader;
+#endif
     };
 } // namespace lstg

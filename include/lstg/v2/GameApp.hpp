@@ -177,6 +177,7 @@ namespace lstg::v2
         const GamePlay::GameWorld& GetDefaultWorld() const noexcept { return m_stDefaultWorld; }
         
     protected:  // 框架事件
+        void OnStartup() override;
         void OnEvent(Subsystem::SubsystemEvent& event) noexcept override;
         void OnUpdate(double elapsed) noexcept override;
         void OnRender(double elapsed) noexcept override;

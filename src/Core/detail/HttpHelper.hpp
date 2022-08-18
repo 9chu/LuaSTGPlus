@@ -10,11 +10,10 @@
 #include <memory>
 #include <string_view>
 #include <lstg/Core/Result.hpp>
-#include "WebFileSystemError.hpp"
 
 struct emscripten_fetch_t;
 
-namespace lstg::Subsystem::VFS::detail
+namespace lstg::detail
 {
     /**
      * 大小写不敏感比较
@@ -56,10 +55,10 @@ namespace lstg::Subsystem::VFS::detail
         size_t valueBufferLength = 0;
 
 #define APPEND_TO_BUFFER(WHICH, CH) \
-        {                                                                           \
-            if (WHICH##BufferLength >= sizeof(WHICH##Buffer))                       \
-                return make_error_code(WebFileSystemError::HttpHeaderFieldTooLong); \
-            WHICH##Buffer[WHICH##BufferLength ++] = CH;                             \
+        {                                                           \
+            if (WHICH##BufferLength >= sizeof(WHICH##Buffer))       \
+                return make_error_code(std::errc::no_buffer_space); \
+            WHICH##Buffer[WHICH##BufferLength ++] = CH;             \
         } while (false)
 
         for (size_t i = 0; i < rawHeaders.size() + 1; ++i)
@@ -87,12 +86,12 @@ namespace lstg::Subsystem::VFS::detail
                     if (ch == ':')
                     {
                         if (keyBufferLength == 0)
-                            return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                            return make_error_code(std::errc::bad_message);
                         state = STATE_VALUE_START;
                     }
                     else if (ch == '\r' || ch == '\n' || ch == '\0')
                     {
-                        return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                        return make_error_code(std::errc::bad_message);
                     }
                     else
                     {
@@ -106,7 +105,7 @@ namespace lstg::Subsystem::VFS::detail
                     }
                     else if (ch == '\r' || ch == '\n' || ch == '\0')
                     {
-                        return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                        return make_error_code(std::errc::bad_message);
                     }
                     else
                     {
@@ -118,7 +117,7 @@ namespace lstg::Subsystem::VFS::detail
                     if (ch == '\r')
                         state = STATE_HEADER_END_LF;
                     else if (ch == '\n' || ch == '\0')
-                        return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                        return make_error_code(std::errc::bad_message);
                     else
                         APPEND_TO_BUFFER(value, ch);
                     break;
@@ -135,14 +134,14 @@ namespace lstg::Subsystem::VFS::detail
                     }
                     else
                     {
-                        return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                        return make_error_code(std::errc::bad_message);
                     }
                     break;
                 case STATE_ALL_HEADER_END_LF:
                     if (ch == '\n')
                         i = rawHeaders.length();
                     else
-                        return make_error_code(WebFileSystemError::InvalidHttpHeader);
+                        return make_error_code(std::errc::bad_message);
                     break;
                 default:
                     assert(false);
