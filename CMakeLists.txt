@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 project(LuaSTGPlus)
 
 ### 工程全局选项
