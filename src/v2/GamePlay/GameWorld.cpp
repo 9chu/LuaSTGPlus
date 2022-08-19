@@ -311,7 +311,7 @@ void GameWorld::Frame() noexcept
             m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponent->ScriptObjectId,
                 ScriptCallbackFunctions::OnFrame, 0);
 
-            // 迭代器可能失效
+            // 由于内存分配，此时迭代器可能失效
             p = &entity.GetComponent<LifeTime>();
         }
 
@@ -380,7 +380,7 @@ void GameWorld::Render() noexcept
                     RenderEntityDefault(entity);
                 }
 
-                // 迭代器可能失效
+                // 由于内存分配，此时迭代器可能失效
                 p = &entity.GetComponent<Renderer>();
             }
         }
@@ -456,7 +456,7 @@ void GameWorld::DeleteOutOfBoundaryEntities() noexcept
                         m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponent->ScriptObjectId,
                             ScriptCallbackFunctions::OnDelete, 0);
 
-                        // 此时迭代器可能失效
+                        // 由于内存分配，此时迭代器可能失效
                         p = &entity.GetComponent<LifeTime>();
                     }
                 }
@@ -546,13 +546,14 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
 
     assert(m_pColliderRoot);
     Collider* pA = m_pColliderRoot->ColliderGroupHeaders[groupA].NextInChain;
+    ECS::Entity entityA = pA->BindingEntity;
+    Collider* pNextA = pA->NextInChain;
+    ECS::Entity entityAfterA = pNextA ? pNextA->BindingEntity : ECS::Entity {};
     assert(pA);
     while (pA != &m_pColliderRoot->ColliderGroupTailers[groupA])
     {
         if (pA->Enabled)  // 忽略未开启碰撞的对象
         {
-            auto entityA = pA->BindingEntity;
-
             auto transformComponentA = entityA.TryGetComponent<Transform>();
             if (!transformComponentA)
                 goto CONTINUE_A;
@@ -570,13 +571,14 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
 
             // 沿着 groupB 的链表进行逐个碰撞检查
             Collider* pB = m_pColliderRoot->ColliderGroupHeaders[groupB].NextInChain;
+            ECS::Entity entityB = pB->BindingEntity;
+            Collider* pNextB = pB->NextInChain;
+            ECS::Entity entityAfterB = pNextB ? pNextB->BindingEntity : ECS::Entity {};
             assert(pB);
             while (pB != &m_pColliderRoot->ColliderGroupTailers[groupB])
             {
                 if (pB->Enabled)  // 忽略未开启碰撞的对象
                 {
-                    auto entityB = pB->BindingEntity;
-
                     auto transformComponentB = entityB.TryGetComponent<Transform>();
                     if (!transformComponentB)
                         goto CONTINUE_B;
@@ -606,25 +608,60 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
                             m_stScriptObjectPool.InvokeCallback(m_stScriptObjectPool.GetState(), scriptComponentA->ScriptObjectId,
                                 ScriptCallbackFunctions::OnCollision, 1);
 
-                            // 此时迭代器可能失效
-                            pA = &entityA.GetComponent<Collider>();
-                            transformComponentA = entityA.TryGetComponent<Transform>();
-                            scriptComponentA = entityA.TryGetComponent<Script>();
+                            // 由于内存分配，此时迭代器可能失效
+                            // 恢复 EntityA 相关数据
+                            assert(entityA);  // 此时 EntityA 一定有效
+                            auto newColliderA = &entityA.GetComponent<Collider>();
+                            if (newColliderA != pA)
+                            {
+                                // 只有当 Collider 内存发生变化，才刷新后面的其他 Component
+                                pA = newColliderA;
+                                transformComponentA = entityA.TryGetComponent<Transform>();
+                                scriptComponentA = entityA.TryGetComponent<Script>();
 
-                            pB = &entityB.GetComponent<Collider>();
+                                // 恢复 EntityAfterA
+                                assert(pNextA);  // 此时 A 一定不是 Tailer 节点
+                                if (pNextA != &m_pColliderRoot->ColliderGroupTailers[groupA])
+                                {
+                                    assert(entityAfterA);  // 此时 EntityAfterA 一定有效
+                                    pNextA = &entityAfterA.GetComponent<Collider>();
+                                }
+
+                                // EntityB 已经用不到了，不需要刷新
+                                // 恢复 EntityAfterB
+                                assert(pNextB);  // 此时 B 一定不是 Tailer 节点
+                                if (pNextB != &m_pColliderRoot->ColliderGroupTailers[groupB])
+                                {
+                                    assert(entityAfterB);  // 此时 EntityAfterB 一定有效
+                                    pNextB = &entityAfterB.GetComponent<Collider>();
+                                }
+                            }
+
+                            if (pA->Group != groupA || !pA->Enabled)
+                                break;  // 如果对象 A 的碰撞状态变化，则结束这次比较
                         }
                     }
                 }
 
             CONTINUE_B:
-                assert(pB->NextInChain);
-                pB = pB->NextInChain;
+                assert(pNextB);
+                if (pNextB->Group != groupB)
+                    break;  // 极端情况，在碰撞方法中改了其他对象的 Group
+                pB = pNextB;
+                entityB = entityAfterB;
+                pNextB = pB->NextInChain;
+                entityAfterB = pNextB ? pNextB->BindingEntity : ECS::Entity {};
             }
         }
 
     CONTINUE_A:
-        assert(pA->NextInChain);
-        pA = pA->NextInChain;
+        assert(pNextA);
+        if (pNextA->Group != groupA)
+            break;  // 极端情况，在碰撞方法中改了其他对象的 Group
+        pA = pNextA;
+        entityA = entityAfterA;
+        pNextA = pA->NextInChain;
+        entityAfterA = pNextA ? pNextA->BindingEntity : ECS::Entity {};
     }
 }
 
@@ -637,10 +674,10 @@ void GameWorld::Clear() noexcept
     {
         auto next = p->NextInChain;
         p->Status = LifeTimeStatus::Deleted;
-        p->BindingEntity.Destroy();
+        // p->BindingEntity.Destroy();
         p = next;
     }
-    assert(m_stScriptObjectPool.GetCurrentObjects() == 0);
+    // assert(m_stScriptObjectPool.GetCurrentObjects() == 0);
 }
 
 void GameWorld::Update(double elapsedTime) noexcept

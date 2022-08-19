@@ -22,9 +22,10 @@
 - [x] 截图支持
 - [x] Profile 数据 & Debug 界面调整
 - [x] ~~内存泄漏 BUG 修复~~
-- [ ] WebASM 调优
-  - [ ] SRGB 处理
-- [ ] DX12 接入 & HiDPI支持
+- [x] WebASM 调优
+  - [x] SRGB 处理
+- [ ] DX12 接入
+  - [ ] ~~HiDPI支持~~
 - [ ] Linux & 树莓派接入
 - [ ] 其他分支API支持
   - [ ] 自定义RT大小
