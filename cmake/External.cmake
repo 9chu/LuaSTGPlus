@@ -241,6 +241,11 @@ if(${icu_ADDED})
                     add_executable(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_SOURCES})
                     set(icu_TMP_TOOL_LINKS icutu)
                     target_link_libraries(${icu_TMP_TOOL_NAME} ${icu_TMP_TOOL_LINKS})
+                    if(LSTG_PLATFORM_LINUX)
+                        # 需要 Force link 到 pthread，否额 call_once 会抛出异常
+                        target_link_options(${icu_TMP_TOOL_NAME} PRIVATE "SHELL:-Wl,--no-as-needed" "SHELL:-lpthread"
+                            "SHELL:-Wl,--as-needed")
+                    endif()
                 endif()
             endif()
         endforeach()

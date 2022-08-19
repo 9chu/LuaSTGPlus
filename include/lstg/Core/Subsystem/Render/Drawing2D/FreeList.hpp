@@ -27,23 +27,23 @@ namespace lstg::Subsystem::Render::Drawing2D
         template <typename T>
         struct FreeListHandle
         {
-            FreeList<T>* FreeList = nullptr;
+            FreeList<T>* Container = nullptr;
             FreeListRecycleHolder<T>* Holder = nullptr;
 
             FreeListHandle(std::nullptr_t = nullptr) noexcept
             {}
 
             FreeListHandle(Drawing2D::FreeList<T>* freeList, FreeListRecycleHolder<T>* holder)
-                : FreeList(freeList), Holder(holder) {}
+                : Container(freeList), Holder(holder) {}
 
             FreeListHandle(const FreeListHandle& org) noexcept
-                : FreeList(org.FreeList), Holder(org.Holder) {}
+                : Container(org.Container), Holder(org.Holder) {}
 
             FreeListHandle& operator=(const FreeListHandle& rhs) noexcept
             {
                 if (this == &rhs)
                     return *this;
-                FreeList = rhs.FreeList;
+                Container = rhs.Container;
                 Holder = rhs.Holder;
                 return *this;
             }
@@ -70,7 +70,7 @@ namespace lstg::Subsystem::Render::Drawing2D
             {
                 if (Holder)
                 {
-                    assert(FreeList);
+                    assert(Container);
                     return true;
                 }
                 return false;
@@ -80,7 +80,7 @@ namespace lstg::Subsystem::Render::Drawing2D
         template <typename T>
         bool operator==(const FreeListHandle<T>& lhs, const FreeListHandle<T>& rhs) noexcept
         {
-            return lhs.FreeList == rhs.FreeList && lhs.Holder == rhs.Holder;
+            return lhs.Container == rhs.Container && lhs.Holder == rhs.Holder;
         }
 
         template <typename T>
@@ -98,8 +98,8 @@ namespace lstg::Subsystem::Render::Drawing2D
             {
                 if (p.Holder)
                 {
-                    assert(p.FreeList);
-                    p.FreeList->Recycle(p.Holder);
+                    assert(p.Container);
+                    p.Container->Recycle(p.Holder);
                 }
             }
         };
