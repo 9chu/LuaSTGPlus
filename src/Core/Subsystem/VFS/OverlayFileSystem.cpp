@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/VFS/OverlayFileSystem.hpp>
 
 #include <set>
+#include <algorithm>
 
 using namespace std;
 using namespace lstg;

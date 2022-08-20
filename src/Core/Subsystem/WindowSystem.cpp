@@ -7,6 +7,12 @@
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
 
 #include <SDL_syswm.h>
+
+// fvck Xlib.h
+#ifdef Status
+#undef Status
+#endif
+
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include "../detail/SDLHelper.hpp"
@@ -39,8 +45,8 @@ namespace
 #elif defined(SDL_VIDEO_DRIVER_EMSCRIPTEN)
         // 支持窗口化但是不支持大小调整的平台
         ret |= WindowFeatures::SupportWindowMode;
-#elif defined(SDL_VIDEO_DRIVER_PSP) || defined(SDL_VIDEO_DRIVER_UIKIT) || defined(SDL_VIDEO_DRIVER_ANDROID) ||
-        defined(SDL_VIDEO_DRIVER_RPI)
+#elif defined(SDL_VIDEO_DRIVER_PSP) || defined(SDL_VIDEO_DRIVER_UIKIT) || defined(SDL_VIDEO_DRIVER_ANDROID) || \
+    defined(SDL_VIDEO_DRIVER_RPI)
         // 不支持窗口化也不支持大小调整的平台
 #else
 #error "Unsupported video driver yet"

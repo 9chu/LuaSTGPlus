@@ -69,7 +69,7 @@ namespace lstg::v2::GamePlay::Components
         Renderer* PrevInChain = nullptr;
         Renderer* NextInChain = nullptr;
 
-        Renderer() noexcept = default;
+        Renderer() noexcept {} /* = default; */  // g++ won't compile, make it happy
         Renderer(Renderer&& org) noexcept;
 
         void Reset() noexcept;

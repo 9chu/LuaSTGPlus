@@ -58,7 +58,7 @@ endif()
 
 # SDL
 CPMAddPackage(
-    NAME SDL
+    NAME sdl
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.0.22
     # GIT_TAG main
@@ -75,6 +75,13 @@ CPMAddPackage(
         "SDL_LOCALE OFF"
         "SDL_MISC OFF"
 )
+if(${sdl_ADDED})
+    add_custom_target(UpdateSDLConfig COMMAND
+        "${CMAKE_COMMAND}" -E copy_if_different
+        "${sdl_BINARY_DIR}/include/SDL_config.h"
+        "${sdl_SOURCE_DIR}/include/SDL_config.h")
+    add_dependencies(UpdateSDLConfig SDL2-static)
+endif()
 
 # lua or luajit
 if(LSTG_PLATFORM_EMSCRIPTEN)
@@ -355,9 +362,6 @@ if(${harfbuzz_ADDED})
     add_dependencies(harfbuzz-icu harfbuzz)
     target_link_libraries(harfbuzz-icu harfbuzz icuuc)
     target_compile_definitions(harfbuzz-icu PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
-
-    target_link_libraries(harfbuzz icuuc)
-    target_compile_definitions(harfbuzz PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
 endif()
 
 # ryu

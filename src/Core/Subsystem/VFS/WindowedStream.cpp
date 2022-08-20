@@ -6,6 +6,8 @@
  */
 #include <lstg/Core/Subsystem/VFS/WindowedStream.hpp>
 
+#include <limits>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::VFS;

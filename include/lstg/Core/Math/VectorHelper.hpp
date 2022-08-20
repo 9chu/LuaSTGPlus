@@ -24,7 +24,7 @@ namespace lstg::Math
         auto len2 = glm::length2(vec);
         if (len2 == 0.f)
             return glm::zero<glm::vec<N, T, glm::defaultp>>();
-        return vec / ::sqrt(len2);
+        return vec / static_cast<T>(::sqrt(len2));
     }
 
     /**

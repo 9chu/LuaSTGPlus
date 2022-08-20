@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/Render/GraphDef/MeshDefinition.hpp>
 
+#include <algorithm>
 #include <string>
 #include <lstg/Core/Subsystem/Render/GraphDef/DefinitionError.hpp>
 

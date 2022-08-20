@@ -23,11 +23,17 @@ namespace lstg::Subsystem::Render::detail::RenderDevice
     {
     public:
         RenderDeviceVulkan(WindowSystem* window);
+        ~RenderDeviceVulkan();
 
     private:
 #ifdef LSTG_PLATFORM_MACOS
         // Diligent 使用 Metal 模拟 Vulkan，原生 Metal 支持需要商用许可
         std::unique_ptr<OSX::MetalView> m_stView;
+#endif
+#ifdef LSTG_PLATFORM_LINUX
+#ifdef LSTG_X11_ENABLE
+        void* m_pXCBConnection = nullptr;
+#endif
 #endif
     };
 }

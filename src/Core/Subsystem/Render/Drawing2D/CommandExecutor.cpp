@@ -564,7 +564,7 @@ void CommandExecutor::OnDrawQueue(CommandBuffer::DrawData& drawData, CommandBuff
             mat = m_pDefaultMaterial;
 
         // 设置混合状态
-        switch (cmd.ColorBlendMode)
+        switch (cmd.ColorBlend)
         {
             case ColorBlendMode::Alpha:
                 m_stRenderSystem.SetRenderTag(kBlendTagName, "Alpha");

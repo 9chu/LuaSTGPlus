@@ -11,6 +11,8 @@
 #include <lstg/Core/Subsystem/VFS/InflateStream.hpp>
 #include "ZipPkDecryptStream.hpp"
 
+#include <limits>
+
 // http://stackoverflow.com/questions/22265610/why-ssize-t-in-visual-studio-2010-is-defined-as-unsigned
 #ifdef _MSC_VER
 #include <BaseTsd.h>

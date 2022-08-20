@@ -43,8 +43,19 @@ RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
 #elif defined(LSTG_PLATFORM_EMSCRIPTEN)
     m_stView = make_unique<Emscripten::GLView>("#canvas");  // 固定为 #canvas
     nativeWindow = EmscriptenNativeWindow(m_stView->GetView());
+#elif defined(LSTG_PLATFORM_LINUX)
+#ifdef LSTG_X11_ENABLE
+#if !SDL_VIDEO_DRIVER_X11
+#error "Unexpected configuration error"
+#endif
+    // Create OpenGL Context
+    m_stContext = make_unique<Linux::GLContext>(systemWindowInfo.info.x11.display, systemWindowInfo.info.x11.window);
+    nativeWindow = LinuxNativeWindow { static_cast<Uint32>(systemWindowInfo.info.x11.window), systemWindowInfo.info.x11.display, nullptr };
 #else
-    #error "Unsupported platform"
+    LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
+#endif
+#else
+    LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
 
     // 获取 Factory

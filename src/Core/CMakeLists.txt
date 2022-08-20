@@ -1,6 +1,20 @@
 ### 明确第三方库引用
+
+if(LSTG_PLATFORM_LINUX)
+    find_package(X11)
+    if(X11_FOUND)
+        if(NOT X11_xcb_FOUND)
+            message(FATAL_ERROR "X11-xcb is required to build this program")
+        endif()
+        set(LSTG_X11_ENABLE 1)
+    endif()
+endif()
+
 set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm nlohmann_json)
-set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb freetype harfbuzz icuuc harfbuzz harfbuzz-icu freetype IcuData ryu)
+set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb freetype icuuc harfbuzz-icu freetype IcuData ryu)
+if(LSTG_X11_ENABLE)
+    list(APPEND LSTG_CORE_DEPS_PRIVATE X11::xcb X11::X11_xcb)
+endif()
 
 # 平台相关库
 if(LSTG_PLATFORM_MACOS)
@@ -47,9 +61,13 @@ endif()
 # 目标
 add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES})
 target_include_directories(LuaSTGPlusCore
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder)
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder)
 target_link_libraries(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEPS_PUBLIC} PRIVATE ${LSTG_CORE_DEPS_PRIVATE})
+
+add_dependencies(LuaSTGPlusCore UpdateSDLConfig)
 
 # 宏（公开的）
 set(LSTG_CORE_DEFS_PUBLIC LSTG_APP_NAME="${LSTG_APP_NAME}")
@@ -69,6 +87,9 @@ if(LSTG_PLATFORM_WIN32)
 endif()
 if(LSTG_PLATFORM_LINUX)
     list(APPEND LSTG_CORE_DEFS_PUBLIC LSTG_PLATFORM_LINUX)
+    if(LSTG_X11_ENABLE)
+        list(APPEND LSTG_CORE_DEFS_PRIVATE LSTG_X11_ENABLE)
+    endif()
 endif()
 if(LSTG_PLATFORM_MACOS)
     list(APPEND LSTG_CORE_DEFS_PUBLIC LSTG_PLATFORM_MACOS)
@@ -81,3 +102,4 @@ if(LSTG_PLATFORM_MACOS)  # Apple = MacOS | iOS
 endif()
 message("[LSTG] Public compiler definitions: ${LSTG_CORE_DEFS_PUBLIC}")
 target_compile_definitions(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEFS_PUBLIC})
+target_compile_definitions(LuaSTGPlusCore PRIVATE ${LSTG_CORE_DEFS_PRIVATE})

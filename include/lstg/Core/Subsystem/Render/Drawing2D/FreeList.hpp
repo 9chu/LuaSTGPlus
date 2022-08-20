@@ -66,7 +66,7 @@ namespace lstg::Subsystem::Render::Drawing2D
                 return &this->operator*();
             }
 
-            explicit operator bool() noexcept
+            explicit operator bool() const noexcept
             {
                 if (Holder)
                 {
@@ -87,6 +87,18 @@ namespace lstg::Subsystem::Render::Drawing2D
         bool operator!=(const FreeListHandle<T>& lhs, const FreeListHandle<T>& rhs) noexcept
         {
             return !(lhs == rhs);
+        }
+
+        template <typename T>
+        bool operator==(const FreeListHandle<T>& lhs, std::nullptr_t rhs) noexcept
+        {
+            return lhs.Holder == nullptr;
+        }
+
+        template <typename T>
+        bool operator!=(const FreeListHandle<T>& lhs, std::nullptr_t rhs) noexcept
+        {
+            return lhs.Holder != nullptr;
         }
 
         template <typename T>

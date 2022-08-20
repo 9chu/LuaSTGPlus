@@ -13,6 +13,10 @@
 #include <EngineFactoryVk.h>
 #endif
 
+#if LSTG_X11_ENABLE
+#include <X11/Xlib-xcb.h>
+#endif
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::detail::RenderDevice;
@@ -39,8 +43,19 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
     // 创建 MetalView
     m_stView = make_unique<OSX::MetalView>(systemWindowInfo.info.cocoa.window, window->GetFeatures() & WindowFeatures::HighDPISupport);
     nativeWindow = MacOSNativeWindow {m_stView->GetLayer()};
+#elif defined(LSTG_PLATFORM_LINUX)
+#ifdef LSTG_X11_ENABLE
+#if !SDL_VIDEO_DRIVER_X11
+#error "Unexpected configuration error"
+#endif
+    m_pXCBConnection = ::XGetXCBConnection(systemWindowInfo.info.x11.display);
+    nativeWindow = LinuxNativeWindow { static_cast<Uint32>(systemWindowInfo.info.x11.window), systemWindowInfo.info.x11.display,
+        static_cast<::xcb_connection_t*>(m_pXCBConnection) };
 #else
-    #error "Unsupported platform"
+    LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
+#endif
+#else
+    LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
 
     // 获取 Factory
@@ -70,6 +85,16 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
         factory->CreateSwapChainVk(m_pRenderDevice, m_pRenderContext, swapChainDesc, nativeWindow, &m_pSwapChain);
     if (!m_pSwapChain)
         LSTG_THROW(RenderDeviceInitializeFailedException, "Unable to initialize swap chain");
+}
+
+RenderDeviceVulkan::~RenderDeviceVulkan()
+{
+#ifdef LSTG_PLATFORM_LINUX
+#ifdef LSTG_X11_ENABLE
+    if (m_pXCBConnection)
+        ::xcb_disconnect(static_cast<::xcb_connection_t*>(m_pXCBConnection));
+#endif
+#endif
 }
 
 #endif

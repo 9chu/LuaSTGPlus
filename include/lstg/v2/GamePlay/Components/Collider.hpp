@@ -43,7 +43,7 @@ namespace lstg::v2::GamePlay::Components
         Collider* PrevInChain = nullptr;
         Collider* NextInChain = nullptr;
 
-        Collider() noexcept = default;
+        Collider() noexcept {} /* = default; */  // g++ won't compile, make it happy
         Collider(Collider&& org) noexcept;
 
         void Reset() noexcept;

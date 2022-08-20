@@ -6,8 +6,6 @@
  */
 #include <lstg/Core/Subsystem/DebugGUISystem.hpp>
 
-#include <SDL.h>
-#include <SDL_syswm.h>
 #include <imgui.h>
 #include <implot.h>
 #include <lstg/Core/Logging.hpp>
@@ -15,6 +13,22 @@
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include "DebugGUI/detail/ImGuiRenderer.hpp"
 
+// prevent compile-time re-definition under Linux. shitty
+#include <SDL.h>
+#include <SDL_syswm.h>
+
+#ifdef Bool
+#undef Bool
+#endif
+#ifdef True
+#undef true
+#endif
+#ifdef False
+#undef false
+#endif
+#ifdef None
+#undef None
+#endif
 #ifdef FindWindow
 #undef FindWindow
 #endif

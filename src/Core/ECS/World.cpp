@@ -6,6 +6,8 @@
  */
 #include <lstg/Core/ECS/World.hpp>
 
+#include <limits>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::ECS;

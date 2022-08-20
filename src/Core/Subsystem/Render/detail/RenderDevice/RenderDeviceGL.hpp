@@ -13,6 +13,7 @@
 #include <lstg/Core/Subsystem/Render/RenderDevice.hpp>
 #include "OSX/GLView.hpp"
 #include "Emscripten/GLView.hpp"
+#include "Linux/GLContext.hpp"
 
 namespace lstg::Subsystem::Render::detail::RenderDevice
 {
@@ -36,6 +37,9 @@ namespace lstg::Subsystem::Render::detail::RenderDevice
 #endif
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
         std::unique_ptr<Emscripten::GLView> m_stView;
+#endif
+#ifdef LSTG_PLATFORM_LINUX
+        std::unique_ptr<Linux::GLContext> m_stContext;
 #endif
     };
 }
