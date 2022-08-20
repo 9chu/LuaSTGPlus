@@ -20,6 +20,7 @@
 #include "Render/detail/RenderDevice/RenderDeviceGL.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceVulkan.hpp"
 #include "Render/detail/RenderDevice/RenderDeviceD3D11.hpp"
+#include "Render/detail/RenderDevice/RenderDeviceD3D12.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -84,6 +85,11 @@ namespace
      */
     void GetSupportedRenderDevice(std::vector<std::tuple<const char*, RenderDeviceConstructor>>& out)
     {
+#if D3D12_SUPPORTED == 1
+        out.emplace_back("D3D12", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+            return make_shared<Render::detail::RenderDevice::RenderDeviceD3D12>(windowSystem);
+        });
+#endif
 #if D3D11_SUPPORTED == 1
         out.emplace_back("D3D11", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceD3D11>(windowSystem);
