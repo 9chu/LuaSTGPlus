@@ -63,7 +63,7 @@ const GraphDef::ImmutableConstantBufferDefinitionPtr& ConstantBuffer::GetDefinit
 
 size_t ConstantBuffer::GetSize() const noexcept
 {
-    assert(m_pDefinition->GetSize() == m_pNativeHandler->GetDesc().Size);
+    assert(m_pDefinition->GetSize() <= m_pNativeHandler->GetDesc().Size);  // 实际申请 GPU 侧的 Buffer 由于不同的对齐，可能大于我们需要的
     assert(m_pDefinition->GetSize() == m_stBuffer.size());
     return m_pDefinition->GetSize();
 }

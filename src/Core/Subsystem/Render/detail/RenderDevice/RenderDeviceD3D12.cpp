@@ -37,7 +37,7 @@ RenderDeviceD3D12::RenderDeviceD3D12(WindowSystem* window)
     // 获取 Factory
     auto* factory = GetEngineFactoryD3D12();
     assert(factory);
-    if (factory->LoadD3D12())
+    if (!factory->LoadD3D12())
         LSTG_THROW(RenderDeviceInitializeFailedException, "LoadD3D12 fail");
 
     // 创建引擎
@@ -47,13 +47,14 @@ RenderDeviceD3D12::RenderDeviceD3D12(WindowSystem* window)
     swapChainDesc.Usage |= SWAP_CHAIN_USAGE_COPY_SOURCE;  // 截屏需要
     EngineD3D12CreateInfo engineCreateInfo;
     engineCreateInfo.GraphicsAPIVersion = {11, 0};
+    engineCreateInfo.NumDynamicHeapPagesToReserve = 16 * 1024 * 1024 / engineCreateInfo.DynamicHeapPageSize; // 16MB 动态内存空间，用于存放 VertexBuffer
 #if !(defined(NDEBUG) || defined(LSTG_SHIPPING))
     engineCreateInfo.SetValidationLevel(VALIDATION_LEVEL_2);
 #endif
     factory->CreateDeviceAndContextsD3D12(engineCreateInfo, &m_pRenderDevice, &m_pRenderContext);
     if (!m_pRenderDevice)
         LSTG_THROW(RenderDeviceInitializeFailedException, "Unable to initialize D3D12 render device");
-    factory->CreateSwapChainD3D11(m_pRenderDevice, m_pRenderContext, swapChainDesc, FullScreenModeDesc{}, nativeWindow, &m_pSwapChain);
+    factory->CreateSwapChainD3D12(m_pRenderDevice, m_pRenderContext, swapChainDesc, FullScreenModeDesc{}, nativeWindow, &m_pSwapChain);
     if (!m_pSwapChain)
         LSTG_THROW(RenderDeviceInitializeFailedException, "Unable to initialize D3D12 swap chain");
 }
