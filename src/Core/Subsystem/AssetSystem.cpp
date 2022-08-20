@@ -36,6 +36,37 @@ namespace
         //    16        4
         return std::min(4u, std::max(1u, ThreadPool<>::GetSystemThreadCount() / 2));
     }
+
+    /**
+     * 资产加载器锁
+     * 用于防止重入。
+     */
+    class AssetLoaderLock
+    {
+    public:
+        AssetLoaderLock(Asset::AssetLoaderPtr loader)
+            : m_pLoader(std::move(loader))
+        {
+            assert(m_pLoader);
+            m_pLoader->SetLock(true);
+        }
+
+        AssetLoaderLock(const AssetLoaderLock&) = delete;
+
+        AssetLoaderLock(AssetLoaderLock&& rhs)
+            : m_pLoader(std::move(rhs.m_pLoader))
+        {
+        }
+
+        ~AssetLoaderLock()
+        {
+            if (m_pLoader)
+                m_pLoader->SetLock(false);
+        }
+
+    private:
+        Asset::AssetLoaderPtr m_pLoader;
+    };
 }
 
 static AssetSystem* s_pInstance = nullptr;
@@ -154,12 +185,20 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
         auto end = begin;
 
         // 检查所有加载任务
-        for (auto it = m_stLoadingTasks.begin(); it != m_stLoadingTasks.end(); )
+        for (int32_t i = 0; i < static_cast<int32_t>(m_stLoadingTasks.size()); )
         {
-            auto task = *it;
+            auto task = m_stLoadingTasks[i];
             auto state = task->GetState();
             auto asset = task->GetAsset();
             assert(asset);
+
+            // 如果资源上锁了，则跳过
+            // 用于防止阻塞加载时的反复重入。
+            if (task->IsLock())
+            {
+                ++i;
+                continue;
+            }
 
             // 如果关联的资产已经被从 Pool 删除，可以直接干掉加载任务
             if (state != Asset::AssetLoadingStates::Loading && asset->IsWildAsset())
@@ -173,6 +212,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 #ifdef LSTG_DEVELOPMENT
                 LSTG_PER_FRAME_PROFILE(AssetTask_Update);
 #endif
+                AssetLoaderLock lockGuard(task);
                 task->Update();
             }
 
@@ -180,7 +220,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             if (state == Asset::AssetLoadingStates::DependencyLoading || state == Asset::AssetLoadingStates::AsyncLoadCommitted ||
                 state == Asset::AssetLoadingStates::Loading)
             {
-                ++it;
+                ++i;
                 continue;
             }
 
@@ -191,6 +231,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                 LSTG_PER_FRAME_PROFILE(AssetTask_PreLoad);
 #endif
 
+                AssetLoaderLock lockGuard(task);
                 auto ret = task->PreLoad();
                 state = task->GetState();
 
@@ -211,6 +252,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             // 可以发起异步加载过程
             if (state == Asset::AssetLoadingStates::Preloaded)
             {
+                // 这个状态不需要锁
                 auto ret = CommitAsyncLoadTask(task);
                 state = task->GetState();
                 if (!ret)
@@ -228,6 +270,8 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
 #ifdef LSTG_DEVELOPMENT
                 LSTG_PER_FRAME_PROFILE(AssetTask_PostLoad);
 #endif
+
+                AssetLoaderLock lockGuard(task);
                 auto ret = task->PostLoad();
                 state = task->GetState();
 
@@ -274,14 +318,14 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
                 }
 #endif
 
-                it = m_stLoadingTasks.erase(it);
+                m_stLoadingTasks.erase(m_stLoadingTasks.begin() + i);
                 continue;
             }
 
             // 如果状态不为失败（此时可能异步加载失败）
             if (state != Asset::AssetLoadingStates::Error)
             {
-                ++it;
+                ++i;
                 continue;
             }
 
@@ -324,7 +368,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
             else
                 LSTG_LOG_ERROR_CAT(AssetSystem, "Asset {} load fail", asset->GetName());
 #endif
-            it = m_stLoadingTasks.erase(it);
+            m_stLoadingTasks.erase(m_stLoadingTasks.begin() + i);
         }
     }
 
@@ -347,6 +391,7 @@ void AssetSystem::OnUpdate(double /* elapsedTime */) noexcept
         while (m_uLastCheckedTask < m_stWatchTasks.size())
         {
             auto task = m_stWatchTasks[m_uLastCheckedTask];
+            assert(!task->IsLock());
 
             // 如果关联资源已经卸载，则终止任务
             if (task->GetAsset()->IsWildAsset())
@@ -459,14 +504,14 @@ Result<Asset::AssetPtr> AssetSystem::CreateAsset(Asset::AssetPoolPtr pool, Asset
 
     // 如果没有启动异步加载，则阻塞等待所有任务完成
     if (!m_bAsyncLoadingEnabled)
-        BlockUntilLoadingFinished();
+        BlockUntilLoadingFinished(asset);
 
     return asset;
 }
 
-void AssetSystem::BlockUntilLoadingFinished() noexcept
+void AssetSystem::BlockUntilLoadingFinished(Asset::AssetPtr asset) noexcept
 {
-    while (!m_stLoadingTasks.empty())
+    while (asset->GetState() == Asset::AssetStates::Uninitialized)
         OnUpdate(0);
 }
 

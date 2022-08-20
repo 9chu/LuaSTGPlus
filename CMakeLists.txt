@@ -11,6 +11,8 @@ else()
     option(LSTG_ENABLE_ASSERTIONS "Enable assertions" OFF)
 endif()
 set(LSTG_APP_NAME "default" CACHE STRING "Specific the app name, will be used as the folder name in AppData for user data storage")
+option(LSTG_DISABLE_HOT_RELOAD "Disable hot reload support" OFF)
+option(LSTG_ASYNC_LOADING_AS_DEFAULT "Enable asynchronous asset loading as default" OFF)
 
 ### 检测平台
 include(cmake/Platform.cmake)

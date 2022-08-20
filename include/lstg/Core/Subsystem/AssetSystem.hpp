@@ -141,7 +141,7 @@ namespace lstg::Subsystem
         void RegisterCoreAssetFactories();
         Result<Asset::AssetPtr> CreateAsset(Asset::AssetPoolPtr pool, Asset::AssetFactoryPtr factory, std::string_view name,
             const nlohmann::json& arguments) noexcept;
-        void BlockUntilLoadingFinished() noexcept;
+        void BlockUntilLoadingFinished(Asset::AssetPtr asset) noexcept;
         Result<void> CommitAsyncLoadTask(Asset::AssetLoaderPtr loader) noexcept;
 
     private:
@@ -149,7 +149,11 @@ namespace lstg::Subsystem
         std::shared_ptr<RenderSystem> m_pRenderSystem;
 
         // 配置
+#ifdef LSTG_ASYNC_LOADING_AS_DEFAULT
         bool m_bAsyncLoadingEnabled = true;
+#else
+        bool m_bAsyncLoadingEnabled = false;
+#endif
 
         // 资产工厂
         Asset::IAssetDependencyResolver* m_pResolver = nullptr;

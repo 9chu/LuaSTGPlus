@@ -40,6 +40,7 @@ namespace lstg::Subsystem::Asset
     public:
         /**
          * 获取资产加载状态
+         * @note 线程安全
          */
         AssetLoadingStates GetState() const noexcept;
 
@@ -48,6 +49,20 @@ namespace lstg::Subsystem::Asset
          * @note 需要线程安全
          */
         const AssetPtr& GetAsset() const noexcept { return m_pAsset; }
+
+        /**
+         * 是否锁定
+         * for AssetSystem，用于防止重入。
+         * @note 非线程安全
+         */
+        bool IsLock() const noexcept;
+
+        /**
+         * 设置是否锁定
+         * for AssetSystem，用于防止重入。
+         * @note 非线程安全
+         */
+        void SetLock(bool v) noexcept;
 
     public:  // 需要实现
         /**
@@ -101,6 +116,7 @@ namespace lstg::Subsystem::Asset
     private:
         std::atomic<AssetLoadingStates> m_iState;
         AssetPtr m_pAsset;
+        bool m_bLocked = false;
     };
 
     using AssetLoaderPtr = std::shared_ptr<AssetLoader>;

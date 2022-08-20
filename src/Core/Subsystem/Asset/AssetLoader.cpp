@@ -21,6 +21,16 @@ AssetLoadingStates AssetLoader::GetState() const noexcept
     return m_iState.load(std::memory_order_acquire);
 }
 
+bool AssetLoader::IsLock() const noexcept
+{
+    return m_bLocked;
+}
+
+void AssetLoader::SetLock(bool v) noexcept
+{
+    m_bLocked = v;
+}
+
 void AssetLoader::SetState(AssetLoadingStates state) noexcept
 {
     m_iState.store(state, std::memory_order_release);
