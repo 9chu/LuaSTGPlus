@@ -30,6 +30,7 @@
 - [ ] 其他分支API支持
   - [ ] 自定义RT大小
   - [ ] 三参数Dist Angle支持
+  - Reference: https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub-Documentation
 - [ ] 音频系统
 - [ ] 实验性v2 API暴露
     - [ ] DrawGroup

@@ -385,7 +385,7 @@ void RenderModule::RenderText(LuaStack& stack, const char* name, const char* tex
     auto ret = TextDrawing::Draw(app.GetShapedTextCache(), cmdBuffer, font->GetFontCollection(), app.GetFontGlyphAtlas(),
         app.GetTextShaper(), text, rect, style);
     if (!ret)
-        stack.Error("font \"%s\" draw text fail: %s", font->GetName().c_str(), sizeRet.GetError().message().c_str());
+        stack.Error("font \"%s\" draw text fail: %s", font->GetName().c_str(), ret.GetError().message().c_str());
 }
 
 void RenderModule::RenderTrueTypeFont(LuaStack& stack, const char* name, const char* text, double left, double right, double bottom,

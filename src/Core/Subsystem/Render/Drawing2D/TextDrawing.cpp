@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Subsystem/Render/Drawing2D/TextDrawing.hpp>
 
+#include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Encoding/Convert.hpp>
 #include <lstg/Core/Encoding/Unicode.hpp>
 #include <lstg/Core/Subsystem/Render/Drawing2D/SpriteDrawing.hpp>
@@ -13,6 +14,8 @@
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::Drawing2D;
+
+LSTG_DEF_LOG_CATEGORY(TextDrawing);
 
 namespace
 {
@@ -121,24 +124,31 @@ Result<void> TextDrawing::Draw(TextDrawing::ShapedTextCache& cache, CommandBuffe
                 auto glyphIndex = std::get<0>(line.GlyphRuns[i]) + j;
                 const auto& glyph = shapedTextInfo->ShapedGlyphs[glyphIndex];
 
-                // 获取图集
-                auto atlasInfo = glyph.FontFace->GetGlyphAtlas(glyph.Param, glyph.GlyphIndex, dynamicAtlas);
-                if (!atlasInfo)
-                    return atlasInfo.GetError();
+                // 特殊处理字符缺失的情况
+                if (glyph.GlyphIndex == 0)
+                {
+                    LSTG_LOG_WARN_CAT(TextDrawing, "Lack of glyph for character near position {}, text=\"{}\"", glyph.StartIndex, text);
+                }
+                else
+                {
+                    // 获取图集
+                    auto atlasInfo = glyph.FontFace->GetGlyphAtlas(glyph.Param, glyph.GlyphIndex, dynamicAtlas);
+                    if (!atlasInfo)
+                        return atlasInfo.GetError();
 
-                // 绘制精灵
-                auto drawer = SpriteDrawing::Draw(cmdBuffer, atlasInfo->Texture);
-                if (!drawer)
-                    return drawer.GetError();
+                    // 绘制精灵
+                    auto drawer = SpriteDrawing::Draw(cmdBuffer, atlasInfo->Texture);
+                    if (!drawer)
+                        return drawer.GetError();
 
-                const auto& texRect = atlasInfo->TextureRect;
-                drawer->Texture(texRect.Left(), texRect.Top(), texRect.Width(), texRect.Height());
-                drawer->SetAdditiveColor(style.AdditiveTextColor);
-                drawer->SetMultiplyColor(style.MultiplyTextColor);
-                drawer->Shape(atlasInfo->DrawSize.x, atlasInfo->DrawSize.y, 0, 0);
-                drawer->Translate(drawPosX + atlasInfo->DrawOffset.x + glyph.XOffset,
-                    drawPosY + atlasInfo->DrawOffset.y + glyph.YOffset,
-                    0.5);
+                    const auto& texRect = atlasInfo->TextureRect;
+                    drawer->Texture(texRect.Left(), texRect.Top(), texRect.Width(), texRect.Height());
+                    drawer->SetAdditiveColor(style.AdditiveTextColor);
+                    drawer->SetMultiplyColor(style.MultiplyTextColor);
+                    drawer->Shape(atlasInfo->DrawSize.x, atlasInfo->DrawSize.y, 0, 0);
+                    drawer->Translate(drawPosX + atlasInfo->DrawOffset.x + glyph.XOffset,
+                        drawPosY + atlasInfo->DrawOffset.y + glyph.YOffset, 0.5);
+                }
 
                 drawPosX += glyph.XAdvance;
                 drawPosY += glyph.YAdvance;
