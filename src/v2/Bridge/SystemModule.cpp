@@ -164,7 +164,7 @@ void SystemModule::Print(LuaStack& stack)
 
 void SystemModule::LoadPack(Script::LuaStack& stack, const char* path, std::optional<std::string_view> password)
 {
-    auto ec = GetApp().MountAssetPack(path, password);
+    auto ec = GetApp().MountAssetPack(path, password, false);
     if (!ec)
         stack.Error("Load asset pack from \"%s\" fail: %s", path, ec.GetError().message().c_str());
 }

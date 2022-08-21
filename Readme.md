@@ -24,9 +24,11 @@
 - [x] ~~内存泄漏 BUG 修复~~
 - [x] WebASM 调优
   - [x] SRGB 处理
-- [ ] DX12 接入
+- [x] DX12 接入
   - [ ] ~~HiDPI支持~~
-- [ ] Linux & 树莓派接入
+- [x] Linux
+  - [x] Ubuntu / X11
+  - [x] 树莓派接入(Vulkan Only)
 - [ ] 其他分支API支持
   - [ ] 自定义RT大小
   - [ ] 三参数Dist Angle支持

@@ -48,9 +48,10 @@ namespace lstg::v2
          * 加载资源包
          * @param path 路径
          * @param password 密码
+         * @param vfsBypass 是否略过文件系统直接加载文件
          * @return 是否成功
          */
-        Result<void> MountAssetPack(const char* path, std::optional<std::string_view> password) noexcept;
+        Result<void> MountAssetPack(const char* path, std::optional<std::string_view> password, bool vfsBypass) noexcept;
 
         /**
          * 卸载资源包

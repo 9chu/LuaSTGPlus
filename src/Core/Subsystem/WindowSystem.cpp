@@ -61,7 +61,7 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
     static_cast<void>(container);
 
     // 初始化 SDL 视频子系统
-    int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO);
+    int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);  // 同时初始化游戏手柄输入
     if (ev < 0)
     {
         LSTG_LOG_CRITICAL_CAT(WindowSystem, "Initialize SDL video subsystem fail, SDL_GetError: {}", SDL_GetError());

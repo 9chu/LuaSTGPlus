@@ -13,6 +13,8 @@ endif()
 set(LSTG_APP_NAME "default" CACHE STRING "Specific the app name, will be used as the folder name in AppData for user data storage")
 option(LSTG_DISABLE_HOT_RELOAD "Disable hot reload support" OFF)
 option(LSTG_ASYNC_LOADING_AS_DEFAULT "Enable asynchronous asset loading as default" OFF)
+option(LSTG_V2_CMDLINE_INDIRECT_PASS "v2 - Commandline arguments after '--' will be passed to scripts" OFF)
+option(LSTG_V2_ENABLE_PRELOAD_PACKAGE_FROM_CMDLINE "v2 - Enable preloading asset package from commandline" OFF)
 
 ### 检测平台
 include(cmake/Platform.cmake)

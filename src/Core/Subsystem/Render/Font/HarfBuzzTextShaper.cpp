@@ -376,6 +376,7 @@ void HarfBuzzTextShaper::BreakParagraph(std::vector<ProcessingTextRun>& output, 
             output.push_back(info);
         };
 
+        // 分段并吃掉行尾的换行符
         for (size_t i = 0; i < run.Length; )
         {
             auto ch = text[run.StartIndex + i];
@@ -383,7 +384,6 @@ void HarfBuzzTextShaper::BreakParagraph(std::vector<ProcessingTextRun>& output, 
             switch (state)
             {
                 case STATE_LOOK_CR_OR_LF:
-                    currentLength += 1;
                     if (ch == '\r')
                     {
                         state = STATE_LOOK_LF;
@@ -394,12 +394,14 @@ void HarfBuzzTextShaper::BreakParagraph(std::vector<ProcessingTextRun>& output, 
                         currentStartIndex = run.StartIndex + i + 1;
                         currentLength = 0;
                     }
+                    else
+                    {
+                        currentLength += 1;
+                    }
                     break;
                 case STATE_LOOK_LF:
                     if (ch == '\n')
                     {
-                        currentLength += 1;
-
                         emitRun(lineNumber++);
                         state = STATE_LOOK_CR_OR_LF;
                         currentStartIndex = run.StartIndex + i + 1;

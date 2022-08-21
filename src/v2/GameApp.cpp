@@ -20,6 +20,7 @@
 #include <lstg/Core/Subsystem/DebugGUISystem.hpp>
 #include <lstg/Core/Subsystem/DebugGUI/MiniStatusWindow.hpp>
 #include <lstg/Core/Subsystem/DebugGUI/ConsoleWindow.hpp>
+#include <lstg/Core/Subsystem/VFS/FileStream.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
@@ -218,8 +219,22 @@ GameApp::GameApp(int argc, char** argv)
         lua_getglobal(state, "lstg");  // t(lstg)
         assert(lua_istable(state, -1));
         lua_newtable(state);  // t(lstg) t
+#ifdef LSTG_V2_CMDLINE_INDIRECT_PASS
+        bool ignoreArguments = true;
+#endif
         for (int i = 0, c = 1; i < argc; ++i)
         {
+#ifdef LSTG_V2_CMDLINE_INDIRECT_PASS
+            // 只有在 '--' 后的参数透传给 lua
+            // 注意：透传模式下第一个参数是程序自己的路径，这里会抛弃掉，从实际有效的参数开始透传
+            if (::strcmp(argv[i], "--") == 0)
+            {
+                ignoreArguments = false;
+                continue;
+            }
+            if (ignoreArguments)
+                continue;
+#endif
             lua_pushinteger(state, c++);  // t t i
             lua_pushstring(state, argv[i]);  // t t i s
             lua_settable(state, -3);  // t t
@@ -245,11 +260,34 @@ GameApp::GameApp(int argc, char** argv)
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
+
+#ifdef LSTG_V2_ENABLE_PRELOAD_PACKAGE_FROM_CMDLINE
+#ifndef LSTG_V2_CMDLINE_INDIRECT_PASS
+#error "Invalid configuration"
+#endif
+    // 预加载资源包
+    {
+        // 注意顺序强相关
+        for (int i = 1; i < argc; ++i)
+        {
+            auto v = argv[i];
+            if (::strcmp(v, "--") == 0)  // 后面是透传参数
+                break;
+            if (::strncmp(v, "-", 1) == 0)  // 过滤 '-' 开头，我们认为这是个开关
+                continue;
+
+            // 预加载资源包
+            // 这里不检查资源包是否已经加载
+            // 失败直接退出
+            MountAssetPack(v, {}, true).ThrowIfError();
+        }
+    }
+#endif
 }
 
 // <editor-fold desc="资源系统">
 
-Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string_view> password) noexcept
+Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string_view> password, bool vfsBypass) noexcept
 {
     if (!path)
         return make_error_code(errc::invalid_argument);
@@ -269,16 +307,40 @@ Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string
     // 创建 ZipArchiveFileSystem
     try
     {
-        // 尝试加载流
-        auto fullPath = fmt::format("{}/{}", GetSubsystem<Subsystem::VirtualFileSystem>()->GetAssetBaseDirectory(), path);
-        auto stream = GetSubsystem<Subsystem::VirtualFileSystem>()->OpenFile(fullPath, Subsystem::VFS::FileAccessMode::Read);
-        if (!stream)
-        {
-            LSTG_LOG_ERROR_CAT(GameApp, "Open asset pack from \"{}\" fail: {}", path, stream.GetError());
-            return stream.GetError();
-        }
+        Subsystem::VFS::StreamPtr packageStream;
 
-        auto fs = make_shared<Subsystem::VFS::ZipArchiveFileSystem>(std::move(*stream), password ? string{*password} : "");
+        if (vfsBypass)
+        {
+            try
+            {
+                auto fsStream = make_shared<Subsystem::VFS::FileStream>(path, Subsystem::VFS::FileAccessMode::Read,
+                    Subsystem::VFS::FileOpenFlags::None);
+                packageStream = std::move(fsStream);
+            }
+            catch (const std::system_error& ex)
+            {
+                LSTG_LOG_ERROR_CAT(GameApp, "Open asset pack from \"{}\" fail: {}", path, ex.code());
+                return ex.code();
+            }
+            catch (...)
+            {
+                LSTG_LOG_ERROR_CAT(GameApp, "Open asset pack from \"{}\" fail: <unknown>", path);
+                return make_error_code(errc::io_error);
+            }
+        }
+        else
+        {
+            // 尝试加载流
+            auto fullPath = fmt::format("{}/{}", GetSubsystem<Subsystem::VirtualFileSystem>()->GetAssetBaseDirectory(), path);
+            auto stream = GetSubsystem<Subsystem::VirtualFileSystem>()->OpenFile(fullPath, Subsystem::VFS::FileAccessMode::Read);
+            if (!stream)
+            {
+                LSTG_LOG_ERROR_CAT(GameApp, "Open asset pack from \"{}\" fail: {}", path, stream.GetError());
+                return stream.GetError();
+            }
+            packageStream = std::move(*stream);
+        }
+        auto fs = make_shared<Subsystem::VFS::ZipArchiveFileSystem>(packageStream, password ? string{*password} : "");
         fs->SetUserData(path);
         m_pAssetsFileSystem->PushFileSystem(std::move(fs));
         return {};
