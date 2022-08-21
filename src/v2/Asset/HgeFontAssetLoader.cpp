@@ -156,8 +156,10 @@ void HgeFontAssetLoader::Update() noexcept
                     return;
                 }
 
+#if LSTG_ASSET_HOT_RELOAD
                 // 更新版本号
                 m_uLoadedTextureVersion = m_pLoadedTexture->GetVersion();
+#endif
 
                 // 提交资源
                 asset->UpdateResource(std::move(m_pLoadedTexture), std::move(m_pLoadedFontFace), std::move(collection));
