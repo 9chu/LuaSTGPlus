@@ -13,6 +13,9 @@
     <script type='text/javascript'>
         var Module = {
             canvas: (function() { return document.getElementById('canvas'); })(),
+            arguments: [
+                "-enable-async-loading", "-render-frame-skip=1"
+            ],
             print: function(what) {
                 console.log(what)
             },

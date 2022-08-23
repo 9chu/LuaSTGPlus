@@ -15,7 +15,7 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
 
-extern "C" int main(int argc, char** argv)
+extern "C" int main(int argc, const char* argv[])
 {
     // 强制日志系统初始化
     Logging::GetInstance();

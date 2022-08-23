@@ -8,6 +8,7 @@
 #include "Timer.hpp"
 #include "PreciseSleeper.hpp"
 #include "Result.hpp"
+#include "Text/CmdlineParser.hpp"
 #include "Subsystem/SubsystemContainer.hpp"
 
 namespace lstg
@@ -36,12 +37,20 @@ namespace lstg
         static AppBase& GetInstance() noexcept;
 
     public:
-        AppBase();
+        AppBase(int argc, const char* argv[]);
         AppBase(const AppBase&) = delete;
         AppBase(AppBase&&)noexcept = delete;
         virtual ~AppBase();
 
     public:
+        // <editor-fold desc="命令行">
+
+        /**
+         * 获取命令行
+         */
+        const Text::CmdlineParser& GetCmdline() const noexcept { return m_stCmdlineParser; }
+
+        // </editor-fold>
         // <editor-fold desc="子系统">
 
         template <typename T>
@@ -114,6 +123,8 @@ namespace lstg
         double GetBestFrameInterval() noexcept;
 
     private:
+        Text::CmdlineParser m_stCmdlineParser;
+
         // 子系统
         Subsystem::SubsystemContainer m_stSubsystemContainer;
         std::shared_ptr<Subsystem::EventBusSystem> m_pEventBusSystem;
@@ -124,6 +135,7 @@ namespace lstg
         Timer m_stMainTaskTimer;
         PreciseSleeper m_stSleeper;
         double m_dFrameInterval = 1. / 60.;
+        uint32_t m_uRenderFrameSkip = 0;
         TimerTask m_stFrameTask;
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
         long m_lTimeoutId = 0;  // 主逻辑循环定时器
@@ -137,6 +149,7 @@ namespace lstg
         double m_dFrameRateCounterTimer = 0;
         unsigned m_uUpdateFramesInSecond = 0;
         unsigned m_uRenderFramesInSecond = 0;
+        uint32_t m_uRenderFrameSkipCounter = 0;
 
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
         // Emscripten 环境下，我们需要在启动程序前完成资源包下载

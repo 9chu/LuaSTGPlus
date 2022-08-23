@@ -149,11 +149,7 @@ namespace lstg::Subsystem
         std::shared_ptr<RenderSystem> m_pRenderSystem;
 
         // 配置
-#ifdef LSTG_ASYNC_LOADING_AS_DEFAULT
-        bool m_bAsyncLoadingEnabled = true;
-#else
         bool m_bAsyncLoadingEnabled = false;
-#endif
 
         // 资产工厂
         Asset::IAssetDependencyResolver* m_pResolver = nullptr;

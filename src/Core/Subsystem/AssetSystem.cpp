@@ -9,6 +9,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
+#include <lstg/Core/AppBase.hpp>  // for cmdline
 #include "Asset/detail/WeakPtrTraits.hpp"
 
 // Core 中预定义的 Factory
@@ -101,6 +102,14 @@ AssetSystem::AssetSystem(SubsystemContainer& container)
         assert(s_pInstance == this);
         s_pInstance = nullptr;
         throw;
+    }
+
+    // 是否默认开启异步加载
+    auto cmdEnableAsyncLoading = AppBase::GetInstance().GetCmdline().GetOption<bool>("enable-async-loading", false);
+    if (cmdEnableAsyncLoading)
+    {
+        LSTG_LOG_INFO_CAT(AssetSystem, "Async loading is enabled");
+        SetAsyncLoadingEnabled(true);
     }
 }
 

@@ -81,8 +81,9 @@ static size_t kMaxRenderTargetStackDepth = 8u;
 
 extern "C" int luaopen_cjson(lua_State* L);
 
-GameApp::GameApp(int argc, char** argv)
-    : m_stDesiredSolution(640, 480), m_stCommandExecutor(*GetSubsystem<Subsystem::RenderSystem>()), m_stDefaultWorld(*this)
+GameApp::GameApp(int argc, const char* argv[])
+    : AppBase(argc, argv), m_stDesiredSolution(640, 480), m_stCommandExecutor(*GetSubsystem<Subsystem::RenderSystem>()),
+    m_stDefaultWorld(*this)
 {
     // 初始化文件系统
     //  - assets
@@ -219,26 +220,31 @@ GameApp::GameApp(int argc, char** argv)
         lua_getglobal(state, "lstg");  // t(lstg)
         assert(lua_istable(state, -1));
         lua_newtable(state);  // t(lstg) t
-#ifdef LSTG_V2_CMDLINE_INDIRECT_PASS
-        bool ignoreArguments = true;
-#endif
+#ifdef LSTG_PARSE_CMDLINE
+        {
+            int c = 1;
+            const auto& cmdline = GetCmdline();
+
+            // 兼容性处理，argv[1] 总是 executable path
+            state.PushValue(c++);  // t t i
+            state.PushValue(cmdline.GetExecutablePath());  // t t i s
+            lua_settable(state, -3);  // t t
+
+            for (int i = 0; i < cmdline.GetTransparentArgumentCount(); ++i)
+            {
+                state.PushValue(c++);  // t t i
+                state.PushValue(cmdline.GetTransparentArgument(i));  // t t i s
+                lua_settable(state, -3);  // t t
+            }
+        }
+#else
         for (int i = 0, c = 1; i < argc; ++i)
         {
-#ifdef LSTG_V2_CMDLINE_INDIRECT_PASS
-            // 只有在 '--' 后的参数透传给 lua
-            // 注意：透传模式下第一个参数是程序自己的路径，这里会抛弃掉，从实际有效的参数开始透传
-            if (::strcmp(argv[i], "--") == 0)
-            {
-                ignoreArguments = false;
-                continue;
-            }
-            if (ignoreArguments)
-                continue;
-#endif
             lua_pushinteger(state, c++);  // t t i
             lua_pushstring(state, argv[i]);  // t t i s
             lua_settable(state, -3);  // t t
         }
+#endif
         lua_setfield(state, -2, "args");  // t
         lua_pop(state, 1);
 
@@ -261,35 +267,22 @@ GameApp::GameApp(int argc, char** argv)
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
 
-#ifdef LSTG_V2_ENABLE_PRELOAD_PACKAGE_FROM_CMDLINE
-#ifndef LSTG_V2_CMDLINE_INDIRECT_PASS
-#error "Invalid configuration"
-#endif
     // 预加载资源包
     {
-        // 注意顺序强相关
-        for (int i = 1; i < argc; ++i)
+        auto preloadPackPath = GetCmdline().GetOption<string_view>("preload-pack", "");
+        if (!preloadPackPath.empty())
         {
-            auto v = argv[i];
-            if (::strcmp(v, "--") == 0)  // 后面是透传参数
-                break;
-            if (::strncmp(v, "-", 1) == 0)  // 过滤 '-' 开头，我们认为这是个开关
-                continue;
-
-            // 预加载资源包
-            // 这里不检查资源包是否已经加载
-            // 失败直接退出
-            MountAssetPack(v, {}, true).ThrowIfError();
+            // 预加载资源包，失败直接退出
+            MountAssetPack(preloadPackPath, {}, true).ThrowIfError();
         }
     }
-#endif
 }
 
 // <editor-fold desc="资源系统">
 
-Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string_view> password, bool vfsBypass) noexcept
+Result<void> GameApp::MountAssetPack(std::string_view path, std::optional<std::string_view> password, bool vfsBypass) noexcept
 {
-    if (!path)
+    if (path.empty())
         return make_error_code(errc::invalid_argument);
 
     // 检查是否已经加载
@@ -341,7 +334,7 @@ Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string
             packageStream = std::move(*stream);
         }
         auto fs = make_shared<Subsystem::VFS::ZipArchiveFileSystem>(packageStream, password ? string{*password} : "");
-        fs->SetUserData(path);
+        fs->SetUserData(string{path});
         m_pAssetsFileSystem->PushFileSystem(std::move(fs));
         return {};
     }
@@ -355,9 +348,9 @@ Result<void> GameApp::MountAssetPack(const char* path, std::optional<std::string
     }
 }
 
-Result<void> GameApp::UnmountAssetPack(const char* path) noexcept
+Result<void> GameApp::UnmountAssetPack(std::string_view path) noexcept
 {
-    if (!path || ::strlen(path) == 0)
+    if (path.empty())
         return make_error_code(errc::invalid_argument);
 
     for (size_t i = 0; i < m_pAssetsFileSystem->GetFileSystemCount(); ++i)

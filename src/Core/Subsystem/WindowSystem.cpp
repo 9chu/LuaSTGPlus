@@ -15,6 +15,7 @@
 
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
+#include <lstg/Core/AppBase.hpp>  // for Cmdline
 #include "../detail/SDLHelper.hpp"
 
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
@@ -51,6 +52,15 @@ namespace
 #else
 #error "Unsupported video driver yet"
 #endif
+
+        // 支持从控制台指定强制全屏
+        auto cmdForceFullscreen = AppBase::GetInstance().GetCmdline().GetOption<bool>("force-fullscreen", false);
+        if (cmdForceFullscreen)
+        {
+            LSTG_LOG_INFO_CAT(WindowSystem, "Force fullscreen mode is enabled");
+            ret ^= WindowFeatures::SupportWindowMode;  // 去掉窗口化支持标记位
+        }
+
         return ret;
     }
 }
@@ -202,6 +212,8 @@ bool WindowSystem::HasFocus() const noexcept
 
 Result<void> WindowSystem::ToggleFullScreen(bool fullscreen) noexcept
 {
+    if (!fullscreen && !(m_iFeatures & WindowFeatures::SupportWindowMode))
+        return make_error_code(errc::not_supported);
     int ev = ::SDL_SetWindowFullscreen(m_pWindow, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     if (ev < 0)
         return lstg::detail::MakeSDLError(ev);

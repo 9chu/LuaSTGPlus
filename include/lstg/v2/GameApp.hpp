@@ -41,7 +41,7 @@ namespace lstg::v2
         public AppBase
     {
     public:
-        GameApp(int argc, char** argv);
+        GameApp(int argc, const char* argv[]);
 
     public:  // 资源系统
         /**
@@ -51,14 +51,14 @@ namespace lstg::v2
          * @param vfsBypass 是否略过文件系统直接加载文件
          * @return 是否成功
          */
-        Result<void> MountAssetPack(const char* path, std::optional<std::string_view> password, bool vfsBypass) noexcept;
+        Result<void> MountAssetPack(std::string_view path, std::optional<std::string_view> password, bool vfsBypass) noexcept;
 
         /**
          * 卸载资源包
          * @param path 路径
          * @return 是否成功
          */
-        Result<void> UnmountAssetPack(const char* path) noexcept;
+        Result<void> UnmountAssetPack(std::string_view path) noexcept;
 
         /**
          * 获取资源池

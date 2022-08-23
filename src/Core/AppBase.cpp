@@ -57,10 +57,18 @@ AppBase& AppBase::GetInstance() noexcept
     return *p;
 }
 
-AppBase::AppBase()
+AppBase::AppBase(int argc, const char* argv[])
 {
     assert(kGlobalInstance.load(memory_order_acquire) == nullptr);
     kGlobalInstance.store(this, memory_order_release);
+
+#ifdef LSTG_PARSE_CMDLINE
+    // 解析命令行
+    m_stCmdlineParser.Parse(argc, argv);
+#else
+    assert(argc >= 1);
+    m_stCmdlineParser.Parse(1, argv);
+#endif
 
     m_stFrameTask.SetCallback([this]() noexcept {
         Frame();
@@ -91,6 +99,14 @@ AppBase::AppBase()
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
     m_pFileDownloader = make_shared<detail::EmFileDownloader>();
 #endif
+
+    // 允许从命令行设置跳帧
+    auto cmdRenderFrameSkip = GetCmdline().GetOption<int>("render-frame-skip", 0);
+    if (cmdRenderFrameSkip != 0)
+    {
+        LSTG_LOG_INFO_CAT(AppBase, "Set render frame skip to {}", cmdRenderFrameSkip);
+        m_uRenderFrameSkip = cmdRenderFrameSkip;
+    }
 }
 
 AppBase::~AppBase()
@@ -127,6 +143,7 @@ void AppBase::Run()
     m_dFrameRateCounterTimer = 0;
     m_uUpdateFramesInSecond = 0;
     m_uRenderFramesInSecond = 0;
+    m_uRenderFrameSkipCounter = 0;
     m_stMainTaskTimer.Reset();
     m_stMainTaskTimer.Schedule(&m_stFrameTask, start + static_cast<uint64_t>(m_stSleeper.GetFrequency() * GetBestFrameInterval()));
 
@@ -483,6 +500,20 @@ void AppBase::Render() noexcept
 #ifdef LSTG_DEVELOPMENT
     LSTG_PER_FRAME_PROFILE(RenderTime);
 #endif
+
+    // 计算跳帧
+    if (m_uRenderFrameSkip != 0)
+    {
+        if (m_uRenderFrameSkipCounter >= m_uRenderFrameSkip)
+        {
+            m_uRenderFrameSkipCounter = 0;
+        }
+        else
+        {
+            ++m_uRenderFrameSkipCounter;
+            return;
+        }
+    }
 
     // 计算渲染时间间隔
     auto now = Pal::GetCurrentTick();

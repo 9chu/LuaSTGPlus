@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/DebugGUI/MiniStatusWindow.hpp>
 
 #include <imgui.h>
+#include <lstg/Core/AppBase.hpp>  // for Cmdline
 
 using namespace std;
 using namespace lstg;
@@ -30,6 +31,11 @@ MiniStatusWindow::MiniStatusWindow()
     AddCounter("RenderFPS", PerformanceCounterTypes::RealTime, "RenderFps");
 #else
     AddCounter("FPS", PerformanceCounterTypes::RealTime, "LogicFps");
+
+    // 允许从命令行设置跳帧
+    auto cmdRenderFrameSkip = AppBase::GetInstance().GetCmdline().GetOption<int>("render-frame-skip", 0);
+    if (cmdRenderFrameSkip != 0)
+        AddCounter("RenderFPS", PerformanceCounterTypes::RealTime, "RenderFps");
 #endif
 }
 

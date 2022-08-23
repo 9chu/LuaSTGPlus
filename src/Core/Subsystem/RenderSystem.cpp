@@ -12,6 +12,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include <lstg/Core/Subsystem/Render/GraphicsDefinitionCache.hpp>
+#include <lstg/Core/AppBase.hpp>  // for Cmdline
 #include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/ClearHelper.hpp"
@@ -86,25 +87,34 @@ namespace
     void GetSupportedRenderDevice(std::vector<std::tuple<const char*, RenderDeviceConstructor>>& out)
     {
 #if D3D12_SUPPORTED == 1
-        out.emplace_back("D3D12", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+        out.emplace_back("d3d12", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceD3D12>(windowSystem);
         });
 #endif
 #if D3D11_SUPPORTED == 1
-        out.emplace_back("D3D11", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+        out.emplace_back("d3d11", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceD3D11>(windowSystem);
         });
 #endif
 #if VULKAN_SUPPORTED == 1
-        out.emplace_back("Vulkan", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+        out.emplace_back("vulkan", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceVulkan>(windowSystem);
         });
 #endif
 #if GL_SUPPORTED == 1 || GLES_SUPPORTED == 1
-        out.emplace_back("OpenGL", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
+        out.emplace_back("opengl", [](WindowSystem* windowSystem) -> Render::RenderDevicePtr {
             return make_shared<Render::detail::RenderDevice::RenderDeviceGL>(windowSystem);
         });
 #endif
+
+        // 优先使用命令行选择的渲染器
+        auto cmdGraphics = AppBase::GetInstance().GetCmdline().GetOption<string_view>("graphics", "");
+        if (!cmdGraphics.empty())
+        {
+            std::stable_sort(out.begin(), out.end(), [&](const auto& left, const auto& right) {
+                return (std::get<0>(left) == cmdGraphics && std::get<0>(right) != cmdGraphics);
+            });
+        }
     }
 
     struct CameraState
