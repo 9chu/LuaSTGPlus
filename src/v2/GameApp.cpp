@@ -583,6 +583,7 @@ void GameApp::OnStartup()
 
     // 显示主窗口
     GetSubsystem<Subsystem::WindowSystem>()->Show();
+    GetSubsystem<Subsystem::WindowSystem>()->Raise();
 }
 
 void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
