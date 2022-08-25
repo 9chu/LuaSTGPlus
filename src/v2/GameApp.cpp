@@ -230,7 +230,7 @@ GameApp::GameApp(int argc, const char* argv[])
             state.PushValue(cmdline.GetExecutablePath());  // t t i s
             lua_settable(state, -3);  // t t
 
-            for (int i = 0; i < cmdline.GetTransparentArgumentCount(); ++i)
+            for (size_t i = 0; i < cmdline.GetTransparentArgumentCount(); ++i)
             {
                 state.PushValue(c++);  // t t i
                 state.PushValue(cmdline.GetTransparentArgument(i));  // t t i s

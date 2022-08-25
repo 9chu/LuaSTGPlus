@@ -29,14 +29,14 @@
 - [x] Linux
   - [x] Ubuntu / X11
   - [x] 树莓派接入(Vulkan Only)
-- [ ] 命令行参数机制优化
+- [x] 命令行参数机制优化
   - [x] preload-pack=xxx
   - [x] enable-async-loading
   - [x] graphics=d3d11/d3d12/vulkan/opengl
   - [x] force-fullscreen
   - [x] render-frame-skip
-  - [ ] game-controller-mapping
-- [ ] 手柄 -> 键盘按键映射器
+  - [x] controller-to-key-config
+- [x] 手柄 -> 键盘按键映射器
 - [ ] Building patch
   - [ ] Diligent 构建 patch under wasm
   - [ ] Diligent/Vulkan 不选择集显

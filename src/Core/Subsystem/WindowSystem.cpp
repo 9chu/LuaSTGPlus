@@ -71,7 +71,7 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
     static_cast<void>(container);
 
     // 初始化 SDL 视频子系统
-    int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);  // 同时初始化游戏手柄输入
+    int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (ev < 0)
     {
         LSTG_LOG_CRITICAL_CAT(WindowSystem, "Initialize SDL video subsystem fail, SDL_GetError: {}", SDL_GetError());
@@ -101,12 +101,13 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
             LSTG_LOG_CRITICAL_CAT(WindowSystem, "Get canvas size fail, ret: {}", ev);
             LSTG_THROW(WindowInitializeFailedException, "Get canvas size fail, ret: {}", ev);
         }
+        // 需要 Resizable，否则 canvas 的大小变化不会自动产生 Resize 事件
         m_pWindow = ::SDL_CreateWindow("LuaSTGPlus", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, canvasWidth, canvasHeight,
-            SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);  // 需要 Resizable，否则 canvas 的大小变化不会自动产生 Resize 事件
+            SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 #else
         // 其他情况总是创建全屏窗口
         m_pWindow = ::SDL_CreateWindow("LuaSTGPlus", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0, 0,
-            SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN_DESKTOP);
+            SDL_WINDOW_HIDDEN | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALLOW_HIGHDPI);
 #endif
     }
 

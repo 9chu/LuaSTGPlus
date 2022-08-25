@@ -41,7 +41,7 @@ namespace lstg::Subsystem
         /**
          * 指示是否启用 HighDPI
          */
-        HighDPISupport = 3,
+        HighDPISupport = 4,
     LSTG_FLAG_END(WindowFeatures)
 
     /**
@@ -150,4 +150,6 @@ namespace lstg::Subsystem
         SDL_Window* m_pWindow = nullptr;
         WindowFeatures m_iFeatures = static_cast<WindowFeatures>(0);
     };
+
+    using WindowSystemPtr = std::shared_ptr<WindowSystem>;
 } // namespace lstg::Subsystem

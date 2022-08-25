@@ -32,14 +32,15 @@ extern "C"
 #endif
 
 // 所有子系统
-#include <lstg/Core/Subsystem/EventBusSystem.hpp>
-#include <lstg/Core/Subsystem/WindowSystem.hpp>
-#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
-#include <lstg/Core/Subsystem/ScriptSystem.hpp>
-#include <lstg/Core/Subsystem/RenderSystem.hpp>
-#include <lstg/Core/Subsystem/DebugGUISystem.hpp>
-#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
+#include <lstg/Core/Subsystem/DebugGUISystem.hpp>
+#include <lstg/Core/Subsystem/EventBusSystem.hpp>
+#include <lstg/Core/Subsystem/GameControllerSystem.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
+#include <lstg/Core/Subsystem/RenderSystem.hpp>
+#include <lstg/Core/Subsystem/ScriptSystem.hpp>
+#include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
+#include <lstg/Core/Subsystem/WindowSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -79,6 +80,7 @@ AppBase::AppBase(int argc, const char* argv[])
     const auto kSubsystemNoInteractive =
         SubsystemRegisterFlags::NoUpdate | SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
     const auto kSubsystemUpdateOnly = SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoEvent;
+    const auto kSubsystemEventOnly = SubsystemRegisterFlags::NoRender | SubsystemRegisterFlags::NoUpdate;
     m_stSubsystemContainer.Register<Subsystem::EventBusSystem>("EventBusSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::WindowSystem>("WindowSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::VirtualFileSystem>("VirtualFileSystem", 0, kSubsystemNoInteractive);
@@ -88,6 +90,7 @@ AppBase::AppBase(int argc, const char* argv[])
     m_stSubsystemContainer.Register<Subsystem::DebugGUISystem>("DebugGUISystem", 0);
     m_stSubsystemContainer.Register<Subsystem::ProfileSystem>("ProfileSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::AssetSystem>("AssetSystem", 0, kSubsystemUpdateOnly);
+    m_stSubsystemContainer.Register<Subsystem::GameControllerSystem>("GameControllerSystem", 0, kSubsystemEventOnly);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 
