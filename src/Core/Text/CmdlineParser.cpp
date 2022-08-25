@@ -12,7 +12,7 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Text;
 
-Result<float> CmdlineParser::CmdlineArgumentConverter<float>::operator()(const Argument& argument) noexcept
+Result<float> Text::detail::CmdlineArgumentConverter<float>::operator()(const Argument& argument) noexcept
 {
     if (argument.Type != ArgumentTypes::OptionWithValue)
         return make_error_code(std::errc::invalid_argument);
@@ -24,7 +24,7 @@ Result<float> CmdlineParser::CmdlineArgumentConverter<float>::operator()(const A
     return make_error_code(std::errc::invalid_argument);
 }
 
-Result<double> CmdlineParser::CmdlineArgumentConverter<double>::operator()(const Argument& argument) noexcept
+Result<double> Text::detail::CmdlineArgumentConverter<double>::operator()(const Argument& argument) noexcept
 {
     if (argument.Type != ArgumentTypes::OptionWithValue)
         return make_error_code(std::errc::invalid_argument);
@@ -36,17 +36,17 @@ Result<double> CmdlineParser::CmdlineArgumentConverter<double>::operator()(const
     return make_error_code(std::errc::invalid_argument);
 }
 
-const CmdlineParser::Argument& CmdlineParser::operator[](size_t index) const noexcept
+const Text::detail::Argument& CmdlineParser::operator[](size_t index) const noexcept
 {
     assert(index < m_stArguments.size());
     return m_stArguments[index];
 }
 
-const CmdlineParser::Argument* CmdlineParser::operator[](std::string_view key) const noexcept
+const Text::detail::Argument* CmdlineParser::operator[](std::string_view key) const noexcept
 {
     for (const auto& kv : m_stArguments)
     {
-        if (kv.Type == ArgumentTypes::Option || kv.Type == ArgumentTypes::OptionWithValue)
+        if (kv.Type == Text::detail::ArgumentTypes::Option || kv.Type == Text::detail::ArgumentTypes::OptionWithValue)
         {
             if (kv.Key == key)
                 return &kv;
@@ -82,7 +82,7 @@ void CmdlineParser::Parse(int argc, const char* argv[])
                 continue;
             }
 
-            Argument parsedArg {};
+            Text::detail::Argument parsedArg {};
 
             if (arg[0] == '-')
             {
@@ -116,7 +116,7 @@ void CmdlineParser::Parse(int argc, const char* argv[])
                                 if (keyLen == 0)
                                     goto PARSE_FAIL;
 
-                                parsedArg.Type = ArgumentTypes::Option;
+                                parsedArg.Type = Text::detail::ArgumentTypes::Option;
                                 parsedArg.Key = string_view { &arg[1], keyLen };
                                 parsedArg.Index = m_stArguments.size();
                                 m_stArguments.emplace_back(std::move(parsedArg));
@@ -130,7 +130,7 @@ void CmdlineParser::Parse(int argc, const char* argv[])
                         case STATE_LOOK_FOR_END:
                             if (ch == '\0')
                             {
-                                parsedArg.Type = ArgumentTypes::OptionWithValue;
+                                parsedArg.Type = Text::detail::ArgumentTypes::OptionWithValue;
                                 parsedArg.Key = string_view { &arg[1], keyLen };
                                 parsedArg.Value = string_view { &arg[valueStartIndex], valueLen };
                                 parsedArg.Index = m_stArguments.size();
@@ -150,7 +150,7 @@ void CmdlineParser::Parse(int argc, const char* argv[])
                 ;
             }
 
-            parsedArg.Type = ArgumentTypes::Plain;
+            parsedArg.Type = Text::detail::ArgumentTypes::Plain;
             parsedArg.Value = arg;
             parsedArg.Index = m_stArguments.size();
             m_stArguments.emplace_back(std::move(parsedArg));

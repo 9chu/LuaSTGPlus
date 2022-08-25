@@ -14,12 +14,8 @@
 
 namespace lstg::Text
 {
-    /**
-     * 命令行解析器
-     */
-    class CmdlineParser
+    namespace detail
     {
-    public:
         enum class ArgumentTypes
         {
             Plain,
@@ -112,10 +108,18 @@ namespace lstg::Text
                 }
             }
         };
+    }
+
+    /**
+     * 命令行解析器
+     */
+    class CmdlineParser
+    {
+    public:
 
     public:
-        const Argument& operator[](size_t index) const noexcept;
-        const Argument* operator[](std::string_view key) const noexcept;
+        const detail::Argument& operator[](size_t index) const noexcept;
+        const detail::Argument* operator[](std::string_view key) const noexcept;
 
     public:
         /**
@@ -167,7 +171,7 @@ namespace lstg::Text
             auto arg = operator[](key);
             if (!arg)
                 return make_error_code(std::errc::no_such_file_or_directory);
-            return CmdlineArgumentConverter<T>{}(*arg);
+            return detail::CmdlineArgumentConverter<T>{}(*arg);
         }
 
         /**
@@ -184,7 +188,7 @@ namespace lstg::Text
             auto arg = operator[](key);
             if (!arg)
                 return std::forward<P>(defaultValue);
-            auto ret = CmdlineArgumentConverter<T>{}(*arg);
+            auto ret = detail::CmdlineArgumentConverter<T>{}(*arg);
             if (!ret)
                 return std::forward<P>(defaultValue);
             return *ret;
@@ -192,7 +196,7 @@ namespace lstg::Text
 
     private:
         std::string m_stStartup;
-        std::vector<Argument> m_stArguments;
+        std::vector<detail::Argument> m_stArguments;
         std::vector<std::string> m_stTransparentArguments;
     };
 }
