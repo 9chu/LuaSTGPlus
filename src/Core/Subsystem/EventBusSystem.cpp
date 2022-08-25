@@ -38,5 +38,5 @@ std::optional<SubsystemEvent> EventBusSystem::PollEvent() noexcept
         return {};
     auto front = std::move(m_stEventQueue.front());
     m_stEventQueue.pop_front();
-    return std::move(front);
+    return front;
 }

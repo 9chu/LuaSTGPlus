@@ -6,6 +6,7 @@
  */
 #include <lstg/Core/Text/CmdlineParser.hpp>
 
+#include <cstring>
 #include <ryu/ryu_parse.h>
 
 using namespace std;

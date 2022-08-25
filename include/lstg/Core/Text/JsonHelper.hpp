@@ -52,19 +52,19 @@ namespace lstg::Text
         static inline T ReadValue(const nlohmann::json& object, std::string_view path, T defaultValue) noexcept
         {
             if (!object.is_object())
-                return std::move(defaultValue);
+                return defaultValue;
 
             try
             {
                 auto p = nlohmann::json::json_pointer(std::string{path});
                 if (!object.contains(p))
-                    return std::move(defaultValue);
+                    return defaultValue;
                 auto ref = object.at(p);
                 return ref.get<T>();
             }
             catch (...)
             {
-                return std::move(defaultValue);
+                return defaultValue;
             }
         }
     };
