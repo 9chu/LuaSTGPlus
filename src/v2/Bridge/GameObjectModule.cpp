@@ -62,7 +62,7 @@ void GameObjectModule::RenderObjects(LuaStack& stack)
 void GameObjectModule::SetBound(double left, double right, double bottom, double top)
 {
     auto& world = detail::GetGlobalApp().GetDefaultWorld();
-    world.SetBoundary({left, top, ::abs(right - left), ::abs(top - bottom)});
+    world.SetBoundary({left, top, std::abs(right - left), std::abs(top - bottom)});
 }
 
 void GameObjectModule::BoundCheck(LuaStack& stack)
