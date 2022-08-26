@@ -17,16 +17,16 @@ namespace lstg::Subsystem::Script
      * @param out 输出结果
      * @return 读取的个数
      */
-    inline int LuaRead(LuaStack& stack, int idx, Result<nullptr_t>& out) noexcept
+    inline int LuaRead(LuaStack& stack, int idx, Result<std::nullptr_t>& out) noexcept
     {
         if (lua_isnil(stack, idx))
-            out = nullptr_t {};
+            out = std::nullptr_t {};
         else
             out = make_error_code(static_cast<LuaBadArgumentError>(idx));
         return 1;
     }
 
-    inline int LuaRead(LuaStack& stack, int idx, nullptr_t& out)
+    inline int LuaRead(LuaStack& stack, int idx, std::nullptr_t& out)
     {
         luaL_checktype(stack, idx, LUA_TNIL);
         out = {};
