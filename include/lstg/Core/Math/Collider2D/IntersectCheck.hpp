@@ -53,22 +53,22 @@ namespace lstg::Math::Collider2D
             if (!nA2B && !nB2A && Cross(ab, a) * Cross(ab, ax) > T(0))
             {
                 const auto e = glm::normalize(ab);
-                return ::abs(PointToLineDist(p, a, e.x, e.y));
+                return std::abs(PointToLineDist(p, a, e.x, e.y));
             }
             if (!nC2D && !nD2C && Cross(ab, a) * Cross(ab, cx) < T(0))
             {
                 const auto e = glm::normalize(ab);
-                return ::abs(PointToLineDist(p, -a, e.x, e.y));
+                return std::abs(PointToLineDist(p, -a, e.x, e.y));
             }
             if (!nA2D && !nD2A && Cross(ad, a) * Cross(ad, ax) > T(0))
             {
                 const auto e = glm::normalize(ad);
-                return ::abs(PointToLineDist(p, a, e.x, e.y));
+                return std::abs(PointToLineDist(p, a, e.x, e.y));
             }
             if (!nC2B && !nB2C && Cross(ad, a) * Cross(ad, bx) < T(0))
             {
                 const auto e = glm::normalize(ad);
-                return ::abs(PointToLineDist(p, b, e.x, e.y));
+                return std::abs(PointToLineDist(p, b, e.x, e.y));
             }
             return T(0);
         }
