@@ -1,0 +1,38 @@
+diff --git a/Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp b/Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
+index 6b42a243..55f6b0b5 100644
+--- a/Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
++++ b/Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
+@@ -354,6 +354,8 @@ VkPhysicalDevice VulkanInstance::SelectPhysicalDevice(uint32_t AdapterId) const
+     // Prefer discrete GPU.
+     if (SelectedPhysicalDevice == VK_NULL_HANDLE)
+     {
++        int SelectedDeviceScore = -1;
++
+         for (auto Device : m_PhysicalDevices)
+         {
+             VkPhysicalDeviceProperties DeviceProps;
+@@ -361,9 +363,22 @@ VkPhysicalDevice VulkanInstance::SelectPhysicalDevice(uint32_t AdapterId) const
+ 
+             if (IsGraphicsAndComputeQueueSupported(Device))
+             {
+-                SelectedPhysicalDevice = Device;
++                int DeviceScore = 0;
+                 if (DeviceProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+-                    break;
++                    DeviceScore = 3;
++                else if (DeviceProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
++                    DeviceScore = 2;
++                else if (DeviceProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
++                    DeviceScore = 1;
++
++                if (DeviceScore > SelectedDeviceScore)
++                {
++                    SelectedPhysicalDevice = Device;
++                    SelectedDeviceScore = DeviceScore;
++
++                    if (DeviceScore >= 3)
++                        break;
++                }
+             }
+         }
+     }

@@ -62,6 +62,8 @@ CPMAddPackage(
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.0.22
     # GIT_TAG main
+    PATCH_COMMAND git restore cmake/sdlchecks.cmake
+    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
@@ -133,6 +135,10 @@ CPMAddPackage(
     NAME DiligentCore
     GITHUB_REPOSITORY DiligentGraphics/DiligentCore
     VERSION 2.5.2
+    PATCH_COMMAND git restore Graphics/HLSL2GLSLConverterLib/src/HLSL2GLSLConverterImpl.cpp
+    COMMAND git restore Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
+    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/diligent-std-move-patch.patch
+    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/diligent-vk-device-select-patch.patch
 )
 
 # glm

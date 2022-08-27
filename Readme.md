@@ -37,10 +37,10 @@
   - [x] render-frame-skip
   - [x] controller-to-key-config
 - [x] 手柄 -> 键盘按键映射器
-- [ ] Building patch
-  - [ ] Diligent 构建 patch under wasm
-  - [ ] Diligent/Vulkan 不选择集显
-  - [ ] SDL2 CMake patch
+- [x] Building patch
+  - [x] Diligent 构建 patch under wasm
+  - [x] Diligent/Vulkan 不选择集显
+  - [x] SDL2 CMake patch
 - [ ] 音频系统
 - [ ] 开源准备
   - [ ] License 补全
