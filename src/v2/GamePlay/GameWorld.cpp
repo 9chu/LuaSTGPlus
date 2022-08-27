@@ -674,10 +674,12 @@ void GameWorld::Clear() noexcept
     {
         auto next = p->NextInChain;
         p->Status = LifeTimeStatus::Deleted;
-        // p->BindingEntity.Destroy();
+        // FIXME: 如果在迭代过程中调用 Destroy，可能会造成问题？
+        // FIXME: 暂时没有测试这种情况，但是如果不 Destroy，会出现很多奇妙的问题
+        p->BindingEntity.Destroy();
         p = next;
     }
-    // assert(m_stScriptObjectPool.GetCurrentObjects() == 0);
+    assert(m_stScriptObjectPool.GetCurrentObjects() == 0);
 }
 
 void GameWorld::Update(double elapsedTime) noexcept
