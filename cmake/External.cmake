@@ -78,11 +78,14 @@ CPMAddPackage(
         "SDL_MISC OFF"
 )
 if(${sdl_ADDED})
-    add_custom_target(UpdateSDLConfig COMMAND
-        "${CMAKE_COMMAND}" -E copy_if_different
-        "${sdl_BINARY_DIR}/include/SDL_config.h"
-        "${sdl_SOURCE_DIR}/include/SDL_config.h")
-    add_dependencies(UpdateSDLConfig SDL2-static)
+    add_custom_target(UpdateSDLConfig
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_if_different
+            "${sdl_BINARY_DIR}/include/SDL_config.h"
+            "${sdl_SOURCE_DIR}/include/SDL_config.h"
+        DEPENDS "${sdl_BINARY_DIR}/include/SDL_config.h"
+    )
+    add_dependencies(SDL2-static UpdateSDLConfig)
 endif()
 
 # lua or luajit

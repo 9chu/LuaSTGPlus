@@ -67,8 +67,6 @@ target_include_directories(LuaSTGPlusCore
         ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/LuaEffectBuilder)
 target_link_libraries(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEPS_PUBLIC} PRIVATE ${LSTG_CORE_DEPS_PRIVATE})
 
-add_dependencies(LuaSTGPlusCore UpdateSDLConfig)
-
 # 宏（公开的）
 set(LSTG_CORE_DEFS_PUBLIC LSTG_APP_NAME="${LSTG_APP_NAME}")
 if(LSTG_SHIPPING)  # Shipping/Development 开关

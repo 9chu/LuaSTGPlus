@@ -266,16 +266,6 @@ GameApp::GameApp(int argc, const char* argv[])
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }
-
-    // 预加载资源包
-    {
-        auto preloadPackPath = GetCmdline().GetOption<string_view>("preload-pack", "");
-        if (!preloadPackPath.empty())
-        {
-            // 预加载资源包，失败直接退出
-            MountAssetPack(preloadPackPath, {}, true).ThrowIfError();
-        }
-    }
 }
 
 // <editor-fold desc="资源系统">
@@ -555,6 +545,16 @@ bool GameApp::IsMouseButtonDown(MouseButtons button) const noexcept
 
 void GameApp::OnStartup()
 {
+    // 预加载资源包
+    {
+        auto preloadPackPath = GetCmdline().GetOption<string_view>("preload-pack", "");
+        if (!preloadPackPath.empty())
+        {
+            // 预加载资源包，失败直接退出
+            MountAssetPack(preloadPackPath, {}, true).ThrowIfError();
+        }
+    }
+
     LSTG_LOG_TRACE_CAT(GameApp, "Startup script layer");
 
     // 执行 launch 脚本
