@@ -260,7 +260,7 @@ namespace lstg::v2::Bridge
          * @param path 路径
          */
         LSTG_METHOD()
-        static void LoadSound(const char* name, const char* path);
+        static void LoadSound(LuaStack& stack, const char* name, const char* path);
 
         /**
          * 装载音乐
@@ -271,7 +271,7 @@ namespace lstg::v2::Bridge
          * @param loop 循环节持续时间（秒）
          */
         LSTG_METHOD()
-        static void LoadMusic(const char* name, const char* path, double end, double loop);
+        static void LoadMusic(LuaStack& stack, const char* name, const char* path, double end, double loop);
 
         /**
          * 装载Shader特效

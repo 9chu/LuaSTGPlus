@@ -42,9 +42,11 @@
   - [x] Diligent/Vulkan 不选择集显
   - [x] SDL2 CMake patch
 - [ ] 音频系统
+- [ ] Windows 图标修复
 - [ ] 开源准备
   - [ ] License 补全
   - [ ] 文档补全
+  - [ ] Windows 图标
 - [ ] 其他分支API支持
   - [ ] 自定义RT大小
   - [ ] 三参数Dist Angle支持

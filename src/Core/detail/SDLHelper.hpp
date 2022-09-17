@@ -11,6 +11,11 @@
 
 #include <SDL.h>
 
+namespace lstg::Subsystem::VFS
+{
+    class IStream;
+}
+
 namespace lstg::detail
 {
     struct SDLDeleter
@@ -52,4 +57,25 @@ namespace lstg::detail
     {
         return { ev, SDLErrorCategory::GetInstance() };
     }
+
+    /**
+     * SDL RWops 析构器
+     */
+    struct SDLRWOpsDeleter
+    {
+        void operator()(SDL_RWops* p) noexcept
+        {
+            ::SDL_RWclose(p);
+        }
+    };
+
+    using SDLRWOpsPtr = std::unique_ptr<SDL_RWops, SDLRWOpsDeleter>;
+
+    /**
+     * 从流创建 RWops
+     * 不持有 stream 所有权
+     * @param stream 流
+     * @return RWops 对象指针，如果内存分配失败，返回 nullptr
+     */
+    SDLRWOpsPtr CreateRWOpsFromStream(Subsystem::VFS::IStream* stream) noexcept;
 }

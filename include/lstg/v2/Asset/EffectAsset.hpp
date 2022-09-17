@@ -50,7 +50,7 @@ namespace lstg::v2::Asset
         void UpdateResource(Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr def, Subsystem::Render::MaterialPtr mat) noexcept;
 
     private:
-        std::string m_stPath;
+        const std::string m_stPath;
         Subsystem::Render::GraphDef::ImmutableEffectDefinitionPtr m_pEffectDef;
         Subsystem::Render::MaterialPtr m_pDefaultMaterial;
     };

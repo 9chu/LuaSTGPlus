@@ -15,6 +15,8 @@
 #include <lstg/v2/Asset/HgeFontAsset.hpp>
 #include <lstg/v2/Asset/EffectAsset.hpp>
 #include <lstg/v2/Asset/HgeParticleAsset.hpp>
+#include <lstg/v2/Asset/SoundAsset.hpp>
+#include <lstg/v2/Asset/MusicAsset.hpp>
 #include "detail/Helper.hpp"
 
 using namespace std;
@@ -482,45 +484,59 @@ void AssetManagerModule::RegTTF()
     LSTG_LOG_DEPRECATED(AssetManagerModule, RegTTF);
 }
 
-void AssetManagerModule::LoadSound(const char* name, const char* path)
+void AssetManagerModule::LoadSound(LuaStack& stack, const char* name, const char* path)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    if (!pActivedPool->LoadSound(name, path))
-//        return luaL_error(L, "load sound failed (name=%s, path=%s)", name, path);
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Sound, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Sound \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    nlohmann::json args {
+        {"path", path},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::SoundAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load sound \"%s\" from \"%s\" fail: %s", name, path, ret.GetError().message().c_str());
 }
 
-void AssetManagerModule::LoadMusic(const char* name, const char* path, double end, double loop)
+void AssetManagerModule::LoadMusic(LuaStack& stack, const char* name, const char* path, double end, double loop)
 {
-    // TODO
-//    const char* name = luaL_checkstring(L, 1);
-//    const char* path = luaL_checkstring(L, 2);
-//
-//    ResourcePool* pActivedPool = LRES.GetActivedPool();
-//    if (!pActivedPool)
-//        return luaL_error(L, "can't load resource at this time.");
-//
-//    double loop_end = luaL_checknumber(L, 3);
-//    double loop_duration = luaL_checknumber(L, 4);
-//    double loop_start = max(0., loop_end - loop_duration);
-//
-//    if (!pActivedPool->LoadMusic(
-//        name,
-//        path,
-//        loop_start,
-//        loop_end
-//    ))
-//    {
-//        return luaL_error(L, "load music failed (name=%s, path=%s, loop=%f~%f)", name, path, loop_start, loop_end);
-//    }
-//    return 0;
+    GET_CURRENT_POOL;
+
+    auto assetSystem = detail::GetGlobalApp().GetSubsystem<AssetSystem>();
+    assert(assetSystem);
+
+    // 先检查资源是否存在，对于已经存在的资源，会跳过加载过程
+    auto fullName = MakeFullAssetName(AssetTypes::Music, name);
+    if (currentAssetPool->ContainsAsset(fullName))
+    {
+        LSTG_LOG_WARN_CAT(AssetManagerModule, "Music \"{}\" is already loaded", name);
+        return;
+    }
+
+    // 构造参数
+    double loopStart = std::max(0., end - loop);
+    nlohmann::json args {
+        {"path", path},
+        {"loopBeginMs", static_cast<int32_t>(loopStart * 1000)},
+        {"loopEndMs", static_cast<int32_t>(end * 1000)},
+    };
+
+    // 执行加载
+    auto ret = assetSystem->CreateAsset<Asset::MusicAsset>(currentAssetPool, fullName, args);
+    if (!ret)
+        stack.Error("load music \"%s\" from \"%s\" fail: %s", name, path, ret.GetError().message().c_str());
 }
 
 void AssetManagerModule::LoadFX(LuaStack& stack, const char* name, const char* path)

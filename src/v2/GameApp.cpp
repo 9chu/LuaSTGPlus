@@ -36,6 +36,8 @@
 #include <lstg/v2/Asset/HgeFontAssetFactory.hpp>
 #include <lstg/v2/Asset/HgeParticleAssetFactory.hpp>
 #include <lstg/v2/Asset/EffectAssetFactory.hpp>
+#include <lstg/v2/Asset/SoundAssetFactory.hpp>
+#include <lstg/v2/Asset/MusicAssetFactory.hpp>
 
 // 脚本桥
 #include <lstg/v2/Bridge/BuiltInModules.hpp>
@@ -136,8 +138,8 @@ GameApp::GameApp(int argc, const char* argv[])
         assetSystem->RegisterAssetFactory(make_shared<Asset::HgeFontAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::HgeParticleAssetFactory>());
         assetSystem->RegisterAssetFactory(make_shared<Asset::EffectAssetFactory>());
-
-        // TODO: Music Sound
+        assetSystem->RegisterAssetFactory(make_shared<Asset::SoundAssetFactory>());
+        assetSystem->RegisterAssetFactory(make_shared<Asset::MusicAssetFactory>());
 
         // 创建资源池
         m_pAssetPools = make_unique<AssetPools>();

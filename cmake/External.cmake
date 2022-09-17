@@ -58,7 +58,7 @@ endif()
 
 # SDL
 CPMAddPackage(
-    NAME sdl
+    NAME sdl2
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.0.22
     # GIT_TAG main
@@ -67,23 +67,22 @@ CPMAddPackage(
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
-        "SDL_AUDIO OFF"
         "SDL_RENDER OFF"
         "SDL_HAPTIC OFF"
         "SDL_HIDAPI OFF"
         "SDL_POWER OFF"
-        "SDL_CPUINFO OFF"
         "SDL_SENSOR OFF"
         "SDL_LOCALE OFF"
         "SDL_MISC OFF"
+        "SDL_TEST OFF"
 )
-if(${sdl_ADDED})
+if(${sdl2_ADDED})
     add_custom_target(UpdateSDLConfig
         COMMAND
             "${CMAKE_COMMAND}" -E copy_if_different
-            "${sdl_BINARY_DIR}/include/SDL_config.h"
-            "${sdl_SOURCE_DIR}/include/SDL_config.h"
-        DEPENDS "${sdl_BINARY_DIR}/include/SDL_config.h"
+            "${sdl2_BINARY_DIR}/include/SDL_config.h"
+            "${sdl2_SOURCE_DIR}/include/SDL_config.h"
+        DEPENDS "${sdl2_BINARY_DIR}/include/SDL_config.h"
     )
     add_dependencies(SDL2-static UpdateSDLConfig)
 endif()
@@ -112,7 +111,7 @@ CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
     VERSION 1.87
-    DOWNLOAD_ONLY
+    DOWNLOAD_ONLY ON
 )
 if(${imgui_ADDED})
     file(GLOB imgui_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
@@ -124,7 +123,7 @@ CPMAddPackage(
     NAME implot
     GITHUB_REPOSITORY epezent/implot
     VERSION 0.13
-    DOWNLOAD_ONLY
+    DOWNLOAD_ONLY ON
 )
 if(${implot_ADDED})
     file(GLOB implot_SOURCES ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp)
@@ -160,7 +159,7 @@ CPMAddPackage(
     NAME stb
     GITHUB_REPOSITORY nothings/stb
     GIT_TAG master
-    DOWNLOAD_ONLY
+    DOWNLOAD_ONLY ON
 )
 if(${stb_ADDED})
     file(GLOB stb_SOURCES ${stb_SOURCE_DIR}/*.c)
@@ -192,7 +191,7 @@ CPMAddPackage(
     NAME icu
     GITHUB_REPOSITORY unicode-org/icu
     GIT_TAG release-71-1
-    DOWNLOAD_ONLY
+    DOWNLOAD_ONLY ON
 )
 if(${icu_ADDED})
     # icu common 库
@@ -378,11 +377,41 @@ CPMAddPackage(
     NAME ryu
     GITHUB_REPOSITORY ulfjack/ryu
     GIT_TAG master
-    DOWNLOAD_ONLY
+    DOWNLOAD_ONLY ON
 )
 if(${ryu_ADDED})
     # file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
     add_library(ryu STATIC ${ryu_SOURCE_DIR}/ryu/d2fixed.c ${ryu_SOURCE_DIR}/ryu/d2s.c ${ryu_SOURCE_DIR}/ryu/f2s.c
         ${ryu_SOURCE_DIR}/ryu/s2d.c ${ryu_SOURCE_DIR}/ryu/s2f.c)
     target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
+endif()
+
+# mojoAL
+if(NOT LSTG_PLATFORM_EMSCRIPTEN)
+    CPMAddPackage(
+        NAME mojoal
+        GITHUB_REPOSITORY icculus/mojoAL
+        GIT_TAG main
+        DOWNLOAD_ONLY ON
+    )
+    if(${mojoal_ADDED})
+        add_library(mojoal STATIC ${mojoal_SOURCE_DIR}/mojoal.c)
+        target_include_directories(mojoal PUBLIC ${mojoal_SOURCE_DIR}/AL)
+        target_link_libraries(mojoal PRIVATE SDL2-static)
+    endif()
+endif()
+
+# SDL_sound
+CPMAddPackage(
+    NAME sdl_sound
+    GITHUB_REPOSITORY icculus/SDL_sound
+    VERSION 2.0.1
+    PATCH_COMMAND git restore CMakeLists.txt
+    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/sdl_sound-cmake-patch.patch
+    OPTIONS
+        "SDLSOUND_BUILD_TEST OFF"
+)
+if(${sdl_sound_ADDED})
+    target_include_directories(SDL2_sound-static PUBLIC ${sdl_sound_SOURCE_DIR}/src)
+    target_link_libraries(SDL2_sound-static SDL2-static)
 endif()
