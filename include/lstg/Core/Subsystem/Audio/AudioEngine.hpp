@@ -32,6 +32,7 @@ namespace lstg::Subsystem::Audio
      */
     class AudioEngine
     {
+    public:
         enum {
             kBusChannelCount = 4,
             kSoundSourceCount = 1024,

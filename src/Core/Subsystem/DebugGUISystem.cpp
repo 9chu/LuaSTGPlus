@@ -238,6 +238,9 @@ DebugGUISystem::DebugGUISystem(SubsystemContainer& container)
         m_pProgressWindow = make_shared<DebugGUI::ProgressWindow>();
         AppendWindow(m_pProgressWindow);
 
+        m_pMixerWindow = make_shared<DebugGUI::MixerWindow>();
+        AppendWindow(m_pMixerWindow);
+
 #ifdef LSTG_DEVELOPMENT
         m_pMiniStatusWindow->Show();
 #endif

@@ -299,6 +299,12 @@ ConsoleWindow::ConsoleWindow()
         auto window = debug.GetFrameTimeMonitor();
         window->IsVisible() ? window->Hide() : window->Show();
     });
+    AddContextMenuItem("Toggle Mixer", []() {
+        auto& instance = AppBase::GetInstance();
+        auto& debug = *instance.GetSubsystem<Subsystem::DebugGUISystem>();
+        auto window = debug.GetMixerWindow();
+        window->IsVisible() ? window->Hide() : window->Show();
+    });
 
     // 初始化历史数
     m_stHistory.reserve(kMaxHistoryItems);

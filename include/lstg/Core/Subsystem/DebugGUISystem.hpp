@@ -14,6 +14,7 @@
 #include "DebugGUI/FrameTimeMonitor.hpp"
 #include "DebugGUI/ConsoleWindow.hpp"
 #include "DebugGUI/ProgressWindow.hpp"
+#include "DebugGUI/MixerWindow.hpp"
 
 struct SDL_Cursor;
 struct ImGuiIO;
@@ -83,6 +84,11 @@ namespace lstg::Subsystem
          */
         [[nodiscard]] const auto& GetProgressWindow() const noexcept { return m_pProgressWindow; }
 
+        /**
+         * 获取混音窗口
+         */
+        [[nodiscard]] const auto& GetMixerWindow() const noexcept { return m_pMixerWindow; }
+
     protected:  // ISubsystem
         void OnUpdate(double elapsedTime) noexcept override;
         void OnAfterRender(double elapsedTime) noexcept override;
@@ -116,5 +122,6 @@ namespace lstg::Subsystem
         std::shared_ptr<DebugGUI::FrameTimeMonitor> m_pFrameTimeMonitor;
         std::shared_ptr<DebugGUI::ConsoleWindow> m_pConsoleWindow;
         std::shared_ptr<DebugGUI::ProgressWindow> m_pProgressWindow;
+        std::shared_ptr<DebugGUI::MixerWindow> m_pMixerWindow;
     };
 }
