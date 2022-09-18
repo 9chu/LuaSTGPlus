@@ -16,7 +16,7 @@ namespace lstg::Subsystem::Audio
     namespace detail
     {
         void MixSamples(float* output, const float* input, size_t samples, float scale) noexcept;
-        void ScaleSamples(float* output, float scale, size_t samples) noexcept;
+        void ScaleSamples(float* data, size_t samples, float scale) noexcept;
     }
 
     /**
@@ -99,14 +99,14 @@ namespace lstg::Subsystem::Audio
         SampleView& operator*=(float value) noexcept
         {
             for (size_t i = 0; i < ChannelCount; ++i)
-                detail::ScaleSamples(operator[](i), value, GetSampleCount());
+                detail::ScaleSamples(operator[](i), GetSampleCount(), value);
             return *this;
         }
 
         SampleView& operator*=(const std::array<float, ChannelCount>& value) noexcept
         {
             for (size_t i = 0; i < ChannelCount; ++i)
-                detail::ScaleSamples(operator[](i), value[i], GetSampleCount());
+                detail::ScaleSamples(operator[](i), GetSampleCount(), value[i]);
             return *this;
         }
 

@@ -57,7 +57,8 @@ void AudioModule::PlaySound(LuaStack& stack, const char* name, double vol, std::
     // 创建发声实例
     // 音效对象总是自动销毁（由于只有一个实例，不自动销毁也行）
     auto flags = SoundSourceCreationFlags::DisposeAfterStopped | SoundSourceCreationFlags::PlayImmediately;
-    auto ret = audioEngine.SourceAdd(SOUND_BUS_ID, soundAsset->GetSoundData(), flags, vol, pan);
+    auto ret = audioEngine.SourceAdd(SOUND_BUS_ID, soundAsset->GetSoundData(), flags, static_cast<float>(vol),
+        pan ? static_cast<float>(*pan) : 0.f);
     if (!ret)
     {
         // 音频系统失败不终止流程
@@ -203,8 +204,8 @@ void AudioModule::PlayMusic(LuaStack& stack, const char* name, std::optional<dou
     auto flags = SoundSourceCreationFlags::DisposeAfterStopped | SoundSourceCreationFlags::Looping;
     if (!position)
         flags |= SoundSourceCreationFlags::PlayImmediately;
-    auto ret = audioEngine.SourceAdd(MUSIC_BUS_ID, musicAsset->GetSoundData(), flags, vol, {}, std::get<0>(musicAsset->GetLoopRange()),
-        std::get<1>(musicAsset->GetLoopRange()));
+    auto ret = audioEngine.SourceAdd(MUSIC_BUS_ID, musicAsset->GetSoundData(), flags, vol ? static_cast<float>(*vol) : 1.f, {},
+        std::get<0>(musicAsset->GetLoopRange()), std::get<1>(musicAsset->GetLoopRange()));
     if (!ret)
     {
         // 音频系统失败不终止流程

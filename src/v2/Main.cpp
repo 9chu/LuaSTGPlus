@@ -15,7 +15,7 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
 
-extern "C" int main(int argc, const char* argv[])
+SDLMAIN_DECLSPEC int main(int argc, char* argv[])
 {
     // 强制日志系统初始化
     Logging::GetInstance();
@@ -28,7 +28,7 @@ extern "C" int main(int argc, const char* argv[])
 #endif
     try
     {
-        app = std::make_unique<GameApp>(argc, argv);
+        app = std::make_unique<GameApp>(argc, const_cast<char const ** const>(argv));
 
         // 启动
         app->Run();
