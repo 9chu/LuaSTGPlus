@@ -406,8 +406,8 @@ CPMAddPackage(
     NAME sdl_sound
     GITHUB_REPOSITORY icculus/SDL_sound
     VERSION 2.0.1
-    PATCH_COMMAND git restore CMakeLists.txt
-    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/sdl_sound-cmake-patch.patch
+    PATCH_COMMAND git restore CMakeLists.txt src/SDL_sound.c
+    COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/sdl_sound-patch.patch
     OPTIONS
         "SDLSOUND_BUILD_TEST OFF"
 )

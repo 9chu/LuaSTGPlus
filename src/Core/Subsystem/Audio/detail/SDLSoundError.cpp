@@ -44,10 +44,8 @@ std::string SDLSoundErrorCategory::message(int ev) const
 {
     switch (static_cast<SDLSoundErrorCodes>(ev))
     {
-        default:
-            assert(false);
-        case SDLSoundErrorCodes::Unknown:
-            return "Unknown";
+        case SDLSoundErrorCodes::Ok:
+            return "Ok";
         case SDLSoundErrorCodes::IsInitialized:
             return ERR_IS_INITIALIZED;
         case SDLSoundErrorCodes::NotInitialized:
@@ -76,6 +74,9 @@ std::string SDLSoundErrorCategory::message(int ev) const
             return ERR_PREV_EOF;
         case SDLSoundErrorCodes::NotSeekable:
             return ERR_CANNOT_SEEK;
+        case SDLSoundErrorCodes::Unknown:
+        default:
+            return "Unknown";
     }
 }
 

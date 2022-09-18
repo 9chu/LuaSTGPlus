@@ -15,7 +15,7 @@ namespace lstg::Subsystem::Audio
 {
     namespace detail
     {
-        void MixSamples(float* output, const float* input, size_t samples) noexcept;
+        void MixSamples(float* output, const float* input, size_t samples, float scale) noexcept;
         void ScaleSamples(float* output, float scale, size_t samples) noexcept;
     }
 
@@ -57,8 +57,10 @@ namespace lstg::Subsystem::Audio
         }
 
         SampleView(const SampleView& org) noexcept
-            : m_uSampleCount(org.m_uSampleCount), m_pChannelData(org.m_pChannelData)
+            : m_uSampleCount(org.m_uSampleCount)
         {
+            for (size_t i = 0; i < ChannelCount; ++i)
+                m_pChannelData[i] = org.m_pChannelData[i];
         }
 
         SampleView& operator=(const SampleView& rhs) noexcept
@@ -83,22 +85,14 @@ namespace lstg::Subsystem::Audio
             return m_pChannelData[channel];
         }
 
-        SampleView& operator+=(const SampleView<1>& rhs) noexcept
+        SampleView& operator+=(const SampleView& rhs) noexcept
         {
             assert(GetSampleCount() == rhs.GetSampleCount());
 
-            for (size_t i = 0; i < ChannelCount; ++i)
-                detail::MixSamples(operator[](i), rhs[0], GetSampleCount());
-            return *this;
-        }
+            std::array<float, ChannelCount> scale {};
+            scale.fill(1.f);
 
-        template <size_t Cnt>
-        SampleView& operator+=(std::enable_if_t<(Cnt > 1), const SampleView&> rhs) noexcept
-        {
-            assert(GetSampleCount() == rhs.GetSampleCount());
-
-            for (size_t i = 0; i < ChannelCount; ++i)
-                detail::MixSamples(operator[](i), rhs[i], GetSampleCount());
+            MixSamples(rhs, scale);
             return *this;
         }
 
@@ -121,6 +115,38 @@ namespace lstg::Subsystem::Audio
          * 获取采样数
          */
         [[nodiscard]] size_t GetSampleCount() const noexcept { return m_uSampleCount; }
+
+        /**
+         * 切片
+         * @param begin 开始
+         * @param end 终止
+         */
+        SampleView<ChannelCount> Slice(size_t begin, size_t end) noexcept
+        {
+            begin = std::min(m_uSampleCount, begin);
+            end = std::min(m_uSampleCount, end);
+            if (begin > end)
+                std::swap(begin, end);
+            auto len = end - begin;
+
+            std::array<float*, ChannelCount> data {};
+            for (size_t i = 0; i < ChannelCount; ++i)
+                data[i] = m_pChannelData[i] + begin;
+            return { data, len };
+        }
+
+        /**
+         * 混合采样
+         * @param rhs 输入采样
+         * @param scale 缩放
+         */
+        void MixSamples(const SampleView& rhs, std::array<float, ChannelCount>& scale) noexcept
+        {
+            assert(GetSampleCount() == rhs.GetSampleCount());
+
+            for (size_t i = 0; i < ChannelCount; ++i)
+                detail::MixSamples(operator[](i), rhs[i], GetSampleCount(), scale[i]);
+        }
 
     protected:
         size_t m_uSampleCount = 0;

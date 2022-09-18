@@ -10,26 +10,47 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Audio;
 
-void detail::MixSamples(float* output, const float* input, size_t samples) noexcept
+void detail::MixSamples(float* output, const float* input, size_t samples, float scale) noexcept
 {
     auto unrolled = samples / 4;
     auto leftover = samples % 4;
 
     // TODO: SSE \ NEON
-    for (size_t i = 0; i < unrolled; ++i)
+    if (scale == 1.f)
     {
-        output[0] += input[0];
-        output[1] += input[1];
-        output[2] += input[2];
-        output[3] += input[3];
-        output += 4;
-        input += 4;
+        for (size_t i = 0; i < unrolled; ++i)
+        {
+            output[0] += input[0];
+            output[1] += input[1];
+            output[2] += input[2];
+            output[3] += input[3];
+            output += 4;
+            input += 4;
+        }
+        for (size_t i = 0; i < leftover; ++i)
+        {
+            output[0] += input[0];
+            output += 1;
+            input += 1;
+        }
     }
-    for (size_t i = 0; i < leftover; ++i)
+    else
     {
-        output[0] += input[0];
-        output += 1;
-        input += 1;
+        for (size_t i = 0; i < unrolled; ++i)
+        {
+            output[0] += input[0] * scale;
+            output[1] += input[1] * scale;
+            output[2] += input[2] * scale;
+            output[3] += input[3] * scale;
+            output += 4;
+            input += 4;
+        }
+        for (size_t i = 0; i < leftover; ++i)
+        {
+            output[0] += input[0] * scale;
+            output += 1;
+            input += 1;
+        }
     }
 }
 

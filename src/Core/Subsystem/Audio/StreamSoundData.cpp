@@ -19,7 +19,11 @@ Result<SoundDecoderPtr> StreamSoundData::CreateDecoder() noexcept
 {
     try
     {
-        return make_shared<SDLSoundDecoder>(m_pStream);
+        // 由于 SoundDecoder 在单独线程处理，且需要保证互不干扰，此时需要 Clone Stream
+        auto clone = m_pStream->Clone();
+        if (!clone)
+            return clone.GetError();
+        return make_shared<SDLSoundDecoder>(std::move(*clone));
     }
     catch (...)
     {

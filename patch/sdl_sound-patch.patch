@@ -1,0 +1,37 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 620173a..2d6cdac 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -63,7 +63,7 @@ sdlsound_decoder_option(MP3 "MPEG-1 Layers I-III" ".MP3, .MP2, .MP1" TRUE)
+ sdlsound_decoder_option(MIDI "Midi" ".MID" FALSE)
+
+ if(APPLE)
+-    sdlsound_decoder_option(COREAUDIO "CoreAudio" "various audio formats")
++    sdlsound_decoder_option(COREAUDIO "CoreAudio" "various audio formats" FALSE)
+     if(SDLSOUND_DECODER_COREAUDIO)
+         set(OPTIONAL_LIBRARY_LIBS ${OPTIONAL_LIBRARY_LIBS} "-framework AudioToolbox")
+     endif()
+diff --git a/src/SDL_sound.c b/src/SDL_sound.c
+index d7fce0e..89c6be8 100644
+--- a/src/SDL_sound.c
++++ b/src/SDL_sound.c
+@@ -46,9 +46,6 @@ static decoder_element decoders[] =
+ #if SOUND_SUPPORTS_MODPLUG
+     { 0, &__Sound_DecoderFunctions_MODPLUG },
+ #endif
+-#if SOUND_SUPPORTS_MP3
+-    { 0, &__Sound_DecoderFunctions_MP3 },
+-#endif
+ #if SOUND_SUPPORTS_WAV
+     { 0, &__Sound_DecoderFunctions_WAV },
+ #endif
+@@ -73,6 +70,9 @@ static decoder_element decoders[] =
+ #if SOUND_SUPPORTS_FLAC
+     { 0, &__Sound_DecoderFunctions_FLAC },
+ #endif
++#if SOUND_SUPPORTS_MP3
++    { 0, &__Sound_DecoderFunctions_MP3 },
++#endif
+ #if SOUND_SUPPORTS_COREAUDIO
+     { 0, &__Sound_DecoderFunctions_CoreAudio },
+ #endif

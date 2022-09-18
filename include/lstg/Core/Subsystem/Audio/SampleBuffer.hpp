@@ -20,7 +20,7 @@ namespace lstg::Subsystem::Audio
     public:
         StaticSampleBuffer()
         {
-            ::memset(m_stSamples, 0, sizeof(m_stSamples));
+            Clear();
         }
 
         const float* operator[](size_t channel) const noexcept
@@ -41,6 +41,14 @@ namespace lstg::Subsystem::Audio
          */
         size_t GetSampleCount() const noexcept { return SampleCount; }
 
+        /**
+         * 清空
+         */
+        void Clear() noexcept
+        {
+            ::memset(m_stSamples, 0, sizeof(m_stSamples));
+        }
+
     private:
         static_assert((SampleCount * sizeof(float)) % 16 == 0);
         float m_stSamples[ChannelCount][SampleCount];
@@ -49,7 +57,7 @@ namespace lstg::Subsystem::Audio
     template <size_t ChannelCount, size_t SampleCount>
     SampleView<ChannelCount> ToSampleView(StaticSampleBuffer<ChannelCount, SampleCount>& buffer) noexcept
     {
-        std::array<float, ChannelCount> channels;
+        std::array<float*, ChannelCount> channels;
         for (size_t i = 0; i < ChannelCount; ++i)
             channels[i] = buffer[i];
         return { channels, buffer.GetSampleCount() };

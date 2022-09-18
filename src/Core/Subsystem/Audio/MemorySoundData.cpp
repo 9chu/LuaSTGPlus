@@ -46,6 +46,7 @@ MemorySoundData::MemorySoundData(VFS::StreamPtr stream)
         float* channels[ISoundDecoder::kChannels];
         for (size_t i = 0; i < ISoundDecoder::kChannels; ++i)
         {
+            assert(m_stPCMData[i].size() == decodedCount);
             m_stPCMData[i].resize(expandCount);
             channels[i] = m_stPCMData[i].data() + decodedCount;
         }

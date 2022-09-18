@@ -529,8 +529,8 @@ void AssetManagerModule::LoadMusic(LuaStack& stack, const char* name, const char
     double loopStart = std::max(0., end - loop);
     nlohmann::json args {
         {"path", path},
-        {"loopBeginMs", static_cast<int32_t>(loopStart * 1000)},
-        {"loopEndMs", static_cast<int32_t>(end * 1000)},
+        {"loopBeginMs", static_cast<uint32_t>(loopStart * 1000)},
+        {"loopEndMs", static_cast<uint32_t>(end * 1000)},
     };
 
     // 执行加载

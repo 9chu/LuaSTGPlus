@@ -34,8 +34,8 @@ Result<Subsystem::Asset::CreateAssetResult> MusicAssetFactory::CreateAsset(Subsy
     auto path = JsonHelper::ReadValue<string>(arguments, "/path");
     if (!path)
         return make_error_code(Subsystem::Asset::AssetError::MissingRequiredArgument);
-    auto loopBegin = JsonHelper::ReadValue<int32_t>(arguments, "/loopBeginMs", 0);
-    auto loopEnd = JsonHelper::ReadValue<int32_t>(arguments, "/loopEndMs", -1);
+    auto loopBegin = JsonHelper::ReadValue<uint32_t>(arguments, "/loopBeginMs", 0);
+    auto loopEnd = JsonHelper::ReadValue<uint32_t>(arguments, "/loopEndMs", std::numeric_limits<uint32_t>::max());
 
     try
     {

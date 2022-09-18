@@ -8,6 +8,17 @@
 #include <vector>
 #include "IDspPlugin.hpp"
 #include "SampleBuffer.hpp"
+#include "ISoundDecoder.hpp"
+
+#ifndef LSTG_AUDIO_SINGLE_THREADED
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+#define LSTG_AUDIO_SINGLE_THREADED
+#endif
+#endif
+
+#ifndef LSTG_AUDIO_SINGLE_THREADED
+#include <mutex>
+#endif
 
 namespace lstg::Subsystem::Audio
 {
@@ -68,33 +79,44 @@ namespace lstg::Subsystem::Audio
     struct alignas(16) BusChannel
     {
         enum {
-            kChannelCount = 2,
-            kSampleCount = 1024,
+            kSampleCount = 1024,  // 在 44100Hz 下大概是 23ms
         };
+
+#ifndef LSTG_AUDIO_SINGLE_THREADED
+        mutable std::mutex Mutex;
+#endif
 
         /**
          * 混合缓冲区
          * 默认为双通道，1024 个采样。
          * 在 44100Hz 采样率下大约为 20ms。
          */
-        StaticSampleBuffer<kChannelCount, kSampleCount> MixBuffer;
+        StaticSampleBuffer<ISoundDecoder::kChannels, kSampleCount> MixBuffer;
+
+        /**
+         * 播放列表
+         */
+        std::vector<size_t> Playlists;
 
         /**
          * 是否静音
+         * @note 线程安全（Relax）
          */
-        bool Muted = false;
+        std::atomic<bool> Muted;
 
         /**
          * 音量
          * 线性值 [0, 1]
+         * @note 线程安全（Relax）
          */
-        float Volume = 0.f;
+        std::atomic<float> Volume;
 
         /**
          * 平衡
          * [-1, 1]
+         * @note 线程安全（Relax）
          */
-        float Pan = 0.f;
+        std::atomic<float> Pan;
 
         /**
          * 效果插件
@@ -110,5 +132,12 @@ namespace lstg::Subsystem::Audio
          * 输出
          */
         BusId OutputTarget = static_cast<size_t>(-1);
+
+        BusChannel() noexcept
+        {
+            Muted.store(false, std::memory_order_release);
+            Volume.store(1.f, std::memory_order_release);
+            Pan.store(0.f, std::memory_order_release);
+        }
     };
 }

@@ -14,7 +14,8 @@ using namespace lstg::Subsystem::Audio::detail;
 
 void ALDeviceHandleCloser::operator()(ALCdevice* p) noexcept
 {
-    ::alcCloseDevice(p);
+    if (p)
+        ::alcCloseDevice(p);
 }
 
 // </editor-fold>
@@ -23,7 +24,8 @@ void ALDeviceHandleCloser::operator()(ALCdevice* p) noexcept
 
 void ALContextHandleCloser::operator()(ALCcontext* p) noexcept
 {
-    ::alcDestroyContext(p);
+    if (p)
+        ::alcDestroyContext(p);
 }
 
 // </editor-fold>

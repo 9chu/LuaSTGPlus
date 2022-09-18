@@ -6,7 +6,9 @@
  */
 #include <lstg/v2/Asset/SoundAsset.hpp>
 
+#include <lstg/Core/AppBase.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include <lstg/Core/Subsystem/AudioSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -26,6 +28,17 @@ SoundAsset::SoundAsset(std::string name, std::string path)
 Subsystem::Asset::AssetTypeId SoundAsset::GetAssetTypeId() const noexcept
 {
     return GetAssetTypeIdStatic();
+}
+
+void SoundAsset::OnRemove() noexcept
+{
+    // 特殊处理：当被播放的音频删除时，从音频引擎中剔除
+    if (m_stSourceInstance)
+    {
+        auto& audioSystem = *AppBase::GetInstance().GetSubsystem<Subsystem::AudioSystem>();
+        audioSystem.GetEngine().SourceDelete(*m_stSourceInstance);
+        m_stSourceInstance = {};
+    }
 }
 
 void SoundAsset::UpdateResource(Subsystem::Audio::SoundDataPtr data) noexcept

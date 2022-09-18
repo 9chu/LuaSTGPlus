@@ -10,4 +10,17 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem;
 
+AudioSystem::AudioSystem(SubsystemContainer& container)
+{
+    // 初始化音频引擎
+    m_pEngine = make_unique<Audio::AudioEngine>();
+}
 
+AudioSystem::~AudioSystem()
+{
+}
+
+void AudioSystem::OnUpdate(double elapsedTime) noexcept
+{
+    m_pEngine->Update(elapsedTime);
+}

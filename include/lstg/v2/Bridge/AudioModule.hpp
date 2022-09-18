@@ -27,28 +27,28 @@ namespace lstg::v2::Bridge
          * @param pan 平衡，取值范围[-1~1]
          */
         LSTG_METHOD()
-        static void PlaySound(const char* name, double vol, std::optional<double> pan /* =0.0 */);
+        static void PlaySound(LuaStack& stack, const char* name, double vol, std::optional<double> pan /* =0.0 */);
 
         /**
          * 停止播放音效
          * @param name 音效资源名称
          */
         LSTG_METHOD()
-        static void StopSound(const char* name);
+        static void StopSound(LuaStack& stack, const char* name);
 
         /**
          * 暂停播放音效
          * @param name 音效资源名称
          */
         LSTG_METHOD()
-        static void PauseSound(const char* name);
+        static void PauseSound(LuaStack& stack, const char* name);
 
         /**
          * 继续播放音效
          * @param name 音效资源名称
          */
         LSTG_METHOD()
-        static void ResumeSound(const char* name);
+        static void ResumeSound(LuaStack& stack, const char* name);
 
         /**
          * 返回音效播放状态
@@ -56,7 +56,7 @@ namespace lstg::v2::Bridge
          * @return 返回下述值之一：paused、playing、stopped
          */
         LSTG_METHOD()
-        static const char* GetSoundState(const char* name);
+        static const char* GetSoundState(LuaStack& stack, const char* name);
 
         /**
          * 播放音乐
@@ -65,28 +65,28 @@ namespace lstg::v2::Bridge
          * @param position 起始播放位置（秒）
          */
         LSTG_METHOD()
-        static void PlayMusic(const char* name, std::optional<double> vol /* =1.0 */, std::optional<double> position /* =0 */);
+        static void PlayMusic(LuaStack& stack, const char* name, std::optional<double> vol, std::optional<double> position);
 
         /**
          * 停止播放音乐
          * @param name 音乐资源名称
          */
         LSTG_METHOD()
-        static void StopMusic(const char* name);
+        static void StopMusic(LuaStack& stack, const char* name);
 
         /**
          * 暂停播放音乐
          * @param name 音乐资源名称
          */
         LSTG_METHOD()
-        static void PauseMusic(const char* name);
+        static void PauseMusic(LuaStack& stack, const char* name);
 
         /**
          * 继续播放音乐
          * @param name 音乐资源名称
          */
         LSTG_METHOD()
-        static void ResumeMusic(const char* name);
+        static void ResumeMusic(LuaStack& stack, const char* name);
 
         /**
          * 获取音乐播放状态
@@ -94,7 +94,7 @@ namespace lstg::v2::Bridge
          * @return 返回下述值之一：paused、playing、stopped
          */
         LSTG_METHOD()
-        static const char* GetMusicState(const char* name);
+        static const char* GetMusicState(LuaStack& stack, const char* name);
 
         /**
          * 更新音频系统
@@ -117,6 +117,6 @@ namespace lstg::v2::Bridge
          * @param stack Lua栈
          */
         LSTG_METHOD()
-        static void SetBGMVolume(LuaStack& stack);
+        static void SetBGMVolume(LuaStack& stack, std::variant<double, const char*> arg1, std::optional<double> arg2);
     };
 }

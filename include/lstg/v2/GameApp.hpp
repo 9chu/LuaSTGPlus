@@ -34,6 +34,12 @@ namespace lstg::v2
         MAX = 3
     };
 
+    enum {
+        MIX_BUS_ID = 0,
+        MUSIC_BUS_ID = 1,
+        SOUND_BUS_ID = 2,
+    };
+
     /**
      * 游戏程序实现
      */

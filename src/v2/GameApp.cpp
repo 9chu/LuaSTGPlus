@@ -24,6 +24,7 @@
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
+#include <lstg/Core/Subsystem/AudioSystem.hpp>
 #include <lstg/v2/DebugGUI/PerformanceMonitor.hpp>
 #include "detail/KeyMapping.hpp"
 
@@ -176,6 +177,19 @@ GameApp::GameApp(int argc, const char* argv[])
 
         // 初始化 RT Stack
         m_stRenderTargetStack.reserve(kMaxRenderTargetStackDepth);
+    }
+
+    // 初始化音频系统
+    {
+        auto& audioSystem = *GetSubsystem<Subsystem::AudioSystem>();
+        auto& engine = audioSystem.GetEngine();
+
+        // 设置 Bus 状态
+        // 我们将 Bus0 作为最终混合总线，并进行压限处理防止 Clip
+        // TODO
+        // 我们将 Bus1 作为音效总线，Bus2 作为背景音乐总线，并输出到 Bus0
+        engine.BusSetOutputTarget(SOUND_BUS_ID, MIX_BUS_ID);
+        engine.BusSetOutputTarget(MUSIC_BUS_ID, MIX_BUS_ID);
     }
 
     // 初始化输入系统

@@ -41,6 +41,7 @@ extern "C"
 #include <lstg/Core/Subsystem/ScriptSystem.hpp>
 #include <lstg/Core/Subsystem/VirtualFileSystem.hpp>
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
+#include <lstg/Core/Subsystem/AudioSystem.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -91,6 +92,7 @@ AppBase::AppBase(int argc, const char* argv[])
     m_stSubsystemContainer.Register<Subsystem::ProfileSystem>("ProfileSystem", 0, kSubsystemNoInteractive);
     m_stSubsystemContainer.Register<Subsystem::AssetSystem>("AssetSystem", 0, kSubsystemUpdateOnly);
     m_stSubsystemContainer.Register<Subsystem::GameControllerSystem>("GameControllerSystem", 0, kSubsystemEventOnly);
+    m_stSubsystemContainer.Register<Subsystem::AudioSystem>("AudioSystem", 0, kSubsystemUpdateOnly);
     m_stSubsystemContainer.ConstructAll();
     LSTG_LOG_TRACE_CAT(AppBase, "All subsystem initialized");
 

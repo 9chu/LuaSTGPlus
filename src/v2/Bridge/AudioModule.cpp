@@ -7,133 +7,320 @@
 #include <lstg/v2/Bridge/AudioModule.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/AudioSystem.hpp>
+#include <lstg/v2/Asset/SoundAsset.hpp>
+#include <lstg/v2/Asset/MusicAsset.hpp>
 #include "detail/Helper.hpp"
+
+#define ENSURE_SUCCESS(EXPR)  \
+    do {  \
+        auto r_ = (EXPR);  \
+        assert(r_);  \
+    } while (false)
 
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::Bridge;
 
+using namespace lstg::Subsystem::Audio;
+
 LSTG_DEF_LOG_CATEGORY(AudioModule);
 
-void AudioModule::PlaySound(const char* name, double vol, std::optional<double> pan /* =0.0 */)
+void AudioModule::PlaySound(LuaStack& stack, const char* name, double vol, std::optional<double> pan /* =0.0 */)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResSound* p = LRES.FindSound(s);
-//    if (!p)
-//        return luaL_error(L, "sound '%s' not found.", s);
-//    p->Play((float)luaL_checknumber(L, 2) * LRES.GetGlobalSoundEffectVolume(), (float)luaL_optnumber(L, 3, 0.));
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Sound, name);
+    if (!asset)
+        stack.Error("sound '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SoundAsset::GetAssetTypeIdStatic());
+    auto soundAsset = static_pointer_cast<Asset::SoundAsset>(asset);
+
+    // 如果没有音频数据，则跳过
+    if (!soundAsset->GetSoundData())
+    {
+        LSTG_LOG_WARN_CAT(AudioModule, "sound '{}' not ready", name);
+        return;
+    }
+
+    // 如果已经存在发声源实例，则先停止
+    if (soundAsset->GetSourceInstance())
+    {
+        auto sourceId = *soundAsset->GetSourceInstance();
+        audioEngine.SourceDelete(sourceId);
+        soundAsset->SetSourceInstance({});
+    }
+
+    // 创建发声实例
+    // 音效对象总是自动销毁（由于只有一个实例，不自动销毁也行）
+    auto flags = SoundSourceCreationFlags::DisposeAfterStopped | SoundSourceCreationFlags::PlayImmediately;
+    auto ret = audioEngine.SourceAdd(SOUND_BUS_ID, soundAsset->GetSoundData(), flags, vol, pan);
+    if (!ret)
+    {
+        // 音频系统失败不终止流程
+        LSTG_LOG_ERROR_CAT(AudioModule, "sound '{}' play fail: {}", name, ret.GetError());
+        return;
+    }
+
+    // 设置到资源
+    soundAsset->SetSourceInstance(*ret);
 }
 
-void AudioModule::StopSound(const char* name)
+void AudioModule::StopSound(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResSound* p = LRES.FindSound(s);
-//    if (!p)
-//        return luaL_error(L, "sound '%s' not found.", s);
-//    p->Stop();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Sound, name);
+    if (!asset)
+        stack.Error("sound '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SoundAsset::GetAssetTypeIdStatic());
+    auto soundAsset = static_pointer_cast<Asset::SoundAsset>(asset);
+
+    if (soundAsset->GetSourceInstance())
+    {
+        auto sourceId = *soundAsset->GetSourceInstance();
+        audioEngine.SourceDelete(sourceId);
+        soundAsset->SetSourceInstance({});
+    }
 }
 
-void AudioModule::PauseSound(const char* name)
+void AudioModule::PauseSound(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResSound* p = LRES.FindSound(s);
-//    if (!p)
-//        return luaL_error(L, "sound '%s' not found.", s);
-//    p->Pause();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Sound, name);
+    if (!asset)
+        stack.Error("sound '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SoundAsset::GetAssetTypeIdStatic());
+    auto soundAsset = static_pointer_cast<Asset::SoundAsset>(asset);
+
+    if (soundAsset->GetSourceInstance())
+    {
+        auto sourceId = *soundAsset->GetSourceInstance();
+        auto ret = audioEngine.SourcePause(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            soundAsset->SetSourceInstance({});
+        }
+    }
 }
 
-void AudioModule::ResumeSound(const char* name)
+void AudioModule::ResumeSound(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResSound* p = LRES.FindSound(s);
-//    if (!p)
-//        return luaL_error(L, "sound '%s' not found.", s);
-//    p->Resume();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Sound, name);
+    if (!asset)
+        stack.Error("sound '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SoundAsset::GetAssetTypeIdStatic());
+    auto soundAsset = static_pointer_cast<Asset::SoundAsset>(asset);
+
+    if (soundAsset->GetSourceInstance())
+    {
+        auto sourceId = *soundAsset->GetSourceInstance();
+        auto ret = audioEngine.SourcePlay(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            soundAsset->SetSourceInstance({});
+        }
+    }
 }
 
-const char* AudioModule::GetSoundState(const char* name)
+const char* AudioModule::GetSoundState(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResSound* p = LRES.FindSound(s);
-//    if (!p)
-//        return luaL_error(L, "sound '%s' not found.", s);
-//    if (p->IsPlaying())
-//        lua_pushstring(L, "playing");
-//    else if (p->IsStopped())
-//        lua_pushstring(L, "stopped");
-//    else
-//        lua_pushstring(L, "paused");
-//    return 1;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Sound, name);
+    if (!asset)
+        stack.Error("sound '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::SoundAsset::GetAssetTypeIdStatic());
+    auto soundAsset = static_pointer_cast<Asset::SoundAsset>(asset);
+
+    if (soundAsset->GetSourceInstance())
+    {
+        auto sourceId = *soundAsset->GetSourceInstance();
+        auto ret = audioEngine.SourceIsPlaying(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            soundAsset->SetSourceInstance({});
+        }
+        else
+        {
+            return *ret ? "playing" : "paused";
+        }
+    }
     return "stopped";
 }
 
-void AudioModule::PlayMusic(const char* name, std::optional<double> vol /* =1.0 */, std::optional<double> position /* =0 */)
+void AudioModule::PlayMusic(LuaStack& stack, const char* name, std::optional<double> vol /* =1.0 */, std::optional<double> position)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResMusic* p = LRES.FindMusic(s);
-//    if (!p)
-//        return luaL_error(L, "music '%s' not found.", s);
-//    p->Play((float)luaL_optnumber(L, 2, 1.) * LRES.GetGlobalMusicVolume(), luaL_optnumber(L, 3, 0.));
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Music, name);
+    if (!asset)
+        stack.Error("music '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+    auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+    // 如果没有音频数据，则跳过
+    if (!musicAsset->GetSoundData())
+    {
+        LSTG_LOG_WARN_CAT(AudioModule, "music '{}' not ready", name);
+        return;
+    }
+
+    // 如果已经存在发声源实例，则先停止
+    if (musicAsset->GetSourceInstance())
+    {
+        auto sourceId = *musicAsset->GetSourceInstance();
+        audioEngine.SourceDelete(sourceId);
+        musicAsset->SetSourceInstance({});
+    }
+
+    // 创建发声实例
+    // 音效对象总是自动销毁（由于只有一个实例，不自动销毁也行）
+    auto flags = SoundSourceCreationFlags::DisposeAfterStopped | SoundSourceCreationFlags::Looping;
+    if (!position)
+        flags |= SoundSourceCreationFlags::PlayImmediately;
+    auto ret = audioEngine.SourceAdd(MUSIC_BUS_ID, musicAsset->GetSoundData(), flags, vol, {}, std::get<0>(musicAsset->GetLoopRange()),
+        std::get<1>(musicAsset->GetLoopRange()));
+    if (!ret)
+    {
+        // 音频系统失败不终止流程
+        LSTG_LOG_ERROR_CAT(AudioModule, "sound '{}' play fail: {}", name, ret.GetError());
+        return;
+    }
+
+    // 设置位置
+    if (position)
+    {
+        ENSURE_SUCCESS(audioEngine.SourceSetPosition(*ret, static_cast<uint32_t>(*position * 1000)));
+        ENSURE_SUCCESS(audioEngine.SourcePlay(*ret));
+    }
+
+    // 设置到资源
+    musicAsset->SetSourceInstance(*ret);
 }
 
-void AudioModule::StopMusic(const char* name)
+void AudioModule::StopMusic(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResMusic* p = LRES.FindMusic(s);
-//    if (!p)
-//        return luaL_error(L, "music '%s' not found.", s);
-//    p->Stop();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Music, name);
+    if (!asset)
+        stack.Error("music '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+    auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+    if (musicAsset->GetSourceInstance())
+    {
+        auto sourceId = *musicAsset->GetSourceInstance();
+        audioEngine.SourceDelete(sourceId);
+        musicAsset->SetSourceInstance({});
+    }
 }
 
-void AudioModule::PauseMusic(const char* name)
+void AudioModule::PauseMusic(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResMusic* p = LRES.FindMusic(s);
-//    if (!p)
-//        return luaL_error(L, "music '%s' not found.", s);
-//    p->Pause();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Music, name);
+    if (!asset)
+        stack.Error("music '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+    auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+    if (musicAsset->GetSourceInstance())
+    {
+        auto sourceId = *musicAsset->GetSourceInstance();
+        auto ret = audioEngine.SourcePause(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            musicAsset->SetSourceInstance({});
+        }
+    }
 }
 
-void AudioModule::ResumeMusic(const char* name)
+void AudioModule::ResumeMusic(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResMusic* p = LRES.FindMusic(s);
-//    if (!p)
-//        return luaL_error(L, "music '%s' not found.", s);
-//    p->Resume();
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Music, name);
+    if (!asset)
+        stack.Error("music '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+    auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+    if (musicAsset->GetSourceInstance())
+    {
+        auto sourceId = *musicAsset->GetSourceInstance();
+        auto ret = audioEngine.SourcePlay(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            musicAsset->SetSourceInstance({});
+        }
+    }
 }
 
-const char* AudioModule::GetMusicState(const char* name)
+const char* AudioModule::GetMusicState(LuaStack& stack, const char* name)
 {
-    // TODO
-//    const char* s = luaL_checkstring(L, 1);
-//    ResMusic* p = LRES.FindMusic(s);
-//    if (!p)
-//        return luaL_error(L, "music '%s' not found.", s);
-//    if (p->IsPlaying())
-//        lua_pushstring(L, "playing");
-//    else if (p->IsStopped())
-//        lua_pushstring(L, "stopped");
-//    else
-//        lua_pushstring(L, "paused");
-//    return 1;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+    // 获取声音对象
+    auto asset = assetPools->FindAsset(AssetTypes::Music, name);
+    if (!asset)
+        stack.Error("music '%s' not found.", name);
+    assert(asset);
+    assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+    auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+    if (musicAsset->GetSourceInstance())
+    {
+        auto sourceId = *musicAsset->GetSourceInstance();
+        auto ret = audioEngine.SourceIsPlaying(sourceId);
+        if (!ret)
+        {
+            // 此时可能已经释放
+            musicAsset->SetSourceInstance({});
+        }
+        else
+        {
+            return *ret ? "playing" : "paused";
+        }
+    }
     return "stopped";
 }
 
@@ -144,28 +331,54 @@ void AudioModule::UpdateSound()
 
 void AudioModule::SetSEVolume(double vol)
 {
-    // TODO
-//    float x = static_cast<float>(luaL_checknumber(L, 1));
-//    LRES.SetGlobalSoundEffectVolume(max(min(x, 1.f), 0.f));
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    audioEngine.BusSetVolume(SOUND_BUS_ID, static_cast<float>(vol));
 }
 
-void AudioModule::SetBGMVolume(LuaStack& stack)
+void AudioModule::SetBGMVolume(LuaStack& stack, std::variant<double, const char*> arg1, std::optional<double> arg2)
 {
-    // TODO
-//    if (lua_gettop(L) == 1)
-//    {
-//        float x = static_cast<float>(luaL_checknumber(L, 1));
-//        LRES.SetGlobalMusicVolume(max(min(x, 1.f), 0.f));
-//    }
-//    else
-//    {
-//        const char* s = luaL_checkstring(L, 1);
-//        float x = static_cast<float>(luaL_checknumber(L, 2));
-//        ResMusic* p = LRES.FindMusic(s);
-//        if (!p)
-//            return luaL_error(L, "music '%s' not found.", s);
-//        p->SetVolume(x * LRES.GetGlobalMusicVolume());
-//    }
-//    return 0;
+    auto& audioEngine = detail::GetGlobalApp().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    if (stack.GetTop() == 1)
+    {
+        if (arg1.index() != 0)
+        {
+            stack.Error("Argument #1 shall be a number");
+            return;
+        }
+        audioEngine.BusSetVolume(MUSIC_BUS_ID, static_cast<float>(std::get<0>(arg1)));
+    }
+    else
+    {
+        if (arg1.index() != 1)
+        {
+            stack.Error("Argument #1 shall be a string");
+            return;
+        }
+        if (!arg2)
+        {
+            stack.Error("Argument #2 required");
+            return;
+        }
+
+        auto assetPools = detail::GetGlobalApp().GetAssetPools();
+
+        // 获取声音对象
+        auto asset = assetPools->FindAsset(AssetTypes::Music, std::get<1>(arg1));
+        if (!asset)
+            stack.Error("music '%s' not found.", std::get<1>(arg1));
+        assert(asset);
+        assert(asset->GetAssetTypeId() == Asset::MusicAsset::GetAssetTypeIdStatic());
+        auto musicAsset = static_pointer_cast<Asset::MusicAsset>(asset);
+
+        if (musicAsset->GetSourceInstance())
+        {
+            auto sourceId = *musicAsset->GetSourceInstance();
+            auto ret = audioEngine.SourceSetVolume(sourceId, static_cast<float>(*arg2));
+            if (!ret)
+            {
+                // 此时可能已经释放
+                musicAsset->SetSourceInstance({});
+            }
+        }
+    }
 }
