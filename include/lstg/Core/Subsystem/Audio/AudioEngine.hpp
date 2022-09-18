@@ -167,6 +167,14 @@ namespace lstg::Subsystem::Audio
          */
         Result<void> BusSetOutputTarget(BusId id, BusId target) noexcept;
 
+        /**
+         * 获取 BUS 上的峰值音量
+         * @param id Bus ID
+         * @param channelId 通道ID
+         * @return 峰值 [0, 1]
+         */
+        float BusGetPeakVolume(BusId id, size_t channelId) noexcept;
+
     public:  // 音频源
         /**
          * 添加音频源
@@ -313,16 +321,24 @@ namespace lstg::Subsystem::Audio
         BusChannel m_stBuses[kBusChannelCount];
         SoundSource m_stSources[kSoundSourceCount];  // 音频源（FreeList）
 
+        // 通道拓扑
 #ifndef LSTG_AUDIO_SINGLE_THREADED
         mutable std::mutex m_stMasterMutex;  // 主锁，当需要调整或锁定拓扑时上锁，保证在音频渲染时锁定
 #endif
         BusId m_stBusesUpdateList[kBusChannelCount];  // 通道更新顺序
 
+        // 声音源 FreeList
 #ifndef LSTG_AUDIO_SINGLE_THREADED
         mutable std::mutex m_stFreeSourcesMutex;  // FreeList 锁，当操作 FreeSources 时上锁
 #endif
         std::vector<size_t> m_stFreeSources;  // 可用源下标
 
+        // 立体声输出混合缓冲，仅在 AudioRender 中使用
         StaticSampleBuffer<ISoundDecoder::kChannels, BusChannel::kSampleCount> m_stFinalMixBuffer;
+
+#ifdef LSTG_DEVELOPMENT
+        // 统计信息
+        std::atomic<uint32_t> m_stUpdateTime;  // 更新使用时间
+#endif
     };
 }

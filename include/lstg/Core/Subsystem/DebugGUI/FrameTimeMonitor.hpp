@@ -33,6 +33,7 @@ namespace lstg::Subsystem::DebugGUI
             double EventDispatchTimeStack = 0.;
             double UpdateTimeStack = 0.;
             double RenderTimeStack = 0.;
+            double AudioUpdateTime = 0.;
 #endif
         };
 

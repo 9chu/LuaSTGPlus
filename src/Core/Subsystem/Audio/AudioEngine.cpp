@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/Audio/AudioEngine.hpp>
 
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include "detail/AudioDevice.hpp"
 #include "detail/StaticTopologicalSorter.hpp"
 #include "detail/AudioEngineError.hpp"
@@ -40,6 +41,10 @@ namespace
 
 AudioEngine::AudioEngine()
 {
+#ifdef LSTG_DEVELOPMENT
+    m_stUpdateTime.store(0, std::memory_order_release);
+#endif
+
 #ifndef LSTG_AUDIO_SINGLE_THREADED
     m_bMixerStopNotifier.store(false, std::memory_order_release);
     m_bMixerThreadReady.store(false, std::memory_order_release);
@@ -396,6 +401,19 @@ Result<void> AudioEngine::BusSetOutputTarget(BusId id, BusId target) noexcept
     }
 }
 
+float AudioEngine::BusGetPeakVolume(BusId id, size_t channelId) noexcept
+{
+    if (id >= kBusChannelCount || channelId >= ISoundDecoder::kChannels)
+    {
+        assert(false);
+        return false;
+    }
+    else
+    {
+        return m_stBuses[id].PeakVolume[channelId].load(std::memory_order_relaxed);
+    }
+}
+
 // </editor-fold>
 
 // <editor-fold desc="音频源">
@@ -705,6 +723,14 @@ void AudioEngine::Update(double elapsedTime) noexcept
 #ifdef LSTG_AUDIO_SINGLE_THREADED
     m_pDevice->Update();
 #endif
+
+#ifdef LSTG_DEVELOPMENT
+    // 更新时间到 Profile 系统
+    auto updateTimeMs = m_stUpdateTime.load(std::memory_order_acquire);
+    m_stUpdateTime.store(0, std::memory_order_release);
+    ProfileSystem::GetInstance().IncrementPerformanceCounter(lstg::Subsystem::PerformanceCounterTypes::PerFrame, "AudioUpdateTime",
+        updateTimeMs / 1000.);
+#endif
 }
 
 Result<void> AudioEngine::RebuildBusUpdateList() noexcept
@@ -772,6 +798,10 @@ void AudioEngine::FreeSoundSource(size_t index) noexcept
 
 SampleView<2> AudioEngine::RenderAudio() noexcept
 {
+#ifdef LSTG_DEVELOPMENT
+    auto beginTime = std::chrono::steady_clock::now();
+#endif
+
     LOCK_MASTER_SCOPE;
 
     m_stFinalMixBuffer.Clear();
@@ -841,7 +871,11 @@ SampleView<2> AudioEngine::RenderAudio() noexcept
         // 是否静音
         auto muted = bus.Muted.load(std::memory_order_relaxed);
         if (muted)
+        {
+            for (size_t j = 0; j < ISoundDecoder::kChannels; ++j)
+                bus.PeakVolume[j].store(0.f, std::memory_order_relaxed);
             continue;
+        }
 
         // 推子前发送
         RenderSend(finalMixBufferView, bus, BusSendStages::BeforeVolume);
@@ -891,7 +925,19 @@ SampleView<2> AudioEngine::RenderAudio() noexcept
             auto targetMixBuffer = ToSampleView(m_stBuses[bus.OutputTarget].MixBuffer);
             targetMixBuffer += mixBufferView;
         }
+
+        // 计算峰值音量并保存
+        auto peekValue = mixBufferView.GetPeakValue();
+        for (size_t j = 0; j < ISoundDecoder::kChannels; ++j)
+            bus.PeakVolume[j].store(peekValue[j], std::memory_order_relaxed);
     }
+
+#ifdef LSTG_DEVELOPMENT
+    // 统计耗时
+    auto endTime = std::chrono::steady_clock::now();
+    auto elapsedTime = chrono::duration_cast<chrono::milliseconds>(endTime - beginTime).count();
+    m_stUpdateTime.fetch_add(static_cast<uint32_t>(elapsedTime), std::memory_order_acq_rel);
+#endif
     return finalMixBufferView;
 }
 

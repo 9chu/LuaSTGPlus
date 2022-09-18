@@ -148,6 +148,26 @@ namespace lstg::Subsystem::Audio
                 detail::MixSamples(operator[](i), rhs[i], GetSampleCount(), scale[i]);
         }
 
+        /**
+         * 计算峰值（绝对值）
+         */
+        std::array<float, ChannelCount> GetPeakValue() const noexcept
+        {
+            std::array<float, ChannelCount> ret {};
+            ret.fill(0.f);
+
+            for (size_t i = 0; i < ChannelCount; ++i)
+            {
+                for (size_t j = 0; j < m_uSampleCount; ++j)
+                {
+                    float l = ::abs(m_pChannelData[i][j]);
+                    if (l > ret[i])
+                        ret[i] = l;
+                }
+            }
+            return ret;
+        }
+
     protected:
         size_t m_uSampleCount = 0;
         float* m_pChannelData[ChannelCount];

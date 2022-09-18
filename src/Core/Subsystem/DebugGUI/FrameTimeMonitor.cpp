@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <implot.h>
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
+#include <lstg/Core/Subsystem/Audio/BusChannel.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -38,14 +39,23 @@ void FrameTimeMonitor::OnUpdate(double elapsedTime) noexcept
     double eventDispatchTime = profiler.GetPerformanceCounter(PerformanceCounterTypes::PerFrame, "EventDispatchTime");
     double updateTime = profiler.GetPerformanceCounter(PerformanceCounterTypes::PerFrame, "UpdateTime");
     double renderTime = profiler.GetPerformanceCounter(PerformanceCounterTypes::PerFrame, "RenderTime");
+    double audioUpdateTime = profiler.GetPerformanceCounter(PerformanceCounterTypes::PerFrame, "AudioUpdateTime");
 #endif
 
     FrameTime ft;
     ft.Total = total;
 #ifdef LSTG_DEVELOPMENT
+#ifdef LSTG_AUDIO_SINGLE_THREADED
+    ft.EventDispatchTimeStack = eventDispatchTime + updateTime + renderTime + audioUpdateTime;
+    ft.UpdateTimeStack = updateTime + renderTime + audioUpdateTime;
+    ft.RenderTimeStack = renderTime + audioUpdateTime;
+    ft.AudioUpdateTime = audioUpdateTime;
+#else
     ft.EventDispatchTimeStack = eventDispatchTime + updateTime + renderTime;
     ft.UpdateTimeStack = updateTime + renderTime;
     ft.RenderTimeStack = renderTime;
+    ft.AudioUpdateTime = audioUpdateTime;  // Multi-thread，no-stack
+#endif
 #endif
 
     m_stFrames.erase(m_stFrames.begin());
@@ -65,6 +75,8 @@ void FrameTimeMonitor::OnRender() noexcept
             offsetof(FrameTime, UpdateTimeStack));
         auto beginOfEventRenderTime = reinterpret_cast<double*>(reinterpret_cast<uint8_t*>(m_stFrames.data()) +
             offsetof(FrameTime, RenderTimeStack));
+        auto beginOfEventAudioTime = reinterpret_cast<double*>(reinterpret_cast<uint8_t*>(m_stFrames.data()) +
+            offsetof(FrameTime, AudioUpdateTime));
 #endif
 
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
@@ -75,6 +87,11 @@ void FrameTimeMonitor::OnRender() noexcept
         ImPlot::PlotLine("Event (stack)", beginOfEventDispatchTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
         ImPlot::PlotLine("Update (stack)", beginOfEventUpdateTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
         ImPlot::PlotLine("Render (stack)", beginOfEventRenderTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+#ifdef LSTG_AUDIO_SINGLE_THREADED
+        ImPlot::PlotLine("Audio (stack)", beginOfEventAudioTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+#else
+        ImPlot::PlotLine("Audio", beginOfEventAudioTime, totalSamples, 1, 0, 0, sizeof(FrameTime));
+#endif
 #endif
         ImPlot::EndPlot();
     }

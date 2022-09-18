@@ -94,6 +94,12 @@ namespace lstg::Subsystem::Audio
         StaticSampleBuffer<ISoundDecoder::kChannels, kSampleCount> MixBuffer;
 
         /**
+         * 峰值音量
+         * = MAX(MixBuffer)
+         */
+        std::array<std::atomic<float>, ISoundDecoder::kChannels> PeakVolume {};
+
+        /**
          * 播放列表
          */
         std::vector<size_t> Playlists;
@@ -135,6 +141,8 @@ namespace lstg::Subsystem::Audio
 
         BusChannel() noexcept
         {
+            for (size_t i = 0; i < ISoundDecoder::kChannels; ++i)
+                PeakVolume[i].store(0.f, std::memory_order_relaxed);
             Muted.store(false, std::memory_order_release);
             Volume.store(1.f, std::memory_order_release);
             Pan.store(0.f, std::memory_order_release);
