@@ -48,13 +48,13 @@ namespace lstg::Subsystem::Audio::detail
 
     private:
         enum {
-            kMainBufferCount = 4,
+            kMainBufferCount = 3,  // 一个缓冲区1024采样，共计3072采样，在44100Hz下预计产生70ms延迟，可以容忍的计算时间为46ms
         };
 
         ALDeviceHandler m_pDevice;
         ALContextHandler m_pContext;
         ALuint m_uMainSourceHandle = 0;
-        ALuint m_stMainBuffers[kMainBufferCount] = { 0, 0, 0, 0 };
+        ALuint m_stMainBuffers[kMainBufferCount] = { 0, 0, 0 };
 
         bool m_bPlaying = false;
         std::function<const SampleView<2>()> m_stStreamingCallback;

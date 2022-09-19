@@ -35,6 +35,7 @@ void MixerWindow::OnRender() noexcept
     auto& audioEngine = AppBase::GetInstance().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
 
     // 绘制所有的 Bus 条
+    char tmpBuffer[64];
     for (size_t busId = 0; busId < AudioEngine::kBusChannelCount; ++busId)
     {
         ImGui::PushID(static_cast<int>(busId));
@@ -73,7 +74,7 @@ void MixerWindow::OnRender() noexcept
             auto newVolume = oldVolume;
             ImGui::VSliderFloat("##vol", ImVec2(20.f, 100.f), &newVolume, 0.f, 1.f, "");
             if (ImGui::IsItemActive() || ImGui::IsItemHovered())
-                ImGui::SetTooltip("%.2f dB (%.2f)", Math::LinearToDecibelSafe(newVolume), newVolume);
+                ImGui::SetTooltip("VOL: %.2f dB (%.2f)", Math::LinearToDecibelSafe(newVolume), newVolume);
             if (newVolume != oldVolume)
                 audioEngine.BusSetVolume(busId, newVolume);
 
@@ -86,8 +87,139 @@ void MixerWindow::OnRender() noexcept
         auto oldPan = audioEngine.BusGetPan(busId);
         auto newPan = oldPan;
         ImGui::SliderFloat("##pan", &newPan, -1.f, 1.f);
+        if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+            ImGui::SetTooltip("PAN: %.2f", newPan);
         if (newPan != oldPan)
             audioEngine.BusSetPan(busId, newPan);
+
+        // 静音
+        bool muted = audioEngine.BusIsMuted(busId);
+        if (muted)
+            ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.f, 0.6f, 0.6f));
+        if (ImGui::Button("MUTE", ImVec2(size.x, 20.f)))
+            audioEngine.BusSetMuted(busId, !muted);
+        if (muted)
+            ImGui::PopStyleColor(1);
+
+        // 效果
+        ImGui::Text("FX");
+        ImGui::BeginChild("ChildFX", ImVec2(size.x, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+        {
+            auto buttonWidth = ImGui::GetContentRegionAvail().x;
+
+            // TODO
+
+            // 添加按钮
+            ImGui::Button("+", ImVec2(buttonWidth, 20.f));
+        }
+        ImGui::EndChild();
+
+        // 发送
+        ImGui::Text("SEND");
+        ImGui::BeginChild("ChildSend", ImVec2(size.x, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+        {
+            auto buttonWidth = ImGui::GetContentRegionAvail().x;
+
+            BusSendStages stages[3] = { BusSendStages::BeforeVolume, BusSendStages::AfterVolume, BusSendStages::AfterPan };
+            const char* stageNames[3] = { "BEFORE VOL", "AFTER VOL", "AFTER PAN" };
+            for (size_t i = 0; i < extent_v<decltype(stages)>; ++i)
+            {
+                auto sendTargetCount = audioEngine.BusGetSendTargetCount(busId, stages[i]);
+                for (size_t j = 0; j < sendTargetCount; ++j)
+                {
+                    auto sendTarget = audioEngine.BusGetSendTarget(busId, stages[i], j);
+                    if (!sendTarget)
+                        continue;
+
+                    ImGui::PushID(static_cast<int>(j * 10 + i));
+
+                    float sendVolume = sendTarget->Volume;
+                    if (ImGui::BeginPopupContextItem("SendTargetMenu"))
+                    {
+                        if (ImGui::Selectable("Delete"))
+                            audioEngine.BusRemoveSendTarget(busId, stages[i], j);
+                        ImGui::DragFloat("##Value", &sendVolume, 0.001f, 0.0f, 1.0f);
+                        if (sendVolume != sendTarget->Volume)
+                        {
+                            if (audioEngine.BusSetSendTargetVolume(busId, stages[i], j, sendVolume))
+                                sendTarget->Volume = sendVolume;
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    // Bus 按钮
+                    ::sprintf(tmpBuffer, "BUS %d", static_cast<int>(sendTarget->Target));
+                    ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(static_cast<float>(i + 1) / 7.0f, 0.6f, 0.6f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(static_cast<float>(i + 1) / 7.0f, 0.7f, 0.7f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(static_cast<float>(i + 1) / 7.0f, 0.8f, 0.8f));
+                    if (ImGui::Button(tmpBuffer, ImVec2(buttonWidth, 20.f)))
+                        ImGui::OpenPopup("SendTargetMenu");
+                    if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s\n%.2f dB (%.2f)", stageNames[i], Math::LinearToDecibelSafe(sendTarget->Volume),
+                            sendTarget->Volume);
+                    }
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::PopID();
+                }
+            }
+
+            if (ImGui::BeginPopupContextItem("AddSendTargetMenu"))
+            {
+                for (size_t i = 0; i < extent_v<decltype(stages)>; ++i)
+                {
+                    if (ImGui::BeginMenu(stageNames[i]))
+                    {
+                        for (BusId j = 0; j < AudioEngine::kBusChannelCount; ++j)
+                        {
+                            sprintf(tmpBuffer, "BUS %d", static_cast<int>(j));
+                            if (ImGui::MenuItem(tmpBuffer))
+                            {
+                                BusSend send;
+                                send.Volume = 1.f;
+                                send.Target = j;
+                                audioEngine.BusAddSendTarget(busId, stages[i], send);
+                            }
+                        }
+
+                        ImGui::EndMenu();
+                    }
+                }
+                ImGui::EndPopup();
+            }
+
+            // 添加按钮
+            if (ImGui::Button("+", ImVec2(buttonWidth, 20.f)))
+                ImGui::OpenPopup("AddSendTargetMenu");
+        }
+        ImGui::EndChild();
+
+        // 输出
+        auto target = audioEngine.BusGetOutputTarget(busId);
+        auto newTarget = target;
+        if (ImGui::BeginPopupContextItem("BusTargetSelector"))
+        {
+            if (ImGui::Selectable("MASTER"))
+                newTarget = static_cast<BusId>(-1);
+            for (BusId i = 0; i < AudioEngine::kBusChannelCount; ++i)
+            {
+                sprintf(tmpBuffer, "BUS %d", static_cast<int>(i));
+                if (ImGui::Selectable(tmpBuffer))
+                    newTarget = i;
+            }
+            ImGui::EndPopup();
+        }
+        if (target == static_cast<BusId>(-1))
+            sprintf(tmpBuffer, "MASTER");
+        else
+            sprintf(tmpBuffer, "BUS %d", static_cast<int>(target));
+        if (ImGui::Button(tmpBuffer, ImVec2(size.x, 20.f)))
+            ImGui::OpenPopup("BusTargetSelector");
+        if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+            ImGui::SetTooltip("OUTPUT");
+        if (target != newTarget)
+            audioEngine.BusSetOutputTarget(busId, newTarget);
 
         ImGui::EndGroup();
         ImGui::SameLine();

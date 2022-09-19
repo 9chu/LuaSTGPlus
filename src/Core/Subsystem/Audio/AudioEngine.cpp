@@ -357,6 +357,26 @@ bool AudioEngine::BusRemoveSendTarget(BusId id, BusSendStages stage, size_t inde
     }
 }
 
+Result<void> AudioEngine::BusSetSendTargetVolume(BusId id, BusSendStages stage, size_t index, float volume) noexcept
+{
+    if (id >= kBusChannelCount || static_cast<int>(stage) >= static_cast<int>(BusSendStages::Count_))
+    {
+        assert(false);
+        return make_error_code(errc::invalid_argument);
+    }
+    else
+    {
+        auto& bus = m_stBuses[id];
+
+        LOCK_BUS_SCOPE(bus);
+        auto& sendList = bus.SendList[static_cast<int>(stage)];
+        if (index >= sendList.size())
+            return make_error_code(errc::invalid_argument);
+        sendList[index].Volume = volume;
+        return {};
+    }
+}
+
 BusId AudioEngine::BusGetOutputTarget(BusId id) const noexcept
 {
     if (id >= kBusChannelCount)
@@ -375,7 +395,7 @@ BusId AudioEngine::BusGetOutputTarget(BusId id) const noexcept
 
 Result<void> AudioEngine::BusSetOutputTarget(BusId id, BusId target) noexcept
 {
-    if (id >= kBusChannelCount || (target >= kBusChannelCount && target != static_cast<uint32_t>(-1)))
+    if (id >= kBusChannelCount || (target >= kBusChannelCount && target != static_cast<BusId>(-1)))
     {
         assert(false);
         return make_error_code(errc::invalid_argument);

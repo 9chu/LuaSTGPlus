@@ -154,6 +154,16 @@ namespace lstg::Subsystem::Audio
         bool BusRemoveSendTarget(BusId id, BusSendStages stage, size_t index) noexcept;
 
         /**
+         * 修改发送目标的音量大小
+         * @param id Bus ID
+         * @param stage 阶段
+         * @param index 发送目标的索引
+         * @param volume 音量
+         * @return 是否成功
+         */
+        Result<void> BusSetSendTargetVolume(BusId id, BusSendStages stage, size_t index, float volume) noexcept;
+
+        /**
          * 获取 Bus 的输出目标
          * @param id Bus ID
          * @return 输出目标
