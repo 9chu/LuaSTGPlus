@@ -21,7 +21,7 @@ list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.
 
 # 目标
 if(WIN32)
-    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES})
+    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
 else()
     add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
 endif()
