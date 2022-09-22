@@ -7,6 +7,7 @@
 #include <lstg/Core/Subsystem/DebugGUI/MixerWindow.hpp>
 
 #include <imgui.h>
+#include <lstg/Core/Logging.hpp>
 #include <lstg/Core/AppBase.hpp>
 #include <lstg/Core/Math/Decibel.hpp>
 #include <lstg/Core/Subsystem/AudioSystem.hpp>
@@ -17,6 +18,8 @@ using namespace lstg;
 using namespace lstg::Subsystem::DebugGUI;
 
 using namespace lstg::Subsystem::Audio;
+
+LSTG_DEF_LOG_CATEGORY(MixerWindow);
 
 static const DebugWindowFlags kWindowStyle = DebugWindowFlags::NoSavedSettings | DebugWindowFlags::HorizontalScrollbar;
 
@@ -32,7 +35,8 @@ void MixerWindow::OnPrepareWindow() noexcept
 
 void MixerWindow::OnRender() noexcept
 {
-    auto& audioEngine = AppBase::GetInstance().GetSubsystem<Subsystem::AudioSystem>()->GetEngine();
+    auto& audioSystem = *AppBase::GetInstance().GetSubsystem<Subsystem::AudioSystem>();
+    auto& audioEngine = audioSystem.GetEngine();
 
     // 绘制所有的 Bus 条
     char tmpBuffer[64];
@@ -107,10 +111,131 @@ void MixerWindow::OnRender() noexcept
         {
             auto buttonWidth = ImGui::GetContentRegionAvail().x;
 
-            // TODO
+            auto pluginCount = audioEngine.BusGetPluginCount(busId);
+            for (size_t i = 0; i < pluginCount; ++i)
+            {
+                auto plugin = audioEngine.BusGetPlugin(busId, i);
+
+                ImGui::PushID(static_cast<int>(i));
+
+                if (ImGui::BeginPopupContextItem("FXMenu"))
+                {
+                    size_t params = plugin->GetParameterCount();
+                    if (ImGui::BeginTable("##table", static_cast<int>(params)))
+                    {
+                        for (size_t j = 0; j < params; ++j)
+                        {
+                            ImGui::PushID(static_cast<int>(j));
+
+                            ImGui::TableNextRow();
+
+                            const auto& info = plugin->GetParameterInfo(j);
+                            if (info.Desc.index() == 0)
+                            {
+                                const auto& sliderInfo = std::get<DspPluginSliderParameter>(info.Desc);
+
+                                auto oldSliderValue = plugin->GetSliderParameter(info.Id);
+                                assert(oldSliderValue);
+
+                                if (oldSliderValue)
+                                {
+                                    ImGui::TableSetColumnIndex(0);
+                                    ImGui::Text("%s", info.DisplayName.c_str());
+
+                                    auto newSliderValue = *oldSliderValue;
+                                    ImGui::TableSetColumnIndex(1);
+                                    ImGui::SetNextItemWidth(100.f);
+                                    ImGui::SliderFloat("##val", &newSliderValue, sliderInfo.MinValue, sliderInfo.MaxValue);
+                                    if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+                                        ImGui::SetTooltip("%s: %.2f", info.DisplayName.c_str(), newSliderValue);
+                                    if (newSliderValue != *oldSliderValue)
+                                        plugin->SetSliderParameter(info.Id, newSliderValue);
+                                }
+                            }
+                            else if (info.Desc.index() == 1)
+                            {
+                                const auto& enumInfo = std::get<DspPluginEnumParameter>(info.Desc);
+                                if (MakeKeysFromMapOptions(enumInfo.Options))
+                                {
+                                    auto oldEnumValue = plugin->GetEnumParameter(info.Id);
+                                    assert(oldEnumValue);
+
+                                    if (oldEnumValue)
+                                    {
+                                        int selected = -1;
+                                        for (const auto& p : enumInfo.Options)
+                                        {
+                                            if (p.second == *oldEnumValue)
+                                            {
+                                                for (size_t k = 0; k < m_stTmpOptions.size(); ++k)
+                                                {
+                                                    if (m_stTmpOptions[k] == p.first)
+                                                    {
+                                                        selected = static_cast<int>(k);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        assert(selected != -1);
+
+                                        ImGui::TableSetColumnIndex(0);
+                                        ImGui::Text("%s", info.DisplayName.c_str());
+
+                                        ImGui::TableSetColumnIndex(1);
+                                        ImGui::SetNextItemWidth(100.f);
+                                        if (ImGui::Combo("##combo", &selected, m_stTmpOptions.data(), static_cast<int>(m_stTmpOptions.size())))
+                                        {
+                                            auto it = enumInfo.Options.find(m_stTmpOptions[selected]);
+                                            assert(it != enumInfo.Options.end());
+                                            plugin->SetEnumParameter(info.Id, it->second);
+                                        }
+                                    }
+                                }
+                            }
+
+                            ImGui::PopID();
+                        }
+                        ImGui::EndTable();
+                    }
+
+                    if (ImGui::Selectable("Delete"))
+                        audioEngine.BusRemovePlugin(busId, i);
+
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::Button(plugin->GetName(), ImVec2(buttonWidth, 20.f)))
+                    ImGui::OpenPopup("FXMenu");
+
+                ImGui::PopID();
+            }
+
+            if (ImGui::BeginPopupContextItem("AddFXMenu"))
+            {
+                audioSystem.VisitDspPlugins([&](const string& name) {
+                    if (ImGui::Selectable(name.c_str()))
+                    {
+                        auto ret = audioSystem.CreateDspPlugin(name);
+                        if (!ret)
+                        {
+                            LSTG_LOG_ERROR_CAT(MixerWindow, "Create dsp plugin {} error: {}", name, ret.GetError());
+                        }
+                        else
+                        {
+                            auto ret2 = audioEngine.BusInsertPlugin(busId, std::move(*ret));
+                            if (!ret2)
+                                LSTG_LOG_ERROR_CAT(MixerWindow, "Insert dsp plugin {} error: {}", name, ret2.GetError());
+                        }
+                    }
+                });
+
+                ImGui::EndPopup();
+            }
 
             // 添加按钮
-            ImGui::Button("+", ImVec2(buttonWidth, 20.f));
+            if (ImGui::Button("+", ImVec2(buttonWidth, 20.f)))
+                ImGui::OpenPopup("AddFXMenu");
         }
         ImGui::EndChild();
 
@@ -224,5 +349,20 @@ void MixerWindow::OnRender() noexcept
         ImGui::EndGroup();
         ImGui::SameLine();
         ImGui::PopID();
+    }
+}
+
+Result<void> MixerWindow::MakeKeysFromMapOptions(const std::map<std::string, int32_t>& options) noexcept
+{
+    try
+    {
+        m_stTmpOptions.clear();
+        for (const auto& p : options)
+            m_stTmpOptions.push_back(p.first.c_str());
+        return {};
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
     }
 }

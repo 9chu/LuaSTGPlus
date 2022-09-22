@@ -168,6 +168,17 @@ namespace lstg::Subsystem::Audio
             return ret;
         }
 
+        /**
+         * 获取通道
+         * @param ch 通道 ID
+         */
+        SampleView<1> GetChannel(size_t ch) const noexcept
+        {
+            assert(ch < ChannelCount);
+            float* arr[1] = { m_pChannelData[ch] };
+            return { arr, m_uSampleCount };
+        }
+
     protected:
         size_t m_uSampleCount = 0;
         float* m_pChannelData[ChannelCount];

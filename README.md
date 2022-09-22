@@ -41,7 +41,12 @@
   - [x] Diligent 构建 patch under wasm
   - [x] Diligent/Vulkan 不选择集显
   - [x] SDL2 CMake patch
-- [ ] 音频系统
+- [x] 音频系统
+  - [x] 音频引擎
+  - [x] DSP 插件
+    - [x] Filter
+    - [x] Reverb
+    - [x] Limiter
 - [ ] Windows 图标修复
 - [ ] 开源准备
   - [ ] License 补全

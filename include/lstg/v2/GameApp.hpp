@@ -38,6 +38,7 @@ namespace lstg::v2
         MIX_BUS_ID = 0,
         MUSIC_BUS_ID = 1,
         SOUND_BUS_ID = 2,
+        USER_BUS_ID = 3,
     };
 
     /**

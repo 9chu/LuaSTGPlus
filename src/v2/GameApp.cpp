@@ -186,10 +186,13 @@ GameApp::GameApp(int argc, const char* argv[])
 
         // 设置 Bus 状态
         // 我们将 Bus0 作为最终混合总线，并进行压限处理防止 Clip
-        // TODO
+        auto limiterDspPlugin = audioSystem.CreateDspPlugin("Limiter").ThrowIfError();
+        engine.BusInsertPlugin(MIX_BUS_ID, std::move(limiterDspPlugin));
+
         // 我们将 Bus1 作为音效总线，Bus2 作为背景音乐总线，并输出到 Bus0
         engine.BusSetOutputTarget(SOUND_BUS_ID, MIX_BUS_ID);
         engine.BusSetOutputTarget(MUSIC_BUS_ID, MIX_BUS_ID);
+        engine.BusSetOutputTarget(USER_BUS_ID, MIX_BUS_ID);
     }
 
     // 初始化输入系统
