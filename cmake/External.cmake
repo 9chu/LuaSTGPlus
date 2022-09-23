@@ -413,6 +413,7 @@ CPMAddPackage(
     COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/sdl_sound-patch.patch
     OPTIONS
         "SDLSOUND_BUILD_TEST OFF"
+        "SDLSOUND_BUILD_SHARED OFF"
 )
 if(${sdl_sound_ADDED})
     target_include_directories(SDL2_sound-static PUBLIC ${sdl_sound_SOURCE_DIR}/src)

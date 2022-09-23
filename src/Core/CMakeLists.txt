@@ -24,7 +24,7 @@ if(LSTG_PLATFORM_MACOS)
     list(APPEND LSTG_CORE_DEPS_PUBLIC "-framework Cocoa")
 endif()
 if(LSTG_PLATFORM_EMSCRIPTEN)
-    list(APPEND LSTG_CORE_DEPS_PUBLIC GL)
+    list(APPEND LSTG_CORE_DEPS_PUBLIC GL openal)
 endif()
 
 # Diligent

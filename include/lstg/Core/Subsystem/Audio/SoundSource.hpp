@@ -118,6 +118,6 @@ namespace lstg::Subsystem::Audio
 
     inline SoundSourceId MakeSourceId(size_t index, uint32_t version) noexcept
     {
-        return static_cast<uint64_t>(index << 32u) | version;
+        return static_cast<uint64_t>(static_cast<uint64_t>(index) << 32u) | version;
     }
 }

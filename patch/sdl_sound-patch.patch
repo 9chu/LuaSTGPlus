@@ -1,7 +1,38 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 620173a..2d6cdac 100644
+index 620173a..6954c33 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
+@@ -24,18 +24,18 @@ if(CMAKE_C_COMPILER_ID STREQUAL "SunPro")
+     add_definitions(-xldscope=hidden)
+ endif()
+
+-find_package(SDL2 REQUIRED)
+-include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_INCLUDE_DIR})
+-if(WIN32)
+-    # -lmingw32: gcc adds it automatically.
+-    # -mwindows: doesn't make sense.
+-    # -lSDL2main: the dll doesn't need it, the test apps are console-only
+-    #  and specifically define SDL_MAIN_HANDLED.  it will be ignored.
+-    string(REGEX REPLACE "-mwindows" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
+-    string(REGEX REPLACE "-lmingw32" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
+-#   string(REGEX REPLACE "-lSDL2main" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
+-    string(STRIP "${SDL2_LIBRARIES}" SDL2_LIBRARIES)
+-endif()
++#find_package(SDL2 REQUIRED)
++#include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_INCLUDE_DIR})
++#if(WIN32)
++#    # -lmingw32: gcc adds it automatically.
++#    # -mwindows: doesn't make sense.
++#    # -lSDL2main: the dll doesn't need it, the test apps are console-only
++#    #  and specifically define SDL_MAIN_HANDLED.  it will be ignored.
++#    string(REGEX REPLACE "-mwindows" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
++#    string(REGEX REPLACE "-lmingw32" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
++##   string(REGEX REPLACE "-lSDL2main" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
++#    string(STRIP "${SDL2_LIBRARIES}" SDL2_LIBRARIES)
++#endif()
+
+ # Decoders ...
+ # These are (mostly) on by default now, so these options are only useful for
 @@ -63,7 +63,7 @@ sdlsound_decoder_option(MP3 "MPEG-1 Layers I-III" ".MP3, .MP2, .MP1" TRUE)
  sdlsound_decoder_option(MIDI "Midi" ".MID" FALSE)
 
@@ -11,6 +42,14 @@ index 620173a..2d6cdac 100644
      if(SDLSOUND_DECODER_COREAUDIO)
          set(OPTIONAL_LIBRARY_LIBS ${OPTIONAL_LIBRARY_LIBS} "-framework AudioToolbox")
      endif()
+@@ -145,6 +145,7 @@ if(OS2) # no static library on os/2
+ endif()
+ if(SDLSOUND_BUILD_STATIC)
+     add_library(SDL2_sound-static STATIC ${SDLSOUND_SRCS})
++    target_link_libraries(SDL2_sound-static SDL2-static)
+     # Don't rename this on Windows, since DLLs will also produce an import
+     #  library named "SDL2_sound.lib" which would conflict; Unix tend to like
+     #  the same library name with a different extension for static libs, but
 diff --git a/src/SDL_sound.c b/src/SDL_sound.c
 index d7fce0e..89c6be8 100644
 --- a/src/SDL_sound.c

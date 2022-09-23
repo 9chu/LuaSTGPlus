@@ -48,7 +48,11 @@ namespace lstg::Subsystem::Audio::detail
 
     private:
         enum {
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+            kMainBufferCount = 5,
+#else
             kMainBufferCount = 3,  // 一个缓冲区1024采样，共计3072采样，在44100Hz下预计产生70ms延迟，可以容忍的计算时间为46ms
+#endif
         };
 
         ALDeviceHandler m_pDevice;

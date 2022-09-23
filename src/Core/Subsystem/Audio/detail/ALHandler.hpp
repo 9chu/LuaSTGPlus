@@ -6,8 +6,14 @@
  */
 #pragma once
 #include <memory>
+
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+#include <AL/al.h>
+#include <AL/alc.h>
+#else
 #include <al.h>
 #include <alc.h>
+#endif
 
 namespace lstg::Subsystem::Audio::detail
 {

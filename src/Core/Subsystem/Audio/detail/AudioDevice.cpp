@@ -6,6 +6,7 @@
  */
 #include "AudioDevice.hpp"
 
+#include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/Audio/ISoundDecoder.hpp>
 #include <lstg/Core/Subsystem/Audio/BusChannel.hpp>
 
@@ -17,12 +18,15 @@ using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Audio::detail;
 
+LSTG_DEF_LOG_CATEGORY(AudioDevice);
+
 AudioDevice::AudioDevice()
 {
     // 扩展
     // FIXME: 支持常规的 SINT16
     auto extensions = ::alGetString(AL_EXTENSIONS);
-    if (::strstr(extensions, "AL_EXT_FLOAT32") == nullptr)
+    LSTG_LOG_TRACE_CAT(AudioDevice, "OpenAL extensions: {}", extensions);
+    if (::strstr(extensions, "AL_EXT_FLOAT32") == nullptr && ::strstr(extensions, "AL_EXT_float32") == nullptr)
         LSTG_THROW(AudioDeviceInitializeFailedException, "AL_EXT_FLOAT32 extension is required");
 
     // 创建设备
@@ -47,7 +51,7 @@ AudioDevice::AudioDevice()
     ::alSourcef(m_uMainSourceHandle, AL_GAIN, 1.f);
     ::alSource3f(m_uMainSourceHandle, AL_POSITION, 0.f, 0.f, 0.f);
     ::alSource3f(m_uMainSourceHandle, AL_VELOCITY, 0.f, 0.f, 0.f);
-    ::alSourcei(m_uMainSourceHandle, AL_LOOPING, AL_TRUE);
+    ::alSourcei(m_uMainSourceHandle, AL_LOOPING, AL_FALSE);
 
     // 创建主 Buffer
     ::alGenBuffers(std::extent_v<decltype(m_stMainBuffers)>, m_stMainBuffers);
@@ -95,46 +99,47 @@ void AudioDevice::Pause() noexcept
 
 size_t AudioDevice::Update() noexcept
 {
+    size_t cnt = 0;
+
     // 获取当前已经处理的 Buffer 数量
     ALint buffersProcessed = 0;
     ::alGetSourcei(m_uMainSourceHandle, AL_BUFFERS_PROCESSED, &buffersProcessed);
-    if (buffersProcessed <= 0)
-        return 0;
-
-    size_t cnt = 0;
-    while (--buffersProcessed)
+    if (buffersProcessed > 0)
     {
-        ALuint processedBuffer = 0;
-        ::alSourceUnqueueBuffers(m_uMainSourceHandle, 1, &processedBuffer);
-        assert(processedBuffer != 0);
-
-        // 如果没有提供 Feed 方法，则用空白数据填充
-        if (!m_stStreamingCallback)
+        while (--buffersProcessed)
         {
-            m_stSampleBuffer.resize(2 * BusChannel::kSampleCount);
-            ::memset(m_stSampleBuffer.data(), 0, sizeof(float) * m_stSampleBuffer.size());
-        }
-        else
-        {
-            auto feedBuffer = m_stStreamingCallback();
+            ALuint processedBuffer = 0;
+            ::alSourceUnqueueBuffers(m_uMainSourceHandle, 1, &processedBuffer);
+            assert(processedBuffer != 0);
 
-            m_stSampleBuffer.resize(2 * feedBuffer.GetSampleCount());
-            ::memset(m_stSampleBuffer.data(), 0, sizeof(float) * m_stSampleBuffer.size());
-
-            // 将双通道数据交错拷贝
-            for (size_t i = 0; i < feedBuffer.GetSampleCount(); ++i)
+            // 如果没有提供 Feed 方法，则用空白数据填充
+            if (!m_stStreamingCallback)
             {
-                m_stSampleBuffer[i * 2] = feedBuffer[0][i];  // L
-                m_stSampleBuffer[i * 2 + 1] = feedBuffer[1][i];  // R
+                m_stSampleBuffer.resize(2 * BusChannel::kSampleCount);
+                ::memset(m_stSampleBuffer.data(), 0, sizeof(float) * m_stSampleBuffer.size());
             }
+            else
+            {
+                auto feedBuffer = m_stStreamingCallback();
+
+                m_stSampleBuffer.resize(2 * feedBuffer.GetSampleCount());
+                ::memset(m_stSampleBuffer.data(), 0, sizeof(float) * m_stSampleBuffer.size());
+
+                // 将双通道数据交错拷贝
+                for (size_t i = 0; i < feedBuffer.GetSampleCount(); ++i)
+                {
+                    m_stSampleBuffer[i * 2] = feedBuffer[0][i];  // L
+                    m_stSampleBuffer[i * 2 + 1] = feedBuffer[1][i];  // R
+                }
+            }
+
+            // 提交缓冲区
+            ::alBufferData(processedBuffer, AL_FORMAT_STEREO_FLOAT32, m_stSampleBuffer.data(),
+                static_cast<ALint>(m_stSampleBuffer.size() * sizeof(float)), ISoundDecoder::kSampleRate);
+            ::alSourceQueueBuffers(m_uMainSourceHandle, 1, &processedBuffer);
+
+            ++cnt;
         }
-
-        // 提交缓冲区
-        ::alBufferData(processedBuffer, AL_FORMAT_STEREO_FLOAT32, m_stSampleBuffer.data(),
-            static_cast<ALint>(m_stSampleBuffer.size() * sizeof(float)), ISoundDecoder::kSampleRate);
-        ::alSourceQueueBuffers(m_uMainSourceHandle, 1, &processedBuffer);
-
-        ++cnt;
     }
 
     // 检查状态
