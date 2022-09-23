@@ -381,6 +381,7 @@ void AssetManagerModule::LoadParticle(LuaStack& stack, const char* name, const c
         {"colliderHalfSizeX", a ? *a : 0.},
         {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
         {"colliderIsRect", rect && *rect},
+        {"emitDirectionOverride", static_cast<int32_t>(Subsystem::Render::Drawing2D::ParticleEmitDirection::OppositeToEmitter)},  // 兼容
     };
 
     // 执行加载

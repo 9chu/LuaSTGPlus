@@ -294,7 +294,10 @@ void GameObjectModule::SetImageStateByObject(LuaStack& stack, AbsIndex object, c
             }
             break;
         default:
-            stack.Error("invalid lstg object for 'SetImgState'.");
+#ifdef LSTG_DEVELOPMENT
+            // 兼容处理，此时不报错
+            LSTG_LOG_WARN_CAT(GameObjectModule, "invalid lstg object for 'SetImgState'.");
+#endif
             break;
     }
 }

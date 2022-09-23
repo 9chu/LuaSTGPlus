@@ -20,8 +20,9 @@ using namespace lstg::Subsystem::Asset;
 
 LSTG_DEF_LOG_CATEGORY(HgeParticleAssetLoader);
 
-HgeParticleAssetLoader::HgeParticleAssetLoader(Subsystem::Asset::AssetPtr asset)
-    : Subsystem::Asset::AssetLoader(std::move(asset))
+HgeParticleAssetLoader::HgeParticleAssetLoader(Subsystem::Asset::AssetPtr asset,
+    std::optional<Subsystem::Render::Drawing2D::ParticleEmitDirection> emitDirectionOverride)
+    : Subsystem::Asset::AssetLoader(std::move(asset)), m_stEmitDirectionOverride(emitDirectionOverride)
 {
     // 需要等待依赖的精灵加载完毕
     SetState(AssetLoadingStates::DependencyLoading);
@@ -70,6 +71,8 @@ Result<void> HgeParticleAssetLoader::PreLoad() noexcept
         SetState(AssetLoadingStates::Error);
         return ret.GetError();
     }
+    if (m_stEmitDirectionOverride)
+        m_stParticleConfig.EmitDirection = *m_stEmitDirectionOverride;
 
     // 提交资源
     asset->UpdateResource(m_stParticleConfig);

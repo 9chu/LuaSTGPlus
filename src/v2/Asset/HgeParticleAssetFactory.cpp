@@ -9,6 +9,7 @@
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Text/JsonHelper.hpp>
 #include <lstg/Core/Subsystem/Asset/AssetError.hpp>
+#include <lstg/Core/Subsystem/Render/Drawing2D/ParticleConfig.hpp>
 #include <lstg/v2/Asset/HgeParticleAsset.hpp>
 #include <lstg/v2/Asset/HgeParticleAssetLoader.hpp>
 
@@ -41,6 +42,22 @@ Result<Subsystem::Asset::CreateAssetResult> HgeParticleAssetFactory::CreateAsset
     auto colliderHalfSizeX = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeX", 0);
     auto colliderHalfSizeY = JsonHelper::ReadValue<double>(arguments, "/colliderHalfSizeY", 0);
     auto colliderIsRect = JsonHelper::ReadValue<bool>(arguments, "/colliderIsRect", false);
+    auto emitDirectionOverrideInt = JsonHelper::ReadValue<int32_t>(arguments, "/emitDirectionOverride", -1);
+    optional<Subsystem::Render::Drawing2D::ParticleEmitDirection> emitDirectionOverride;
+    switch (emitDirectionOverrideInt)
+    {
+        case static_cast<int32_t>(Subsystem::Render::Drawing2D::ParticleEmitDirection::Fixed):
+            emitDirectionOverride = Subsystem::Render::Drawing2D::ParticleEmitDirection::Fixed;
+            break;
+        case static_cast<int32_t>(Subsystem::Render::Drawing2D::ParticleEmitDirection::RelativeToSpeed):
+            emitDirectionOverride = Subsystem::Render::Drawing2D::ParticleEmitDirection::RelativeToSpeed;
+            break;
+        case static_cast<int32_t>(Subsystem::Render::Drawing2D::ParticleEmitDirection::OppositeToEmitter):
+            emitDirectionOverride = Subsystem::Render::Drawing2D::ParticleEmitDirection::OppositeToEmitter;
+            break;
+        default:
+            break;
+    }
 
     try
     {
@@ -75,7 +92,7 @@ Result<Subsystem::Asset::CreateAssetResult> HgeParticleAssetFactory::CreateAsset
         }
 
         auto asset = make_shared<HgeParticleAsset>(string{name}, std::move(*path), std::move(sprite), collider);
-        auto loader = make_shared<HgeParticleAssetLoader>(asset);
+        auto loader = make_shared<HgeParticleAssetLoader>(asset, emitDirectionOverride);
         return Subsystem::Asset::CreateAssetResult {
             static_pointer_cast<Subsystem::Asset::Asset>(asset),
             static_pointer_cast<Subsystem::Asset::AssetLoader>(loader)

@@ -18,7 +18,8 @@ namespace lstg::v2::Asset
         public Subsystem::Asset::AssetLoader
     {
     public:
-        HgeParticleAssetLoader(Subsystem::Asset::AssetPtr asset);
+        HgeParticleAssetLoader(Subsystem::Asset::AssetPtr asset,
+            std::optional<Subsystem::Render::Drawing2D::ParticleEmitDirection> emitDirectionOverride);
 
     public:  // AssetLoader
         Result<void> PreLoad() noexcept override;
@@ -33,6 +34,8 @@ namespace lstg::v2::Asset
 #endif
 
     private:
+        std::optional<Subsystem::Render::Drawing2D::ParticleEmitDirection> m_stEmitDirectionOverride;
+
         // 状态
         Subsystem::Render::Drawing2D::ParticleConfig m_stParticleConfig;
 #if LSTG_ASSET_HOT_RELOAD
