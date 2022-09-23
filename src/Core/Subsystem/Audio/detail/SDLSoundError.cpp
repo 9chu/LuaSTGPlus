@@ -7,6 +7,7 @@
 #include "SDLSoundError.hpp"
 
 #include <cassert>
+#include <cstring>
 
 //#include <SDL_sound_internal.h>
 // from SDL_sound_internal

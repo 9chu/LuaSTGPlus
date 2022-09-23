@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <array>
 #include <vector>
 
@@ -160,7 +161,7 @@ namespace lstg::Subsystem::Audio
             {
                 for (size_t j = 0; j < m_uSampleCount; ++j)
                 {
-                    float l = ::abs(m_pChannelData[i][j]);
+                    float l = std::abs(m_pChannelData[i][j]);
                     if (l > ret[i])
                         ret[i] = l;
                 }
