@@ -799,6 +799,28 @@ namespace lstg::Subsystem::Script
             return make_error_code(static_cast<LuaError>(ret));
         }
 
+        /**
+         * 获取顶层脚本路径
+         */
+        const char* GetTopLevelScriptPath() noexcept
+        {
+            // 遍历所有的 Level，找到最近的具备文件名的入口脚本
+            int level = 1;  // 总是从第一层开始找
+            while (true)
+            {
+                lua_Debug ar;
+                ::memset(&ar, 0, sizeof(ar));
+                if (0 == ::lua_getstack(m_pState, level, &ar))
+                    return "";  // 找不到这样一个文件名
+                if (0 != ::lua_getinfo(m_pState, "S", &ar))
+                {
+                    if (ar.source[0] == '@')
+                        return &ar.source[1];  // 找到了文件名
+                }
+                ++level;
+            }
+        }
+
     protected:
         ::lua_State* m_pState = nullptr;
     };

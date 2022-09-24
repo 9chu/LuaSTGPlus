@@ -16,6 +16,18 @@ namespace lstg::v2::Bridge::detail
     {
         return *static_cast<GameApp*>(&GameApp::GetInstance());
     }
+
+    /**
+     * 解析绝对路径或相对路径
+     *
+     * 为了方便资源组织，且为了考虑兼容性，我们允许采取特殊的方式标记一个相对路径：
+     *   data/asset/1.png -> 绝对路径 /data/asset/1.png
+     *   ./asset/1.png -> 相对于脚本路径，若脚本位于 /data/1.lua，则解析为 /data/asset/1.png
+     *
+     * @param path 路径
+     * @return 解析结果
+     */
+    std::string ResolveAbsoluteOrRelativePath(Subsystem::Script::LuaStack& stack, std::string_view path) noexcept;
 }
 
 #define LSTG_LOG_DEPRECATED(MODULE, METHOD) \

@@ -183,7 +183,7 @@ void SystemModule::ExtractRes(const char* path, const char* target)
 
 void SystemModule::DoFile(LuaStack& stack, const char* path)
 {
-    auto ec = GetApp().GetSubsystem<ScriptSystem>()->LoadScript(path);
+    auto ec = GetApp().GetSubsystem<ScriptSystem>()->LoadScript(detail::ResolveAbsoluteOrRelativePath(stack, path));
     if (!ec)
         stack.Error("Load script from \"%s\" fail: %s", path, ec.GetError().message().c_str());
 }

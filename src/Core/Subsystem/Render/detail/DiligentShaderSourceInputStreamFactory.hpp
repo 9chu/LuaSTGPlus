@@ -24,6 +24,12 @@ namespace lstg::Subsystem::Render::detail
         DiligentShaderSourceInputStreamFactory(Diligent::IReferenceCounters* refCounters, Subsystem::VirtualFileSystem& vfs);
 
     public:
+        /**
+         * 设置包含文件搜索基准路径
+         */
+        void SetFileSearchBase(std::string_view base) { m_stFileSearchBase = base; }
+
+    public:  // Diligent::IShaderSourceInputStreamFactory
         void QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface) override;
         void CreateInputStream(const char* name, Diligent::IFileStream** stream) override;
         void CreateInputStream2(const char* name, Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAGS flags,
@@ -31,5 +37,6 @@ namespace lstg::Subsystem::Render::detail
 
     private:
         Subsystem::VirtualFileSystem& m_stFileSystem;
+        std::string m_stFileSearchBase;
     };
 }

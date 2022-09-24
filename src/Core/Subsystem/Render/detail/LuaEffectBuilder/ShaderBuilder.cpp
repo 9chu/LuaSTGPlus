@@ -6,6 +6,7 @@
  */
 #include "ShaderBuilder.hpp"
 
+#include <lstg/Core/Subsystem/VFS/Path.hpp>
 #include <lstg/Core/Subsystem/Render/EffectFactory.hpp>
 
 using namespace std;
@@ -65,7 +66,8 @@ AbsIndex ShaderBuilder::SetVertexLayout(Script::LuaStack& stack, VertexLayoutWra
 ShaderWrapper ShaderBuilder::Build(Script::LuaStack& stack)
 {
     auto state = BuilderGlobalState::FromLuaStack(stack);
-    auto ec = state->Factory->CompileShader(m_stDefinition);
+    auto searchBase = Subsystem::VFS::Path {stack.GetTopLevelScriptPath()}.GetParent().ToString();
+    auto ec = state->Factory->CompileShader(m_stDefinition, searchBase.c_str());
     stack.ThrowIfError(ec);
     return std::move(*ec);
 }

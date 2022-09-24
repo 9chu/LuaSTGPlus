@@ -155,7 +155,7 @@ void AssetManagerModule::LoadTexture(LuaStack& stack, const char* name, const ch
     // 执行加载
     auto ret = assetSystem->CreateAsset<Asset::TextureAsset>(currentAssetPool, fullName, nlohmann::json {
         {"rt", false},
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
         {"mipmaps", mipmap ? *mipmap : false},
     });
     if (!ret)
@@ -376,7 +376,7 @@ void AssetManagerModule::LoadParticle(LuaStack& stack, const char* name, const c
 
     // 构造参数
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
         {"sprite", MakeFullAssetName(AssetTypes::Image, imgName)},
         {"colliderHalfSizeX", a ? *a : 0.},
         {"colliderHalfSizeY", b ? *b : (a ? *a : 0.)},
@@ -407,7 +407,7 @@ void AssetManagerModule::LoadTexturedFont(LuaStack& stack, const char* name, con
 
     // 构造参数
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
         {"mipmaps", mipmap ? *mipmap : true},
     };
 
@@ -470,7 +470,7 @@ void AssetManagerModule::LoadTrueTypeFont(LuaStack& stack, const char* name, con
     fontSize = clamp(fontSize, 1u, 100u);  // 限定大小
 
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
         {"size", fontSize},
     };
 
@@ -502,7 +502,7 @@ void AssetManagerModule::LoadSound(LuaStack& stack, const char* name, const char
 
     // 构造参数
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
     };
 
     // 执行加载
@@ -529,7 +529,7 @@ void AssetManagerModule::LoadMusic(LuaStack& stack, const char* name, const char
     // 构造参数
     double loopStart = std::max(0., end - loop);
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
         {"loopBeginMs", static_cast<uint32_t>(loopStart * 1000)},
         {"loopEndMs", static_cast<uint32_t>(end * 1000)},
     };
@@ -557,7 +557,7 @@ void AssetManagerModule::LoadFX(LuaStack& stack, const char* name, const char* p
 
     // 构造参数
     nlohmann::json args {
-        {"path", path},
+        {"path", detail::ResolveAbsoluteOrRelativePath(stack, path)},
     };
 
     // 执行加载

@@ -77,7 +77,7 @@ namespace lstg::Subsystem::Render
 
     private:  // internal
         Result<GraphDef::ImmutableEffectDefinitionPtr> CreateEffect(std::string_view source, const char* chunkName) noexcept;
-        Result<GraphDef::ImmutableShaderDefinitionPtr> CompileShader(const GraphDef::ShaderDefinition& def) noexcept;
+        Result<GraphDef::ImmutableShaderDefinitionPtr> CompileShader(const GraphDef::ShaderDefinition& def, const char* basePath) noexcept;
         Result<GraphDef::ImmutableEffectPassDefinitionPtr> CompilePass(const GraphDef::EffectPassDefinition& def) noexcept;
 
     private:

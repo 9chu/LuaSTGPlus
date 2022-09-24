@@ -20,6 +20,33 @@ LSTG_DEF_LOG_CATEGORY(ScriptSystem);
 namespace
 {
     /**
+     * 解析绝对路径
+     * @param stack 栈
+     * @param path 路径
+     * @return 解析后完整路径
+     */
+    Result<std::string> ResolveAbsolutePath(Subsystem::Script::LuaStack& stack, std::string_view path) noexcept
+    {
+        try
+        {
+            Subsystem::VFS::Path orgPath { path };
+            if (orgPath.IsAbsolute())
+                return orgPath.ToString();
+
+            auto scriptCwd = stack.GetTopLevelScriptPath();
+            if (scriptCwd[0] == '\0')
+                return orgPath.ToString();
+
+            Subsystem::VFS::Path scriptPath { scriptCwd };
+            return (scriptPath.GetParent() / orgPath).ToString();
+        }
+        catch (...)
+        {
+            return make_error_code(errc::not_enough_memory);
+        }
+    }
+
+    /**
      * 注册模块加载器
      * 使得 require 可以通过 VFS 进行 lua 脚本加载
      * @param stack Lua 栈
@@ -46,14 +73,23 @@ namespace
             assert(self);
 
             // 生成完整路径和块名称
+            Script::LuaStack stack {L};
             const char* path = luaL_checkstring(L, 1);
-            const char* fullPath = lua_pushfstring(L, "%s/%s.lua",
-                self->GetSandBox().GetVirtualFileSystem().GetAssetBaseDirectory().c_str(), path);
-            const char* chunkName = lua_pushfstring(L, "@%s", fullPath);
+            // require 由于存在缓存机制，不允许使用相对路径加载
+            //auto absolutePath = ResolveAbsolutePath(stack, path);
+            //if (!absolutePath)
+            //{
+            //    lua_pushfstring(L, "open file \"%s\" fail: %s", path, absolutePath.GetError().message().c_str());
+            //    return 1;
+            //}
+
+            const char* fullPath = lua_pushfstring(L, "%s%s%s.lua",
+                self->GetSandBox().GetVirtualFileSystem().GetAssetBaseDirectory().c_str(), path[0] == '/' ? "" : "/", path);
+            const char* chunkName = lua_pushfstring(L, "@%s", path);
 
             // 读取文件
             vector<uint8_t> buffer;
-            auto ret = self->GetSandBox().GetVirtualFileSystem().ReadFile(buffer, path);
+            auto ret = self->GetSandBox().GetVirtualFileSystem().ReadFile(buffer, fullPath);
             if (ret)
             {
                 // 编译
@@ -80,18 +116,21 @@ namespace
             auto self = static_cast<ScriptSystem*>(lua_touserdata(L, lua_upvalueindex(1)));
             assert(self);
 
+            Script::LuaStack stack(L);
             const char* path = luaL_checkstring(L, 1);
+            auto absolutePath = ResolveAbsolutePath(stack, path);
+            if (!absolutePath)
+                stack.Error("import file \"%s\" fail: %s", path, absolutePath.GetError().message().c_str());
 
             // 转发给 SandBox
-            Script::LuaStack st(L);
-            auto ret = self->GetSandBox().ImportScript(path);
+            auto ret = self->GetSandBox().ImportScript(*absolutePath);
             if (ret)
             {
-                st.PushValue(*ret);
+                stack.PushValue(*ret);
                 return 1;
             }
             
-            st.Error("import file \"%s\" fail: %s", path, ret.GetError().message().c_str());
+            stack.Error("import file \"%s\" fail: %s", path, ret.GetError().message().c_str());
         }, 1);
         stack.SetGlobal("import");
     }

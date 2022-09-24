@@ -182,7 +182,8 @@ Result<GraphDef::ImmutableEffectDefinitionPtr> EffectFactory::CreateEffect(std::
     return ptr;
 }
 
-Result<GraphDef::ImmutableShaderDefinitionPtr> EffectFactory::CompileShader(const GraphDef::ShaderDefinition& def) noexcept
+Result<GraphDef::ImmutableShaderDefinitionPtr> EffectFactory::CompileShader(const GraphDef::ShaderDefinition& def,
+    const char* basePath) noexcept
 {
     try
     {
@@ -215,6 +216,9 @@ Result<GraphDef::ImmutableShaderDefinitionPtr> EffectFactory::CompileShader(cons
         Diligent::RefCntAutoPtr<Diligent::IShader> shaderOutput;
         {
             Diligent::RefCntAutoPtr<Diligent::IDataBlob> compilerOutputBlob;
+
+            // 设置基准查找目录
+            m_pStreamFactory->SetFileSearchBase(basePath);
 
             Diligent::ShaderCreateInfo ci;
             ci.pShaderSourceStreamFactory = m_pStreamFactory;
