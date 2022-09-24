@@ -2,7 +2,7 @@
  * @file
  * @date 2022/6/30
  * @author 9chu
- * 这个文件是 LuaSTGPlus 项目的一部分，请在项目所定义之授权许可范围内合规使用。
+ * 此文件为 LuaSTGPlus 项目的一部分，版权与许可声明详见 COPYRIGHT.txt。
  */
 #include <lstg/Core/Subsystem/Render/Font/IFontFactory.hpp>
 

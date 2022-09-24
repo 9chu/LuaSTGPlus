@@ -1,5 +1,6 @@
 #!env python3
 # -*- coding: utf-8 -*-
+# 此文件为 LuaSTGPlus 项目的一部分，版权与许可声明详见 COPYRIGHT.txt。
 import argparse
 import re
 import sys
