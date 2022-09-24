@@ -40,6 +40,7 @@ Copyright: 2022, 9chu.
 License: Expat
 
 Files: ./artwork/AppIcon.png
+ ./artwork/LuaSTG.svg
  ./src/v2/LuaSTGPlus2.ico
 Comment: Logo of LuaSTGPlus Danmaku Game Engine
 Copyright: 2015, Kiasela.
