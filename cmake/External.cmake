@@ -30,6 +30,7 @@ CPMAddPackage(
     VERSION 1.9.2
     OPTIONS
         "SPDLOG_FMT_EXTERNAL ON"
+        "SPDLOG_WCHAR_FILENAMES ON"
 )
 
 # zlib-ng

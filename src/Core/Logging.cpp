@@ -65,7 +65,11 @@ namespace lstg::detail
             try
             {
                 auto logFileName = Pal::GetUserStorageDirectory() / "log.txt";
+#if defined(_WIN32) && defined(SPDLOG_WCHAR_FILENAMES)
+                auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFileName.wstring(), true);
+#else
                 auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFileName.string(), true);
+#endif
                 fileSink->set_level(spdlog::level::trace);
                 fileSink->set_pattern(kLogPattern);
                 m_pFileSink = fileSink;
