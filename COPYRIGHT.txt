@@ -1,0 +1,779 @@
+# Exhaustive licensing information for files in the LuaSTGPlus repository
+# =========================================================================
+#
+# This file aims at documenting the copyright and license for every source
+# file in the LuaSTGPlus repository, and especially outline the files
+# whose license differs from the MIT/Expat license used by LuaSTGPlus.
+#
+# It is written as a machine-readable format following the debian/copyright
+# specification. Globbing patterns (e.g. "Files: *") mean that they affect
+# all corresponding files (also recursively in subfolders), apart from those
+# with a more explicit copyright statement.
+#
+# Licenses are given with their debian/copyright short name (or SPDX identifier
+# if no standard short name exists) and are all included in plain text at the
+# end of this file (in alphabetical order).
+#
+# Disclaimer for thirdparty libraries:
+# ------------------------------------
+#
+# Since thirdparty libraries are all downloaded during the building phase,
+# licensing details for thirdparty libraries are given in a special form.
+# For example:
+#   Files: ./*/_deps/fmt-src/
+# is indicating the licensing information about the 'fmt' library.
+# Considering the licensing *may* change in the future, only the "main" license
+# at the time we are importing these libraries is described in this statement.
+# It's user's responsibility for checking whether the licensing of thirdparty
+# libraries meets your requirements or not.
+
+-----------------------------------------------------------------------
+
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: LuaSTGPlus
+Upstream-Contact: 9chu <1871361697@qq.com>
+Source: https://github.com/9chu/LuaSTGPlus
+
+Files: *
+Comment: LuaSTGPlus Danmaku Game Engine
+Copyright: 2022, 9chu.
+License: Expat
+
+Files: ./artwork/AppIcon.png
+ ./artwork/LuaSTG.svg
+ ./src/v2/LuaSTGPlus2.ico
+Comment: Logo of LuaSTGPlus Danmaku Game Engine
+Copyright: 2015, Kiasela.
+License: CC-BY-NC-SA-4.0
+
+Files: ./include/lstg/Core/Math/Collider2D/IntersectCheck.hpp
+Comment: https://github.com/Xrysnow/lstgx_Math
+Copyright: 2018, Xrysnow.
+ 2015-2022, CHU.
+License: Expat
+
+Files: ./include/lstg/Core/Math/Decibel.hpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Filter.hpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Filter.cpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Limiter.hpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Limiter.cpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Reverb.hpp
+ ./src/Core/Subsystem/Audio/DspPlugins/Reverb.cpp
+Comment: https://github.com/godotengine/godot
+Copyright: 2007-2022, Juan Linietsky, Ariel Manzur.
+ 2014-2022, Godot Engine contributors.
+ 2015-2022, CHU.
+License: Expat
+
+Files: ./tool/PerfectHashTool/PerfectHashTool.py
+Comment: https://github.com/ilanschnell/perfect-hash
+Copyright: 2019 - 2021, Ilan Schnell.
+ 2015-2022, CHU.
+License: BSD-3-clause
+
+Files: ./*/_deps/diligentcore-src/
+Comment: https://github.com/DiligentGraphics
+License: Apache-2.0
+
+Files: ./*/_deps/diligenttools-src/
+Comment: https://github.com/DiligentGraphics
+License: Apache-2.0
+
+Files: ./*/_deps/fmt-src/
+Comment: https://github.com/fmtlib/fmt
+Copyright: 2012-, Victor Zverovich.
+License: Expat
+
+Files: ./*/_deps/freetype-src/
+Comment: https://github.com/freetype/freetype
+Copyright: 1996-2002,2006, David Turner, Robert Wilhelm and Werner Lemberg.
+License: freetype
+
+Files: ./*/_deps/glm-src/
+Comment: https://github.com/g-truc/glm
+Copyright: 2005, G-Truc Creation.
+License: Expat
+
+Files: ./*/_deps/harfbuzz-src/
+Comment: https://github.com/harfbuzz/harfbuzz
+Copyright: 2010-2020, Google, Inc.
+ 2018-2020, Ebrahim Byagowi.
+ 2019-2020, Facebook, Inc.
+ 2012, Mozilla Foundation.
+ 2011, Codethink Limited.
+ 2008,2010, Nokia Corporation and/or its subsidiary(-ies).
+ 2009, Keith Stribley.
+ 2009, Martin Hosken and SIL International.
+ 2007, Chris Wilson.
+ 2005,2006,2020,2021, Behdad Esfahbod.
+ 2005, David Turner.
+ 2004,2007-2010, Red Hat, Inc.
+ 1998-2004, David Turner and Werner Lemberg.
+License: Old-MIT
+
+Files: ./*/_deps/icu-src/
+Comment: https://github.com/unicode-org/icu
+Copyright: 2016-, Unicode, Inc. and others.
+ 1995-2016, International Business Machines Corporation and others.
+License: icu
+
+Files: ./*/_deps/imgui-src/
+Comment: https://github.com/ocornut/imgui
+Copyright: 2014-2022, Omar Cornut.
+License: Expat
+
+Files: ./*/_deps/implot-src/
+Comment: https://github.com/epezent/implot
+Copyright: 2020, Evan Pezent.
+License: Expat
+
+Files: ./*/_deps/lua-cjson-src/
+Comment: https://github.com/openresty/lua-cjson
+Copyright: 2010-2012, Mark Pulford.
+License: Expat
+
+Files: ./*/_deps/lua-src/
+Comment: https://www.lua.org
+Copyright: 1994-2012 Lua.org, PUC-Rio.
+License: Expat
+
+Files: ./*/_deps/luajit-src/
+Comment: https://github.com/openresty/luajit2
+Copyright: 2005-2021, Mike Pall.
+ 2017-2018, Yichun Zhang.
+ 2017-2018, OpenResty Inc.
+ 1994-2012, Lua.org.
+License: Expat
+
+Files: ./*/_deps/mojoal-src/
+Comment: https://github.com/icculus/mojoAL
+Copyright: 2018-2021, Ryan C. Gordon.
+License: zlib
+
+Files: ./*/_deps/nlohmann_json-src/
+Comment: https://github.com/nlohmann/json
+Copyright: 2013-2022, Niels Lohmann.
+License: Expat
+
+Files: ./*/_deps/ryu-src/
+Comment: https://github.com/ulfjack/ryu
+Copyright: Ulf Adams.
+ Stephan T. Lavavej.
+ Alexander Bolz.
+License: Boost-1
+
+Files: ./*/_deps/sdl2-src/
+Comment: https://github.com/libsdl-org/SDL
+Copyright: 1997-2022, Sam Lantinga.
+License: zlib
+
+Files: ./*/_deps/sdl_sound-src/
+Comment: https://github.com/icculus/SDL_sound
+Copyright: 2001-2022, Ryan C. Gordon and others.
+License: zlib
+
+Files: ./*/_deps/spdlog-src/
+Comment: https://github.com/gabime/spdlog
+Copyright: 2016, Gabi Melman.
+License: Expat
+
+Files: ./*/_deps/stb-src/
+Comment: https://github.com/nothings/stb
+Copyright: 2017, Sean Barrett.
+License: Expat
+
+Files: ./*/_deps/zlib-ng-src/
+Comment: https://github.com/zlib-ng/zlib-ng
+Copyright: 1995-2013, Jean-loup Gailly and Mark Adler.
+License: zlib
+
+
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: Old-MIT
+ Permission is hereby granted, without written agreement and without
+ license or royalty fees, to use, copy, modify, and distribute this
+ software and its documentation for any purpose, provided that the
+ above copyright notice and the following two paragraphs appear in
+ all copies of this software.
+ .
+ IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE TO ANY PARTY FOR
+ DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN
+ IF THE COPYRIGHT HOLDER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+ DAMAGE.
+ .
+ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING,
+ BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
+ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+
+License: CC-BY-NC-SA-4.0
+ Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ Public License
+ .
+ By exercising the Licensed Rights (defined below), You accept and agree to be
+ bound by the terms and conditions of this Creative Commons
+ Attribution-NonCommercial-ShareAlike 4.0 International Public License ("Public
+ License"). To the extent this Public License may be interpreted as a contract,
+ You are granted the Licensed Rights in consideration of Your acceptance of
+ these terms and conditions, and the Licensor grants You such rights in
+ consideration of benefits the Licensor receives from making the Licensed
+ Material available under these terms and conditions.
+ .
+ Section 1 – Definitions.
+ .
+ a. Adapted Material means material subject to Copyright and Similar Rights
+ that is derived from or based upon the Licensed Material and in which the
+ Licensed Material is translated, altered, arranged, transformed, or otherwise
+ modified in a manner requiring permission under the Copyright and Similar
+ Rights held by the Licensor. For purposes of this Public License, where the
+ Licensed Material is a musical work, performance, or sound recording, Adapted
+ Material is always produced where the Licensed Material is synched in timed
+ relation with a moving image.
+ b. Adapter's License means the license You apply to Your Copyright and Similar
+ Rights in Your contributions to Adapted Material in accordance with the terms
+ and conditions of this Public License.
+ c. BY-NC-SA Compatible License means a license listed at
+ creativecommons.org/compatiblelicenses, approved by Creative Commons as
+ essentially the equivalent of this Public License.
+ d. Copyright and Similar Rights means copyright and/or similar rights closely
+ related to copyright including, without limitation, performance, broadcast,
+ sound recording, and Sui Generis Database Rights, without regard to how the
+ rights are labeled or categorized. For purposes of this Public License, the
+ rights specified in Section 2(b)(1)-(2) are not Copyright and Similar Rights.
+ e. Effective Technological Measures means those measures that, in the absence
+ of proper authority, may not be circumvented under laws fulfilling obligations
+ under Article 11 of the WIPO Copyright Treaty adopted on December 20, 1996,
+ and/or similar international agreements.
+ f. Exceptions and Limitations means fair use, fair dealing, and/or any other
+ exception or limitation to Copyright and Similar Rights that applies to Your
+ use of the Licensed Material.
+ g. License Elements means the license attributes listed in the name of a
+ Creative Commons Public License. The License Elements of this Public License
+ are Attribution, NonCommercial, and ShareAlike.
+ h. Licensed Material means the artistic or literary work, database, or other
+ material to which the Licensor applied this Public License.
+ i. Licensed Rights means the rights granted to You subject to the terms and
+ conditions of this Public License, which are limited to all Copyright and
+ Similar Rights that apply to Your use of the Licensed Material and that the
+ Licensor has authority to license.
+ j. Licensor means the individual(s) or entity(ies) granting rights under this
+ Public License.
+ k. NonCommercial means not primarily intended for or directed towards
+ commercial advantage or monetary compensation. For purposes of this Public
+ License, the exchange of the Licensed Material for other material subject to
+ Copyright and Similar Rights by digital file-sharing or similar means is
+ NonCommercial provided there is no payment of monetary compensation in
+ connection with the exchange.
+ l. Share means to provide material to the public by any means or process that
+ requires permission under the Licensed Rights, such as reproduction, public
+ display, public performance, distribution, dissemination, communication, or
+ importation, and to make material available to the public including in ways
+ that members of the public may access the material from a place and at a time
+ individually chosen by them.
+ m. Sui Generis Database Rights means rights other than copyright resulting
+ from Directive 96/9/EC of the European Parliament and of the Council of 11
+ March 1996 on the legal protection of databases, as amended and/or succeeded,
+ as well as other essentially equivalent rights anywhere in the world.
+ n. You means the individual or entity exercising the Licensed Rights under
+ this Public License. Your has a corresponding meaning.
+ .
+ Section 2 – Scope.
+ .
+ a. License grant.
+ 1. Subject to the terms and conditions of this Public License, the Licensor
+ hereby grants You a worldwide, royalty-free, non-sublicensable, non-exclusive,
+ irrevocable license to exercise the Licensed Rights in the Licensed Material
+ to:
+ A. reproduce and Share the Licensed Material, in whole or in part, for
+ NonCommercial purposes only; and
+ B. produce, reproduce, and Share Adapted Material for NonCommercial purposes
+ only.
+ 2. Exceptions and Limitations. For the avoidance of doubt, where Exceptions
+ and Limitations apply to Your use, this Public License does not apply, and You
+ do not need to comply with its terms and conditions.
+ 3. Term. The term of this Public License is specified in Section 6(a).
+ 4. Media and formats; technical modifications allowed. The Licensor authorizes
+ You to exercise the Licensed Rights in all media and formats whether now known
+ or hereafter created, and to make technical modifications necessary to do so.
+ The Licensor waives and/or agrees not to assert any right or authority to
+ forbid You from making technical modifications necessary to exercise the
+ Licensed Rights, including technical modifications necessary to circumvent
+ Effective Technological Measures. For purposes of this Public License, simply
+ making modifications authorized by this Section 2(a)(4) never produces Adapted
+ Material.
+ 5. Downstream recipients.
+ A. Offer from the Licensor – Licensed Material. Every recipient of the
+ Licensed Material automatically receives an offer from the Licensor to
+ exercise the Licensed Rights under the terms and conditions of this Public
+ License.
+ B. Additional offer from the Licensor – Adapted Material. Every recipient of
+ Adapted Material from You automatically receives an offer from the Licensor to
+ exercise the Licensed Rights in the Adapted Material under the conditions of
+ the Adapter's License You apply.
+ C. No downstream restrictions. You may not offer or impose any additional or
+ different terms or conditions on, or apply any Effective Technological
+ Measures to, the Licensed Material if doing so restricts exercise of the
+ Licensed Rights by any recipient of the Licensed Material.
+ 6. No endorsement. Nothing in this Public License constitutes or may be
+ construed as permission to assert or imply that You are, or that Your use of
+ the Licensed Material is, connected with, or sponsored, endorsed, or granted
+ official status by, the Licensor or others designated to receive attribution
+ as provided in Section 3(a)(1)(A)(i).
+ .
+ b. Other rights.
+ 1. Moral rights, such as the right of integrity, are not licensed under this
+ Public License, nor are publicity, privacy, and/or other similar personality
+ rights; however, to the extent possible, the Licensor waives and/or agrees not
+ to assert any such rights held by the Licensor to the limited extent necessary
+ to allow You to exercise the Licensed Rights, but not otherwise.
+ 2. Patent and trademark rights are not licensed under this Public License.
+ 3. To the extent possible, the Licensor waives any right to collect royalties
+ from You for the exercise of the Licensed Rights, whether directly or through
+ a collecting society under any voluntary or waivable statutory or compulsory
+ licensing scheme. In all other cases the Licensor expressly reserves any right
+ to collect such royalties, including when the Licensed Material is used other
+ than for NonCommercial purposes.
+ .
+ Section 3 – License Conditions.
+ .
+ Your exercise of the Licensed Rights is expressly made subject to the
+ following conditions.
+ .
+ a. Attribution.
+ 1. If You Share the Licensed Material (including in modified form), You must:
+ A. retain the following if it is supplied by the Licensor with the Licensed
+ Material:
+ i. identification of the creator(s) of the Licensed Material and any others
+ designated to receive attribution, in any reasonable manner requested by the
+ Licensor (including by pseudonym if designated);
+ ii. a copyright notice;
+ iii. a notice that refers to this Public License;
+ iv. a notice that refers to the disclaimer of warranties;
+ v. a URI or hyperlink to the Licensed Material to the extent reasonably
+ practicable;
+ B. indicate if You modified the Licensed Material and retain an indication of
+ any previous modifications; and
+ C. indicate the Licensed Material is licensed under this Public License, and
+ include the text of, or the URI or hyperlink to, this Public License.
+ 2. You may satisfy the conditions in Section 3(a)(1) in any reasonable manner
+ based on the medium, means, and context in which You Share the Licensed
+ Material. For example, it may be reasonable to satisfy the conditions by
+ providing a URI or hyperlink to a resource that includes the required
+ information.
+ 3. If requested by the Licensor, You must remove any of the information
+ required by Section 3(a)(1)(A) to the extent reasonably practicable.
+ .
+ b. ShareAlike.In addition to the conditions in Section 3(a), if You Share
+ Adapted Material You produce, the following conditions also apply.
+ 1. The Adapter's License You apply must be a Creative Commons license with the
+ same License Elements, this version or later, or a BY-NC-SA Compatible
+ License.
+ 2. You must include the text of, or the URI or hyperlink to, the Adapter's
+ License You apply. You may satisfy this condition in any reasonable manner
+ based on the medium, means, and context in which You Share Adapted Material.
+ 3. You may not offer or impose any additional or different terms or conditions
+ on, or apply any Effective Technological Measures to, Adapted Material that
+ restrict exercise of the rights granted under the Adapter's License You apply.
+ .
+ Section 4 – Sui Generis Database Rights.
+ .
+ Where the Licensed Rights include Sui Generis Database Rights that apply to
+ Your use of the Licensed Material:
+ .
+ a. for the avoidance of doubt, Section 2(a)(1) grants You the right to
+ extract, reuse, reproduce, and Share all or a substantial portion of the
+ contents of the database for NonCommercial purposes only;
+ b. if You include all or a substantial portion of the database contents in a
+ database in which You have Sui Generis Database Rights, then the database in
+ which You have Sui Generis Database Rights (but not its individual contents)
+ is Adapted Material, including for purposes of Section 3(b); and
+ c. You must comply with the conditions in Section 3(a) if You Share all or a
+ substantial portion of the contents of the database.
+ For the avoidance of doubt, this Section 4 supplements and does not replace
+ Your obligations under this Public License where the Licensed Rights include
+ other Copyright and Similar Rights.
+ .
+ Section 5 – Disclaimer of Warranties and Limitation of Liability.
+ .
+ a. Unless otherwise separately undertaken by the Licensor, to the extent
+ possible, the Licensor offers the Licensed Material as-is and as-available,
+ and makes no representations or warranties of any kind concerning the Licensed
+ Material, whether express, implied, statutory, or other. This includes,
+ without limitation, warranties of title, merchantability, fitness for a
+ particular purpose, non-infringement, absence of latent or other defects,
+ accuracy, or the presence or absence of errors, whether or not known or
+ discoverable. Where disclaimers of warranties are not allowed in full or in
+ part, this disclaimer may not apply to You.
+ b. To the extent possible, in no event will the Licensor be liable to You on
+ any legal theory (including, without limitation, negligence) or otherwise for
+ any direct, special, indirect, incidental, consequential, punitive, exemplary,
+ or other losses, costs, expenses, or damages arising out of this Public
+ License or use of the Licensed Material, even if the Licensor has been advised
+ of the possibility of such losses, costs, expenses, or damages. Where a
+ limitation of liability is not allowed in full or in part, this limitation may
+ not apply to You.
+ c. The disclaimer of warranties and limitation of liability provided above
+ shall be interpreted in a manner that, to the extent possible, most closely
+ approximates an absolute disclaimer and waiver of all liability.
+ .
+ Section 6 – Term and Termination.
+ .
+ a. This Public License applies for the term of the Copyright and Similar
+ Rights licensed here. However, if You fail to comply with this Public License,
+ then Your rights under this Public License terminate automatically.
+ b. Where Your right to use the Licensed Material has terminated under Section
+ 6(a), it reinstates:
+ 1. automatically as of the date the violation is cured, provided it is cured
+ within 30 days of Your discovery of the violation; or
+ 2. upon express reinstatement by the Licensor.
+ For the avoidance of doubt, this Section 6(b) does not affect any right the
+ Licensor may have to seek remedies for Your violations of this Public License.
+ c. For the avoidance of doubt, the Licensor may also offer the Licensed
+ Material under separate terms or conditions or stop distributing the Licensed
+ Material at any time; however, doing so will not terminate this Public
+ License.
+ d. Sections 1, 5, 6, 7, and 8 survive termination of this Public License.
+ .
+ Section 7 – Other Terms and Conditions.
+ .
+ a. The Licensor shall not be bound by any additional or different terms or
+ conditions communicated by You unless expressly agreed.
+ b. Any arrangements, understandings, or agreements regarding the Licensed
+ Material not stated herein are separate from and independent of the terms and
+ conditions of this Public License.
+ .
+ Section 8 – Interpretation.
+ .
+ a. For the avoidance of doubt, this Public License does not, and shall not be
+ interpreted to, reduce, limit, restrict, or impose conditions on any use of
+ the Licensed Material that could lawfully be made without permission under
+ this Public License.
+ b. To the extent possible, if any provision of this Public License is deemed
+ unenforceable, it shall be automatically reformed to the minimum extent
+ necessary to make it enforceable. If the provision cannot be reformed, it
+ shall be severed from this Public License without affecting the
+ enforceability of the remaining terms and conditions.
+ c. No term or condition of this Public License will be waived and no failure
+ to comply consented to unless expressly agreed to by the Licensor.
+ d. Nothing in this Public License constitutes or may be interpreted as a
+ limitation upon, or waiver of, any privileges and immunities that apply to the
+ Licensor or You, including from the legal processes of any jurisdiction or
+ authority.
+
+License: BSD-2-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+ .
+ * Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+ .
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+License: BSD-3-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ .
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ .
+ 3. Neither the name of the copyright holder nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
+
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+     http://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+License: zlib
+ This software is provided 'as-is', without any express or implied
+ warranty.  In no event will the authors be held liable for any damages
+ arising from the use of this software.
+ .
+ Permission is granted to anyone to use this software for any purpose,
+ including commercial applications, and to alter it and redistribute it
+ freely, subject to the following restrictions:
+ .
+ 1. The origin of this software must not be misrepresented; you must not
+    claim that you wrote the original software. If you use this software
+    in a product, an acknowledgment in the product documentation would be
+    appreciated but is not required.
+ 2. Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+ 3. This notice may not be removed or altered from any source distribution.
+
+License: freetype
+                     The FreeType Project LICENSE
+                     ----------------------------
+ .
+                             2006-Jan-27
+ .
+                     Copyright 1996-2002, 2006 by
+           David Turner, Robert Wilhelm, and Werner Lemberg
+ .
+ Introduction
+ ============
+ .
+   The FreeType  Project is distributed in  several archive packages;
+   some of them may contain, in addition to the FreeType font engine,
+   various tools and  contributions which rely on, or  relate to, the
+   FreeType Project.
+ .
+   This  license applies  to all  files found  in such  packages, and
+   which do not  fall under their own explicit  license.  The license
+   affects  thus  the  FreeType   font  engine,  the  test  programs,
+   documentation and makefiles, at the very least.
+ .
+   This  license   was  inspired  by  the  BSD,   Artistic,  and  IJG
+   (Independent JPEG  Group) licenses, which  all encourage inclusion
+   and  use of  free  software in  commercial  and freeware  products
+   alike.  As a consequence, its main points are that:
+ .
+     o We don't promise that this software works. However, we will be
+       interested in any kind of bug reports. (`as is' distribution)
+ .
+     o You can  use this software for whatever you  want, in parts or
+       full form, without having to pay us. (`royalty-free' usage)
+ .
+     o You may not pretend that  you wrote this software.  If you use
+       it, or  only parts of it,  in a program,  you must acknowledge
+       somewhere  in  your  documentation  that  you  have  used  the
+       FreeType code. (`credits')
+ .
+   We  specifically  permit  and  encourage  the  inclusion  of  this
+   software, with  or without modifications,  in commercial products.
+   We  disclaim  all warranties  covering  The  FreeType Project  and
+   assume no liability related to The FreeType Project.
+ .
+   Finally,  many  people  asked  us  for  a  preferred  form  for  a
+   credit/disclaimer to use in compliance with this license.  We thus
+   encourage you to use the following text:
+ .
+    """
+     Portions of this software are copyright © <year> The FreeType
+     Project (www.freetype.org).  All rights reserved.
+    """
+ .
+   Please replace <year> with the value from the FreeType version you
+   actually use.
+ .
+ Legal Terms
+ ===========
+ .
+ 0. Definitions
+ --------------
+ .
+   Throughout this license,  the terms `package', `FreeType Project',
+   and  `FreeType  archive' refer  to  the  set  of files  originally
+   distributed  by the  authors  (David Turner,  Robert Wilhelm,  and
+   Werner Lemberg) as the `FreeType Project', be they named as alpha,
+   beta or final release.
+ .
+   `You' refers to  the licensee, or person using  the project, where
+   `using' is a generic term including compiling the project's source
+   code as  well as linking it  to form a  `program' or `executable'.
+   This  program is  referred to  as  `a program  using the  FreeType
+   engine'.
+ .
+   This  license applies  to all  files distributed  in  the original
+   FreeType  Project,   including  all  source   code,  binaries  and
+   documentation,  unless  otherwise  stated   in  the  file  in  its
+   original, unmodified form as  distributed in the original archive.
+   If you are  unsure whether or not a particular  file is covered by
+   this license, you must contact us to verify this.
+ .
+   The FreeType  Project is copyright (C) 1996-2000  by David Turner,
+   Robert Wilhelm, and Werner Lemberg.  All rights reserved except as
+   specified below.
+ .
+ 1. No Warranty
+ --------------
+ .
+   THE FREETYPE PROJECT  IS PROVIDED `AS IS' WITHOUT  WARRANTY OF ANY
+   KIND, EITHER  EXPRESS OR IMPLIED,  INCLUDING, BUT NOT  LIMITED TO,
+   WARRANTIES  OF  MERCHANTABILITY   AND  FITNESS  FOR  A  PARTICULAR
+   PURPOSE.  IN NO EVENT WILL ANY OF THE AUTHORS OR COPYRIGHT HOLDERS
+   BE LIABLE  FOR ANY DAMAGES CAUSED  BY THE USE OR  THE INABILITY TO
+   USE, OF THE FREETYPE PROJECT.
+ .
+ 2. Redistribution
+ -----------------
+ .
+   This  license  grants  a  worldwide, royalty-free,  perpetual  and
+   irrevocable right  and license to use,  execute, perform, compile,
+   display,  copy,   create  derivative  works   of,  distribute  and
+   sublicense the  FreeType Project (in  both source and  object code
+   forms)  and  derivative works  thereof  for  any  purpose; and  to
+   authorize others  to exercise  some or all  of the  rights granted
+   herein, subject to the following conditions:
+ .
+     o Redistribution of  source code  must retain this  license file
+       (`FTL.TXT') unaltered; any  additions, deletions or changes to
+       the original  files must be clearly  indicated in accompanying
+       documentation.   The  copyright   notices  of  the  unaltered,
+       original  files must  be  preserved in  all  copies of  source
+       files.
+ .
+     o Redistribution in binary form must provide a  disclaimer  that
+       states  that  the software is based in part of the work of the
+       FreeType Team,  in  the  distribution  documentation.  We also
+       encourage you to put an URL to the FreeType web page  in  your
+       documentation, though this isn't mandatory.
+ .
+   These conditions  apply to any  software derived from or  based on
+   the FreeType Project,  not just the unmodified files.   If you use
+   our work, you  must acknowledge us.  However, no  fee need be paid
+   to us.
+ .
+ 3. Advertising
+ --------------
+ .
+   Neither the  FreeType authors and  contributors nor you  shall use
+   the name of the  other for commercial, advertising, or promotional
+   purposes without specific prior written permission.
+ .
+   We suggest,  but do not require, that  you use one or  more of the
+   following phrases to refer  to this software in your documentation
+   or advertising  materials: `FreeType Project',  `FreeType Engine',
+   `FreeType library', or `FreeType Distribution'.
+ .
+   As  you have  not signed  this license,  you are  not  required to
+   accept  it.   However,  as  the FreeType  Project  is  copyrighted
+   material, only  this license, or  another one contracted  with the
+   authors, grants you  the right to use, distribute,  and modify it.
+   Therefore,  by  using,  distributing,  or modifying  the  FreeType
+   Project, you indicate that you understand and accept all the terms
+   of this license.
+ .
+ 4. Contacts
+ -----------
+ .
+   There are two mailing lists related to FreeType:
+ .
+     o freetype@nongnu.org
+ .
+       Discusses general use and applications of FreeType, as well as
+       future and  wanted additions to the  library and distribution.
+       If  you are looking  for support,  start in  this list  if you
+       haven't found anything to help you in the documentation.
+ .
+     o freetype-devel@nongnu.org
+ .
+       Discusses bugs,  as well  as engine internals,  design issues,
+       specific licenses, porting, etc.
+ .
+   Our home page can be found at
+     https://www.freetype.org
+
+License: icu
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of the Unicode data files and any associated documentation
+ (the "Data Files") or Unicode software and any associated documentation
+ (the "Software") to deal in the Data Files or Software
+ without restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, and/or sell copies of
+ the Data Files or Software, and to permit persons to whom the Data Files
+ or Software are furnished to do so, provided that either
+ (a) this copyright and permission notice appear with all copies
+ of the Data Files or Software, or
+ (b) this copyright and permission notice appear in associated
+ Documentation.
+ .
+ THE DATA FILES AND SOFTWARE ARE PROVIDED "AS IS", WITHOUT WARRANTY OF
+ ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT OF THIRD PARTY RIGHTS.
+ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS
+ NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL
+ DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ PERFORMANCE OF THE DATA FILES OR SOFTWARE.
+ .
+ Except as contained in this notice, the name of a copyright holder
+ shall not be used in advertising or otherwise to promote the sale,
+ use or other dealings in these Data Files or Software without prior
+ written authorization of the copyright holder.
+
+License: Boost-1
+ Permission is hereby granted, free of charge, to any person or organization
+ obtaining a copy of the software and accompanying documentation covered by
+ this license (the "Software") to use, reproduce, display, distribute,
+ execute, and transmit the Software, and to prepare derivative works of the
+ Software, and to permit third-parties to whom the Software is furnished to
+ do so, all subject to the following:
+ .
+ The copyright notices in the Software and this entire statement, including
+ the above license grant, this restriction and the following disclaimer,
+ must be included in all copies of the Software, in whole or in part, and
+ all derivative works of the Software, unless such copies or derivative
+ works are solely in the form of machine-executable object code generated by
+ a source language processor.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
+ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
+ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ DEALINGS IN THE SOFTWARE.
