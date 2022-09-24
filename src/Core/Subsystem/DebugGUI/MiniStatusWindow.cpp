@@ -33,7 +33,7 @@ MiniStatusWindow::MiniStatusWindow()
     AddCounter("FPS", PerformanceCounterTypes::RealTime, "LogicFps");
 
     // 允许从命令行设置跳帧
-    auto cmdRenderFrameSkip = AppBase::GetInstance().GetCmdline().GetOption<int>("render-frame-skip", 0);
+    auto cmdRenderFrameSkip = AppBase::GetCmdline().GetOption<int>("render-frame-skip", 0);
     if (cmdRenderFrameSkip != 0)
         AddCounter("RenderFPS", PerformanceCounterTypes::RealTime, "RenderFps");
 #endif

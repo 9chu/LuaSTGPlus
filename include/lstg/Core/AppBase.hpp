@@ -36,6 +36,16 @@ namespace lstg
          */
         static AppBase& GetInstance() noexcept;
 
+        /**
+         * 解析命令行
+         */
+        static void ParseCmdline(int argc, const char* argv[]);
+
+        /**
+         * 获取命令行参数
+         */
+        static const Text::CmdlineParser& GetCmdline() noexcept;
+
     public:
         AppBase(int argc, const char* argv[]);
         AppBase(const AppBase&) = delete;
@@ -44,11 +54,6 @@ namespace lstg
 
     public:
         // <editor-fold desc="命令行">
-
-        /**
-         * 获取命令行
-         */
-        const Text::CmdlineParser& GetCmdline() const noexcept { return m_stCmdlineParser; }
 
         // </editor-fold>
         // <editor-fold desc="子系统">
@@ -123,8 +128,6 @@ namespace lstg
         double GetBestFrameInterval() noexcept;
 
     private:
-        Text::CmdlineParser m_stCmdlineParser;
-
         // 子系统
         Subsystem::SubsystemContainer m_stSubsystemContainer;
         std::shared_ptr<Subsystem::EventBusSystem> m_pEventBusSystem;

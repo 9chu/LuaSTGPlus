@@ -108,7 +108,7 @@ namespace
 #endif
 
         // 优先使用命令行选择的渲染器
-        auto cmdGraphics = AppBase::GetInstance().GetCmdline().GetOption<string_view>("graphics", "");
+        auto cmdGraphics = AppBase::GetCmdline().GetOption<string_view>("graphics", "");
         if (!cmdGraphics.empty())
         {
             std::stable_sort(out.begin(), out.end(), [&](const auto& left, const auto& right) {

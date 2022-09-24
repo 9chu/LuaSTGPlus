@@ -51,6 +51,7 @@ using SubsystemRegisterFlags = Subsystem::SubsystemRegisterFlags;
 LSTG_DEF_LOG_CATEGORY(AppBase);
 
 static std::atomic<AppBase*> kGlobalInstance {};
+static Text::CmdlineParser kCmdlineParserInstance {};
 
 AppBase& AppBase::GetInstance() noexcept
 {
@@ -59,18 +60,26 @@ AppBase& AppBase::GetInstance() noexcept
     return *p;
 }
 
+void AppBase::ParseCmdline(int argc, const char* argv[])
+{
+#ifdef LSTG_PARSE_CMDLINE
+    // 解析命令行
+    kCmdlineParserInstance.Parse(argc, argv);
+#else
+    assert(argc >= 1);
+    kCmdlineParserInstance.Parse(1, argv);  // 只保留应用程序路径
+#endif
+}
+
+const Text::CmdlineParser& AppBase::GetCmdline() noexcept
+{
+    return kCmdlineParserInstance;
+}
+
 AppBase::AppBase(int argc, const char* argv[])
 {
     assert(kGlobalInstance.load(memory_order_acquire) == nullptr);
     kGlobalInstance.store(this, memory_order_release);
-
-#ifdef LSTG_PARSE_CMDLINE
-    // 解析命令行
-    m_stCmdlineParser.Parse(argc, argv);
-#else
-    assert(argc >= 1);
-    m_stCmdlineParser.Parse(1, argv);
-#endif
 
     m_stFrameTask.SetCallback([this]() noexcept {
         Frame();

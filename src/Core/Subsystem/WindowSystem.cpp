@@ -54,7 +54,7 @@ namespace
 #endif
 
         // 支持从控制台指定强制全屏
-        auto cmdForceFullscreen = AppBase::GetInstance().GetCmdline().GetOption<bool>("force-fullscreen", false);
+        auto cmdForceFullscreen = AppBase::GetCmdline().GetOption<bool>("force-fullscreen", false);
         if (cmdForceFullscreen)
         {
             LSTG_LOG_INFO_CAT(WindowSystem, "Force fullscreen mode is enabled");

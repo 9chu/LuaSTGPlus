@@ -13,6 +13,7 @@
 #include <SDL_log.h>
 
 #include <lstg/Core/Pal.hpp>
+#include <lstg/Core/AppBase.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -65,6 +66,10 @@ namespace lstg::detail
             try
             {
                 auto logFileName = Pal::GetUserStorageDirectory() / "log.txt";
+#ifdef LSTG_DEVELOPMENT
+                if (AppBase::GetCmdline().GetOption<bool>("cwd-log-file", false))
+                    logFileName = "log.txt";
+#endif
 #if defined(_WIN32) && defined(SPDLOG_WCHAR_FILENAMES)
                 auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFileName.wstring(), true);
 #else

@@ -105,7 +105,7 @@ AssetSystem::AssetSystem(SubsystemContainer& container)
     }
 
     // 是否默认开启异步加载
-    auto cmdEnableAsyncLoading = AppBase::GetInstance().GetCmdline().GetOption<bool>("enable-async-loading", false);
+    auto cmdEnableAsyncLoading = AppBase::GetCmdline().GetOption<bool>("enable-async-loading", false);
     if (cmdEnableAsyncLoading)
     {
         LSTG_LOG_INFO_CAT(AssetSystem, "Async loading is enabled");

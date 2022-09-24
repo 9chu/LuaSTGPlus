@@ -110,7 +110,7 @@ GameControllerSystem::GameControllerSystem(SubsystemContainer& container)
     }
 
     // 从命令行配置默认映射
-    auto cmdControllerToKeyConfig = AppBase::GetInstance().GetCmdline().GetOption<string_view>("controller-to-key-config", "");
+    auto cmdControllerToKeyConfig = AppBase::GetCmdline().GetOption<string_view>("controller-to-key-config", "");
     if (!cmdControllerToKeyConfig.empty())
     {
         LSTG_LOG_INFO_CAT(GameControllerSystem, "Loading controller to key configure from {}", cmdControllerToKeyConfig);

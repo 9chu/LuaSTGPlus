@@ -17,6 +17,10 @@ using namespace lstg::v2;
 
 SDLMAIN_DECLSPEC int main(int argc, char* argv[])
 {
+    // 初始化命令行参数
+    auto cargv = const_cast<char const ** const>(argv);
+    AppBase::ParseCmdline(argc, cargv);
+
     // 强制日志系统初始化
     Logging::GetInstance();
 
@@ -28,7 +32,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[])
 #endif
     try
     {
-        app = std::make_unique<GameApp>(argc, const_cast<char const ** const>(argv));
+        app = std::make_unique<GameApp>(argc, cargv);
 
         // 启动
         app->Run();
