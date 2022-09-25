@@ -434,3 +434,4 @@ src/DevApp/
 
 # NodeJS
 node_modules/
+doc/src/.vuepress/dist/
