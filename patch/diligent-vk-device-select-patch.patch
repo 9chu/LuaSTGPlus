@@ -28,7 +28,7 @@ index 6b42a243..55f6b0b5 100644
 +                if (DeviceScore > SelectedDeviceScore)
 +                {
 +                    SelectedPhysicalDevice = Device;
-+                    SelectedDeviceScore = DeviceScore;
++                    SelectedDeviceScore    = DeviceScore;
 +
 +                    if (DeviceScore >= 3)
 +                        break;

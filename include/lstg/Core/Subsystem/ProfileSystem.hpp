@@ -106,7 +106,7 @@ namespace lstg::Subsystem
             ~RunningTimeProfileHelper() noexcept
             {
                 auto end = std::chrono::steady_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_stStart).count() / 1000.;
+                auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - m_stStart).count() / 1000000000.;
 
                 if constexpr (Increment)
                     ProfileSystem::GetInstance().IncrementPerformanceCounter(Type, m_pName, elapsed);
