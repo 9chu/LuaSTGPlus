@@ -1,0 +1,38 @@
+name: Build Documentation Pages
+
+on:
+  push:
+    branches: [ master ]
+  repository_dispatch:
+    types: [ update ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          
+      # Switch to nodejs
+      - name: Switch nodejs
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+        
+      - name: Build static pages
+        run: |
+          cd doc
+          yarn install
+          yarn run build
+      
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          personal_token: ${{ secrets.ACCESS_TOKEN }}
+          external_repository: LuaSTG/LuaSTG.github.io
+          publish_dir: ./doc/src/.vuepress/dist
+          publish_branch: master
+          cname: luastg.com

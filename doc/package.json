@@ -1,0 +1,19 @@
+{
+  "name": "luastgplus-docs",
+  "version": "0.0.1",
+  "description": "A Cross-Platform Danmaku Game Engine",
+  "main": "index.js",
+  "authors": {
+    "name": "9chu",
+    "email": "1871361697@qq.com"
+  },
+  "repository": "https://github.com/9chu/LuaSTGPlus",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "SEE LICENSE IN ../COPYRIGHT.txt",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}

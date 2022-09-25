@@ -42,8 +42,16 @@ License: Expat
 Files: ./artwork/AppIcon.png
  ./artwork/LuaSTG.svg
  ./src/v2/LuaSTGPlus2.ico
+ ./doc/src/.vuepress/public/hero.svg
+ ./doc/src/.vuepress/public/logo.png
+ ./doc/src/.vuepress/public/favicon.ico
 Comment: Logo of LuaSTGPlus Danmaku Game Engine
 Copyright: 2015, Kiasela.
+License: CC-BY-NC-SA-4.0
+
+Files: ./doc/*/*.md
+Comment: Documents for LuaSTGPlus Danmaku Game Engine
+Copyright: 2022, 9chu.
 License: CC-BY-NC-SA-4.0
 
 Files: ./include/lstg/Core/Math/Collider2D/IntersectCheck.hpp
