@@ -21,9 +21,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 18.x
-        
+
+      # https://stackoverflow.com/questions/69692842/error-message-error0308010cdigital-envelope-routinesunsupported
       - name: Build static pages
         run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
           cd doc
           yarn install
           yarn run build
