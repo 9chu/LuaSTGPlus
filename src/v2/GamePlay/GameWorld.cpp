@@ -43,7 +43,7 @@ namespace
      * @param self 要插入的节点
      */
     template <typename T>
-    void ListInsertBefore(T* dest, T* self) noexcept
+    inline void ListInsertBefore(T* dest, T* self) noexcept
     {
         assert(dest);
         assert(self && !self->PrevInChain && !self->NextInChain);
@@ -62,7 +62,7 @@ namespace
      * @param self 要插入的节点
      */
     template <typename T>
-    void ListInsertAfter(T* dest, T* self) noexcept
+    inline void ListInsertAfter(T* dest, T* self) noexcept
     {
         assert(dest);
         assert(self && !self->PrevInChain && !self->NextInChain);
@@ -80,7 +80,7 @@ namespace
      * @param self 节点
      */
     template <typename T>
-    void ListRemove(T* self) noexcept
+    inline void ListRemove(T* self) noexcept
     {
         if (self->PrevInChain)
             self->PrevInChain->NextInChain = self->NextInChain;
@@ -98,7 +98,7 @@ namespace
      * @param comparer
      */
     template <typename T, typename TComparer>
-    void ListInsertSort(T* self, TComparer comparer) noexcept
+    inline void ListInsertSort(T* self, TComparer comparer) noexcept
     {
         // 插入排序
         // NOTE: 这里会保证头尾节点不参与排序过程
@@ -123,7 +123,7 @@ namespace
         }
     }
 
-    bool ColliderSortFunction(Collider* lhs, Collider* rhs) noexcept
+    inline bool ColliderSortFunction(Collider* lhs, Collider* rhs) noexcept
     {
         // 总是比较对象ID
         auto lhsScript = lhs->BindingEntity.TryGetComponent<Script>();
@@ -131,7 +131,7 @@ namespace
         return (lhsScript ? lhsScript->ScriptObjectId : 0) < (rhsScript ? rhsScript->ScriptObjectId : 0);
     }
 
-    bool RendererSortFunction(Renderer* lhs, Renderer* rhs) noexcept
+    inline bool RendererSortFunction(Renderer* lhs, Renderer* rhs) noexcept
     {
         // Layer 小的靠前
         if (lhs->Layer < rhs->Layer)
@@ -188,29 +188,34 @@ Result<LuaStack::AbsIndex> GameWorld::CreateEntity(LuaStack stack, LuaStack::Abs
     assert(std::get<1>(*scriptObject) == stack.GetTop());  // 产生的元素总是在栈顶
 
     // 初始化组件
-    auto& transform = entity->GetComponent<Transform>();
-    auto& collider = entity->GetComponent<Collider>();
-    auto& renderer = entity->GetComponent<Renderer>();
-    auto& lifeTime = entity->GetComponent<LifeTime>();
-    auto& script = entity->GetComponent<Script>();
-    collider.BindingEntity = *entity;
-    ListInsertBefore(&(m_pColliderRoot->ColliderGroupTailers[collider.Group]), &collider);
-    ListInsertSort(&collider, ColliderSortFunction);
-    renderer.BindingEntity = *entity;
-    ListInsertBefore(&m_pRendererRoot->RendererTailer, &renderer);
-    ListInsertSort(&renderer, RendererSortFunction);
-    lifeTime.BindingEntity = *entity;
-    ListInsertBefore(&m_pLifeTimeRoot->LifeTimeTailer, &lifeTime);
-    script.Pool = &m_stScriptObjectPool;
-    script.ScriptObjectId = std::get<0>(*scriptObject);
+    {
+        auto& collider = entity->GetComponent<Collider>();
+        auto& renderer = entity->GetComponent<Renderer>();
+        auto& lifeTime = entity->GetComponent<LifeTime>();
+        auto& script = entity->GetComponent<Script>();
+        collider.BindingEntity = *entity;
+        ListInsertBefore(&(m_pColliderRoot->ColliderGroupTailers[collider.Group]), &collider);
+        ListInsertSort(&collider, ColliderSortFunction);
+        renderer.BindingEntity = *entity;
+        ListInsertBefore(&m_pRendererRoot->RendererTailer, &renderer);
+        ListInsertSort(&renderer, RendererSortFunction);
+        lifeTime.BindingEntity = *entity;
+        ListInsertBefore(&m_pLifeTimeRoot->LifeTimeTailer, &lifeTime);
+        script.Pool = &m_stScriptObjectPool;
+        script.ScriptObjectId = std::get<0>(*scriptObject);
+    }
 
     // 调用 Init 事件
     stack.Insert(classIndex.Index + 1);  // ... t(class) t(object) {args...}
-    m_stScriptObjectPool.InvokeCallback(stack, script.ScriptObjectId, ScriptCallbackFunctions::OnInit, initCallArgs);
+    m_stScriptObjectPool.InvokeCallback(stack, std::get<0>(*scriptObject), ScriptCallbackFunctions::OnInit, initCallArgs);
     assert(luaStackTop - initCallArgs + 1 == stack.GetTop());
 
     // Init 执行后，更新上一帧位置 X, Y
-    transform.LastLocation = transform.Location;
+    // 注意这里 transform 可能失效
+    {
+        auto& transform = entity->GetComponent<Transform>();
+        transform.LastLocation = transform.Location;
+    }
 
     // 返回 Lua 对象
     return LuaStack::AbsIndex { stack.GetTop() };

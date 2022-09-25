@@ -597,8 +597,8 @@ void HarfBuzzTextShaper::SplitScript(std::vector<ProcessingTextRun>& output, std
                     else
                     {
                         emitRun(currentPos);
-                        runningSegmentStartIndex = currentPos + 1;
-                        runningSegmentScript.reset();
+                        runningSegmentStartIndex = currentPos;
+                        runningSegmentScript = script;
                     }
                 }
             }
