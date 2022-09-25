@@ -431,3 +431,6 @@ _bak/
 
 # ignore DevApp
 src/DevApp/
+
+# NodeJS
+node_modules/

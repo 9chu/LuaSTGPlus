@@ -1,0 +1,85 @@
+<mxfile host="65bd71144e">
+    <diagram id="VngbYT8J855RLO2gS7vx" name="第 1 页">
+        <mxGraphModel dx="1559" dy="465" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="13" value="&lt;br&gt;&lt;br&gt;SDL2" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="240" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="日志" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="200" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="spdlog" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="240" width="80" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="数学" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="200" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="glm" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="240" width="80" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="图形" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="200" width="160" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="Diligent" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="240" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="音频" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="200" width="160" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="D3D" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="320" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="OpenGL" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="280" y="320" width="60" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="Vulkan" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="340" y="320" width="60" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="mojoAL" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="240" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="窗口与输入" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="200" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="WebAudio" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="320" width="80" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="……" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="320" width="160" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="emscripten" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="240" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="LuaJIT/Lua5.1" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="640" y="240" width="100" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="脚本系统" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="640" y="200" width="100" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" value="胶水层" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="140" width="340" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="脚本驱动层（data层）" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="100" width="660" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="对象管理" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="414" y="140" width="326" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint y="190" as="sourcePoint"/>
+                        <mxPoint x="760" y="190" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="29" value="v2/逻辑层" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry y="130" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="基础引擎" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="5" y="270" width="60" height="20" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
