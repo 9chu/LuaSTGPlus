@@ -5,6 +5,7 @@
  * 此文件为 LuaSTGPlus 项目的一部分，版权与许可声明详见 COPYRIGHT.txt。
  */
 #pragma once
+#include <lstg/Core/IntrusiveSkipList.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include <lstg/Core/ECS/World.hpp>
 #include "ScriptObjectPool.hpp"
@@ -177,5 +178,12 @@ namespace lstg::v2::GamePlay
         Components::LifeTimeRoot* m_pLifeTimeRoot = nullptr;
         Components::ColliderRoot* m_pColliderRoot = nullptr;
         Components::RendererRoot* m_pRendererRoot = nullptr;
+
+        // 跳表插入器
+        // 我们选择了深度为 3 层的跳表，且每层有 1/4 的概率被选中，则对于 10000 个对象，大概的分布如下：
+        //  level0: 10000
+        //  level1:  2500
+        //  level2:   625
+        SkipListDepthRandomizer<3, 4> m_stSkipListRandomizer;
     };
 }

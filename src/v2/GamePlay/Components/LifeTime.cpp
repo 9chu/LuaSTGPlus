@@ -6,6 +6,8 @@
  */
 #include <lstg/v2/GamePlay/Components/LifeTime.hpp>
 
+#include <cstddef>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::GamePlay::Components;
@@ -28,17 +30,21 @@ const char* v2::GamePlay::Components::ToString(LifeTimeStatus status) noexcept
 
 // <editor-fold desc="LifeTime">
 
+LifeTime* LifeTime::FromListNode(IntrusiveListNode* n) noexcept
+{
+    if (n)
+    {
+        auto ret = reinterpret_cast<LifeTime*>(reinterpret_cast<uint8_t*>(n) - offsetof(LifeTime, ListNode));
+        assert(&ret->ListNode == n);
+        return ret;
+    }
+    return nullptr;
+}
+
 LifeTime::LifeTime(LifeTime&& org) noexcept
     : Status(org.Status), OutOfBoundaryAutoRemove(org.OutOfBoundaryAutoRemove), Timer(org.Timer), UniqueId(org.UniqueId),
-    BindingEntity(org.BindingEntity), PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+    BindingEntity(org.BindingEntity), ListNode(std::move(org.ListNode))
 {
-    // 调整链表指向
-    if (PrevInChain)
-        PrevInChain->NextInChain = this;
-    if (NextInChain)
-        NextInChain->PrevInChain = this;
-    org.PrevInChain = nullptr;
-    org.NextInChain = nullptr;
 }
 
 void LifeTime::Reset() noexcept
@@ -46,24 +52,26 @@ void LifeTime::Reset() noexcept
     assert(!BindingEntity || Status != LifeTimeStatus::Alive);
 
     // 从链表脱开
-    if (PrevInChain)
-    {
-        assert(PrevInChain->NextInChain == this);
-        PrevInChain->NextInChain = NextInChain;
-    }
-    if (NextInChain)
-    {
-        assert(NextInChain->PrevInChain == this);
-        NextInChain->PrevInChain = PrevInChain;
-    }
+    ListRemove(&ListNode);
 
+    // 重置
     Status = LifeTimeStatus::Alive;
     OutOfBoundaryAutoRemove = true;
     Timer = 0;
     UniqueId = 0;
     BindingEntity = {};
-    PrevInChain = nullptr;
-    NextInChain = nullptr;
+}
+
+LifeTime* LifeTime::NextNode() noexcept
+{
+    auto n = ListNode.Next;
+    return FromListNode(n);
+}
+
+LifeTime* LifeTime::PrevNode() noexcept
+{
+    auto n = ListNode.Prev;
+    return FromListNode(n);
 }
 
 // </editor-fold>
@@ -72,12 +80,13 @@ void LifeTime::Reset() noexcept
 LifeTimeRoot::LifeTimeRoot() noexcept
 {
     // Header <-> Tailer
-    LifeTimeHeader.NextInChain = &LifeTimeTailer;
-    LifeTimeTailer.PrevInChain = &LifeTimeHeader;
+    LifeTimeHeader.ListNode.Next = &LifeTimeTailer.ListNode;
+    LifeTimeTailer.ListNode.Prev = &LifeTimeHeader.ListNode;
 }
 
 LifeTimeRoot::LifeTimeRoot(LifeTimeRoot&&) noexcept
 {
+    // 不应该发生内存迁移
     assert(false);
 }
 
@@ -88,8 +97,8 @@ void LifeTimeRoot::Reset() noexcept
     LifeTimeTailer.Reset();
 
     // Header <-> Tailer
-    LifeTimeHeader.NextInChain = &LifeTimeTailer;
-    LifeTimeTailer.PrevInChain = &LifeTimeHeader;
+    LifeTimeHeader.ListNode.Next = &LifeTimeTailer.ListNode;
+    LifeTimeTailer.ListNode.Prev = &LifeTimeHeader.ListNode;
 }
 
 // </editor-fold>

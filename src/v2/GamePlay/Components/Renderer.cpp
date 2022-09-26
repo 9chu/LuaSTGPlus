@@ -12,41 +12,35 @@ using namespace lstg::v2::GamePlay::Components;
 
 // <editor-fold desc="Renderer">
 
+Renderer* Renderer::FromSkipListNode(IntrusiveSkipListNode<kRendererSkipListNodeDepth>* n) noexcept
+{
+    if (n)
+    {
+        auto ret = reinterpret_cast<Renderer*>(reinterpret_cast<uint8_t*>(n) - offsetof(Renderer, SkipListNode));
+        assert(&ret->SkipListNode == n);
+        return ret;
+    }
+    return nullptr;
+}
+
 Renderer::Renderer(Renderer&& org) noexcept
     : Invisible(org.Invisible), Scale(org.Scale), Layer(org.Layer), RenderData(std::move(org.RenderData)), BindingEntity(org.BindingEntity),
-    PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+    SkipListNode(std::move(org.SkipListNode))
 {
-    // 调整链表指向
-    if (PrevInChain)
-        PrevInChain->NextInChain = this;
-    if (NextInChain)
-        NextInChain->PrevInChain = this;
-    org.PrevInChain = nullptr;
-    org.NextInChain = nullptr;
 }
 
 void Renderer::Reset() noexcept
 {
     // 从链表脱开
-    if (PrevInChain)
-    {
-        assert(PrevInChain->NextInChain == this);
-        PrevInChain->NextInChain = NextInChain;
-    }
-    if (NextInChain)
-    {
-        assert(NextInChain->PrevInChain == this);
-        NextInChain->PrevInChain = PrevInChain;
-    }
+    SkipListRemove(&SkipListNode);
 
+    // 重置
     Invisible = false;
     Scale = { 1., 1. };
     Layer = 0.;
     RenderData = {};
     AnimationTimer = 0;
     BindingEntity = {};
-    PrevInChain = nullptr;
-    NextInChain = nullptr;
 }
 
 std::string_view Renderer::GetAssetName() noexcept
@@ -70,14 +64,35 @@ std::string_view Renderer::GetAssetName() noexcept
     }
 }
 
+Renderer* Renderer::NextNode() noexcept
+{
+    auto n = SkipListNode.Adj[0].Next;
+    return FromSkipListNode(n);
+}
+
+Renderer* Renderer::PrevNode() noexcept
+{
+    auto n = SkipListNode.Adj[0].Prev;
+    return FromSkipListNode(n);
+}
+
 // </editor-fold>
 // <editor-fold desc="RendererRoot">
 
 RendererRoot::RendererRoot() noexcept
 {
     // Header <-> Tailer
-    RendererHeader.NextInChain = &RendererTailer;
-    RendererTailer.PrevInChain = &RendererHeader;
+    for (size_t i = 0; i < kRendererSkipListNodeDepth; ++i)
+    {
+        RendererHeader.SkipListNode.Adj[i].Next = &RendererTailer.SkipListNode;
+        RendererTailer.SkipListNode.Adj[i].Prev = &RendererHeader.SkipListNode;
+    }
+}
+
+RendererRoot::RendererRoot(RendererRoot&&) noexcept
+{
+    // 不应该发生内存迁移
+    assert(false);
 }
 
 void RendererRoot::Reset() noexcept
@@ -87,8 +102,11 @@ void RendererRoot::Reset() noexcept
     RendererTailer.Reset();
 
     // Header <-> Tailer
-    RendererHeader.NextInChain = &RendererTailer;
-    RendererTailer.PrevInChain = &RendererHeader;
+    for (size_t i = 0; i < kRendererSkipListNodeDepth; ++i)
+    {
+        RendererHeader.SkipListNode.Adj[i].Next = &RendererTailer.SkipListNode;
+        RendererTailer.SkipListNode.Adj[i].Prev = &RendererHeader.SkipListNode;
+    }
 }
 
 // </editor-fold>

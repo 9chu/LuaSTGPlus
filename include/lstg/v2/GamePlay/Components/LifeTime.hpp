@@ -6,6 +6,7 @@
  */
 #pragma once
 #include <cstdint>
+#include <lstg/Core/IntrusiveList.hpp>
 #include "../../../Core/ECS/Entity.hpp"
 
 namespace lstg::v2::GamePlay::Components
@@ -24,6 +25,8 @@ namespace lstg::v2::GamePlay::Components
      */
     struct LifeTime
     {
+        static LifeTime* FromListNode(IntrusiveListNode* n) noexcept;
+
         /**
          * 对象状态
          */
@@ -36,8 +39,9 @@ namespace lstg::v2::GamePlay::Components
 
         /**
          * 计时器
+         * 可以被修改为负数。
          */
-        uint32_t Timer = 0;
+        int32_t Timer = 0;
 
         /**
          * 自增 ID
@@ -49,13 +53,15 @@ namespace lstg::v2::GamePlay::Components
          * 用于保持对象更新顺序。
          */
         ECS::Entity BindingEntity;
-        LifeTime* PrevInChain = nullptr;
-        LifeTime* NextInChain = nullptr;
+        IntrusiveListNode ListNode;
 
         LifeTime() noexcept = default;
         LifeTime(LifeTime&& org) noexcept;
 
         void Reset() noexcept;
+
+        LifeTime* NextNode() noexcept;
+        LifeTime* PrevNode() noexcept;
     };
 
     constexpr uint32_t GetComponentId(LifeTime*) noexcept
