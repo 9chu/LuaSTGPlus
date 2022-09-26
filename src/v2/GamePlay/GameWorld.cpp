@@ -36,112 +36,35 @@ LSTG_DEF_LOG_CATEGORY(GameWorld);
 
 namespace
 {
-    /**
-     * 在指定节点前插入节点
-     * @tparam T Component类型
-     * @param dest 目的节点
-     * @param self 要插入的节点
-     */
-    template <typename T>
-    inline void ListInsertBefore(T* dest, T* self) noexcept
+    inline bool ColliderSortFunction(IntrusiveSkipListNode<kColliderSkipListNodeDepth>* lhs,
+        IntrusiveSkipListNode<kColliderSkipListNodeDepth>* rhs) noexcept
     {
-        assert(dest);
-        assert(self && !self->PrevInChain && !self->NextInChain);
-        self->PrevInChain = dest->PrevInChain;
-        self->NextInChain = dest;
+        assert(lhs && rhs);
+        auto left = Collider::FromSkipListNode(lhs);
+        auto right = Collider::FromSkipListNode(rhs);
 
-        if (dest->PrevInChain)
-            dest->PrevInChain->NextInChain = self;
-        dest->PrevInChain = self;
-    }
-
-    /**
-     * 在指定节点后插入节点
-     * @tparam T Component类型
-     * @param dest 目的节点
-     * @param self 要插入的节点
-     */
-    template <typename T>
-    inline void ListInsertAfter(T* dest, T* self) noexcept
-    {
-        assert(dest);
-        assert(self && !self->PrevInChain && !self->NextInChain);
-        self->PrevInChain = dest;
-        self->NextInChain = dest->NextInChain;
-
-        if (dest->NextInChain)
-            dest->NextInChain->PrevInChain = self;
-        dest->NextInChain = self;
-    }
-
-    /**
-     * 将节点从链表移除
-     * @tparam T Component类型
-     * @param self 节点
-     */
-    template <typename T>
-    inline void ListRemove(T* self) noexcept
-    {
-        if (self->PrevInChain)
-            self->PrevInChain->NextInChain = self->NextInChain;
-        if (self->NextInChain)
-            self->NextInChain->PrevInChain = self->PrevInChain;
-        self->NextInChain = nullptr;
-        self->PrevInChain = nullptr;
-    }
-
-    /**
-     * 在有序链表上对节点进行插入排序
-     * @tparam T Component类型
-     * @tparam TComparer
-     * @param self
-     * @param comparer
-     */
-    template <typename T, typename TComparer>
-    inline void ListInsertSort(T* self, TComparer comparer) noexcept
-    {
-        // 插入排序
-        // NOTE: 这里会保证头尾节点不参与排序过程
-        assert(self->NextInChain && self->PrevInChain);
-        if (self->NextInChain->NextInChain && comparer(self->NextInChain, self))
-        {
-            // 向后插入
-            auto insertBefore = self->NextInChain->NextInChain;
-            while (insertBefore->NextInChain && comparer(insertBefore, self))
-                insertBefore = insertBefore->NextInChain;
-            ListRemove(self);
-            ListInsertBefore(insertBefore, self);
-        }
-        else if (self->PrevInChain->PrevInChain && comparer(self, self->PrevInChain))
-        {
-            // 向前插入
-            auto insertAfter = self->PrevInChain->PrevInChain;
-            while (insertAfter->PrevInChain && comparer(self, insertAfter))
-                insertAfter = insertAfter->PrevInChain;
-            ListRemove(self);
-            ListInsertAfter(insertAfter, self);
-        }
-    }
-
-    inline bool ColliderSortFunction(Collider* lhs, Collider* rhs) noexcept
-    {
         // 总是比较对象ID
-        auto lhsScript = lhs->BindingEntity.TryGetComponent<Script>();
-        auto rhsScript = rhs->BindingEntity.TryGetComponent<Script>();
+        auto lhsScript = left->BindingEntity.TryGetComponent<Script>();
+        auto rhsScript = right->BindingEntity.TryGetComponent<Script>();
         return (lhsScript ? lhsScript->ScriptObjectId : 0) < (rhsScript ? rhsScript->ScriptObjectId : 0);
     }
 
-    inline bool RendererSortFunction(Renderer* lhs, Renderer* rhs) noexcept
+    inline bool RendererSortFunction(IntrusiveSkipListNode<kRendererSkipListNodeDepth>* lhs,
+        IntrusiveSkipListNode<kRendererSkipListNodeDepth>* rhs) noexcept
     {
+        assert(lhs && rhs);
+        auto left = Renderer::FromSkipListNode(lhs);
+        auto right = Renderer::FromSkipListNode(rhs);
+
         // Layer 小的靠前
-        if (lhs->Layer < rhs->Layer)
+        if (left->Layer < right->Layer)
             return true;
 
         // 相同时比较对象ID
-        if (lhs->Layer == rhs->Layer)
+        if (left->Layer == right->Layer)
         {
-            auto lhsScript = lhs->BindingEntity.TryGetComponent<Script>();
-            auto rhsScript = rhs->BindingEntity.TryGetComponent<Script>();
+            auto lhsScript = left->BindingEntity.TryGetComponent<Script>();
+            auto rhsScript = right->BindingEntity.TryGetComponent<Script>();
             return (lhsScript ? lhsScript->ScriptObjectId : 0) < (rhsScript ? rhsScript->ScriptObjectId : 0);
         }
         return false;
@@ -194,13 +117,13 @@ Result<LuaStack::AbsIndex> GameWorld::CreateEntity(LuaStack stack, LuaStack::Abs
         auto& lifeTime = entity->GetComponent<LifeTime>();
         auto& script = entity->GetComponent<Script>();
         collider.BindingEntity = *entity;
-        ListInsertBefore(&(m_pColliderRoot->ColliderGroupTailers[collider.Group]), &collider);
-        ListInsertSort(&collider, ColliderSortFunction);
+        SkipListInsert(&(m_pColliderRoot->ColliderGroupTailers[collider.Group].SkipListNode), &collider.SkipListNode, ColliderSortFunction,
+            m_stSkipListRandomizer);
         renderer.BindingEntity = *entity;
-        ListInsertBefore(&m_pRendererRoot->RendererTailer, &renderer);
-        ListInsertSort(&renderer, RendererSortFunction);
+        SkipListInsert(&(m_pRendererRoot->RendererTailer.SkipListNode), &renderer.SkipListNode, RendererSortFunction,
+            m_stSkipListRandomizer);
         lifeTime.BindingEntity = *entity;
-        ListInsertBefore(&m_pLifeTimeRoot->LifeTimeTailer, &lifeTime);
+        ListInsertBefore(&m_pLifeTimeRoot->LifeTimeTailer.ListNode, &lifeTime.ListNode);
         script.Pool = &m_stScriptObjectPool;
         script.ScriptObjectId = std::get<0>(*scriptObject);
     }
@@ -302,7 +225,7 @@ void GameWorld::Frame() noexcept
     // 为了保证与 luastg 行为的兼容性，这里通过 LifeTime 上的链表更新所有对象
     // 这并不符合 ECS 的使用规范，无法得到 cache friendly 的优势
     assert(m_pLifeTimeRoot);
-    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextInChain;
+    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextNode();
     assert(p);
     while (p != &m_pLifeTimeRoot->LifeTimeTailer)
     {
@@ -353,8 +276,8 @@ void GameWorld::Frame() noexcept
                 particleData.Pool->Update(1.f / 60.f);  // 总是使用 60fps 的速度 Tick
         }
 
-        assert(p->NextInChain);
-        p = p->NextInChain;
+        assert(p->NextNode());
+        p = p->NextNode();
     }
 }
 
@@ -365,7 +288,7 @@ void GameWorld::Render() noexcept
 #endif
 
     assert(m_pRendererRoot);
-    Renderer* p = m_pRendererRoot->RendererHeader.NextInChain;
+    Renderer* p = m_pRendererRoot->RendererHeader.NextNode();
     assert(p);
     while (p != &m_pRendererRoot->RendererTailer)
     {
@@ -390,8 +313,8 @@ void GameWorld::Render() noexcept
             }
         }
 
-        assert(p->NextInChain);
-        p = p->NextInChain;
+        assert(p->NextNode());
+        p = p->NextNode();
     }
 }
 
@@ -435,7 +358,7 @@ void GameWorld::DeleteOutOfBoundaryEntities() noexcept
     auto bottomRight = m_stBoundary.GetBottomRight();
 
     assert(m_pLifeTimeRoot);
-    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextInChain;
+    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextNode();
     assert(p);
     while (p != &m_pLifeTimeRoot->LifeTimeTailer)
     {
@@ -468,8 +391,8 @@ void GameWorld::DeleteOutOfBoundaryEntities() noexcept
             }
         }
 
-        assert(p->NextInChain);
-        p = p->NextInChain;
+        assert(p->NextNode());
+        p = p->NextNode();
     }
 }
 
@@ -550,9 +473,9 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
     assert(groupA < kColliderGroupCount && groupB < kColliderGroupCount);
 
     assert(m_pColliderRoot);
-    Collider* pA = m_pColliderRoot->ColliderGroupHeaders[groupA].NextInChain;
+    Collider* pA = m_pColliderRoot->ColliderGroupHeaders[groupA].NextNode();
     ECS::Entity entityA = pA->BindingEntity;
-    Collider* pNextA = pA->NextInChain;
+    Collider* pNextA = pA->NextNode();
     ECS::Entity entityAfterA = pNextA ? pNextA->BindingEntity : ECS::Entity {};
     assert(pA);
     while (pA != &m_pColliderRoot->ColliderGroupTailers[groupA])
@@ -575,9 +498,9 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
             auto bottomA = transformComponentA->Location.y - pA->AABBHalfSize.y;
 
             // 沿着 groupB 的链表进行逐个碰撞检查
-            Collider* pB = m_pColliderRoot->ColliderGroupHeaders[groupB].NextInChain;
+            Collider* pB = m_pColliderRoot->ColliderGroupHeaders[groupB].NextNode();
             ECS::Entity entityB = pB->BindingEntity;
-            Collider* pNextB = pB->NextInChain;
+            Collider* pNextB = pB->NextNode();
             ECS::Entity entityAfterB = pNextB ? pNextB->BindingEntity : ECS::Entity {};
             assert(pB);
             while (pB != &m_pColliderRoot->ColliderGroupTailers[groupB])
@@ -654,7 +577,7 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
                     break;  // 极端情况，在碰撞方法中改了其他对象的 Group
                 pB = pNextB;
                 entityB = entityAfterB;
-                pNextB = pB->NextInChain;
+                pNextB = pB->NextNode();
                 entityAfterB = pNextB ? pNextB->BindingEntity : ECS::Entity {};
             }
         }
@@ -665,7 +588,7 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
             break;  // 极端情况，在碰撞方法中改了其他对象的 Group
         pA = pNextA;
         entityA = entityAfterA;
-        pNextA = pA->NextInChain;
+        pNextA = pA->NextNode();
         entityAfterA = pNextA ? pNextA->BindingEntity : ECS::Entity {};
     }
 }
@@ -673,11 +596,11 @@ void GameWorld::CollisionCheck(uint32_t groupA, uint32_t groupB) noexcept
 void GameWorld::Clear() noexcept
 {
     assert(m_pLifeTimeRoot);
-    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextInChain;
+    LifeTime* p = m_pLifeTimeRoot->LifeTimeHeader.NextNode();
     assert(p);
     while (p != &m_pLifeTimeRoot->LifeTimeTailer)
     {
-        auto next = p->NextInChain;
+        auto next = p->NextNode();
         p->Status = LifeTimeStatus::Deleted;
         // FIXME: 如果在迭代过程中调用 Destroy，可能会造成问题？
         // FIXME: 暂时没有测试这种情况，但是如果不 Destroy，会出现很多奇妙的问题
@@ -961,7 +884,7 @@ bool GameWorld::OnSetAttribute(LuaStack stack, ECS::EntityId id, std::string_vie
         case ScriptObjectAttributes::Timer:
             if (!(lifeTimeComponent = ent.TryGetComponent<LifeTime>()))
                 return false;
-            lifeTimeComponent->Timer = static_cast<uint32_t>(max(0, stack.ReadValue<int32_t>(value)));
+            lifeTimeComponent->Timer = stack.ReadValue<int32_t>(value);
             return true;
         case ScriptObjectAttributes::VelocityX:
             if (!(movementComponent = ent.TryGetComponent<Movement>()))
@@ -986,8 +909,10 @@ bool GameWorld::OnSetAttribute(LuaStack stack, ECS::EntityId id, std::string_vie
         case ScriptObjectAttributes::Layer:
             if (!(rendererComponent = ent.TryGetComponent<Renderer>()))
                 return false;
+            SkipListRemove(&rendererComponent->SkipListNode);  // 从跳表脱离
             rendererComponent->Layer = stack.ReadValue<double>(value);
-            ListInsertSort(rendererComponent, RendererSortFunction);  // 刷新渲染顺序
+            SkipListInsert(&(m_pRendererRoot->RendererTailer.SkipListNode), &rendererComponent->SkipListNode, RendererSortFunction,
+                m_stSkipListRandomizer);  // 重新插入
             return true;
         case ScriptObjectAttributes::Group:
             if (!(colliderComponent = ent.TryGetComponent<Collider>()))
@@ -1002,10 +927,10 @@ bool GameWorld::OnSetAttribute(LuaStack stack, ECS::EntityId id, std::string_vie
                 assert(0 <= group && group < kColliderGroupCount);
                 if (group != colliderComponent->Group)
                 {
-                    ListRemove(colliderComponent);  // 从原先的组脱离
+                    SkipListRemove(&colliderComponent->SkipListNode);  // 从原先的组脱离
                     colliderComponent->Group = group;
-                    ListInsertBefore(&m_pColliderRoot->ColliderGroupTailers[group], colliderComponent);  // 插入新的组
-                    ListInsertSort(colliderComponent, ColliderSortFunction);  // 排序
+                    SkipListInsert(&(m_pColliderRoot->ColliderGroupTailers[group].SkipListNode), &colliderComponent->SkipListNode,
+                        ColliderSortFunction, m_stSkipListRandomizer);  // 插入新的组
                 }
             }
             return true;

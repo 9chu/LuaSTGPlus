@@ -5,11 +5,13 @@
  * 此文件为 LuaSTGPlus 项目的一部分，版权与许可声明详见 COPYRIGHT.txt。
  */
 #pragma once
+#include <lstg/Core/IntrusiveSkipList.hpp>
 #include "../../MathAlias.hpp"
 #include "../../../Core/ECS/Entity.hpp"
 
 namespace lstg::v2::GamePlay::Components
 {
+    static constexpr size_t kColliderSkipListNodeDepth = 3;
     static constexpr size_t kColliderGroupCount = 16;
 
     /**
@@ -17,6 +19,8 @@ namespace lstg::v2::GamePlay::Components
      */
     struct Collider
     {
+        static Collider* FromSkipListNode(IntrusiveSkipListNode<kColliderSkipListNodeDepth>* n) noexcept;
+
         /**
          * 是否启用碰撞体
          */
@@ -40,14 +44,16 @@ namespace lstg::v2::GamePlay::Components
          */
         uint32_t Group = 0;
         ECS::Entity BindingEntity;
-        Collider* PrevInChain = nullptr;
-        Collider* NextInChain = nullptr;
+        IntrusiveSkipListNode<kColliderSkipListNodeDepth> SkipListNode;
 
         Collider() noexcept {} /* = default; */  // g++ won't compile, make it happy
         Collider(Collider&& org) noexcept;
 
         void Reset() noexcept;
         void RefreshAABB() noexcept;
+
+        Collider* NextNode() noexcept;
+        Collider* PrevNode() noexcept;
     };
 
     constexpr uint32_t GetComponentId(Collider*) noexcept
@@ -64,6 +70,7 @@ namespace lstg::v2::GamePlay::Components
         Collider ColliderGroupTailers[kColliderGroupCount];
 
         ColliderRoot() noexcept;
+        ColliderRoot(ColliderRoot&&) noexcept;
         void Reset() noexcept;
     };
 

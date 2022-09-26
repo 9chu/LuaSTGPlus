@@ -481,10 +481,10 @@ int GameObjectModule::NextObject(lua_State* L)
                 assert(false);
                 break;
             }
-            if (!lifeTimeComponent->NextInChain || lifeTimeComponent->NextInChain == tailer)
+            if (!lifeTimeComponent->NextNode() || lifeTimeComponent->NextNode() == tailer)
                 break;  // 迭代终止
 
-            nextEntity = lifeTimeComponent->NextInChain->BindingEntity;
+            nextEntity = lifeTimeComponent->NextNode()->BindingEntity;
             assert(nextEntity);
 
             // 获取下一个ID
@@ -518,10 +518,10 @@ int GameObjectModule::NextObject(lua_State* L)
 #endif
                 break;
             }
-            if (!colliderComponent->NextInChain || colliderComponent->NextInChain == &tailer)
+            if (!colliderComponent->NextNode() || colliderComponent->NextNode() == &tailer)
                 break;  // 迭代终止
 
-            nextEntity = colliderComponent->NextInChain->BindingEntity;
+            nextEntity = colliderComponent->NextNode()->BindingEntity;
             assert(nextEntity);
 
             // 获取下一个ID
@@ -551,13 +551,13 @@ GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, double> GameObject
     if (groupId < 0 || groupId >= static_cast<int32_t>(Components::kColliderGroupCount))
     {
         auto& lifeTime = world.GetLifeTimeRoot();
-        auto* current = lifeTime.LifeTimeHeader.NextInChain;
+        auto* current = lifeTime.LifeTimeHeader.NextNode();
         auto* tailer = &lifeTime.LifeTimeTailer;
 
         while (current && current != tailer)
         {
             auto& entity = current->BindingEntity;
-            current = current->NextInChain;
+            current = current->NextNode();
 
             auto scriptComponent = entity.TryGetComponent<Components::Script>();
             if (scriptComponent)
@@ -570,13 +570,13 @@ GameObjectModule::Unpack<GameObjectModule::AbsIndex, int32_t, double> GameObject
     else
     {
         auto& collider = world.GetColliderRoot();
-        auto* current = collider.ColliderGroupHeaders[groupId].NextInChain;
+        auto* current = collider.ColliderGroupHeaders[groupId].NextNode();
         auto* tailer = &collider.ColliderGroupTailers[groupId];
 
         while (current && current != tailer)
         {
             auto& entity = current->BindingEntity;
-            current = current->NextInChain;
+            current = current->NextNode();
 
             auto scriptComponent = entity.TryGetComponent<Components::Script>();
             if (scriptComponent)

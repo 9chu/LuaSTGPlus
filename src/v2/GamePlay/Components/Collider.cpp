@@ -6,38 +6,35 @@
  */
 #include <lstg/v2/GamePlay/Components/Collider.hpp>
 
+#include <cstddef>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2::GamePlay::Components;
 
 // <editor-fold desc="Collider">
 
+Collider* Collider::FromSkipListNode(IntrusiveSkipListNode<kColliderSkipListNodeDepth>* n) noexcept
+{
+    if (n)
+    {
+        auto ret = reinterpret_cast<Collider*>(reinterpret_cast<uint8_t*>(n) - offsetof(Collider, SkipListNode));
+        assert(&ret->SkipListNode == n);
+        return ret;
+    }
+    return nullptr;
+}
+
 Collider::Collider(Collider&& org) noexcept
     : Enabled(org.Enabled), Shape(org.Shape), AABBHalfSize(org.AABBHalfSize), Group(org.Group), BindingEntity(org.BindingEntity),
-      PrevInChain(org.PrevInChain), NextInChain(org.NextInChain)
+    SkipListNode(std::move(org.SkipListNode))
 {
-    // 调整链表指向
-    if (PrevInChain)
-        PrevInChain->NextInChain = this;
-    if (NextInChain)
-        NextInChain->PrevInChain = this;
-    org.PrevInChain = nullptr;
-    org.NextInChain = nullptr;
 }
 
 void Collider::Reset() noexcept
 {
     // 从链表脱开
-    if (PrevInChain)
-    {
-        assert(PrevInChain->NextInChain == this);
-        PrevInChain->NextInChain = NextInChain;
-    }
-    if (NextInChain)
-    {
-        assert(NextInChain->PrevInChain == this);
-        NextInChain->PrevInChain = PrevInChain;
-    }
+    SkipListRemove(&SkipListNode);
 
     // 重置
     Enabled = true;
@@ -45,8 +42,6 @@ void Collider::Reset() noexcept
     AABBHalfSize = { 0, 0 };
     Group = 0;
     BindingEntity = {};
-    PrevInChain = nullptr;
-    NextInChain = nullptr;
 }
 
 void Collider::RefreshAABB() noexcept
@@ -68,6 +63,18 @@ void Collider::RefreshAABB() noexcept
     }
 }
 
+Collider* Collider::NextNode() noexcept
+{
+    auto n = SkipListNode.Adj[0].Next;
+    return FromSkipListNode(n);
+}
+
+Collider* Collider::PrevNode() noexcept
+{
+    auto n = SkipListNode.Adj[0].Prev;
+    return FromSkipListNode(n);
+}
+
 // </editor-fold>
 // <editor-fold desc="ColliderRoot">
 
@@ -77,9 +84,18 @@ ColliderRoot::ColliderRoot() noexcept
     for (size_t i = 0; i < std::extent_v<decltype(ColliderGroupHeaders)>; ++i)
     {
         // Header <-> Tailer
-        ColliderGroupHeaders[i].NextInChain = &ColliderGroupTailers[i];
-        ColliderGroupTailers[i].PrevInChain = &ColliderGroupHeaders[i];
+        for (size_t j = 0; j < kColliderSkipListNodeDepth; ++j)
+        {
+            ColliderGroupHeaders[i].SkipListNode.Adj[j].Next = &ColliderGroupTailers[i].SkipListNode;
+            ColliderGroupTailers[i].SkipListNode.Adj[j].Prev = &ColliderGroupHeaders[i].SkipListNode;
+        }
     }
+}
+
+ColliderRoot::ColliderRoot(ColliderRoot&&) noexcept
+{
+    // 不应该发生内存迁移
+    assert(false);
 }
 
 void ColliderRoot::Reset() noexcept
@@ -92,8 +108,11 @@ void ColliderRoot::Reset() noexcept
         ColliderGroupTailers[i].Reset();
 
         // Header <-> Tailer
-        ColliderGroupHeaders[i].NextInChain = &ColliderGroupTailers[i];
-        ColliderGroupTailers[i].PrevInChain = &ColliderGroupHeaders[i];
+        for (size_t j = 0; j < kColliderSkipListNodeDepth; ++j)
+        {
+            ColliderGroupHeaders[i].SkipListNode.Adj[j].Next = &ColliderGroupTailers[i].SkipListNode;
+            ColliderGroupTailers[i].SkipListNode.Adj[j].Prev = &ColliderGroupHeaders[i].SkipListNode;
+        }
     }
 }
 
