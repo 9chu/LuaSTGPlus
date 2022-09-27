@@ -41,7 +41,7 @@ namespace
                 ++m_stIterator;
 
                 if (end(m_stIterator) != m_stIterator)
-                    m_stCurrentFileName = Path{m_stIterator->path().stem().string()};
+                    m_stCurrentFileName = Path{m_stIterator->path().filename().string()};
                 else
                     m_stCurrentFileName = {};
             }
@@ -146,12 +146,17 @@ Result<FileAttribute> LocalFileSystem::GetFileAttribute(Path path) noexcept
         auto target = MakeLocalPath(path);
         auto stat = filesystem::status(target);
         auto mod = filesystem::last_write_time(target);
-        auto size = filesystem::file_size(target);
+        uintmax_t size = 0;
 
         if (is_regular_file(stat))
+        {
             ret.Type = FileType::RegularFile;
+            size = filesystem::file_size(target);
+        }
         else if (is_directory(stat))
+        {
             ret.Type = FileType::Directory;
+        }
         ret.LastModified = FileTimeConvertToTimeT<filesystem::file_time_type::clock>{}(mod);
         ret.Size = size;
         return ret;

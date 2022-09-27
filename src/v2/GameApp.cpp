@@ -221,9 +221,15 @@ GameApp::GameApp(int argc, const char* argv[])
 #endif
     }
 
-    // 初始化函数库
+    // 初始化脚本系统
     {
-        auto& state = GetSubsystem<Subsystem::ScriptSystem>()->GetState();
+        auto& scriptSystem = *GetSubsystem<Subsystem::ScriptSystem>();
+        auto& state = scriptSystem.GetState();
+
+        // 设置默认工作路径
+        scriptSystem.SetIoWorkingDirectory("/storage");
+
+        // 打开默认函数库
         Subsystem::Script::LuaStack::BalanceChecker stackChecker(state);
 
         lua_gc(state, LUA_GCSTOP, 0);  // 初始化时关闭GC
@@ -266,22 +272,6 @@ GameApp::GameApp(int argc, const char* argv[])
 #endif
         lua_setfield(state, -2, "args");  // t
         lua_pop(state, 1);
-
-        // 修补高版本没有 math.mod
-        lua_getglobal(state, "math");  // t
-        assert(!lua_isnil(state, -1));
-        lua_getfield(state, -1, "mod");  // t f|n
-        if (lua_isnil(state, -1))
-        {
-            lua_pop(state, 1);  // t
-            lua_getfield(state, -1, "fmod");  // t f
-            lua_setfield(state, -2, "mod");  // t
-            lua_pop(state, 1);
-        }
-        else
-        {
-            lua_pop(state, 2);
-        }
 
         lua_gc(state, LUA_GCRESTART, -1);  // 重启GC
     }

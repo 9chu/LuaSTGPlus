@@ -77,3 +77,4 @@
 
 * Windows 最低支持 Windows 7。
 * 若需要在 iPad OS 上使用，需要在 Safari 中开启实验性 WebGL2 支持。
+* 若需要在 macOS 上启用 Vulkan，需要安装 Vulkan SDK 并设置环境变量`VULKAN_SDK`指向 Vulkan SDK 安装路径。
