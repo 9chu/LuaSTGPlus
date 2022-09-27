@@ -10,6 +10,7 @@
 #include <lstg/Core/Subsystem/ProfileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaPush.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
+#include "Script/detail/LuaCompatLayer.hpp"
 
 using namespace std;
 using namespace lstg;
@@ -137,7 +138,7 @@ namespace
 }
 
 ScriptSystem::ScriptSystem(SubsystemContainer& container)
-    : m_stSandBox(*(container.Get<VirtualFileSystem>()), m_stState)
+    : m_stSandBox(*(container.Get<VirtualFileSystem>()), m_stState), m_stIoWorkingDirectory("/")
 {
     Script::LuaStack::BalanceChecker stackChecker(m_stState);
 
@@ -149,6 +150,9 @@ ScriptSystem::ScriptSystem(SubsystemContainer& container)
 
     // 打开标准库
     m_stState.OpenStandardLibrary();
+
+    // 注册兼容层
+    Script::detail::LuaCompatLayer::Register(m_stState);
 
     // 增加 require 和 import 方法
     ExportModuleLoader(m_stState, this);

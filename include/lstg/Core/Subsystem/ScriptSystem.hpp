@@ -36,6 +36,18 @@ namespace lstg::Subsystem
         [[nodiscard]] const Script::SandBox& GetSandBox() const noexcept { return m_stSandBox; }
 
         /**
+         * 获取 I/O 工作路径，取代 cwd
+         */
+        [[nodiscard]] const std::string& GetIoWorkingDirectory() const noexcept { return m_stIoWorkingDirectory; }
+
+        /**
+         * 设置 I/O 工作路径
+         * @note 不检查路径合法性
+         * @param dir 路径
+         */
+        void SetIoWorkingDirectory(std::string dir) noexcept { m_stIoWorkingDirectory = std::move(dir); }
+
+        /**
          * 加载脚本
          * 注意：不检查文件是否已经加载，沙箱模式会强制重新加载。
          * @param path 路径，注意非沙箱情况会参考沙箱中设置的 BaseDirectory
@@ -108,5 +120,6 @@ namespace lstg::Subsystem
     private:
         Script::LuaState m_stState;
         Script::SandBox m_stSandBox;
+        std::string m_stIoWorkingDirectory;
     };
 }

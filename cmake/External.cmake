@@ -101,6 +101,9 @@ else()
         NAME luajit
         GITHUB_REPOSITORY 9chu/LuaJIT-cmake
         GIT_TAG master
+        OPTIONS
+            "LUAJIT_DISABLE_FFI ON"
+            "LUAJIT_DISABLE_BUFFER ON"
     )
 endif()
 get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
