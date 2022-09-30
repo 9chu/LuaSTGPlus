@@ -153,7 +153,10 @@ namespace lstg::Subsystem::DebugGUI::detail
                         break;
                 }
 
-                AppendRaw(color, fmt::format("{} - {}", message.CategoryName, message.Payload));
+                if (!message.CategoryName || message.CategoryName[0] == '\0')
+                    AppendRaw(color, fmt::format("{}", message.Payload));
+                else
+                    AppendRaw(color, fmt::format("{} - {}", message.CategoryName, message.Payload));
             }
             catch (...)
             {

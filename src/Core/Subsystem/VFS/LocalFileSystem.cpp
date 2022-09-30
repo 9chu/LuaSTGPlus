@@ -137,6 +137,29 @@ Result<void> LocalFileSystem::Remove(Path path) noexcept
     return {};
 }
 
+Result<void> LocalFileSystem::Rename(Path from, Path to) noexcept
+{
+    try
+    {
+        auto fromPath = MakeLocalPath(from);
+        auto toPath = MakeLocalPath(to);
+        filesystem::rename(fromPath, toPath);
+    }
+    catch (const system_error& ex)
+    {
+        return ex.code();
+    }
+    catch (const bad_alloc& ex)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+    catch (...)
+    {
+        return make_error_code(errc::io_error);
+    }
+    return {};
+}
+
 Result<FileAttribute> LocalFileSystem::GetFileAttribute(Path path) noexcept
 {
     try

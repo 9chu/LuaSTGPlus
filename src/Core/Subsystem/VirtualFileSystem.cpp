@@ -46,6 +46,17 @@ Result<void> VirtualFileSystem::Remove(std::string_view path) noexcept
     return m_stRootFileSystem.Remove(*npath);
 }
 
+Result<void> VirtualFileSystem::Rename(std::string_view from, std::string_view to) noexcept
+{
+    auto nfrom = NormalizePath(from);
+    if (!nfrom)
+        return nfrom.GetError();
+    auto nto = NormalizePath(to);
+    if (!nto)
+        return nto.GetError();
+    return m_stRootFileSystem.Rename(*nfrom, *nto);
+}
+
 Result<VFS::FileAttribute> VirtualFileSystem::GetFileAttribute(std::string_view path) noexcept
 {
     auto npath = NormalizePath(path);

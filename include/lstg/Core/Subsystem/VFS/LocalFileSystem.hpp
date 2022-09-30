@@ -26,6 +26,7 @@ namespace lstg::Subsystem::VFS
     public:  // IFileSystem
         Result<void> CreateDirectory(Path path) noexcept override;
         Result<void> Remove(Path path) noexcept override;
+        Result<void> Rename(Path from, Path to) noexcept override;
         Result<FileAttribute> GetFileAttribute(Path path) noexcept override;
         Result<DirectoryIteratorPtr> VisitDirectory(Path path) noexcept override;
         Result<StreamPtr> OpenFile(Path path, FileAccessMode access, FileOpenFlags flags) noexcept override;

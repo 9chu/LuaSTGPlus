@@ -111,6 +111,14 @@ namespace lstg::Subsystem::VFS
         virtual Result<void> Remove(Path path) noexcept = 0;
 
         /**
+         * 重命名文件或文件夹
+         * @param from 原始文件名
+         * @param to 目标文件名
+         * @return 错误码
+         */
+        virtual Result<void> Rename(Path from, Path to) noexcept = 0;
+
+        /**
          * 获取文件属性
          * @param path 传入路径，调用方保证一定是相对路径
          * @return 成功返回文件属性，失败返回错误码

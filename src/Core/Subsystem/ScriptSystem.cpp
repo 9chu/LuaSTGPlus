@@ -159,6 +159,21 @@ ScriptSystem::ScriptSystem(SubsystemContainer& container)
     ExportImport(m_stState, this);
 }
 
+Result<Subsystem::VFS::Path> ScriptSystem::MakeAbsolutePathForIo(std::string_view path) noexcept
+{
+    try
+    {
+        if (!path.empty() && path[0] == '/')
+            return Subsystem::VFS::Path { path };
+        else
+            return Subsystem::VFS::Path::Normalize(fmt::format("{}/{}", GetIoWorkingDirectory(), path));
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+}
+
 Result<void> ScriptSystem::LoadScript(std::string_view path, bool sandbox) noexcept
 {
     // 沙箱模式加载

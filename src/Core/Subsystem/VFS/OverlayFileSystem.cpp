@@ -231,6 +231,23 @@ Result<void> OverlayFileSystem::Remove(Path path) noexcept
     return ec;
 }
 
+Result<void> OverlayFileSystem::Rename(Path from, Path to) noexcept
+{
+    auto ec = make_error_code(errc::no_such_file_or_directory);
+    for (auto it = m_stFileSystems.rbegin(); it != m_stFileSystems.rend(); ++it)
+    {
+        auto ret = (*it)->Rename(from, to);
+        if (ret)
+            return {};
+        if (ret.GetError() != make_error_code(errc::not_supported) &&
+            ret.GetError() != make_error_code(errc::no_such_file_or_directory))
+        {
+            ec = ret.GetError();
+        }
+    }
+    return ec;
+}
+
 Result<FileAttribute> OverlayFileSystem::GetFileAttribute(Path path) noexcept
 {
     auto ec = make_error_code(errc::no_such_file_or_directory);

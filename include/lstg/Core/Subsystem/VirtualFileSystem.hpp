@@ -51,6 +51,14 @@ namespace lstg::Subsystem
         Result<void> Remove(std::string_view path) noexcept;
 
         /**
+         * 重命名文件或文件夹
+         * @param from 原始文件名
+         * @param to 目的文件名
+         * @return 是否成功
+         */
+        Result<void> Rename(std::string_view from, std::string_view to) noexcept;
+
+        /**
          * 获取文件属性
          * @param path 路径
          * @return 是否成功

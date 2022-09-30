@@ -8,6 +8,7 @@
 #include "ISubsystem.hpp"
 #include "Script/LuaState.hpp"
 #include "Script/SandBox.hpp"
+#include "VFS/Path.hpp"
 
 namespace lstg::Subsystem
 {
@@ -46,6 +47,13 @@ namespace lstg::Subsystem
          * @param dir 路径
          */
         void SetIoWorkingDirectory(std::string dir) noexcept { m_stIoWorkingDirectory = std::move(dir); }
+
+        /**
+         * 生成 I/O 绝对路径
+         * @param path 输入路径
+         * @return 输出绝对路径
+         */
+        Result<Subsystem::VFS::Path> MakeAbsolutePathForIo(std::string_view path) noexcept;
 
         /**
          * 加载脚本
