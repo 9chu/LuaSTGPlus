@@ -71,7 +71,7 @@ void HgeFontAssetLoader::Update() noexcept
             if (!attribute)
             {
                 LSTG_LOG_ERROR_CAT(HgeFontAssetLoader, "Get asset stream attribute from \"{}\" fail: {}", asset->GetPath(),
-                                   attribute.GetError());
+                    attribute.GetError());
             }
             else
             {

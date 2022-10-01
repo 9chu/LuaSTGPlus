@@ -17,7 +17,7 @@ SideBarBuilder.prototype.page = function(link, title) {
 SideBarBuilder.prototype.group = function(title, collapsable) {
   var last = this.stack[this.stack.length - 1];
   var children = [];
-  last.push({ type: 'group', title, children, collapsable: collapsable === undefined ? true : collapsable });
+  last.push({ type: 'group', title, children, collapsable: collapsable === undefined ? true : collapsable, sidebarDepth: 2 });
   this.stack.push(children);
   return this;
 };
@@ -75,6 +75,7 @@ module.exports = {
                 .page('History')
                 .page('Compile')
                 .page('Cmdline')
+                .page('Console')
                 .group('子系统', false)
                   .page('Subsystem/Architecture')
                   .page('Subsystem/VfsSystem')
@@ -88,6 +89,12 @@ module.exports = {
           '/api/': (new SideBarBuilder())
               .group('API', false)
                 .page('')
+                .group('Legacy API', false)
+                  .page('LegacyAPI/BuiltinMethods')
+                .end()
+                .group('Advanced API', false)
+                  .page('AdvancedAPI/Overview')
+                .end()
               .end()
             .end()
         }
@@ -99,7 +106,7 @@ module.exports = {
           { text: 'Guide', link: '/i18n/en/guide/' },
           { text: 'API', link: '/i18n/en/api/' },
           { text: 'GITHUB', link: 'https://github.com/9chu/LuaSTGPlus' },
-        ],
+        ]
       }
     },
   },
