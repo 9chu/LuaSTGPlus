@@ -30,23 +30,6 @@ namespace
     }
 }
 
-/*
- * 需要增加的模块：
- *  - [x] bit
- * 需要屏蔽的方法：
- *  - [x] os.execute
- * 需要魔改的方法：
- *  - [x] os.remove
- *  - [x] os.rename
- *  - [x] os.tmpname
- *  - [ ] require
- *  - [x] loadfile
- *  - [x] dofile
- *  - [x] print
- * 需要魔改的模块：
- *  - [x] io
- */
-
 // <editor-fold desc="bit">
 
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
