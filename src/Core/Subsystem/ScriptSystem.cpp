@@ -74,8 +74,8 @@ namespace
             assert(self);
 
             // 生成完整路径和块名称
-            Script::LuaStack stack {L};
             const char* path = luaL_checkstring(L, 1);
+            // Script::LuaStack stack {L};
             // require 由于存在缓存机制，不允许使用相对路径加载
             //auto absolutePath = ResolveAbsolutePath(stack, path);
             //if (!absolutePath)
@@ -93,12 +93,25 @@ namespace
             auto ret = self->GetSandBox().GetVirtualFileSystem().ReadFile(buffer, fullPath);
             if (ret)
             {
+                auto p = buffer.data();
+                size_t l = buffer.size();
+
+                // 处理 shebang
+                if (!buffer.empty() && *p == '#')
+                {
+                    while (l > 0 && *p != '\n')
+                    {
+                        ++p;
+                        --l;
+                    }
+                }
+
                 // 编译
-                luaL_loadbuffer(L, reinterpret_cast<const char*>(buffer.data()), buffer.size(), chunkName);
+                luaL_loadbuffer(L, reinterpret_cast<const char*>(p), l, chunkName);
                 return 1;
             }
             
-            lua_pushfstring(L, "open file \"%s\" fail: %s", path, ret.GetError().message().c_str());
+            lua_pushfstring(L, "\n\topen file \"%s\" fail: %s", path, ret.GetError().message().c_str());
             return 1;
         }, 1);  // t t 1 f
         stack.RawSet(-3);  // t t

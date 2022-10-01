@@ -947,7 +947,63 @@ static int DoFile(lua_State* L)
 
 static int Print(lua_State* L)
 {
-    string msg;
+    struct LineBuffer
+    {
+        const char* FileName = nullptr;
+        const char* Name = nullptr;
+        int Line = 0;
+
+        string Buffer;
+
+        void Flush() noexcept
+        {
+            lstg::Logging::GetInstance().Log("LUA", LogLevel::Info, lstg::detail::GetLogCurrentTime(), {FileName, Name, Line}, "{}",
+                Buffer);
+            Buffer.clear();
+        }
+
+        Result<void> Append(char ch) noexcept
+        {
+            try
+            {
+                if (ch == '\n')
+                    Flush();
+                else
+                    Buffer.push_back(ch);
+                return {};
+            }
+            catch (...)
+            {
+                return make_error_code(errc::not_enough_memory);
+            }
+        }
+
+        Result<void> Append(const char* what) noexcept
+        {
+            try
+            {
+                while (*what != '\0')
+                {
+                    auto ch = *(what++);
+                    if (ch == '\n')
+                    {
+                        Flush();
+                        continue;
+                    }
+                    Buffer.push_back(ch);
+                }
+                return {};
+            }
+            catch (...)
+            {
+                return make_error_code(errc::not_enough_memory);
+            }
+        }
+    };
+
+    LineBuffer buffer;
+    Subsystem::Script::LuaStack{L}.GetCallerSourceLocation(buffer.FileName, buffer.Name, buffer.Line);
+
     int n = lua_gettop(L);
     lua_getglobal(L, "tostring");
     for (int i = 1; i <= n; ++i)
@@ -961,29 +1017,16 @@ static int Print(lua_State* L)
         if (i > 1)
         {
             fputs("\t", stdout);
-            try
-            {
-                msg.push_back('\t');
-            }
-            catch (...)
-            {
+            if (!buffer.Append('\t'))
                 return luaL_error(L, "cannot alloc memory");
-            }
         }
         fputs(s, stdout);
-        try
-        {
-            msg.append(s);
-        }
-        catch (...)
-        {
+        if (!buffer.Append(s))
             return luaL_error(L, "cannot alloc memory");
-        }
         lua_pop(L, 1);
     }
     fputs("\n", stdout);
-    lstg::Logging::GetInstance().Log("", LogLevel::Info, lstg::detail::GetLogCurrentTime(), {__FILE__, __FUNCTION__, __LINE__}, "{}",
-        std::move(msg));
+    buffer.Flush();
     return 0;
 }
 
@@ -1080,6 +1123,37 @@ void LuaCompatLayer::Register(LuaState& state)
     lua_setglobal(state, "dofile");
     lua_pushcfunction(state, Print);  // print
     lua_setglobal(state, "print");
+
+    // </editor-fold>
+    // <editor-fold desc="package">
+
+    // 屏蔽所有 loader，增加 preloader
+    lua_getglobal(state, "package");
+    assert(lua_istable(state, -1));
+    lua_getfield(state, -1, "loaders");
+    auto cnt = lua_objlen(state, -1);
+    for (size_t i = 0; i < cnt; ++i)
+    {
+        lua_pushnil(state);
+        lua_rawseti(state, -2, static_cast<int>(i + 1));
+    }
+    cnt = lua_objlen(state, -1);
+    assert(lua_objlen(state, -1) == 0);
+    lua_pushcfunction(state, [](lua_State* L) {  // preloader
+        const char* name = luaL_checkstring(L, 1);
+        lua_getglobal(L, "package");
+        if (!lua_istable(L, -1))
+            luaL_error(L, LUA_QL("package") " must be a table");
+        lua_getfield(L, -1, "preload");
+        if (!lua_istable(L, -1))
+            luaL_error(L, LUA_QL("package.preload") " must be a table");
+        lua_getfield(L, -1, name);
+        if (lua_isnil(L, -1))
+            lua_pushfstring(L, "\n\tno field package.preload['%s']", name);
+        return 1;
+    });
+    lua_rawseti(state, -2, 1);
+    lua_pop(state, 2);
 
     // </editor-fold>
 }

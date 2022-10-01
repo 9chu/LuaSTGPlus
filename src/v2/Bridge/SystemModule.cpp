@@ -26,24 +26,11 @@ namespace
 {
     lstg::detail::LogSourceLocation GetScriptLocation(Script::LuaStack& stack)
     {
-        lua_Debug ar;
-        ::memset(&ar, 0, sizeof(ar));
-        if (1 == ::lua_getstack(stack, 1, &ar))
-            ::lua_getinfo(stack, "nSlt", &ar);
-
-        // 解出文件名
-        const char* fileName = "?";
-        if (ar.source)
-        {
-            if (ar.source[0] == '@')
-                fileName = &ar.source[1];
-            else if (ar.source[0] == '=')
-                fileName = "<source>";
-            else
-                fileName = ar.source;
-        }
-
-        return { fileName, ar.name ? ar.name : "?", ar.currentline };
+        const char* fileName = nullptr;
+        const char* name = nullptr;
+        int line = 0;
+        stack.GetCallerSourceLocation(fileName, name, line);
+        return { fileName, name, line };
     }
 
     // luaL_tolstring @ https://www.lua.org/source/5.3/lauxlib.c.html
