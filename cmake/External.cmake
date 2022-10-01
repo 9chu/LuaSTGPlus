@@ -95,7 +95,20 @@ if(LSTG_PLATFORM_EMSCRIPTEN)
         GITHUB_REPOSITORY 9chu/lua
         GIT_TAG lua-5.1-emscripten
     )
-    add_library(liblua-static ALIAS liblua_static)  # 与 luajit 保持相同
+    if(${lua_ADDED})
+        add_library(liblua-static ALIAS liblua_static)  # 与 luajit 保持相同
+    endif()
+
+    CPMAddPackage(
+        NAME luabitop
+        GITHUB_REPOSITORY LuaDist/luabitop
+        GIT_TAG master
+        DOWNLOAD_ONLY ON
+    )
+    if(${luabitop_ADDED})
+        add_library(luabitop STATIC ${luabitop_SOURCE_DIR}/bit.c)
+        target_link_libraries(luabitop PUBLIC liblua-static)
+    endif()
 else()
     CPMAddPackage(
         NAME luajit

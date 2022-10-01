@@ -153,6 +153,11 @@ Copyright: 2005-2021, Mike Pall.
  1994-2012, Lua.org.
 License: Expat
 
+Files: ./*/_deps/luabitop-src/
+Comment: http://bitop.luajit.org/
+Copyright: 2008-2012, Mike Pall.
+License: Expat
+
 Files: ./*/_deps/mojoal-src/
 Comment: https://github.com/icculus/mojoAL
 Copyright: 2018-2021, Ryan C. Gordon.

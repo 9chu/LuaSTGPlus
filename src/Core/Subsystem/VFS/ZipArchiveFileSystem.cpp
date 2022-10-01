@@ -131,6 +131,11 @@ Result<void> ZipArchiveFileSystem::Remove(Path path) noexcept
     return make_error_code(errc::not_supported);
 }
 
+Result<void> ZipArchiveFileSystem::Rename(Path from, Path to) noexcept
+{
+    return make_error_code(errc::not_supported);
+}
+
 Result<FileAttribute> ZipArchiveFileSystem::GetFileAttribute(Path path) noexcept
 {
     auto entry = LocatePath(path);

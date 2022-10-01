@@ -80,6 +80,18 @@ Result<void> RootFileSystem::Remove(Path path) noexcept
     return fs->Remove(postfix);
 }
 
+Result<void> RootFileSystem::Rename(Path from, Path to) noexcept
+{
+    auto [fs, postfix] = FindMountPoint(from);
+    auto [fs2, postfix2] = FindMountPoint(to);
+
+    // FIXME: 跨文件系统移动，需要额外支持
+    if (fs != fs2)
+        return make_error_code(errc::not_supported);
+
+    return fs->Rename(postfix, postfix2);
+}
+
 Result<FileAttribute> RootFileSystem::GetFileAttribute(Path path) noexcept
 {
     auto [fs, postfix] = FindMountPoint(path);

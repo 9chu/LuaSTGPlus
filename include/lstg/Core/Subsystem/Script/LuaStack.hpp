@@ -821,6 +821,35 @@ namespace lstg::Subsystem::Script
             }
         }
 
+        /**
+         * 获取调用方源码位置
+         * @param fileName 文件名
+         * @param name 函数名
+         * @param line 行号
+         */
+        void GetCallerSourceLocation(const char*& fileName, const char*& name, int& line) noexcept
+        {
+            lua_Debug ar;
+            ::memset(&ar, 0, sizeof(ar));
+            if (1 == ::lua_getstack(m_pState, 1, &ar))
+                ::lua_getinfo(m_pState, "nSlt", &ar);
+
+            // 解出文件名
+            fileName = "?";
+            if (ar.source)
+            {
+                if (ar.source[0] == '@')
+                    fileName = &ar.source[1];
+                else if (ar.source[0] == '=')
+                    fileName = "<source>";
+                else if (ar.source[0] != '\0')
+                    fileName = ar.source;
+            }
+
+            name = ar.name && ar.name[0] != '\0' ? ar.name : "?";
+            line = ar.currentline;
+        }
+
     protected:
         ::lua_State* m_pState = nullptr;
     };

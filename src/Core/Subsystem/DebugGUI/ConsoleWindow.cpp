@@ -153,7 +153,10 @@ namespace lstg::Subsystem::DebugGUI::detail
                         break;
                 }
 
-                AppendRaw(color, fmt::format("{} - {}", message.CategoryName, message.Payload));
+                if (!message.CategoryName || message.CategoryName[0] == '\0' || ::strcmp(message.CategoryName, "LUA") == 0)
+                    AppendRaw(color, fmt::format("{}", message.Payload));
+                else
+                    AppendRaw(color, fmt::format("{} - {}", message.CategoryName, message.Payload));
             }
             catch (...)
             {
@@ -265,9 +268,39 @@ namespace
         string ret;
         try
         {
-            size_t len = 0;
-            const char* what = lua_tolstring(L, -1, &len);
-            ret = string{what, len};
+            auto t = lua_type(L, -1);
+            if (t == LUA_TNIL)
+            {
+                ret = "nil";
+            }
+            else if (t == LUA_TBOOLEAN)
+            {
+                if (lua_toboolean(L, -1))
+                    ret = "true";
+                else
+                    ret = "false";
+            }
+            else
+            {
+                // fallback to tostring
+                lua_getglobal(L, "tostring");
+                if (!lua_isfunction(L, -1))
+                {
+                    lua_pop(L, 1);
+                }
+                else
+                {
+                    lua_pushvalue(L, -2);
+                    if (LUA_OK != lua_pcall(L, 1, 1, 0))
+                        lua_pop(L, 1);  // errmsg
+                    else
+                        lua_remove(L, -2);
+                }
+
+                size_t len = 0;
+                const char* what = lua_tolstring(L, -1, &len);
+                ret = string { what, len };
+            }
         }
         catch (...)
         {

@@ -34,19 +34,6 @@ namespace
     {
         return *AppBase::GetInstance().GetSubsystem<Subsystem::ScriptSystem>();
     }
-
-    inline Path GetFullPath(std::string_view path)
-    {
-        if (!path.empty() && path[0] == '/')
-        {
-            return Path { path };
-        }
-        else
-        {
-            auto& scriptSystem = GetScriptSystem();
-            return Path::Normalize(fmt::format("{}/{}", scriptSystem.GetIoWorkingDirectory(), path));
-        }
-    }
 }
 
 // <editor-fold desc="LfsDirIterator">
@@ -80,9 +67,12 @@ Unpack<std::variant<std::nullptr_t, AbsIndex>, std::optional<std::string>> LfsBr
     std::optional<std::string_view> field)
 {
     auto& vfs = GetVFS();
+    auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
-    auto ret = vfs.GetFileAttribute(target.ToStringView());
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
+    auto ret = vfs.GetFileAttribute(target->ToStringView());
     if (!ret)
     {
         auto errMsg = fmt::format("Unable to stat '{}': {}", path, ret.GetError());
@@ -129,8 +119,10 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::ChangeDir(LuaStack& st
     auto& vfs = GetVFS();
     auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
-    auto ret = vfs.GetFileAttribute(target.ToStringView());
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
+    auto ret = vfs.GetFileAttribute(target->ToStringView());
     if (!ret)
     {
         auto errMsg = fmt::format("Unable to change working directory to '{}': {}", path, ret.GetError());
@@ -142,7 +134,7 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::ChangeDir(LuaStack& st
         return { false, std::move(errMsg) };
     }
 
-    scriptSys.SetIoWorkingDirectory(target.ToString());
+    scriptSys.SetIoWorkingDirectory(target->ToString());
     return { true, optional<string> {} };
 }
 
@@ -155,9 +147,12 @@ std::string_view LfsBridgeModule::GetDir(LuaStack& st)
 Unpack<AbsIndex, LfsDirIterator> LfsBridgeModule::IterateDir(LuaStack& st, std::string_view path)
 {
     auto& vfs = GetVFS();
+    auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
-    auto ret = vfs.VisitDirectory(target.ToStringView());
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
+    auto ret = vfs.VisitDirectory(target->ToStringView());
     if (!ret)
     {
         // path 总是以 '\0' 结尾
@@ -181,9 +176,12 @@ Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::FileLock(LuaStack& st)
 Unpack<bool, std::optional<std::string>> LfsBridgeModule::MakeDir(LuaStack& st, std::string_view path)
 {
     auto& vfs = GetVFS();
+    auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
-    auto ret = vfs.CreateDirectory(target.ToStringView());
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
+    auto ret = vfs.CreateDirectory(target->ToStringView());
     if (!ret)
     {
         auto errMsg = fmt::format("Unable to make directory to '{}': {}", path, ret.GetError());
@@ -195,11 +193,14 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::MakeDir(LuaStack& st, 
 Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveDir(LuaStack& st, std::string_view path)
 {
     auto& vfs = GetVFS();
+    auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
 
     // 确保是文件夹
-    auto ret = vfs.GetFileAttribute(target.ToStringView());
+    auto ret = vfs.GetFileAttribute(target->ToStringView());
     if (!ret)
     {
         auto errMsg = fmt::format("Unable to remove directory '{}': {}", path, ret.GetError());
@@ -212,7 +213,7 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveDir(LuaStack& st
     }
 
     // 删除
-    auto ret2 = vfs.Remove(target.ToStringView());
+    auto ret2 = vfs.Remove(target->ToStringView());
     if (!ret2)
     {
         auto errMsg = fmt::format("Unable to remove directory '{}': {}", path, ret.GetError());
@@ -249,11 +250,14 @@ Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::LockDir(LuaStack& st)
 Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveFile(LuaStack& st, std::string_view path)
 {
     auto& vfs = GetVFS();
+    auto& scriptSys = GetScriptSystem();
 
-    auto target = GetFullPath(path);
+    auto target = scriptSys.MakeAbsolutePathForIo(path);
+    if (!target)
+        st.Error("cannot alloc memory");
 
     // 确保是文件
-    auto ret = vfs.GetFileAttribute(target.ToStringView());
+    auto ret = vfs.GetFileAttribute(target->ToStringView());
     if (!ret)
     {
         auto errMsg = fmt::format("Unable to delete file '{}': {}", path, ret.GetError());
@@ -266,7 +270,7 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveFile(LuaStack& s
     }
 
     // 删除
-    auto ret2 = vfs.Remove(target.ToStringView());
+    auto ret2 = vfs.Remove(target->ToStringView());
     if (!ret2)
     {
         auto errMsg = fmt::format("Unable to delete file '{}': {}", path, ret.GetError());

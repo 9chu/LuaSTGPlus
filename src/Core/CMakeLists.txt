@@ -17,6 +17,8 @@ if(LSTG_X11_ENABLE)
 endif()
 if(NOT LSTG_PLATFORM_EMSCRIPTEN)
     list(APPEND LSTG_CORE_DEPS_PRIVATE mojoal)
+else()
+    list(APPEND LSTG_CORE_DEPS_PRIVATE luabitop)
 endif()
 
 # 平台相关库
