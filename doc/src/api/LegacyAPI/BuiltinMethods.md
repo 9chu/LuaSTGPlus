@@ -474,460 +474,790 @@ LuaSTGPlus 不支持该方法。
 
 ## 渲染方法
 
-- BeginScene()
+渲染方法均需要在`RenderFunc`中调用。
 
-	通知渲染开始。该方法必须在RenderFunc中调用。所有渲染动作必须在BeginScene/EndScene中进行。
+详见[渲染子系统](../../guide/Subsystem/RenderSystem.md)。
 
-		不兼容性
-			从luastg+开始，渲染操作将被移动到RenderFunc中进行。
+### BeginScene <Badge type="warning" vertical="middle" text="deprecated" />
 
-- EndScene()
+通知渲染开始。
 
-	通知渲染结束。该方法必须在RenderFunc中调用。
+::: warning
+该方法已废弃，不再有任何效果。
+:::
 
-- RenderClear(lstgColor)
+### EndScene <Badge type="warning" vertical="middle" text="deprecated" />
 
-	使用指定颜色清空屏幕。在清除颜色的同时会清除深度缓冲区。
+通知渲染结束。
 
-- SetViewport(left:number, right:number, bottom:number, top:number)
+::: warning
+该方法已废弃，不再有任何效果。
+:::
 
-	设置视口，将影响裁剪和渲染。
+### RenderClear
 
-- SetOrtho(left:number, right:number, bottom:number, top:number)
+使用指定颜色清空屏幕。
 
-	设置正投影矩阵。left表示x轴最小值，right表示x轴最大值，bottom表示y轴最小值，top表示y轴最大值。
+同时会清除深度缓冲区。
 
-		细节
-			创建的正投影矩阵将把z轴限制在[0,1]区间内。
+- 签名：`RenderClear(color: LSTGColor)`
+- 参数
+    - color：清空用颜色
 
-- SetPerspective(eyeX:number, eyeY:number, eyeZ:number, atX:number, atY:number, atZ:number, upX:number, upY:number, upZ:number, fovy:number, aspect:number, zn:number, zf:number)
+### SetViewport
 
-	设置透视投影矩阵和观察矩阵。(eyeX,eyeY,eyeZ)表示观察者位置，(atX,atY,atZ)表示观察目标，(upX,upY,upZ)用于表示观察者向上的正方向。fovy描述视角范围（弧度制），aspect描述宽高比，zn和zf描述z轴裁剪距离。
+设置视口，将影响裁剪和渲染。
 
-- Render(image_name:string, x:number, y:number, [rot:number=0, [hscale:number=1, [vscale:number=1, [z:number=0.5]]]])
+- 签名：`SetViewport(left: number, right: number, bottom: number, top: number)`
+- 参数
+    - left：左侧位置（相对于设计分辨率）
+    - right：右侧位置（相对于设计分辨率）
+    - bottom：底部位置（相对于设计分辨率）
+    - top：顶部位置（相对于设计分辨率）
 
-	渲染图像。(x,y)指定中心点，rot指定旋转（弧度制），(hscale,vscale)XY轴缩放，z指定Z坐标。
+### SetOrtho
 
-	若指定了hscale而没有指定vscale则vscale=hscale。
+设置正投影矩阵。最终 Z 轴被限制在[0, 1]区间内。
 
-	该函数受全局图像缩放系数影响。
+- 签名：`SetOrtho(left: number, right: number, bottom: number, top: number)`
+- 参数
+    - left：表示X轴最小值
+    - right：表示X轴最大值
+    - bottom：表示Y轴最小值
+    - top：表示Y轴最大值
 
-- RenderRect(image_name:string, left:number, right:number, bottom:number, top:number)
+### SetPerspective
 
-	在一个矩阵范围渲染图像。此时z=0.5。
+设置透视投影矩阵和观察矩阵。
 
-- Render4V(image_name:string, x1:number, y1:number, z1:number, x2:number, y2:number, z2:number, x3:number, y3:number, z3:number, x4:number, y4:number, z4:number)
+- 签名：`SetPerspective(eyeX: number, eyeY: number, eyeZ: number, atX: number, atY: number, atZ: number, upX: number, upY: number, upZ: number, fovy: number, aspect: number, zn: number, zf: number)`
+- 参数
+    - eyeX：观察者 X 坐标
+    - eyeY：观察者 Y 坐标
+    - eyeZ：观察者 Z 坐标
+    - atX：观察目标 X 坐标
+    - atY：观察目标 Y 坐标
+    - atZ：观察目标 Z 坐标
+    - upX：上方向向量 X 坐标
+    - upY：上方向向量 Y 坐标
+    - upZ：上方向向量 Z 坐标
+    - fovy：视角范围（弧度制）
+    - aspect：宽高比
+    - zn：Z 轴近裁剪面距离
+    - zf：Z 轴远裁剪面距离
 
-	给出四个顶点渲染图像。此时z=0.5。
+### SetFog
 
-- SetFog([near:number, far:number, [color:lstgColor = 0x00FFFFFF]])
+设置雾效果。
 
-	若参数为空，将关闭雾效果。否则设置一个从near到far的雾。
+当参数为空，将关闭雾效果。
 
-- RenderText(name:string, text:string, x:number, y:number, [scale:number=1, align:integer=5])
+当参数1为`-1`，采用`Exp`公式，此时`far`设置为系数，`color`设置为颜色。
 
-	使用纹理字体渲染一段文字。参数name指定纹理名称，text指定字符串，x、y指定坐标，align指定对齐模式。
+当参数1为`-2`，采用`Exp2`公式，此时`far`设置为系数，`color`设置为颜色。
 
-	该函数受全局图像缩放系数影响。
+否则，采用`Linear`公式，此时起止设置为`near`和`far`，`color`设置为颜色。
 
-		细节
-			对齐模式指定渲染中心，对齐模式可取值：
-				左上  0 + 0  0
-				左中  0 + 4  4
-				左下  0 + 8  8
-				中上  1 + 0  1
-				中中  1 + 4  5
-				中下  1 + 8  9
-				右上  2 + 0  2
-				右中  2 + 4  6
-				右下  2 + 8  10
-			由于使用了新的布局机制，在渲染HGE字体时在横向上会有少许误差，请手动调整。
+- 签名：`SetFog(near?: number, far?: number, color?: LSTGColor)`
+- 参数
+    - near：参数1，参见上述说明
+    - far：参数2，参见上述说明
+    - color：雾颜色，默认为`0x00FFFFFF`
 
-- RenderTexture(tex\_name:string, blend:string, vertex1:table, vertex2:table, vertex3:table, vertex4:table)
+### Render
 
-	直接渲染纹理。
+渲染精灵。
 
-		细节
-			vertex1~4指定各个顶点坐标，其中必须包含以下项：
-				[1] = X坐标
-				[2] = Y坐标
-				[3] = Z坐标
-				[4] = U坐标（以纹理大小为区间）
-				[5] = V坐标（以纹理大小为区间）
-				[6] = 顶点颜色
-			注意该函数效率较低，若要使用请考虑缓存顶点所用table。
+- 签名：`Render(imageName: string, x: number, y: number, rot?: number, hscale?: number, vscale?: number, z?: number)`
+- 参数
+    - imageName：精灵资产名
+    - x：中心点 X 坐标
+    - y：中心点 Y 坐标
+    - rot：旋转（弧度制），默认为0
+    - hscale：X 轴缩放量，默认为1
+    - vscale：Y 轴缩放量，默认为1，若指定了 hscale 但是没有指定 vscale，则 vscale = hscale
+    - z：Z 坐标，默认为0.5
 
-- RenderTTF(name:string, text:string, left:number, right:number, bottom:number, top:number, fmt:integer, blend:lstgColor)  **[不兼容]**
+### RenderRect
 
-	渲染TTF字体。
+在一个矩形范围内渲染图像（z = 0.5）。
 
-	该函数受全局图像缩放系数影响。
+- 签名：`RenderRect(imageName: string, left: number, right: number, bottom: number, top: number)`
+- 参数
+    - imageName：精灵资产名
+    - left：左侧坐标值
+    - right：右侧坐标值
+    - bottom：底边坐标值
+    - top：顶边坐标值
 
-		细节
-			暂时不支持渲染格式设置。 
-			接口已统一到屏幕坐标系，不需要在代码中进行转换。
+### Render4V
 
-- PushRenderTarget(name:string) **[新增]**
+给出四个顶点渲染图像（z = 0.5）。
 
-	将一个RenderTarget作为屏幕缓冲区，并推入栈。
+- 签名：`Render4V(imageName: string, x1: number, y1: number, z1:number, x2: number, y2: number, z2: number, x3: number, y3: number, z3: number, x4: number, y4: number, z4: number)`
+- 参数
+    - imageName：精灵资产名
+    - x1：左上角坐标 X 值
+    - y1：左上角坐标 Y 值
+    - z1：左上角坐标 Z 值
+    - x2：右上角坐标 X 值
+    - y2：右上角坐标 Y 值
+    - z2：右上角坐标 Z 值
+    - x3：右下角坐标 X 值
+    - y3：右下角坐标 Y 值
+    - z3：右下角坐标 Z 值
+    - x4：左下角坐标 X 值
+    - y4：左下角坐标 Y 值
+    - z4：左下角坐标 Z 值
 
-	高级方法。
+### RenderTexture
 
-		细节
-			lstg+使用栈来管理RenderTarget，这意味着可以嵌套使用RenderTarget。
+直接渲染纹理。
 
-- PopRenderTarget()  **[新增]**
+顶点需要满足下述定义：
 
-	将当前使用的RenderTarget从堆栈中移除。
+```lua
+{
+    [1] = X坐标,
+    [2] = Y坐标,
+    [3] = Z坐标,
+    [4] = U坐标（受PPU影响）,
+    [5] = V坐标（受PPU影响）,
+    [6] = 顶点颜色,
+}
+```
 
-	高级方法。
+- 签名：`RenderTexture(textureName: string, blend: string, vertex1: table, vertex2: table, vertex3: table, vertex4: table)`
+- 参数
+    - textureName：纹理资产名
+    - blend：混合模式，详见[混合选项](../../guide/Subsystem/RenderSystem.md#混合选项)
+    - vertex1：左上角顶点
+    - vertex2：右上角顶点
+    - vertex3：右下角顶点
+    - vertex4：左下角顶点
 
-- PostEffect(name:string, fx:string, blend:string, [args:table]) **[新增]**
+### RenderText
 
-	应用PostEffect。参数指定传递给FX的参数表，将会影响后续对该FX的使用。
+使用纹理化字体渲染一段文字。
 
-	其中blend指定posteffect要以什么样的形式绘制到屏幕上，此时blend的第一分量无效。
+默认字体采取 0.5 倍行距。
 
-	高级方法。
+对齐方式可取：
+
+| 对齐方式 | 值 | 对齐方式 | 值 | 对齐方式 | 值 |
+| ------- | -- | ------- | -- | ------- | -- |
+| 左上     | 0  | 中上     | 1  | 右上     | 2  |
+| 左中     | 4  | 中中     | 5  | 右中     | 6  |
+| 左下     | 8  | 中下     | 9  | 右下     | 10 |
+
+- 签名：`RenderText(name: string, text: string, x: number, y: number, scale?: number, align?: number)`
+- 参数
+    - name：资产名
+    - text：文字
+    - x：左侧坐标值
+    - y：顶边坐标值
+    - scale：缩放，默认取 1
+    - align：对齐方式，默认取 5
+
+### RenderTTF
+
+渲染 TTF 字体。
+
+格式可取：
+
+| 说明     | 值 | 说明     | 值 |
+| -------- | -- | -------- | -- |
+| 顶对齐   | 0 | 左对齐   | 0 |
+| 垂直居中 | 4 | 居中     | 1 |
+| 底对齐   | 8 | 右对齐   | 2 |
+| 断字     | 16 |
+
+- 签名：`RenderTTF(name: string, text: string, left: number, right: number, bottom: number, top: number, fmt: number, blend: LSTGColor, scale?: number)`
+- 参数
+    - name：资产名
+    - text：文字
+    - left：渲染范围左边坐标值
+    - right：渲染范围右边坐标值
+    - bottom：渲染范围底边坐标值
+    - top：渲染范围顶边坐标值
+    - fmt：格式
+    - blend：混合颜色
+    - scale：缩放，默认取 1
+
+### PushRenderTarget
+
+将一个 RenderTarget 作为屏幕缓冲区，并推入栈。
+
+- 签名：`PushRenderTarget(name: string)`
+- 参数
+    - name：资产名
+
+### PopRenderTarget
+
+将当前使用的 RenderTarget 从栈中移除，并切换到上一个 RenderTarget。
+
+- 签名：`PopRenderTarget()`
+
+### PostEffect
+
+施加后处理效果。
+
+参数列表可以满足如下格式：
+
+```typescript
+type args = Record<string, string | number | LSTGColor>
+```
+
+当传递`string`类型时，将会应用对应名称的纹理资源到 Sampler 上。
+当传递`number`类型时，将会设置到对应的 Uniform 上。
+当传递`LSTGColor`类型时，会转换到 uint32_t 并设置到对应的 Uniform 上。
+
+- 签名：`PostEffect(name: string, fx: string, blend: string, args?: table)`
+- 参数
+    - name：纹理资产名
+    - fx：FX 资产名
+    - blend：混合模式，详见[混合选项](../../guide/Subsystem/RenderSystem.md#混合选项)，仅使用颜色混合分量
+    - args：传递给 FX 的参数
+
+### PostEffectCapture
+
+开始捕获绘制数据。
+
+从这一步开始，所有后续渲染操作都将在PostEffect缓冲区中进行。
+
+这一操作等价于`PushRenderTarget(InternalPostEffectBuffer)`。
+
+- 签名：`PostEffectCapture()`
+
+### PostEffectApply
+
+结束屏幕捕获并应用PostEffect。
+
+这一操作等价于：
 	
-		细节
-			对于PostEffect只会渲染第一个technique中的所有pass。
-			可以在PostEffect中使用下列语义注释(不区分大小写)捕获对象：
-				POSTEFFECTTEXTURE获取posteffect的捕获纹理(texture2d类型)。
-				VIEWPORT获取视口大小(vector类型)。
-				SCREENSIZE获取屏幕大小(vector类型)。
+```lua
+PopRenderTarget(InternalPostEffectBuffer)
+PostEffect(InternalPostEffectBuffer, fx_name, blend, args)
+```
 
-- PostEffectCapture() **[新增]**
+由于需要配对`InternalPostEffectBuffer`，因此RenderTarget栈顶必须为`InternalPostEffectBuffer`。
 
-	开始捕获绘制数据。
+换言之，代码必须满足：
 
-	从这一步开始，所有后续渲染操作都将在PostEffect缓冲区中进行。
+```lua
+PostEffectCapture(...)
+...  -- 配对的Push/PopRenderTarget操作
+PostEffectApply(...)
+```
 
-	这一操作等价于`PushRenderTarget(InternalPostEffectBuffer)`。
-
-	高级方法。
-
-- PostEffectApply(fx_name:string, blend:string, [args:table]) **[新增]**
-
-	结束屏幕捕获并应用PostEffect。
-
-	这一操作等价于：
-	
-	```lua
-	PopRenderTarget(InternalPostEffectBuffer)
-	PostEffect(InternalPostEffectBuffer, fx_name, blend, args)
-	```
-
-	由于需要配对`InternalPostEffectBuffer`，因此RenderTarget栈顶必须为`InternalPostEffectBuffer`。
-	
-	换言之，代码必须满足：
-	
-	```lua
-	PostEffectCapture(...)
-	...  -- 配对的Push/PopRenderTarget操作
-	PostEffectApply(...)
-	```
-
-	高级方法。
+- 签名：`PostEffectApply(fx: string, blend: string, args?: table)`
+- 参数
+    - fx：FX 资产名
+    - blend：混合模式
+    - args：参数列表
 
 ## 音频方法
 
-- PlaySound(name:string, vol:number, [pan:number=0.0])
+详见[音频子系统](../../guide/Subsystem/AudioSystem.md)。
 
-	播放一个音效。vol为音量，取值范围[0~1]，pan为平衡，取值[-1~1]。
+### PlaySound
 
-		细节
-			luastg+每次只播放一个音效，如果一个音效已在播放中则会打断这个播放从头开始。
+播放音效。
 
-- StopSound(name:string) **[新增]**
+如果一个音效正在播放，则会打断过程从头重新开始播放。
 
-	停止播放音效。name为资源名称。
+- 签名：`PlaySound(name: string, vol: number, pan?: number)`
+- 参数
+    - name：资产名
+    - vol：音量，取值范围[0, 1]
+    - pan：平衡（默认为0），取值范围[-1, 1]
 
-- PauseSound(name:string) **[新增]**
+### StopSound
 
-	暂停播放音效。name为资源名称。
+停止播放音效。
 
-- ResumeSound(name:string) **[新增]**
+- 签名：`StopSound(name: string)`
+- 参数
+    - name：资产名
 
-	继续播放音效。name为资源名称。
+### PauseSound
 
-- GetSoundState(name:string):string **[新增]**
+暂停播放音效。
 
-	获取音效播放状态，将返回paused、playing、stopped。
+- 签名：`PauseSound(name: string)`
+- 参数
+    - name：资产名
 
-- PlayMusic(name:string, [vol:number=1.0, position:number=0])
+### ResumeSound
 
-	播放音乐。name为资源名称，vol为音量，position为起始播放位置（秒）。
+继续播放音效。
 
-- StopMusic(name:string)
+- 签名：`ResumeSound(name: string)`
+- 参数
+    - name：资产名
 
-	停止播放音乐。该操作会使音乐播放位置回到开头。name为资源名称。
+### GetSoundState
 
-- PauseMusic(name:string)
+获取音效播放状态。
 
-	暂停播放音乐。name为资源名称。
+- 签名：`GetSoundState(name: string): string`
+- 参数
+    - name：资产名
+- 返回值：音效播放状态，可取`paused`、`playing`、`stopped`
 
-- ResumeMusic(name:string)
+### PlayMusic
 
-	继续播放音乐。name为资源名称。
+播放背景音乐。
 
-- GetMusicState(name:string):string
+- 签名：`PlayMusic(name: string, vol?: number, position?: number)`
+- 参数
+    - name：资产名
+    - vol：音量，默认为 1
+    - position：播放起始位置（秒），默认为 0
 
-	获取音乐播放状态，将返回paused、playing、stopped。
+### StopMusic
 
-- UpdateSound()  **[否决]**
+停止播放音乐。
 
-	**该方法已不起任何作用，将于后续版本移除。**
+- 签名：`StopMusic(name: string)`
+- 参数
+    - name：资产名
 
-- SetSEVolume(vol:number)
+### PauseMusic
 
-	设置全局音效音量，将影响后续播放音效的音量。
+暂停播放音乐。
 
-	音量值范围为[0,1]。
+- 签名：`PauseMusic(name: string)`
+- 参数
+    - name：资产名
 
-- SetBGMVolume([vol:number] | [name:string, vol:number]) **[新]**
+### ResumeMusic
 
-	若参数个数为1，则设置全局音乐音量。该操作将影响后续播放音乐的音量。
+继续播放音乐。
 
-	若参数个数为2，则设置指定音乐的播放音量。
+- 签名：`ResumeMusic(name: string)`
+- 参数
+    - name：资产名
 
-	音量值范围为[0,1]。
+### GetMusicState
+
+获取音乐播放状态。
+
+- 签名：`GetMusicState(name: string): string`
+- 参数
+    - name：资产名
+- 返回值：音乐播放状态，可取`paused`、`playing`、`stopped`
+
+### UpdateSound <Badge type="warning" vertical="middle" text="deprecated" />
+
+更新音频系统状态。
+
+::: warning
+该方法已废弃，不再有任何效果。
+:::
+
+### SetSEVolume
+
+设置音效整体的音量。
+
+- 签名：`SetSEVolume(vol: number)`
+- 参数
+    - vol：音量，取值[0, 1]
+
+### SetBGMVolume
+
+当只有一个参数时，用于设置背景音乐整体的音量。
+
+若有两个参数时，设置指定音乐的播放音量。
+
+- 签名：`SetBGMVolume(arg: number|string, vol?: number)`
+- 参数
+    - arg：指定全局背景音乐音量大小或者指定资产名
+    - vol：音量，取值[0, 1]
 
 ## 输入
 
-当前，手柄输入被映射到0x92~0xB1和0xDF~0xFE（共2个手柄、32个按键）的位置上。
+### GetKeyState
 
-其中，X轴Y轴的位置被映射到前4个按键上，对应上下左右。
+检查按键是否按下。
 
-- GetKeyState(vk\_code:integer):boolean
+- 签名：`GetKeyState(vkCode: number): boolean`
+- 参数
+    - vkCode：键扫描代码，采用微软定义的虚拟键代码
 
-	给出虚拟键代码检测是否按下。
+### GetLastKey
 
-		细节
-			VK_CODE的具体含义请查阅MSDN。
+返回最后一次输入的按键的扫描代码。
 
-- GetLastKey():integer
+- 签名：`GetLastKey(): number`
+- 返回值：虚拟键代码
 
-	返回最后一次输入的按键的虚拟键代码。
+### GetLastChar
 
-- GetLastChar():string
+返回最后一次输入的字符。
 
-	返回上一次输入的字符。
+- 签名：`GetLastChar(): string`
+- 返回值：字符
 
-- GetMousePosition():number,number **[新增]**
+### GetMousePosition
 
-	获取鼠标的位置，以窗口左下角为原点。
+获取鼠标的位置，以窗口左下角为原点。
 
-- GetMouseState(button:integer):boolean **[新增]**
+- 签名：`GetMousePosition(): [number, number]`
+- 返回值：鼠标位置（X, Y）
 
-	检查鼠标按键是否按下。button可取0、1、2，分别对应鼠标左键、中键、右键。
+### GetMouseState
+
+检查鼠标按键是否按下。
+
+- 签名：`GetMouseState(button: number): boolean`
+- 参数
+    - button：可取值0,1,2，表示鼠标左键、中键和右键
 
 ## 对象池管理方法
 
-- GetnObj():number
+### ObjTable <Badge type="warning" vertical="middle" text="deprecated" />
 
-	获取对象池中对象个数。
+该方法可以获得对象池所在的 table。
 
-- UpdateObjList() **[否决]**
+- 签名：`ObjTable(): table`
 
-	更新对象池。此时将所有对象排序并归类。
+::: warning
+该方法已废弃，不再有任何效果。
+:::
 
-	排序规则：uid越小越靠前
+### GetnObj
 
-		细节
-			luaSTG+中该函数不再起任何作用，对象表总是保持有序的。
+获取对象池中对象个数。
 
-- ObjFrame()
+- 签名：`GetnObj(): number`
+- 返回值：对象个数
 
-	更新对象列表中所有对象，并更新属性。
+### UpdateObjList <Badge type="warning" vertical="middle" text="deprecated" />
 
-	**禁止在协程上调用该方法。**
+更新对象池。此时将所有对象排序并归类。
 
-		细节
-			按照下列顺序更新这些属性：
-				vx += ax
-				vy += ay
-				x += vx
-				y += vy
-				rot += omiga
-				更新绑定的粒子系统（若有）
+::: warning
+该方法已废弃，不再有任何效果。
+:::
 
-- ObjRender()
+### ObjFrame
 
-	渲染所有对象。此时将所有对象排序。
+更新对象列表中所有对象，并更新属性。
 
-	**禁止在协程上调用该方法。**
+::: warning
+禁止在协程上调用该方法。
+:::
 
-	排序规则：layer小的先渲染，若layer相同则按照uid
+- 签名：`ObjFrame()`
 
-		细节
-			luaSTG+中渲染列表总是保持有序的，将不会每次排序。
+::: tip
+按照下列顺序更新这些属性：
+- vx += ax
+- vy += ay
+- x += vx
+- y += vy
+- rot += omiga
+- 更新绑定的粒子效果（若有）
+:::
 
-- SetBound(left:number, right:number, bottom:number, top:number)
+### ObjRender
 
-	设置舞台边界。
+渲染所有对象。
 
-- BoundCheck()
+对象会按照`layer`进行排序，`layer`越小越先渲染。
 
-	执行边界检查。注意BoundCheck只保证对象中心还在范围内，不进行碰撞盒检查。
+::: warning
+禁止在协程上调用该方法。
+:::
 
-	**禁止在协程上调用该方法。**
+- 签名：`ObjRender()`
 
-- CollisionCheck(A:groupid, B:groupid)
+### SetBound
 
-	对组A和B进行碰撞检测。如果组A中对象与组B中对象发生碰撞，将执行A中对象的碰撞回调函数。
+设置场景边界。
 
-	**禁止在协程上调用该方法。**
+当对象设置越界销毁时，超过场景边界的对象会被自动删除。
 
-- UpdateXY()
+- 签名：`SetBound(left:number, right:number, bottom:number, top:number)`
+- 参数
+    - left：左边坐标值
+    - right：右边坐标值
+    - bottom：底边坐标值
+    - top：顶边坐标值
 
-	刷新对象的dx,dy,lastx,lasty,rot（若navi=true）值。
+### BoundCheck
 
-	**禁止在协程上调用该方法。**
+执行边界检查。
 
-- AfterFrame()
+注意`BoundCheck`只保证对象中心还在范围内，不进行碰撞盒检查。
 
-	刷新对象的timer和ani_timer，若对象被标记为del或kill将删除对象并回收资源。
+::: warning
+禁止在协程上调用该方法。
+:::
 
-	**禁止在协程上调用该方法。**
+- 签名：`BoundCheck()`
 
-		细节
-			对象只有在AfterFrame调用后才会被清理，在此之前可以通过设置对象的status字段取消删除标记。
+### CollisionCheck
 
-- New(class)
+对组 A 和 B 进行碰撞检测。
 
-	创建新对象。将累加uid值。
+如果组 A 中对象与组 B 中对象发生碰撞，将执行 A 中对象的碰撞回调函数。
 
-		细节
-			该方法使用class创建一个对象，并在构造对象后调用class的构造方法构造对象。
-			被创建的对象具有如下属性：
-				x, y             坐标
-				dx, dy           (只读)距离上一次更新的坐标增量
-				rot              角度
-				omiga            角度增量
-				timer            计数器
-				vx, vy           速度
-				ax, ay           加速度
-				layer            渲染层级
-				group            碰撞组
-				hide             是否隐藏
-				bound            是否越界销毁
-				navi             是否自动更新朝向
-				colli            是否允许碰撞
-				status           对象状态，返回del kill normal
-				hscale, vscale   横向、纵向的缩放程度
-				class            对象的父类
-				a, b             碰撞盒大小
-				rect             是否为矩形碰撞盒
-				img              
-				ani              (只读)动画计数器
-			被创建对象的索引1和2被用于存放类和id【请勿修改】
+::: warning
+禁止在协程上调用该方法。
+:::
 
-			其中父类class需满足如下形式：
-				is_class = true
-				[1] = 初始化函数 (object, ...)
-				[2] = 删除函数(DEL) (object, ...) [新]
-				[3] = 帧函数 (object)
-				[4] = 渲染函数 (object)
-				[5] = 碰撞函数 (object, object)
-				[6] = 消亡函数(KILL) (object, ...) [新]
-			上述回调函数将在对象触发相应事件时被调用
-				
-			luastg+提供了至多32768个空间共object使用。超过这个大小后将报错。
+- 签名：`CollisionCheck(groupA: number, groupB: number)`
 
-- Del(object, [...]) **[新]**
+### UpdateXY
 
-	通知删除一个对象。将设置标志并调用回调函数。
+刷新对象的 dx, dy, lastx, lasty, rot（若navi=true）值。
 
-	**若在object后传递多个参数，将被传递给回调函数。**
+::: warning
+禁止在协程上调用该方法。
+:::
 
-- Kill(object, [...]) **[新]**
+- 签名：`UpdateXY()`
 
-	通知杀死一个对象。将设置标志并调用回调函数。
+### AfterFrame
 
-	**若在object后传递多个参数，将被传递给回调函数。**
+刷新对象的 timer 和 ani_timer，若对象被标记为 del 或 kill 将删除对象并回收资源。
 
-- IsValid(object)
+::: warning
+禁止在协程上调用该方法。
+:::
 
-	检查对象是否有效。
+::: tip
+对象只有在AfterFrame调用后才会被清理，在此之前可以通过设置对象的 status 字段取消删除标记。
+:::
 
-- GetV(object):number, number **[新增]**
+- 签名：`AfterFrame()`
 
-	获取对象的速度，依次返回速度大小和速度方向。
+### New
 
-- SetV(object, v:number, a:number, track:boolean)
+创建新对象。
 
-	以<速度大小,角度>设置对象的速度，若track为true将同时设置r。
+该方法使用 class 创建一个对象，并在构造对象后调用 class 的构造方法构造对象。
 
-- SetImgState(object, blend:string, a:number, r:number, g:number, b:number)
+被创建的对象具有如下属性：
 
-	设置资源状态。blend指示混合模式（含义见后文）a,r,g,b指定颜色。
+- x, y：坐标
+- dx, dy：(只读)距离上一次更新的坐标增量
+- rot：角度
+- omiga：角度增量
+- timer：计数器，每帧增加
+- vx, vy：速度
+- ax, ay：加速度
+- layer：渲染层级
+- group：碰撞组
+- hide：是否隐藏
+- bound：是否越界销毁
+- navi：是否自动更新朝向
+- colli：是否允许碰撞
+- status：对象状态，返回"del"、"kill"、"normal"
+- hscale, vscale：横向、纵向的缩放程度
+- class：对象的父类
+- a, b：碰撞盒大小
+- rect：是否为矩形碰撞盒
+- img：绑定的渲染对象，可以是精灵、动画序列、粒子效果        
+- ani：(只读)动画计数器
 
-	该函数将会设置和对象绑定的精灵、动画资源的混合模式，该设置对所有同名资源都有效果。 
+被创建对象的索引 1 和 2 被用于存放类和 `id`
 
-- Angle(a:object | x1:number, b:object | y1:number, [x2:number, y2:number]):number
+其中父类class需满足如下形式：
 
-	若a,b为对象，则求向量(对象b.中心 - 对象a.中心)相对x轴正方向的夹角。否则计算tan2(y2-y1, x2-x1)。
+- is_class = true
+- [1] = 初始化函数 (object, ...)
+- [2] = 删除函数(DEL) (object, ...)
+- [3] = 帧函数 (object)
+- [4] = 渲染函数 (object)
+- [5] = 碰撞函数 (object, object)
+- [6] = 消亡函数(KILL) (object, ...)
 
-- Dist(a:object|number, b:object|number, [c:number, d:number]):number
+上述回调函数将在对象触发相应事件时被调用
+                
+- 签名：`New(class: table)`
+- 参数
+    - class：对象所用的类
 
-	求距离。若a与b为对象则计算a与b之间的距离。否则计算向量(c,d)与(a,b)之间的距离。
+### Del
 
-- BoxCheck(object, left:number, right:number, top:number, bottom:number):boolean
+通知删除一个对象。将设置标志并调用回调函数。
 
-	检查对象中心是否在所给范围内。
+- 签名：`Del(object: table, ...)`
+- 参数
+    - object：要删除的对象
+    - ...：透传给回调方法的参数
 
-- ResetPool()
+### kill
 
-	清空并回收所有对象。
+通知杀死一个对象。将设置标志并调用回调函数。
 
-- DefaultRenderFunc(object)
+- 签名：`Kill(object: table, ...)`
+- 参数
+    - object：要杀死的对象
+    - ...：透传给回调方法的参数
 
-	在对象上调用默认渲染方法。
+### IsValid
 
-- NextObject(groupid:number, id:number):number, object **[不兼容]**
+检查对象是否有效。
 
-	获取组中的下一个元素。若groupid为无效的碰撞组则返回所有对象。
+- 签名：`IsValid(object: table): boolean`
+- 返回值：对象是否有效
 
-	返回的第一个参数为id（luastg中为idx），第二个参数为对象
+### GetV
 
-		细节
-			luastg中NextObject接受的第二个参数为组中的元素索引而非id。
-			出于效率考虑，luastg+中接受id查询下一个元素并返回下一个元素的id。
+获取对象的速度，依次返回速度大小和速度方向。
 
-- ObjList(groupid:number):NextObject, number, number **[不兼容]**
+- 签名：`GetV(object: table): [number, number]`
+- 参数
+    - object：要获取的对象
+- 返回值：速度大小, 速度方向
 
-	产生组遍历迭代器。
+### SetV
 
-		细节
-			由于NextObject行为发生变更，ObjList只在for循环中使用时可以获得兼容性。
+设置对象的速度。
 
-- ParticleFire(object)
-	
-	启动绑定在对象上的粒子发射器。
+- 签名：`SetV(object: table, v: number, a: number, track?: boolean)`
+- 参数
+    - object：要设置的对象
+    - v：速度大小
+    - a：角度
+    - track：是否设置方向跟随，若设置为 true，则同时设置 rot，默认为 false
 
-- ParticleStop(object)
+### SetImgState
 
-	停止绑定在对象上的粒子发射器。
+设置对象绑定的资产的状态。
 
-- ParticleGetn(object)
+::: warning
+该方法会影响所有同名资源。
+:::
 
-	返回绑定在对象上的粒子发射器的存活粒子数。
+- 签名：`SetImgState(object: table, blend: string, a: number, r: number, g: number, b: number)`
+- 参数
+    - object：要设置的对象
+    - blend：混合模式，详见[混合选项](../../guide/Subsystem/RenderSystem.md#混合选项)
+    - a：Alpha
+    - r：Red
+    - g：Green
+    - b：Blue
 
-- ParticleGetEmission(object)
+### Angle
 
-	获取绑定在对象上粒子发射器的发射密度。（个/秒）
+若 a, b 为对象，则求向量 < 对象b.中心 - 对象a.中心 > 相对 X 轴正方向的夹角。
 
-		细节
-			luastg/luastg+更新粒子发射器的时钟始终为1/60s。
+否则，计算 atan2(y2 - b, x2 - a)。
 
-- ParticleSetEmission(object, count)
+- 签名：`Angle(a: table | number, b: table | number, x2?: number, y2?: number): number`
+- 参数
+    - a：要计算的对象或者横坐标 X
+    - b：要计算的对象或者纵坐标 Y
+    - x2：横坐标 X2
+    - y2：纵坐标 Y2
 
-	设置绑定在对象上粒子发射器的发射密度。（个/秒）
+### Dist
 
-- ObjTable():table
+求距离，若 a, b 为对象，则计算 a 与 b 之间的距离。
 
-	该方法可以获得对象池所在的table。慎用。
+否则，计算向量 < c, d > 与 < a, b > 之间的距离，
+
+- 签名：`Dist(a: table | number, b: table | number, c?: number, d?: number): number`
+- 参数
+    - a：对象 A 或者坐标值
+    - b：对象 B 或者坐标值
+    - c：坐标值
+    - d：坐标值
+
+### BoxCheck
+
+检查对象中心是否在所给范围内。
+
+- 签名：`BoxCheck(object: table, left: number, right: number, top: number, bottom: number): boolean`
+- 参数
+    - object：被检测的对象
+    - left：范围左侧的横坐标
+    - right：范围右侧的横坐标
+    - top：范围顶边的纵坐标
+    - bottom：范围底边的纵坐标
+
+### ResetPool
+
+清空并回收所有对象。
+
+- 签名：`ResetPool()`
+
+### DefaultRenderFunc
+
+在对象上调用默认渲染方法。
+
+- 签名：`DefaultRenderFunc(object: table)`
+- 参数
+    - object：对象
+
+### NextObject
+
+获取碰撞组中的下一个元素。
+
+若 groupId 为无效的碰撞组则返回所有对象。
+
+返回的第一个参数为 id，第二个参数为对象。
+
+- 签名：`NextObject(groupId: number, id: number): [number, table]`
+- 参数
+    - groupId：组 ID
+    - id：对象 ID
+- 返回值：id, object
+
+### ObjList
+
+产生组遍历迭代器。
+
+- 签名：`ObjList(groupId: number): [NextObject, number, number]`
+- 参数
+    - groupId：组 ID
+- 返回值：NextObject 方法, groupId, id
+
+### ParticleFire
+
+启动绑定在对象上的粒子发射器。
+
+- 签名：`ParticleFire(object: table)`
+- 参数
+    - object：对象
+
+### ParticleStop
+
+停止绑定在对象上的粒子发射器。
+
+- 签名：`ParticleStop(object: table)`
+- 参数
+    - object：对象
+
+### ParticleGetn
+
+返回绑定在对象上的粒子发射器的存活粒子数。
+
+- 签名：`ParticleGetn(object: table)`
+- 参数
+    - object：对象
+
+### ParticleGetEmission
+
+获取绑定在对象上粒子发射器的发射密度。（个/秒）
+
+- 签名：`ParticleGetEmission(object: table)`
+- 参数
+    - object：对象
+
+### ParticleSetEmission
+
+设置绑定在对象上粒子发射器的发射密度。（个/秒）
+
+- 签名：`ParticleSetEmission(object: table, count: number)`
+- 参数
+    - object：对象
+    - count：密度
 
 ## 杂项
 
