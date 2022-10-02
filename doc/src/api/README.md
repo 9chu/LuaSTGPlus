@@ -30,7 +30,7 @@ LSTGPlus 提供两套 API，分为`Legacy API`和`Advanced API`。
 
 - 签名：`FocusGainFunc`
 
-### FrameFunc():boolean
+### FrameFunc
 
 帧处理函数，每帧被调用来处理逻辑。
 
