@@ -1,3 +1,12 @@
+### 生成版本号信息
+
+find_package(Git)
+add_custom_target(LuaSTGPlus2Version
+    ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_SOURCE_DIR}/Version.hpp.in
+    -D DST=${CMAKE_CURRENT_BINARY_DIR}/Version.hpp
+    -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/GenerateVersionHeader.cmake)
+
 ### 目标
 # Lua 自动封装代码
 file(GLOB_RECURSE LSTG_V2_BRIDGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/Bridge/*.hpp)
@@ -27,6 +36,7 @@ else()
 endif()
 target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main cjson imgui implot)
+add_dependencies(LuaSTGPlus2 LuaSTGPlus2Version)
 
 #set(LSTG_V2_DEFS_PRIVATE)
 #message("[LSTG-v2] Private compiler definitions: ${LSTG_V2_DEFS_PRIVATE}")

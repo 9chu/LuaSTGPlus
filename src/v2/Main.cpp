@@ -11,6 +11,9 @@
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 
+// 版本信息
+#include <Version.hpp>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::v2;
@@ -23,6 +26,11 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[])
 
     // 强制日志系统初始化
     Logging::GetInstance();
+#ifdef LSTG_DEVELOPMENT
+    LSTG_LOG_INFO("Version: {} (Development mode)", LSTG_VERSION);
+#else
+    LSTG_LOG_INFO("Version: {} (Shipping mode)", LSTG_VERSION);
+#endif
 
     // 初始化 GameApp
 #ifdef LSTG_PLATFORM_EMSCRIPTEN

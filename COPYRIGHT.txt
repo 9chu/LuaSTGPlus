@@ -54,6 +54,11 @@ Comment: Documents for LuaSTGPlus Danmaku Game Engine
 Copyright: 2022, 9chu.
 License: CC-BY-NC-SA-4.0
 
+Files: ./cmake/GenerateVersionHeader.cmake
+Comment: https://github.com/nocnokneo/cmake-git-versioning-example
+Copyright: 2021, Taylor Braun-Jones.
+License: Expat
+
 Files: ./include/lstg/Core/Math/Collider2D/IntersectCheck.hpp
 Comment: https://github.com/Xrysnow/lstgx_Math
 Copyright: 2018, Xrysnow.
