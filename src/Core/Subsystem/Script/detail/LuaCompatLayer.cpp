@@ -100,13 +100,13 @@ static int OsTmpName(lua_State* L)
         auto r = ::rand() % 62;
 
         // 0-9, 10 个字符
-        if (0 <= r and r <= 9)
+        if (0 <= r && r <= 9)
             return static_cast<char>('0' + r);
         // a-z, 26 个字符
-        else if (10 <= r and r <= 35)
+        else if (10 <= r && r <= 35)
             return static_cast<char>((r - 10) + 'a');
         // A-Z, 26 个字符
-        else if (36 <= r and r <= 61)
+        else if (36 <= r && r <= 61)
             return static_cast<char>((r - 36) + 'A');
         assert(false);
         return '0';
@@ -117,8 +117,8 @@ static int OsTmpName(lua_State* L)
     // 我们总是创建一个名为 /storage/tmp_XXXXXXXXX 的临时文件
     while (true)
     {
-        static const char* kPrefix = "/storage/tmp_";
-        static const size_t kPrefixLength = ::strlen(kPrefix);
+        static const char kPrefix[] = { "/storage/tmp_" };
+        static const size_t kPrefixLength = sizeof(kPrefix);
         static const size_t kNameLength = 9;
 
         char buffer[kPrefixLength + kNameLength + 1];
