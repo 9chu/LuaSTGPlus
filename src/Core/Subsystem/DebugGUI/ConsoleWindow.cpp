@@ -291,7 +291,7 @@ namespace
                 else
                 {
                     lua_pushvalue(L, -2);
-                    if (LUA_OK != lua_pcall(L, 1, 1, 0))
+                    if (0 != lua_pcall(L, 1, 1, 0))
                         lua_pop(L, 1);  // errmsg
                     else
                         lua_remove(L, -2);
