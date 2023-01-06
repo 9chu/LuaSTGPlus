@@ -25,12 +25,12 @@ namespace lstg::Subsystem::Render::detail
         DiligentFileStream(Diligent::IReferenceCounters* refCounters, Subsystem::VFS::StreamPtr stream);
 
     public:
-        void QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface) override;
-        bool Read(void* data, size_t bufferSize) override;
-        void ReadBlob(Diligent::IDataBlob* data) override;
-        bool Write(const void* data, size_t size) override;
-        size_t GetSize() override;
-        bool IsValid() override;
+        void DILIGENT_CALL_TYPE QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface) override;
+        bool DILIGENT_CALL_TYPE Read(void* data, size_t bufferSize) override;
+        void DILIGENT_CALL_TYPE ReadBlob(Diligent::IDataBlob* data) override;
+        bool DILIGENT_CALL_TYPE Write(const void* data, size_t size) override;
+        size_t DILIGENT_CALL_TYPE GetSize() override;
+        bool DILIGENT_CALL_TYPE IsValid() override;
 
     private:
         Subsystem::VFS::StreamPtr m_pStream;

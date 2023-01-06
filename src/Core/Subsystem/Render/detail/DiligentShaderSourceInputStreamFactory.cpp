@@ -28,7 +28,7 @@ DiligentShaderSourceInputStreamFactory::DiligentShaderSourceInputStreamFactory(D
     : Diligent::ObjectBase<Diligent::IShaderSourceInputStreamFactory>(refCounters), m_stFileSystem(vfs)
 {}
 
-void DiligentShaderSourceInputStreamFactory::QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface)
+void DILIGENT_CALL_TYPE DiligentShaderSourceInputStreamFactory::QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface)
 {
     if (!interface)
         return;
@@ -44,13 +44,13 @@ void DiligentShaderSourceInputStreamFactory::QueryInterface(const Diligent::INTE
     }
 }
 
-void DiligentShaderSourceInputStreamFactory::CreateInputStream(const char* name, Diligent::IFileStream** stream)
+void DILIGENT_CALL_TYPE DiligentShaderSourceInputStreamFactory::CreateInputStream(const char* name, Diligent::IFileStream** stream)
 {
     CreateInputStream2(name, Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAG_NONE, stream);
 }
 
-void DiligentShaderSourceInputStreamFactory::CreateInputStream2(const char* name, Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAGS flags,
-    Diligent::IFileStream** stream)
+void DILIGENT_CALL_TYPE DiligentShaderSourceInputStreamFactory::CreateInputStream2(const char* name,
+    Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAGS flags, Diligent::IFileStream** stream)
 {
     *stream = nullptr;
 

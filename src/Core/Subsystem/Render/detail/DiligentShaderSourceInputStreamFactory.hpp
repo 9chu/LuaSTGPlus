@@ -30,9 +30,9 @@ namespace lstg::Subsystem::Render::detail
         void SetFileSearchBase(std::string_view base) { m_stFileSearchBase = base; }
 
     public:  // Diligent::IShaderSourceInputStreamFactory
-        void QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface) override;
-        void CreateInputStream(const char* name, Diligent::IFileStream** stream) override;
-        void CreateInputStream2(const char* name, Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAGS flags,
+        void DILIGENT_CALL_TYPE QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface) override;
+        void DILIGENT_CALL_TYPE CreateInputStream(const char* name, Diligent::IFileStream** stream) override;
+        void DILIGENT_CALL_TYPE CreateInputStream2(const char* name, Diligent::CREATE_SHADER_SOURCE_INPUT_STREAM_FLAGS flags,
             Diligent::IFileStream** stream) override;
 
     private:

@@ -19,7 +19,7 @@ DiligentFileStream::DiligentFileStream(Diligent::IReferenceCounters* refCounters
     : Diligent::ObjectBase<Diligent::IFileStream>(refCounters), m_pStream(std::move(stream))
 {}
 
-void DiligentFileStream::QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface)
+void DILIGENT_CALL_TYPE DiligentFileStream::QueryInterface(const Diligent::INTERFACE_ID& iid, IObject** interface)
 {
     if (!interface)
         return;
@@ -35,14 +35,14 @@ void DiligentFileStream::QueryInterface(const Diligent::INTERFACE_ID& iid, IObje
     }
 }
 
-bool DiligentFileStream::Read(void* data, size_t bufferSize)
+bool DILIGENT_CALL_TYPE DiligentFileStream::Read(void* data, size_t bufferSize)
 {
     assert(m_pStream);
     auto ret = m_pStream->Read(reinterpret_cast<uint8_t*>(data), bufferSize);
     return !!ret;
 }
 
-void DiligentFileStream::ReadBlob(Diligent::IDataBlob* data)
+void DILIGENT_CALL_TYPE DiligentFileStream::ReadBlob(Diligent::IDataBlob* data)
 {
     assert(m_pStream);
     assert(data);
@@ -50,20 +50,20 @@ void DiligentFileStream::ReadBlob(Diligent::IDataBlob* data)
     m_pStream->Read(reinterpret_cast<uint8_t*>(data->GetDataPtr()), data->GetSize());
 }
 
-bool DiligentFileStream::Write(const void* data, size_t size)
+bool DILIGENT_CALL_TYPE DiligentFileStream::Write(const void* data, size_t size)
 {
     assert(m_pStream);
     auto ret = m_pStream->Write(reinterpret_cast<const uint8_t*>(data), size);
     return !!ret;
 }
 
-size_t DiligentFileStream::GetSize()
+size_t DILIGENT_CALL_TYPE DiligentFileStream::GetSize()
 {
     assert(m_pStream);
     return m_pStream->GetLength();
 }
 
-bool DiligentFileStream::IsValid()
+bool DILIGENT_CALL_TYPE DiligentFileStream::IsValid()
 {
     return !!m_pStream;
 }
