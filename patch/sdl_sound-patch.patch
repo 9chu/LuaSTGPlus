@@ -5,7 +5,7 @@ index 620173a..6954c33 100644
 @@ -24,18 +24,18 @@ if(CMAKE_C_COMPILER_ID STREQUAL "SunPro")
      add_definitions(-xldscope=hidden)
  endif()
-
+ 
 -find_package(SDL2 REQUIRED)
 -include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_INCLUDE_DIR})
 -if(WIN32)
@@ -30,12 +30,12 @@ index 620173a..6954c33 100644
 +##   string(REGEX REPLACE "-lSDL2main" "" SDL2_LIBRARIES "${SDL2_LIBRARIES}")
 +#    string(STRIP "${SDL2_LIBRARIES}" SDL2_LIBRARIES)
 +#endif()
-
+ 
  # Decoders ...
  # These are (mostly) on by default now, so these options are only useful for
 @@ -63,7 +63,7 @@ sdlsound_decoder_option(MP3 "MPEG-1 Layers I-III" ".MP3, .MP2, .MP1" TRUE)
  sdlsound_decoder_option(MIDI "Midi" ".MID" FALSE)
-
+ 
  if(APPLE)
 -    sdlsound_decoder_option(COREAUDIO "CoreAudio" "various audio formats")
 +    sdlsound_decoder_option(COREAUDIO "CoreAudio" "various audio formats" FALSE)
