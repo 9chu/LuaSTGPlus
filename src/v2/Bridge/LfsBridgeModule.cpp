@@ -165,12 +165,12 @@ Unpack<AbsIndex, LfsDirIterator> LfsBridgeModule::IterateDir(LuaStack& st, std::
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::MakeLink(LuaStack& st)
 {
-    return { {}, "make_link is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "make_link is not supported on LuaSTGPlus" };
 }
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::FileLock(LuaStack& st)
 {
-    return { {}, "lock is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "lock is not supported on LuaSTGPlus" };
 }
 
 Unpack<bool, std::optional<std::string>> LfsBridgeModule::MakeDir(LuaStack& st, std::string_view path)
@@ -224,27 +224,27 @@ Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveDir(LuaStack& st
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::GetLinkInfo(LuaStack& st)
 {
-    return { {}, "symlinkattributes is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "symlinkattributes is not supported on LuaSTGPlus" };
 }
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::SetMode(LuaStack& st)
 {
-    return { {}, "setmode is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "setmode is not supported on LuaSTGPlus" };
 }
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::Touch(LuaStack& st)
 {
-    return { {}, "touch is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "touch is not supported on LuaSTGPlus" };
 }
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::Unlock(LuaStack& st)
 {
-    return { {}, "unlock is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "unlock is not supported on LuaSTGPlus" };
 }
 
 Unpack<std::nullptr_t, std::string_view> LfsBridgeModule::LockDir(LuaStack& st)
 {
-    return { {}, "lock_dir is not supported on LuaSTGPlus" };
+    return { std::nullptr_t {}, "lock_dir is not supported on LuaSTGPlus" };
 }
 
 Unpack<bool, std::optional<std::string>> LfsBridgeModule::RemoveFile(LuaStack& st, std::string_view path)

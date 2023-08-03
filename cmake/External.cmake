@@ -410,8 +410,6 @@ if(NOT LSTG_PLATFORM_EMSCRIPTEN)
         GITHUB_REPOSITORY icculus/mojoAL
         GIT_TAG main
         DOWNLOAD_ONLY ON
-        PATCH_COMMAND git restore mojoal.c
-        COMMAND git apply ${CMAKE_SOURCE_DIR}/patch/mojoal-patch.patch
     )
     if(${mojoal_ADDED})
         add_library(mojoal STATIC ${mojoal_SOURCE_DIR}/mojoal.c)
