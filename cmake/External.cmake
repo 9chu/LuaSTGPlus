@@ -14,194 +14,7 @@ endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
 
-## 第三方依赖
-
-# libfmt
-CPMAddPackage(
-    NAME fmt
-    GITHUB_REPOSITORY fmtlib/fmt
-    GIT_TAG 8.1.1
-)
-
-# spdlog
-CPMAddPackage(
-    NAME spdlog
-    GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.9.2
-    OPTIONS
-        "SPDLOG_FMT_EXTERNAL ON"
-        "SPDLOG_WCHAR_FILENAMES ON"
-)
-
-# zlib-ng
-if(LSTG_PLATFORM_EMSCRIPTEN)
-    CPMAddPackage(
-        NAME zlib-ng
-        GITHUB_REPOSITORY 9chu/zlib-ng
-        GIT_TAG patch_name_merge_wasm32
-        OPTIONS
-            "ZLIB_ENABLE_TESTS OFF"
-            "BUILD_SHARED_LIBS OFF"
-            "CMAKE_C_COMPILER_TARGET wasm32"
-            "ZLIB_COMPAT OFF"
-    )
-else()
-    CPMAddPackage(
-        NAME zlib-ng
-        GITHUB_REPOSITORY 9chu/zlib-ng
-        GIT_TAG patch_name_merge_wasm32
-        OPTIONS
-            "ZLIB_ENABLE_TESTS OFF"
-            "BUILD_SHARED_LIBS OFF"
-            "ZLIB_COMPAT OFF"
-    )
-endif()
-
-# SDL
-CPMAddPackage(
-    NAME sdl2
-    GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG release-2.0.22
-    # GIT_TAG main
-    PATCH_COMMAND git restore cmake/sdlchecks.cmake
-    COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
-    OPTIONS
-        "SDL2_DISABLE_UNINSTALL ON"
-        "SDL_ATOMIC OFF"
-        "SDL_RENDER OFF"
-        "SDL_HAPTIC OFF"
-        "SDL_HIDAPI OFF"
-        "SDL_POWER OFF"
-        "SDL_SENSOR OFF"
-        "SDL_LOCALE OFF"
-        "SDL_MISC OFF"
-        "SDL_TEST OFF"
-)
-if(${sdl2_ADDED})
-    add_custom_target(UpdateSDLConfig
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${sdl2_BINARY_DIR}/include/SDL_config.h"
-            "${sdl2_SOURCE_DIR}/include/SDL_config.h"
-        DEPENDS "${sdl2_BINARY_DIR}/include/SDL_config.h"
-    )
-    add_dependencies(SDL2-static UpdateSDLConfig)
-endif()
-
-# lua or luajit
-if(LSTG_PLATFORM_EMSCRIPTEN)
-    CPMAddPackage(
-        NAME lua
-        GITHUB_REPOSITORY 9chu/lua
-        GIT_TAG lua-5.1-emscripten
-    )
-    if(${lua_ADDED})
-        add_library(liblua-static ALIAS liblua_static)  # 与 luajit 保持相同
-    endif()
-
-    CPMAddPackage(
-        NAME luabitop
-        GITHUB_REPOSITORY LuaDist/luabitop
-        GIT_TAG master
-        DOWNLOAD_ONLY ON
-    )
-    if(${luabitop_ADDED})
-        add_library(luabitop STATIC ${luabitop_SOURCE_DIR}/bit.c)
-        target_link_libraries(luabitop PUBLIC liblua-static)
-    endif()
-else()
-    CPMAddPackage(
-        NAME luajit
-        GITHUB_REPOSITORY 9chu/LuaJIT-cmake
-        GIT_TAG master
-        OPTIONS
-            "LUAJIT_DISABLE_FFI ON"
-            "LUAJIT_DISABLE_BUFFER ON"
-    )
-endif()
-get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
-get_target_property(LUA_BUILD_DIR liblua-static BINARY_DIR)
-list(JOIN LUA_INCLUDE_DIR "\\\\;" LUA_INCLUDE_DIR_ESCAPED)
-
-# imgui
-CPMAddPackage(
-    NAME imgui
-    GITHUB_REPOSITORY ocornut/imgui
-    VERSION 1.87
-    DOWNLOAD_ONLY ON
-)
-if(${imgui_ADDED})
-    file(GLOB imgui_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
-    add_library(imgui STATIC ${imgui_SOURCES})
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-endif()
-
-CPMAddPackage(
-    NAME implot
-    GITHUB_REPOSITORY epezent/implot
-    VERSION 0.13
-    DOWNLOAD_ONLY ON
-)
-if(${implot_ADDED})
-    file(GLOB implot_SOURCES ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp)
-    add_library(implot STATIC ${implot_SOURCES})
-    target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
-    target_link_libraries(implot PUBLIC imgui)
-endif()
-
-# DiligentCore
-CPMAddPackage(
-    NAME DiligentCore
-    GITHUB_REPOSITORY DiligentGraphics/DiligentCore
-    VERSION 2.5.2
-    PATCH_COMMAND git restore Graphics/HLSL2GLSLConverterLib/src/HLSL2GLSLConverterImpl.cpp
-    COMMAND git restore Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
-    COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-std-move-patch.patch
-    COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-vk-device-select-patch.patch
-)
-
-# glm
-CPMAddPackage(
-    NAME glm
-    GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 0.9.9.8
-)
-if(${glm_ADDED})
-    # 我们使用 DX 左手系，深度范围 [0, 1]，这里需要额外给 glm 设置编译选项
-    target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=1 GLM_FORCE_LEFT_HANDED=1)
-endif()
-
-# stb
-CPMAddPackage(
-    NAME stb
-    GITHUB_REPOSITORY nothings/stb
-    GIT_TAG master
-    DOWNLOAD_ONLY ON
-)
-if(${stb_ADDED})
-    file(GLOB stb_SOURCES ${stb_SOURCE_DIR}/*.c)
-    add_library(stb STATIC ${stb_SOURCES})
-    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
-endif()
-
-# lua-cjson
-CPMAddPackage(
-    NAME lua-cjson
-    GITHUB_REPOSITORY 9chu/lua-cjson
-    GIT_TAG patch-static-link
-    OPTIONS
-        "STATIC_LINK ON"
-        "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_ESCAPED}"
-        "LUA_LIBRARY ${LUA_BUILD_DIR}"
-        "ENABLE_CJSON_GLOBAL ON"
-)
-
-# nlohmann/json
-CPMAddPackage(
-    NAME nlohmann_json
-    GITHUB_REPOSITORY nlohmann/json
-    VERSION 3.10.5
-)
+## 第三方依赖（Early build）
 
 # libicu
 CPMAddPackage(
@@ -212,9 +25,13 @@ CPMAddPackage(
 )
 if(${icu_ADDED})
     # icu common 库
-    file(GLOB icu_COMMON_SOURCES ${icu_SOURCE_DIR}/icu4c/source/common/*.cpp ${icu_SOURCE_DIR}/icu4c/source/stubdata/*.cpp)
+    file(GLOB icu_COMMON_SOURCES
+        ${icu_SOURCE_DIR}/icu4c/source/common/*.cpp
+        ${icu_SOURCE_DIR}/icu4c/source/stubdata/*.cpp)
     add_library(icuuc STATIC ${icu_COMMON_SOURCES})
-    target_include_directories(icuuc PRIVATE ${icu_SOURCE_DIR}/icu4c/source/common ${icu_SOURCE_DIR}/icu4c/source/stubdata
+    target_include_directories(icuuc PRIVATE
+        ${icu_SOURCE_DIR}/icu4c/source/common
+        ${icu_SOURCE_DIR}/icu4c/source/stubdata
         ${icu_SOURCE_DIR}/icu4c/source/common/unicode)
     target_include_directories(icuuc PUBLIC ${icu_SOURCE_DIR}/icu4c/source/common)
     set(icu_COMMON_PUBLIC_BUILD_FLAGS "-DU_STATIC_IMPLEMENTATION=1" "-DU_ENABLE_DYLOAD=0")
@@ -226,7 +43,9 @@ if(${icu_ADDED})
     target_compile_definitions(icuuc PUBLIC ${icu_COMMON_PUBLIC_BUILD_FLAGS} PRIVATE ${icu_COMMON_PRIVATE_BUILD_FLAGS})
 
     # icu i18n 库
-    file(GLOB_RECURSE icu_i18n_SOURCES ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp)
+    file(GLOB_RECURSE icu_i18n_SOURCES
+        ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp
+        ${icu_SOURCE_DIR}/icu4c/source/i18n/*.cpp)
     add_library(icuin STATIC ${icu_i18n_SOURCES})
     target_link_libraries(icuin PUBLIC icuuc)
     target_include_directories(icuin PUBLIC ${icu_SOURCE_DIR}/icu4c/source/i18n)
@@ -238,14 +57,18 @@ if(${icu_ADDED})
     target_compile_definitions(icuin PRIVATE ${icu_i18n_PRIVATE_BUILD_FLAGS})
 
     # icu io 库
-    file(GLOB_RECURSE icu_io_SOURCES ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp)
+    file(GLOB_RECURSE icu_io_SOURCES
+        ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp
+        ${icu_SOURCE_DIR}/icu4c/source/io/*.cpp)
     add_library(icuio STATIC ${icu_io_SOURCES})
     target_link_libraries(icuio PUBLIC icuin)
     target_include_directories(icuio PUBLIC ${icu_SOURCE_DIR}/icu4c/source/io)
     target_compile_definitions(icuio PRIVATE "-DU_IO_IMPLEMENTATION")
 
     # icu tool utils 库
-    file(GLOB icu_TOOL_UTILS_SOURCES ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.c ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.cpp)
+    file(GLOB icu_TOOL_UTILS_SOURCES
+        ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.c
+        ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil/*.cpp)
     add_library(icutu STATIC ${icu_TOOL_UTILS_SOURCES})
     target_link_libraries(icutu PUBLIC icuin icuio)
     target_include_directories(icutu PUBLIC ${icu_SOURCE_DIR}/icu4c/source/tools/toolutil)
@@ -253,7 +76,8 @@ if(${icu_ADDED})
     target_compile_definitions(icutu PRIVATE "-DU_TOOLUTIL_IMPLEMENTATION")
 
     # 构建工具
-    file(GLOB icu_TOOL_DIRS ${icu_SOURCE_DIR}/icu4c/source/tools/*)
+    file(GLOB icu_TOOL_DIRS
+        ${icu_SOURCE_DIR}/icu4c/source/tools/*)
     set(icu_TOOLS gencnval gencfu makeconv genbrk gensprep gendict icupkg genrb pkgdata)
     if(CMAKE_CROSSCOMPILING)
         # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Cross%20Compiling%20With%20CMake.html
@@ -363,6 +187,202 @@ if(${icu_ADDED})
     add_library(IcuData STATIC ${icu_DATA_OUTPUT})
 endif()
 
+if(LSTG_EARLY_BUILD)
+    message(STATUS "[LSTG] DEPS: Return from early build stage")
+
+    # 仅生成 Early build 阶段第三方依赖
+    return()
+endif()
+
+## 第三方依赖
+
+# libfmt
+CPMAddPackage(
+    NAME fmt
+    GITHUB_REPOSITORY fmtlib/fmt
+    GIT_TAG 8.1.1
+)
+
+# spdlog
+CPMAddPackage(
+    NAME spdlog
+    GITHUB_REPOSITORY gabime/spdlog
+    VERSION 1.9.2
+    OPTIONS
+        "SPDLOG_FMT_EXTERNAL ON"
+        "SPDLOG_WCHAR_FILENAMES ON"
+)
+
+# zlib-ng
+if(LSTG_PLATFORM_EMSCRIPTEN)
+    CPMAddPackage(
+        NAME zlib-ng
+        GITHUB_REPOSITORY 9chu/zlib-ng
+        GIT_TAG patch_name_merge_wasm32
+        OPTIONS
+            "ZLIB_ENABLE_TESTS OFF"
+            "BUILD_SHARED_LIBS OFF"
+            "CMAKE_C_COMPILER_TARGET wasm32"
+            "ZLIB_COMPAT OFF"
+    )
+else()
+    CPMAddPackage(
+        NAME zlib-ng
+        GITHUB_REPOSITORY 9chu/zlib-ng
+        GIT_TAG patch_name_merge_wasm32
+        OPTIONS
+            "ZLIB_ENABLE_TESTS OFF"
+            "BUILD_SHARED_LIBS OFF"
+            "ZLIB_COMPAT OFF"
+    )
+endif()
+
+# SDL
+CPMAddPackage(
+    NAME sdl2
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG release-2.0.22
+    # GIT_TAG main
+    PATCH_COMMAND git restore cmake/sdlchecks.cmake
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
+    OPTIONS
+        "SDL2_DISABLE_UNINSTALL ON"
+        "SDL_ATOMIC OFF"
+        "SDL_RENDER OFF"
+        "SDL_HAPTIC OFF"
+        "SDL_HIDAPI OFF"
+        "SDL_POWER OFF"
+        "SDL_SENSOR OFF"
+        "SDL_LOCALE OFF"
+        "SDL_MISC OFF"
+        "SDL_TEST OFF"
+)
+if(${sdl2_ADDED})
+    add_custom_target(UpdateSDLConfig
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_if_different
+            "${sdl2_BINARY_DIR}/include/SDL_config.h"
+            "${sdl2_SOURCE_DIR}/include/SDL_config.h"
+        DEPENDS "${sdl2_BINARY_DIR}/include/SDL_config.h"
+    )
+    add_dependencies(SDL2-static UpdateSDLConfig)
+endif()
+
+# lua or luajit
+if(LSTG_PLATFORM_EMSCRIPTEN)
+    CPMAddPackage(
+        NAME lua
+        GITHUB_REPOSITORY 9chu/lua
+        GIT_TAG lua-5.1-emscripten
+    )
+    if(${lua_ADDED})
+        add_library(liblua-static ALIAS liblua_static)  # 与 luajit 保持相同
+    endif()
+
+    CPMAddPackage(
+        NAME luabitop
+        GITHUB_REPOSITORY LuaDist/luabitop
+        GIT_TAG master
+        DOWNLOAD_ONLY ON
+    )
+    if(${luabitop_ADDED})
+        add_library(luabitop STATIC ${luabitop_SOURCE_DIR}/bit.c)
+        target_link_libraries(luabitop PUBLIC liblua-static)
+    endif()
+else()
+    CPMAddPackage(
+        NAME luajit
+        GITHUB_REPOSITORY 9chu/LuaJIT-cmake
+        GIT_TAG master
+        OPTIONS
+            "LUAJIT_DISABLE_FFI ON"
+            "LUAJIT_DISABLE_BUFFER ON"
+    )
+endif()
+get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
+get_target_property(LUA_BUILD_DIR liblua-static BINARY_DIR)
+list(JOIN LUA_INCLUDE_DIR "\\\\;" LUA_INCLUDE_DIR_ESCAPED)
+
+# imgui
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    VERSION 1.87
+    DOWNLOAD_ONLY ON
+)
+if(${imgui_ADDED})
+    file(GLOB imgui_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
+    add_library(imgui STATIC ${imgui_SOURCES})
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+endif()
+
+CPMAddPackage(
+    NAME implot
+    GITHUB_REPOSITORY epezent/implot
+    VERSION 0.13
+    DOWNLOAD_ONLY ON
+)
+if(${implot_ADDED})
+    file(GLOB implot_SOURCES ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp)
+    add_library(implot STATIC ${implot_SOURCES})
+    target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
+    target_link_libraries(implot PUBLIC imgui)
+endif()
+
+# DiligentCore
+CPMAddPackage(
+    NAME DiligentCore
+    GITHUB_REPOSITORY DiligentGraphics/DiligentCore
+    VERSION 2.5.2
+    PATCH_COMMAND git restore Graphics/HLSL2GLSLConverterLib/src/HLSL2GLSLConverterImpl.cpp
+    COMMAND git restore Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-std-move-patch.patch
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-vk-device-select-patch.patch
+)
+
+# glm
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY g-truc/glm
+    GIT_TAG 0.9.9.8
+)
+if(${glm_ADDED})
+    # 我们使用 DX 左手系，深度范围 [0, 1]，这里需要额外给 glm 设置编译选项
+    target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=1 GLM_FORCE_LEFT_HANDED=1)
+endif()
+
+# stb
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY ON
+)
+if(${stb_ADDED})
+    file(GLOB stb_SOURCES ${stb_SOURCE_DIR}/*.c)
+    add_library(stb STATIC ${stb_SOURCES})
+    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
+endif()
+
+# lua-cjson
+CPMAddPackage(
+    NAME lua-cjson
+    GITHUB_REPOSITORY 9chu/lua-cjson
+    GIT_TAG patch-static-link
+    OPTIONS
+        "STATIC_LINK ON"
+        "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_ESCAPED}"
+        "LUA_LIBRARY ${LUA_BUILD_DIR}"
+        "ENABLE_CJSON_GLOBAL ON"
+)
+
+# nlohmann/json
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.10.5
+)
+
 # freetype
 CPMAddPackage(
     NAME freetype
@@ -425,7 +445,7 @@ CPMAddPackage(
     GITHUB_REPOSITORY icculus/SDL_sound
     VERSION 2.0.1
     PATCH_COMMAND git restore CMakeLists.txt src/SDL_sound.c
-    COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl_sound-patch.patch
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl_sound-patch.patch
     OPTIONS
         "SDLSOUND_BUILD_TEST OFF"
         "SDLSOUND_BUILD_SHARED OFF"

@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#ifdef LSTG_PLATFORM_APPLE
+#if defined(LSTG_PLATFORM_APPLE) || defined(LSTG_PLATFORM_EMSCRIPTEN)
 #define off64_t off_t
 #define ftello64 ftello
 #define fseeko64 fseeko

@@ -73,6 +73,21 @@
 
 是否关闭热加载功能（仅限**开发模式**）。
 
+### LSTG_CROSSCOMPILING_EARLY_BUILD
+
+- 可选值：ON(1)/OFF(0)
+- 默认值：ON
+
+在交叉编译时是否启用二阶段编译。
+
+二阶段编译用于生成`Native`工具链，若关闭功能，需要手工指定编译时依赖的工具。
+
+### LSTG_EARLY_BUILD_GENERATOR
+
+- 默认值：`N/A`
+
+用于指定在二阶段编译时使用的`Generator`，若不设置，将使用与交叉编译时相同的构建工具。
+
 ## 编译方式
 
 ::: warning
@@ -152,18 +167,31 @@ make -j$(nproc)
 我们推荐在Linux或者macOS环境下进行构建。
 :::
 
-#### 准备原生版本
+#### 编译
+
+```bash
+mdkir cmake-build-release-emscripten
+cd cmake-build-release-emscripten
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake ..
+make -j$(nproc)
+```
+
+#### 手工构建本机工具（不推荐）
+
+下述内容仅在不启用`LSTG_CROSSCOMPILING_EARLY_BUILD`时参考。
+
+##### 准备原生版本
 
 由于交叉编译过程依赖一些本机可执行的二进制工具，您需要预先编译好原生版本供使用。
 
 具体构建命令可参考上文，这里不再赘述。
 
-#### 构建Emscripten版本
+##### 构建Emscripten版本
 
 ```bash
 mdkir cmake-build-release-emscripten
 cd cmake-build-release-emscripten
 # 请根据实际情况调整工具链位置和原生版本的构建产物目录（需要绝对路径）
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DIcuBuildTools_DIR=~/LuaSTGPlus/build ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DLSTG_CROSSCOMPILING_EARLY_BUILD=OFF -DIcuBuildTools_DIR=~/LuaSTGPlus/build ..
 make -j$(nproc)
 ```

@@ -13,9 +13,64 @@ endif()
 set(LSTG_APP_NAME "default" CACHE STRING "Specific the app name, will be used as the folder name in AppData for user data storage")
 option(LSTG_PARSE_CMDLINE "Determine whether to parse the command line for advanced options" ON)
 option(LSTG_DISABLE_HOT_RELOAD "Disable hot reload support" OFF)
+option(LSTG_CROSSCOMPILING_EARLY_BUILD "Enable automatically two-stage build when cross-compiling" ON)
+set(LSTG_EARLY_BUILD_GENERATOR "" CACHE STRING "Specific generator when in early build stage")
 
 ### 检测平台
 include(cmake/Platform.cmake)
+
+### Early build stage
+# Early build 阶段用于在 Cross-compiling 情形下生成 native toolset
+# https://stackoverflow.com/questions/36084785/building-a-tool-immediately-so-it-can-be-used-later-in-same-cmake-run
+set(LSTG_EARLY_BUILD OFF CACHE INTERNAL "Enable for first stage build (for internal usage)")
+if(CMAKE_CROSSCOMPILING AND LSTG_CROSSCOMPILING_EARLY_BUILD)
+    if(NOT LSTG_EARLY_BUILD_COMPLETED)
+        message(STATUS "[LSTG] Start early build stage")
+
+        set(LSTG_EARLY_BUILD_WORKDIR "${CMAKE_CURRENT_BINARY_DIR}/NativeBuild/")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${LSTG_EARLY_BUILD_WORKDIR}")
+
+        if(LSTG_EARLY_BUILD_GENERATOR STREQUAL "")
+            set(LSTG_EARLY_BUILD_GENERATOR_ "${CMAKE_GENERATOR}")
+        else()
+            set(LSTG_EARLY_BUILD_GENERATOR_ "${LSTG_EARLY_BUILD_GENERATOR}")
+        endif()
+
+        execute_process(COMMAND ${CMAKE_COMMAND}
+            -E env "CC=" "CXX=" "LD="  # using host default compiler, FIXME: customize?
+            ${CMAKE_COMMAND}
+            -G "${LSTG_EARLY_BUILD_GENERATOR_}"
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+            -DLSTG_EARLY_BUILD=ON
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            WORKING_DIRECTORY "${LSTG_EARLY_BUILD_WORKDIR}"
+            RESULT_VARIABLE EXEC_RET)
+        if(EXEC_RET AND NOT EXEC_RET EQUAL 0)
+            message(FATAL_ERROR "[LSTG] Generate early build cmake failed")
+        endif()
+
+        execute_process(COMMAND ${CMAKE_COMMAND}
+            --build . -j
+            WORKING_DIRECTORY "${LSTG_EARLY_BUILD_WORKDIR}"
+            RESULT_VARIABLE EXEC_RET)
+        if(EXEC_RET AND NOT EXEC_RET EQUAL 0)
+            message(FATAL_ERROR "[LSTG] Early build failed")
+        endif()
+
+        # 设置 Early build 完成
+        set(LSTG_EARLY_BUILD_COMPLETED ON CACHE INTERNAL
+            "Determine if first stage build finished (for internal usage)")
+        set(LSTG_EARLY_BUILD_BINARY_DIR "${LSTG_EARLY_BUILD_WORKDIR}" CACHE INTERNAL
+            "First stage build directory (for internal usage)")
+    else()
+        message(STATUS "[LSTG] Using cached early build")
+
+        set(LSTG_EARLY_BUILD_WORKDIR "${LSTG_EARLY_BUILD_BINARY_DIR}")
+    endif()
+
+    # 引用工具
+    set(IcuBuildTools_DIR "${LSTG_EARLY_BUILD_WORKDIR}")
+endif()
 
 ### 全局编译选项（影响包含第三方库）
 set(CMAKE_CXX_STANDARD 17)
@@ -68,6 +123,11 @@ endif()
 # 工具
 add_subdirectory(tool/LuaAutoBridgeTool)
 add_subdirectory(tool/PerfectHashTool)
+
+if(LSTG_EARLY_BUILD)
+    # Early build 阶段仅执行到工具生成为止
+    return()
+endif()
 
 # 库 & 主程序
 add_subdirectory(src/Core)
