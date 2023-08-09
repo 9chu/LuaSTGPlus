@@ -31,20 +31,26 @@ if(CMAKE_CROSSCOMPILING AND LSTG_CROSSCOMPILING_EARLY_BUILD)
         execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${LSTG_EARLY_BUILD_WORKDIR}")
 
         if(LSTG_EARLY_BUILD_GENERATOR STREQUAL "")
-            set(LSTG_EARLY_BUILD_GENERATOR_ "${CMAKE_GENERATOR}")
+            execute_process(COMMAND ${CMAKE_COMMAND}
+                -E env "CC=" "CXX=" "LD="  # using host default compiler, FIXME: customize?
+                ${CMAKE_COMMAND}
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo
+                -DLSTG_EARLY_BUILD=ON
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                WORKING_DIRECTORY "${LSTG_EARLY_BUILD_WORKDIR}"
+                RESULT_VARIABLE EXEC_RET)
         else()
-            set(LSTG_EARLY_BUILD_GENERATOR_ "${LSTG_EARLY_BUILD_GENERATOR}")
+            execute_process(COMMAND ${CMAKE_COMMAND}
+                -E env "CC=" "CXX=" "LD="  # using host default compiler, FIXME: customize?
+                ${CMAKE_COMMAND}
+                -G "${LSTG_EARLY_BUILD_GENERATOR}"
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo
+                -DLSTG_EARLY_BUILD=ON
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                WORKING_DIRECTORY "${LSTG_EARLY_BUILD_WORKDIR}"
+                RESULT_VARIABLE EXEC_RET)
         endif()
 
-        execute_process(COMMAND ${CMAKE_COMMAND}
-            -E env "CC=" "CXX=" "LD="  # using host default compiler, FIXME: customize?
-            ${CMAKE_COMMAND}
-            -G "${LSTG_EARLY_BUILD_GENERATOR_}"
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
-            -DLSTG_EARLY_BUILD=ON
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            WORKING_DIRECTORY "${LSTG_EARLY_BUILD_WORKDIR}"
-            RESULT_VARIABLE EXEC_RET)
         if(EXEC_RET AND NOT EXEC_RET EQUAL 0)
             message(FATAL_ERROR "[LSTG] Generate early build cmake failed")
         endif()
