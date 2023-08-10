@@ -102,6 +102,12 @@ if(${icu_ADDED})
                         target_link_options(${icu_TMP_TOOL_NAME} PRIVATE "SHELL:-Wl,--no-as-needed" "SHELL:-lpthread"
                             "SHELL:-Wl,--as-needed")
                     endif()
+                    if(WIN32)
+                        set_target_properties(${icu_TMP_TOOL_NAME} PROPERTIES TOOL_PLATFORM "WIN32")
+                    else()
+                        set_target_properties(${icu_TMP_TOOL_NAME} PROPERTIES TOOL_PLATFORM "UNIX")
+                    endif()
+                    set_property(TARGET ${icu_TMP_TOOL_NAME} APPEND PROPERTY EXPORT_PROPERTIES TOOL_PLATFORM)
                 endif()
             endif()
         endforeach()
@@ -114,13 +120,17 @@ if(${icu_ADDED})
         if(IS_DIRECTORY ${icu_TMP_FILENAME})
             get_filename_component(icu_TMP_TOOL_NAME ${icu_TMP_FILENAME} NAME)
             if("${icu_TMP_TOOL_NAME}" IN_LIST icu_TOOLS)
+                get_target_property(icu_TMP_TOOL_PLATFORM ${icu_TMP_TOOL_NAME} TOOL_PLATFORM)
+
                 # 构建后移动到固定目录
-                if(WIN32)
+                if(icu_TMP_TOOL_PLATFORM STREQUAL "WIN32")
+                    set(icu_DATA_GEN_MODE "windows-exec")  # 工具的平台应该是一样的
                     add_custom_target(PrepareTool_${icu_TMP_TOOL_NAME} COMMAND
                         "${CMAKE_COMMAND}" -E copy_if_different
                         "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
                         "${CMAKE_BINARY_DIR}/icutools/${icu_TMP_TOOL_NAME}/${icu_TMP_TOOL_NAME}.exe")
                 else()
+                    set(icu_DATA_GEN_MODE "unix-exec")
                     add_custom_target(PrepareTool_${icu_TMP_TOOL_NAME} COMMAND
                         "${CMAKE_COMMAND}" -E copy_if_different
                         "$<TARGET_FILE:${icu_TMP_TOOL_NAME}>"
@@ -150,11 +160,6 @@ if(${icu_ADDED})
     set(icu_DATA_NAME_FULL "${icu_DATA_NAME}${icu_DATA_ENDIAN_SUFFIX}")
 
     set(icu_DATA_SOURCE_DIR ${icu_SOURCE_DIR}/icu4c/source/data)
-    if(WIN32)
-        set(icu_DATA_GEN_MODE "windows-exec")
-    else()
-        set(icu_DATA_GEN_MODE "unix-exec")
-    endif()
 
     # 这里，我们只引入 brkitr 数据，如果有其他需要再进行追加
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/icudata/")
