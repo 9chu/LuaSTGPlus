@@ -37,7 +37,7 @@ else()
     add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
 endif()
 target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main cjson imgui implot)
+target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main SDL2-static cjson imgui implot)
 add_dependencies(LuaSTGPlus2 LuaSTGPlus2Version)
 
 #set(LSTG_V2_DEFS_PRIVATE)
