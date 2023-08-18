@@ -6,7 +6,7 @@
  */
 #include <lstg/Core/Subsystem/GameController/ScanCodeMapping.hpp>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <map>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Text/JsonHelper.hpp>

@@ -5,7 +5,7 @@
  * 此文件为 LuaSTGPlus 项目的一部分，版权与许可声明详见 COPYRIGHT.txt。
  */
 #pragma once
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 namespace lstg::v2::detail
 {
