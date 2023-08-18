@@ -14,7 +14,7 @@
 #include "DebugGUI/detail/ImGuiRenderer.hpp"
 
 // prevent compile-time re-definition under Linux. shitty
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <SDL_syswm.h>
 
 #ifdef Bool

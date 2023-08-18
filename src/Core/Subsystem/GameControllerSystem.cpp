@@ -6,7 +6,7 @@
  */
 #include <lstg/Core/Subsystem/GameControllerSystem.hpp>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Text/JsonHelper.hpp>
 #include <lstg/Core/Subsystem/VFS/FileStream.hpp>

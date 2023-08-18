@@ -246,11 +246,11 @@ endif()
 CPMAddPackage(
     NAME sdl2
     GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG release-2.0.22
+    GIT_TAG release-2.28.2
     # GIT_TAG main
-    PATCH_COMMAND git restore cmake/sdlchecks.cmake CMakeLists.txt
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
+    #PATCH_COMMAND git restore cmake/sdlchecks.cmake CMakeLists.txt
+    #COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
+    #COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
@@ -266,9 +266,13 @@ if(${sdl2_ADDED})
     add_custom_target(UpdateSDLConfig
         COMMAND
             "${CMAKE_COMMAND}" -E copy_if_different
-            "${sdl2_BINARY_DIR}/include/SDL_config.h"
-            "${sdl2_SOURCE_DIR}/include/SDL_config.h"
-        DEPENDS "${sdl2_BINARY_DIR}/include/SDL_config.h"
+            "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
+            "${sdl2_SOURCE_DIR}/include/SDL2/SDL_config.h"
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_if_different
+            "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
+            "${sdl2_BINARY_DIR}/include/SDL2/SDL_config.h"
+        DEPENDS "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
     )
     add_dependencies(SDL2-static UpdateSDLConfig)
 endif()

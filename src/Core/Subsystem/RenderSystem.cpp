@@ -7,7 +7,7 @@
 #include <lstg/Core/Subsystem/RenderSystem.hpp>
 
 #include <vector>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>

@@ -6,7 +6,7 @@
  */
 #include <lstg/v2/GameApp.hpp>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <glm/ext.hpp>
 
 #include <lstg/Core/Pal.hpp>
