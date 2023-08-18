@@ -263,6 +263,7 @@ CPMAddPackage(
         "SDL_TEST OFF"
 )
 if(${sdl2_ADDED})
+    # TODO: 这里是一个大屎坑
     add_custom_target(UpdateSDLConfig
         COMMAND
             "${CMAKE_COMMAND}" -E copy_if_different

@@ -70,6 +70,10 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
 {
     static_cast<void>(container);
 
+#if defined(SDL_VIDEO_DRIVER_WINDOWS)
+    ::SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+#endif
+
     // 初始化 SDL 视频子系统
     int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (ev < 0)
