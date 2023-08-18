@@ -248,13 +248,13 @@ CPMAddPackage(
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.0.22
     # GIT_TAG main
-    PATCH_COMMAND git restore cmake/sdlchecks.cmake
+    PATCH_COMMAND git restore cmake/sdlchecks.cmake CMakeLists.txt
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
     COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
         "SDL_RENDER OFF"
-        "SDL_HAPTIC OFF"
         "SDL_HIDAPI OFF"
         "SDL_POWER OFF"
         "SDL_SENSOR OFF"
@@ -305,6 +305,8 @@ else()
     )
 endif()
 get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
+get_target_property(LUA_INCLUDE_DIR_INTERFACE liblua-static INTERFACE_INCLUDE_DIRECTORIES)
+list(APPEND LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_INTERFACE})
 get_target_property(LUA_BUILD_DIR liblua-static BINARY_DIR)
 list(JOIN LUA_INCLUDE_DIR "\\\\;" LUA_INCLUDE_DIR_ESCAPED)
 

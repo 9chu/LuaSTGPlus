@@ -68,7 +68,8 @@ namespace lstg::Subsystem::Render::Font
     /**
      * 共享只读二进制数据
      */
-    using SharedConstBlob = std::tuple<std::shared_ptr<const uint8_t[]>, size_t>;
+    //using SharedConstBlob = std::tuple<std::shared_ptr<const uint8_t[]>, size_t>;
+    using SharedConstBlob = std::shared_ptr<const std::vector<uint8_t>>;
 
     /**
      * 字体

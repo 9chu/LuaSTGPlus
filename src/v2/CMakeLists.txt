@@ -29,8 +29,10 @@ list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp"
 list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
 
 # 目标
-if(WIN32)
+if(LSTG_PLATFORM_WIN32)
     add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
+elseif(LSTG_PLATFORM_ANDROID)
+    add_library(LuaSTGPlus2 SHARED ${LSTG_V2_SOURCES})
 else()
     add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
 endif()

@@ -256,12 +256,20 @@ Result<SharedConstBlob> FreeTypeFontFace::LoadSfntTable(uint32_t tag) noexcept
     if (err != 0)
         return make_error_code(static_cast<detail::FreeTypeError>(err));
 
-    shared_ptr<uint8_t[]> ret;
-    ret.reset(new uint8_t[length]);
-    err = ::FT_Load_Sfnt_Table(m_pFace.get(), tag, 0, reinterpret_cast<FT_Byte*>(ret.get()), &length);
+    shared_ptr<vector<uint8_t>> ret;
+    try
+    {
+        ret = make_shared<vector<uint8_t>>(length);
+    }
+    catch (...)
+    {
+        return make_error_code(errc::not_enough_memory);
+    }
+
+    err = ::FT_Load_Sfnt_Table(m_pFace.get(), tag, 0, reinterpret_cast<FT_Byte*>(ret->data()), &length);
     if (err != 0)
         return make_error_code(static_cast<detail::FreeTypeError>(err));
-    return SharedConstBlob { static_pointer_cast<const uint8_t[]>(ret), length };
+    return static_pointer_cast<const vector<uint8_t>>(ret);
 }
 
 Result<FontGlyphAtlasInfo> FreeTypeFontFace::GetGlyphAtlas(FontGlyphRasterParam param, FontGlyphId glyphId,

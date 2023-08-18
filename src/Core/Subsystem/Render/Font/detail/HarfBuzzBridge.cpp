@@ -25,8 +25,6 @@ namespace
         auto data = (*p)->LoadSfntTable(tag);
         if (!data)
             return nullptr;
-        if (!std::get<0>(*data))
-            return nullptr;
 
         // 复制 SharedPtr
         SharedConstBlob* ud = nullptr;
@@ -41,7 +39,7 @@ namespace
 
         // 创建 Blob
         auto deleter = [](void* ud) { delete static_cast<SharedConstBlob*>(ud); };
-        auto blob = ::hb_blob_create(reinterpret_cast<const char*>(std::get<0>(*data).get()), std::get<1>(*data), HB_MEMORY_MODE_READONLY,
+        auto blob = ::hb_blob_create(reinterpret_cast<const char*>((*data)->data()), (*data)->size(), HB_MEMORY_MODE_READONLY,
             ud, deleter);
         return blob;
     }

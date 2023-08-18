@@ -2,6 +2,7 @@
 # 定义下述平台相关宏
 #   LSTG_PLATFORM_WIN32 [TRUE|FALSE]
 #   LSTG_PLATFORM_LINUX [TRUE|FALSE]
+#   LSTG_PLATFORM_ANDROID [TRUE|FALSE]
 #   LSTG_PLATFORM_MACOS [TRUE|FALSE]
 #   LSTG_PLATFORM_EMSCRIPTEN [TRUE|FALSE]
 #   LSTG_PLATFORM_ARCH [32|64]
@@ -29,7 +30,8 @@ if(WIN32)
     endif()
 else()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-        message(FATAL_ERROR "Android is not supported yet")
+        set(LSTG_PLATFORM_ANDROID TRUE CACHE INTERNAL "Target platform: Android")
+        message("[LSTG] Target Platform: Android")
     elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         set(LSTG_PLATFORM_LINUX TRUE CACHE INTERNAL "Target platform: Linux")
         message("[LSTG] Target Platform: Linux")
