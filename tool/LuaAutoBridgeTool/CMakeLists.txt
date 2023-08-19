@@ -19,10 +19,12 @@ function(lstg_gen_auto_bridge_cpp)
 
     # message(STATUS ${COMMAND_LINE})
 
+    get_filename_component(LUA_AUTO_BRIDGE_TOOL_SOURCE_DIR "${CMAKE_CURRENT_FUNCTION_LIST_FILE}" DIRECTORY CACHE)
+
     add_custom_command(
         OUTPUT "${BRIDGE_CPP_OUTPUT}"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/LuaAutoBridgeTool/LuaAutoBridgeTool.py ${COMMAND_LINE}
-        DEPENDS ${BRIDGE_CPP_FILES} "${CMAKE_SOURCE_DIR}/tool/LuaAutoBridgeTool/LuaAutoBridgeTool.py"
+        COMMAND ${Python3_EXECUTABLE} "${LUA_AUTO_BRIDGE_TOOL_SOURCE_DIR}/LuaAutoBridgeTool.py" ${COMMAND_LINE}
+        DEPENDS ${BRIDGE_CPP_FILES} "${LUA_AUTO_BRIDGE_TOOL_SOURCE_DIR}/LuaAutoBridgeTool.py"
         COMMENT "Running auto bridge tool" VERBATIM )
 
     set_source_files_properties("${BRIDGE_CPP_OUTPUT}" PROPERTIES GENERATED TRUE)

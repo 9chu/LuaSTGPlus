@@ -174,7 +174,7 @@ if(${icu_ADDED})
             --tool_cfg ""
             --out_dir "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             --tmp_dir "${CMAKE_BINARY_DIR}/icudata/tmp"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/GenerateFileList.py
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/GenerateFileList.py
             -o ${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt
             -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             "brkitr/*"
@@ -183,7 +183,7 @@ if(${icu_ADDED})
             -p ${icu_DATA_NAME_FULL}
             -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             "${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/BinaryToCode.py
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/BinaryToCode.py
             -i "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}.dat"
             -n "kIcuDataContent"
             -o "${CMAKE_BINARY_DIR}/icudata/icudata.cpp"
@@ -248,35 +248,18 @@ CPMAddPackage(
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.28.2
     # GIT_TAG main
-    #PATCH_COMMAND git restore cmake/sdlchecks.cmake CMakeLists.txt
-    #COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
-    #COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-cmake-patch.patch
+    PATCH_COMMAND git restore cmake/sdlchecks.cmake
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
         "SDL_RENDER OFF"
-        "SDL_HIDAPI OFF"
         "SDL_POWER OFF"
         "SDL_SENSOR OFF"
         "SDL_LOCALE OFF"
         "SDL_MISC OFF"
         "SDL_TEST OFF"
 )
-if(${sdl2_ADDED})
-    # TODO: 这里是一个大屎坑
-    add_custom_target(UpdateSDLConfig
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
-            "${sdl2_SOURCE_DIR}/include/SDL2/SDL_config.h"
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
-            "${sdl2_BINARY_DIR}/include/SDL2/SDL_config.h"
-        DEPENDS "${sdl2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL2/SDL_config.h"
-    )
-    add_dependencies(SDL2-static UpdateSDLConfig)
-endif()
 
 # lua or luajit
 if(LSTG_PLATFORM_EMSCRIPTEN)
