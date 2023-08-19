@@ -12,10 +12,12 @@ function(lstg_gen_perfect_hasher)
 
     # message(STATUS ${COMMAND_LINE})
 
+    get_filename_component(PREFECT_HASH_TOOL_SOURCE_DIR "${CMAKE_CURRENT_FUNCTION_LIST_FILE}" DIRECTORY CACHE)
+
     add_custom_command(
         OUTPUT "${HPERF_OUT_HEADER}" "${HPERF_OUT_SOURCE}"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/PerfectHashTool/PerfectHashTool.py ${COMMAND_LINE}
-        DEPENDS ${HPERF_DECL} "${CMAKE_SOURCE_DIR}/tool/PerfectHashTool/PerfectHashTool.py"
+        COMMAND ${Python3_EXECUTABLE} "${PREFECT_HASH_TOOL_SOURCE_DIR}/PerfectHashTool.py" ${COMMAND_LINE}
+        DEPENDS ${HPERF_DECL} "${PREFECT_HASH_TOOL_SOURCE_DIR}/PerfectHashTool.py"
         COMMENT "Running perfect hash tool" VERBATIM )
 
     set_source_files_properties("${HPERF_OUT_HEADER}" PROPERTIES GENERATED TRUE)

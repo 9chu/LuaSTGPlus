@@ -174,7 +174,7 @@ if(${icu_ADDED})
             --tool_cfg ""
             --out_dir "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             --tmp_dir "${CMAKE_BINARY_DIR}/icudata/tmp"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/GenerateFileList.py
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/GenerateFileList.py
             -o ${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt
             -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             "brkitr/*"
@@ -183,7 +183,7 @@ if(${icu_ADDED})
             -p ${icu_DATA_NAME_FULL}
             -s "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}"
             "${CMAKE_BINARY_DIR}/icudata/pkg_file_list.txt"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tool/BinaryToCode.py
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/BinaryToCode.py
             -i "${CMAKE_BINARY_DIR}/icudata/${icu_DATA_NAME_FULL}.dat"
             -n "kIcuDataContent"
             -o "${CMAKE_BINARY_DIR}/icudata/icudata.cpp"
