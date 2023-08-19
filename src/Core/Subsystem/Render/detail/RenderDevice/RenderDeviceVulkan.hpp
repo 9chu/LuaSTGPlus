@@ -12,6 +12,7 @@
 #include <lstg/Core/Subsystem/WindowSystem.hpp>
 #include <lstg/Core/Subsystem/Render/RenderDevice.hpp>
 #include "OSX/MetalView.hpp"
+#include "Android/JNIHelper.hpp"
 
 namespace lstg::Subsystem::Render::detail::RenderDevice
 {
@@ -34,6 +35,9 @@ namespace lstg::Subsystem::Render::detail::RenderDevice
 #ifdef LSTG_X11_ENABLE
         void* m_pXCBConnection = nullptr;
 #endif
+#endif
+#ifdef LSTG_PLATFORM_ANDROID
+        Android::JNIHelper::GlobalReference m_stAssetManagerReference;
 #endif
     };
 }

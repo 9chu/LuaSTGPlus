@@ -248,8 +248,9 @@ CPMAddPackage(
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-2.28.2
     # GIT_TAG main
-    PATCH_COMMAND git restore cmake/sdlchecks.cmake
+    PATCH_COMMAND git restore cmake/sdlchecks.cmake src/core/android/SDL_android.c
     COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
+    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl_android-patch.patch
     OPTIONS
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"

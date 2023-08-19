@@ -7,10 +7,13 @@
 #include "RenderDeviceGL.hpp"
 
 #include <SDL_syswm.h>
+#include <SDL_system.h>
 
 #if GL_SUPPORTED == 1 || GLES_SUPPORTED == 1
 #include <EngineFactoryOpenGL.h>
 #endif
+
+#include <lstg/Core/Logging.hpp>
 
 using namespace std;
 using namespace lstg;
@@ -18,6 +21,8 @@ using namespace lstg::Subsystem::Render::detail::RenderDevice;
 using namespace Diligent;
 
 #if GL_SUPPORTED == 1 || GLES_SUPPORTED == 1
+
+LSTG_DEF_LOG_CATEGORY(RenderDeviceGL);
 
 RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
 {
@@ -54,6 +59,8 @@ RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
 #else
     LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
+#elif defined(LSTG_PLATFORM_ANDROID)
+    nativeWindow = AndroidNativeWindow {systemWindowInfo.info.android.window};
 #else
     LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
@@ -61,6 +68,29 @@ RenderDeviceGL::RenderDeviceGL(WindowSystem* window)
     // 获取 Factory
     auto* factory = GetEngineFactoryOpenGL();
     assert(factory);
+
+#if defined(LSTG_PLATFORM_ANDROID)
+    // Diligent 依赖安卓文件系统初始化用于 ShaderFactory，虽然对我们来说没有作用，但是还是让他初始化吧
+    auto jni = ::SDL_AndroidGetJNIEnv();
+    auto sdlContext = ::SDL_AndroidGetActivity();
+    if (jni && sdlContext)
+    {
+        auto mgr = Android::JNIHelper::GetAndroidAssetManagerFromSDL(static_cast<_JNIEnv*>(jni), static_cast<_jobject*>(sdlContext));
+        if (!mgr)
+        {
+            LSTG_LOG_ERROR_CAT(RenderDeviceGL, "GetAndroidAssetManagerFromSDL fail");
+        }
+        else
+        {
+            factory->InitAndroidFileSystem(nullptr, nullptr, mgr->second);
+            m_stAssetManagerReference = std::move(mgr->first);  // 保存引用
+        }
+    }
+    else
+    {
+        LSTG_LOG_ERROR_CAT(RenderDeviceGL, "JNIEnv or activity is null");
+    }
+#endif
 
     // 创建引擎
     SwapChainDesc swapChainDesc;
