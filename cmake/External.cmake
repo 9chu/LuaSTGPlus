@@ -254,7 +254,6 @@ CPMAddPackage(
         "SDL2_DISABLE_UNINSTALL ON"
         "SDL_ATOMIC OFF"
         "SDL_RENDER OFF"
-        "SDL_HIDAPI OFF"
         "SDL_POWER OFF"
         "SDL_SENSOR OFF"
         "SDL_LOCALE OFF"
