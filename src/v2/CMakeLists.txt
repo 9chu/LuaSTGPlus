@@ -24,13 +24,28 @@ lstg_gen_perfect_hasher(
     OUT_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
 
 # 跨平台源码
-file(GLOB_RECURSE LSTG_V2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
-list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp")
-list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+file(GLOB_RECURSE LSTG_V2_SOURCES_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
+
+# 平台定制代码
+if(LSTG_PLATFORM_WIN32)
+    list(APPEND LSTG_V2_SOURCES_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
+endif()
+
+# 生成的代码
+set(LSTG_V2_SOURCES_GEN
+    "${CMAKE_CURRENT_BINARY_DIR}/Version.hpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.hpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+
+# 为某些 IDE 启用源文件编组功能（比如 Visual Studio）
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_V2_SOURCES_MAIN})
+source_group(TREE ${CMAKE_CURRENT_BINARY_DIR} PREFIX generated FILES ${LSTG_V2_SOURCES_GEN})
 
 # 目标
+set(LSTG_V2_SOURCES ${LSTG_V2_SOURCES_MAIN} ${LSTG_V2_SOURCES_GEN})
 if(LSTG_PLATFORM_WIN32)
-    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
+    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES})
 elseif(LSTG_PLATFORM_ANDROID)
     add_library(LuaSTGPlus2 SHARED ${LSTG_V2_SOURCES})
 else()

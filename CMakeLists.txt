@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.19)
 project(LuaSTGPlus)
 
+### 允许某些 IDE 以文件夹的方式组织目标（比如 Visual Studio）
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 ### 工程全局选项
 # 请参照帮助定义下述选项
 
