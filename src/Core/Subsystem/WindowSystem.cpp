@@ -77,6 +77,9 @@ WindowSystem::WindowSystem(SubsystemContainer& container)
     // 由于我们使用 Diligent 创建各种 Context，这里知会 SDL 不要创建 Context
     ::SDL_SetHint(SDL_HINT_VIDEO_EXTERNAL_CONTEXT, "true");
 
+    // 设置横屏
+    ::SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+
     // 初始化 SDL 视频子系统
     int ev = ::SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (ev < 0)

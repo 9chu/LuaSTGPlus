@@ -8,8 +8,11 @@
 #include "Timer.hpp"
 #include "PreciseSleeper.hpp"
 #include "Result.hpp"
+#include "JniUtils.hpp"
 #include "Text/CmdlineParser.hpp"
 #include "Subsystem/SubsystemContainer.hpp"
+
+struct AAssetManager;
 
 namespace lstg
 {
@@ -53,9 +56,6 @@ namespace lstg
         virtual ~AppBase();
 
     public:
-        // <editor-fold desc="命令行">
-
-        // </editor-fold>
         // <editor-fold desc="子系统">
 
         template <typename T>
@@ -88,6 +88,16 @@ namespace lstg
          * 通知应用程序终止
          */
         void Stop() noexcept;
+
+        // </editor-fold>
+        // <editor-fold desc="平台相关">
+
+#ifdef LSTG_PLATFORM_ANDROID
+        /**
+         * 获取 Android AssetManager 对象指针
+         */
+        [[nodiscard]] AAssetManager* GetAndroidAssetManager() const noexcept { return m_pAndroidAssetManager; }
+#endif
 
         // </editor-fold>
 
@@ -164,6 +174,10 @@ namespace lstg
             STATE_ERROR,
         } m_iAppState = STATE_NOT_READY;
         std::shared_ptr<detail::EmFileDownloader> m_pFileDownloader;
+#endif
+#ifdef LSTG_PLATFORM_ANDROID
+        JniUtils::JObjectReference m_pAndroidAssetManagerReference;
+        AAssetManager* m_pAndroidAssetManager = nullptr;
 #endif
     };
 } // namespace lstg

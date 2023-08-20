@@ -30,6 +30,9 @@ extern "C"
     }
 }
 #endif
+#ifdef LSTG_PLATFORM_ANDROID
+#include <android/asset_manager_jni.h>
+#endif
 
 // 所有子系统
 #include <lstg/Core/Subsystem/AssetSystem.hpp>
@@ -52,6 +55,45 @@ LSTG_DEF_LOG_CATEGORY(AppBase);
 
 static std::atomic<AppBase*> kGlobalInstance {};
 static Text::CmdlineParser kCmdlineParserInstance {};
+
+namespace
+{
+#ifdef LSTG_PLATFORM_ANDROID
+    /**
+     * 从 SDL 获取 AssetManager 对象指针
+     */
+    Result<std::tuple<JniUtils::JObjectReference, AAssetManager*>> GetAndroidAssetManagerFromSDL() noexcept
+    {
+        auto env = static_cast<JNIEnv*>(::SDL_AndroidGetJNIEnv());
+        auto sdlContext = static_cast<jobject>(::SDL_AndroidGetActivity());
+        if (!env || !sdlContext)
+        {
+            LSTG_LOG_ERROR_CAT(AppBase, "Unable to retrieve JNI object");
+            return make_error_code(errc::no_such_device);
+        }
+
+        // javaAssetManager = context.getAssets()
+        auto mid = env->GetMethodID(env->GetObjectClass(sdlContext), "getAssets", "()Landroid/content/res/AssetManager;");
+        auto javaAssetManager = env->CallObjectMethod(sdlContext, mid);
+        if (!javaAssetManager)
+        {
+            LSTG_LOG_ERROR_CAT(AppBase, "context.getAssets() -> null");
+            return make_error_code(errc::operation_not_supported);
+        }
+
+        // 需要持有 javaAssetManager 对象防止被 GC
+        JniUtils::JObjectReference ref(env, env->NewGlobalRef(javaAssetManager));
+        auto native = ::AAssetManager_fromJava(env, *ref);
+        if (!native)
+        {
+            LSTG_LOG_ERROR_CAT(AppBase, "AAssetManager_fromJava() -> null");
+            return make_error_code(errc::operation_not_supported);
+        }
+
+        return make_pair<JniUtils::JObjectReference, AAssetManager*>(std::move(ref), std::move(native));
+    }
+#endif
+}
 
 AppBase& AppBase::GetInstance() noexcept
 {
@@ -85,6 +127,23 @@ AppBase::AppBase(int argc, const char* argv[])
         Frame();
     });
 
+    // 平台相关初始化
+#ifdef LSTG_PLATFORM_EMSCRIPTEN
+    m_pFileDownloader = make_shared<detail::EmFileDownloader>();
+#endif
+#ifdef LSTG_PLATFORM_ANDROID
+    auto assetManagerRet = GetAndroidAssetManagerFromSDL();
+    if (!assetManagerRet)
+    {
+        LSTG_LOG_ERROR_CAT(AppBase, "GetAndroidAssetManagerFromSDL fail");
+    }
+    else
+    {
+        m_pAndroidAssetManagerReference = std::move(std::get<0>(*assetManagerRet));
+        m_pAndroidAssetManager = std::get<1>(*assetManagerRet);
+    }
+#endif
+
     // 注册子系统
     LSTG_LOG_TRACE_CAT(AppBase, "Begin to initialize subsystem");
     const auto kSubsystemNoInteractive =
@@ -109,10 +168,6 @@ AppBase::AppBase(int argc, const char* argv[])
     m_pEventBusSystem = m_stSubsystemContainer.Get<Subsystem::EventBusSystem>();
     m_pRenderSystem = m_stSubsystemContainer.Get<Subsystem::RenderSystem>();
     m_pProfileSystem = m_stSubsystemContainer.Get<Subsystem::ProfileSystem>();
-
-#ifdef LSTG_PLATFORM_EMSCRIPTEN
-    m_pFileDownloader = make_shared<detail::EmFileDownloader>();
-#endif
 
     // 允许从命令行设置跳帧
     auto cmdRenderFrameSkip = GetCmdline().GetOption<int>("render-frame-skip", 0);

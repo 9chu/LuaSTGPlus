@@ -23,8 +23,10 @@
 #include <lstg/Core/Subsystem/VFS/FileStream.hpp>
 #include <lstg/Core/Subsystem/VFS/LocalFileSystem.hpp>
 #include <lstg/Core/Subsystem/VFS/ZipArchiveFileSystem.hpp>
+#include <lstg/Core/Subsystem/VFS/AndroidAssetFileSystem.hpp>
 #include <lstg/Core/Subsystem/Script/LuaStack.hpp>
 #include <lstg/Core/Subsystem/AudioSystem.hpp>
+#include <lstg/Core/Subsystem/Render/RenderEvent.hpp>
 #include <lstg/v2/DebugGUI/PerformanceMonitor.hpp>
 #include "detail/KeyMapping.hpp"
 
@@ -102,6 +104,15 @@ GameApp::GameApp(int argc, const char* argv[])
         // 最下面是 LocalFileSystem，这使得在其他 FileSystem 上搜索不到时会到本地文件系统进行搜寻
         m_pAssetsFileSystem = make_shared<Subsystem::VFS::OverlayFileSystem>();
 
+#ifdef LSTG_PLATFORM_ANDROID
+        // 安卓下，先构造 AssetFileSystem，然后构造 LocalFileSystem
+        // 这使得资源从 /sdcard/Android/data/com.luastg.android/files 中先读取，然后尝试 AssetFileSystem
+        auto assetFileSystem = make_shared<Subsystem::VFS::AndroidAssetFileSystem>(GetAndroidAssetManager());
+        auto localFileSystem = make_shared<Subsystem::VFS::LocalFileSystem>(Pal::GetUserStorageDirectory());
+
+        m_pAssetsFileSystem->PushFileSystem(std::move(assetFileSystem));
+        m_pAssetsFileSystem->PushFileSystem(std::move(localFileSystem));
+#else
         // 准备 LocalFileSystem
 #ifdef LSTG_SHIPPING
         auto base = filesystem::path(argv[0]);
@@ -110,6 +121,7 @@ GameApp::GameApp(int argc, const char* argv[])
         auto localFileSystem = make_shared<Subsystem::VFS::LocalFileSystem>(".");  // DEV 模式下任意
 #endif
         m_pAssetsFileSystem->PushFileSystem(std::move(localFileSystem));
+#endif
 
         // 挂载
         auto ret = virtualFileSystem.Mount("assets", m_pAssetsFileSystem);
@@ -155,9 +167,7 @@ GameApp::GameApp(int argc, const char* argv[])
         auto& renderSystem = *GetSubsystem<Subsystem::RenderSystem>();
 
         // 初始化渲染参数
-        auto renderDevice = renderSystem.GetRenderDevice();
-        assert(renderDevice);
-        m_stNativeSolution = { renderDevice->GetRenderOutputWidth(), renderDevice->GetRenderOutputHeight() };
+        m_stNativeSolution = { renderSystem.GetTransformedRenderWidth(), renderSystem.GetTransformedRenderHeight() };
         AdjustViewport();
 
         // 刷初始渲染状态
@@ -611,28 +621,7 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
             {
                 if (sdlEvent->window.windowID == m_uInputWindowID)  // 过滤非主窗口事件
                 {
-                    if (sdlEvent->window.event == SDL_WINDOWEVENT_RESIZED)
-                    {
-                        LSTG_LOG_INFO_CAT(GameApp, "Window resize to {}x{}", sdlEvent->window.data1, sdlEvent->window.data2);
-
-                        // 获取渲染系统的分辨率
-                        auto renderDevice = GetSubsystem<Subsystem::RenderSystem>()->GetRenderDevice();
-                        assert(renderDevice);
-
-                        auto renderWidth = renderDevice->GetRenderOutputWidth();
-                        auto renderHeight = renderDevice->GetRenderOutputHeight();
-                        m_stNativeSolution = { renderWidth, renderHeight };
-
-                        // 调整视口
-                        AdjustViewport();
-
-                        // 调整所有 RenderTarget 的大小
-                        auto textureAssetFactory = static_pointer_cast<Asset::TextureAssetFactory>(
-                            GetSubsystem<Subsystem::AssetSystem>()->FindAssetFactory<Asset::TextureAsset>());
-                        assert(textureAssetFactory);
-                        textureAssetFactory->ResizeRenderTarget(renderWidth, renderHeight);
-                    }
-                    else if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                    if (sdlEvent->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
                     {
                         // 执行框架 FocusGainFunc 方法
                         LSTG_LOG_TRACE_CAT(GameApp, "Call \"{}\"", kEventOnGainFocus);
@@ -727,6 +716,28 @@ void GameApp::OnEvent(Subsystem::SubsystemEvent& event) noexcept
                     if (button != MouseButtons::MAX)
                         m_stMouseButtonStateMap[static_cast<uint32_t>(button)] = (sdlEvent->button.state == SDL_PRESSED);
                 }
+            }
+        }
+        else if (underlay.index() == 1)
+        {
+            auto renderEvent = std::get<1>(underlay);
+            assert(renderEvent);
+
+            if (renderEvent->Type == Subsystem::Render::RenderEventTypes::SwapBufferResized)
+            {
+                auto renderWidth = renderEvent->SwapBufferResize.Width;
+                auto renderHeight = renderEvent->SwapBufferResize.Height;
+                m_stNativeSolution = { renderWidth, renderHeight };
+                LSTG_LOG_INFO_CAT(GameApp, "Window resize to {}x{}", renderWidth, renderHeight);
+
+                // 调整视口
+                AdjustViewport();
+
+                // 调整所有 RenderTarget 的大小
+                auto textureAssetFactory = static_pointer_cast<Asset::TextureAssetFactory>(
+                    GetSubsystem<Subsystem::AssetSystem>()->FindAssetFactory<Asset::TextureAsset>());
+                assert(textureAssetFactory);
+                textureAssetFactory->ResizeRenderTarget(renderWidth, renderHeight);
             }
         }
     }

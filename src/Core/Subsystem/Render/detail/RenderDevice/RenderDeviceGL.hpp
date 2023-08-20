@@ -14,7 +14,6 @@
 #include "OSX/GLView.hpp"
 #include "Emscripten/GLView.hpp"
 #include "Linux/GLContext.hpp"
-#include "Android/JNIHelper.hpp"
 
 namespace lstg::Subsystem::Render::detail::RenderDevice
 {
@@ -41,9 +40,6 @@ namespace lstg::Subsystem::Render::detail::RenderDevice
 #endif
 #ifdef LSTG_PLATFORM_LINUX
         std::unique_ptr<Linux::GLContext> m_stContext;
-#endif
-#ifdef LSTG_PLATFORM_ANDROID
-        Android::JNIHelper::GlobalReference m_stAssetManagerReference;
 #endif
     };
 }

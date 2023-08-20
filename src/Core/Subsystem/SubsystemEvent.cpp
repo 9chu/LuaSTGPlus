@@ -6,7 +6,9 @@
  */
 #include <lstg/Core/Subsystem/SubsystemEvent.hpp>
 
+// Event 定义
 #include <SDL_events.h>
+#include <lstg/Core/Subsystem/Render/RenderEvent.hpp>
 
 using namespace std;
 using namespace lstg;

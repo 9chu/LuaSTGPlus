@@ -45,8 +45,8 @@ Result<Subsystem::Asset::CreateAssetResult> TextureAssetFactory::CreateAsset(Sub
             auto& renderSystem = assetSystem.GetRenderSystem();
 
             // 获取当前的渲染大小
-            auto width = renderSystem.GetRenderDevice()->GetRenderOutputWidth();
-            auto height = renderSystem.GetRenderDevice()->GetRenderOutputHeight();
+            auto width = renderSystem.GetTransformedRenderWidth();
+            auto height = renderSystem.GetTransformedRenderHeight();
 
             // 创建 View
             auto view = CreateViews(width, height);

@@ -18,6 +18,7 @@
 #include <X11/Xlib-xcb.h>
 #endif
 
+#include <lstg/Core/AppBase.hpp>
 #include <lstg/Core/Logging.hpp>
 
 using namespace std;
@@ -71,25 +72,11 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
 
 #if defined(LSTG_PLATFORM_ANDROID)
     // Diligent 依赖安卓文件系统初始化用于 ShaderFactory，虽然对我们来说没有作用，但是还是让他初始化吧
-    auto jni = ::SDL_AndroidGetJNIEnv();
-    auto sdlContext = ::SDL_AndroidGetActivity();
-    if (jni && sdlContext)
-    {
-        auto mgr = Android::JNIHelper::GetAndroidAssetManagerFromSDL(static_cast<_JNIEnv*>(jni), static_cast<_jobject*>(sdlContext));
-        if (!mgr)
-        {
-            LSTG_LOG_ERROR_CAT(RenderDeviceVulkan, "GetAndroidAssetManagerFromSDL fail");
-        }
-        else
-        {
-            factory->InitAndroidFileSystem(nullptr, nullptr, mgr->second);
-            m_stAssetManagerReference = std::move(mgr->first);  // 保存引用
-        }
-    }
+    auto assetManager = AppBase::GetInstance().GetAndroidAssetManager();
+    if (!assetManager)
+        LSTG_LOG_ERROR_CAT(RenderDeviceVulkan, "AssetManager is null, cannot initialize AndroidFileSystem");
     else
-    {
-        LSTG_LOG_ERROR_CAT(RenderDeviceVulkan, "JNIEnv or activity is null");
-    }
+        factory->InitAndroidFileSystem(nullptr, nullptr, assetManager);
 #endif
 
     // 创建引擎

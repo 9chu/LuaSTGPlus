@@ -10,6 +10,7 @@
 #include "ISubsystem.hpp"
 #include "WindowSystem.hpp"
 #include "VirtualFileSystem.hpp"
+#include "EventBusSystem.hpp"
 #include "Render/RenderDevice.hpp"
 #include "Render/EffectFactory.hpp"
 #include "Render/Mesh.hpp"
@@ -222,6 +223,18 @@ namespace lstg::Subsystem
         void SetEffectGroupSelectCallback(EffectGroupSelectCallback selector) noexcept;
 
         /**
+         * 获取变换后渲染宽度
+         * 方法会施加 Surface 的旋转变换，计算变换后宽度。
+         */
+        [[nodiscard]] uint32_t GetTransformedRenderWidth() const noexcept;
+
+        /**
+         * 获取变换后渲染高度
+         * 方法会施加 Surface 的旋转变换，计算变换后的高度。
+         */
+        [[nodiscard]] uint32_t GetTransformedRenderHeight() const noexcept;
+
+        /**
          * 清理视口
          * @param clearColor 颜色
          * @param clearZDepth 深度
@@ -240,6 +253,7 @@ namespace lstg::Subsystem
         Result<void> Draw(Render::Mesh* mesh, size_t indexCount, size_t indexOffset, size_t vertexOffset = 0) noexcept;
 
     private:
+        void SyncSwapChainSize() noexcept;
         std::tuple<uint32_t, uint32_t> GetCurrentOutputViewSize() noexcept;
         const Render::GraphDef::EffectPassGroupDefinition* SelectPassGroup() noexcept;
         Result<void> CommitCamera() noexcept;
@@ -253,6 +267,7 @@ namespace lstg::Subsystem
     private:
         std::shared_ptr<WindowSystem> m_pWindowSystem;
         std::shared_ptr<VirtualFileSystem> m_pVirtualFileSystem;
+        std::shared_ptr<EventBusSystem> m_pEventBusSystem;
         Render::RenderDevicePtr m_pRenderDevice;
         Render::EffectFactoryPtr m_pEffectFactory;
 
@@ -271,6 +286,11 @@ namespace lstg::Subsystem
         std::shared_ptr<Render::detail::GammaCorrectHelper> m_pGammaCorrectHelper;
 #endif
         std::shared_ptr<Render::detail::ScreenCaptureHelper> m_pScreenCaptureHelper;
+
+        // SwapChain 状态
+        std::tuple<uint32_t, uint32_t> m_stLastRenderOutputSize = {0, 0};
+        std::tuple<uint32_t, uint32_t> m_stLastRenderOutputTransformed = {0, 0};
+        Render::SurfaceTransform m_iLastRenderOutputPreTransform = Render::SurfaceTransform::Identity;
 
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;

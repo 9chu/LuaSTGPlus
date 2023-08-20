@@ -62,9 +62,39 @@ uint32_t RenderDevice::GetRenderOutputHeight() const noexcept
     return m_pSwapChain->GetDesc().Height;
 }
 
+SurfaceTransform RenderDevice::GetRenderOutputPreTransform() const noexcept
+{
+    assert(m_pSwapChain);
+
+    switch (m_pSwapChain->GetDesc().PreTransform)
+    {
+        case Diligent::SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90:  // FIXME: 处理镜像
+        case Diligent::SURFACE_TRANSFORM_ROTATE_90:
+            return SurfaceTransform::Rotate90;
+        case Diligent::SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180:  // FIXME: 处理镜像
+        case Diligent::SURFACE_TRANSFORM_ROTATE_180:
+            return SurfaceTransform::Rotate180;
+        case Diligent::SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270:  // FIXME: 处理镜像
+        case Diligent::SURFACE_TRANSFORM_ROTATE_270:
+            return SurfaceTransform::Rotate270;
+        case Diligent::SURFACE_TRANSFORM_OPTIMAL:
+        default:
+            return SurfaceTransform::Identity;
+    }
+}
+
 void RenderDevice::Present() noexcept
 {
     // 执行 Present
     m_pSwapChain->Present(m_bVerticalSync ? 1 : 0);
     ++m_uPresentedCount;
+
+#ifdef LSTG_PLATFORM_ANDROID
+    if (m_pSwapChain)
+    {
+        // Diligent 需要在每一帧检查 Surface 大小变化
+        // 在 Present 结束后进行动作
+        m_pSwapChain->Resize(0, 0, Diligent::SURFACE_TRANSFORM_OPTIMAL);
+    }
+#endif
 }
