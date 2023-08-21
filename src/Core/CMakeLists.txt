@@ -54,25 +54,19 @@ lstg_gen_auto_bridge_cpp(
     FILES ${LSTG_CORE_RENDER_LUA_EFFECT_BUILDER_SOURCES})
 
 # 跨平台源码
-file(GLOB_RECURSE LSTG_CORE_SOURCES_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/Core/*.hpp)
+file(GLOB_RECURSE LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/Core/*.hpp)
+
+set(LSTG_CORE_SOURCES_GEN)
+list(APPEND LSTG_CORE_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp")
 
 # 平台定制代码
 if(LSTG_PLATFORM_MACOS)
-    list(APPEND LSTG_CORE_SOURCES_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/GLView.mm)
-    list(APPEND LSTG_CORE_SOURCES_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/MetalView.mm)
+    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/GLView.mm)
+    list(APPEND LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Subsystem/Render/detail/RenderDevice/OSX/MetalView.mm)
 endif()
 
-# 生成的代码
-set(LSTG_CORE_SOURCES_GEN
-    "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp")
-
-# 为某些 IDE 启用源文件编组功能（比如 Visual Studio）
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_CORE_SOURCES_MAIN})
-source_group(TREE ${CMAKE_CURRENT_BINARY_DIR} PREFIX generated FILES ${LSTG_CORE_SOURCES_GEN})
-
 # 目标
-set(LSTG_CORE_SOURCES ${LSTG_CORE_SOURCES_MAIN} ${LSTG_CORE_SOURCES_GEN})
-add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES})
+add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES} ${LSTG_CORE_SOURCES_GEN})
 target_include_directories(LuaSTGPlusCore
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../../include
@@ -117,3 +111,8 @@ endif()
 message("[LSTG] Public compiler definitions: ${LSTG_CORE_DEFS_PUBLIC}")
 target_compile_definitions(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEFS_PUBLIC})
 target_compile_definitions(LuaSTGPlusCore PRIVATE ${LSTG_CORE_DEFS_PRIVATE})
+
+# 优化 IDE 展示
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_CORE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_BINARY_DIR} PREFIX generated FILES ${LSTG_CORE_SOURCES_GEN})
+
