@@ -33,10 +33,12 @@ endif()
 
 # 生成的代码
 set(LSTG_V2_SOURCES_GEN
-    "${CMAKE_CURRENT_BINARY_DIR}/Version.hpp"
     "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.hpp"
     "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/Version.hpp")
+    list(APPEND LSTG_V2_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/Version.hpp")
+endif()
 
 # 为某些 IDE 启用源文件编组功能（比如 Visual Studio）
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_V2_SOURCES_MAIN})
