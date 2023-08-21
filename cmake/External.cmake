@@ -450,3 +450,5 @@ if(${sdl_sound_ADDED})
     target_include_directories(SDL2_sound-static PUBLIC ${sdl_sound_SOURCE_DIR}/src)
     target_link_libraries(SDL2_sound-static SDL2-static)
 endif()
+
+include(cmake/TargetGroup.cmake)
