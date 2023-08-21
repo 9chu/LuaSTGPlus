@@ -195,3 +195,7 @@ cd cmake-build-release-emscripten
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DLSTG_CROSSCOMPILING_EARLY_BUILD=OFF -DIcuBuildTools_DIR=~/LuaSTGPlus/build ..
 make -j$(nproc)
 ```
+
+### Android
+
+安卓端参考[LuaSTGPlusAndroid](https://github.com/LuaSTG/LuaSTGPlusAndroid)项目。
