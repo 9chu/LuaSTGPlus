@@ -204,6 +204,12 @@ namespace
         return ret.ThrowIfError();
     }
 
+    /**
+     * 根据 Surface 旋转方向调整渲染输出大小
+     * @param size 渲染输出大小
+     * @param t 旋转
+     * @return 旋转后渲染输出大小
+     */
     std::tuple<uint32_t, uint32_t> TransformRenderOutputSize(std::tuple<uint32_t, uint32_t> size, Render::SurfaceTransform t) noexcept
     {
         switch (t)
@@ -214,6 +220,54 @@ namespace
             default:
                 return size;
         }
+    }
+
+    /**
+     * 根据 Surface 旋转方向调整视口
+     * @param vp 视口
+     * @param t 旋转
+     * @param screenSize 渲染输出大小（旋转后）
+     */
+    void TransformViewport(Render::Camera::Viewport& vp, Render::SurfaceTransform t, std::tuple<uint32_t, uint32_t> screenSize) noexcept
+    {
+        glm::vec4 f;
+
+        switch (t)
+        {
+            case Render::SurfaceTransform::Rotate90:
+                f = {
+                    static_cast<float>(std::get<0>(screenSize)) - (vp.Top + vp.Height),
+                    vp.Left,
+                    static_cast<float>(std::get<0>(screenSize)) - vp.Top,
+                    vp.Left + vp.Width
+                };
+                break;
+            case Render::SurfaceTransform::Rotate180:
+                f = {
+                    static_cast<float>(std::get<1>(screenSize)) - (vp.Left + vp.Width),
+                    static_cast<float>(std::get<0>(screenSize)) - (vp.Top + vp.Height),
+                    static_cast<float>(std::get<1>(screenSize)) - vp.Left,
+                    static_cast<float>(std::get<0>(screenSize)) - vp.Top,
+                };
+                break;
+            case Render::SurfaceTransform::Rotate270:
+                f = {
+                    vp.Top,
+                    static_cast<float>(std::get<1>(screenSize)) - (vp.Left + vp.Width),
+                    vp.Top + vp.Height,
+                    static_cast<float>(std::get<1>(screenSize)) - vp.Left
+                };
+                break;
+            default:
+                f = {
+                    vp.Left,
+                    vp.Top,
+                    vp.Left + vp.Width,
+                    vp.Top + vp.Height
+                };
+                break;
+        }
+        vp = {f.x, f.y, f.z - f.x, f.w - f.y};
     }
 }
 
@@ -908,6 +962,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
     bool viewportChanged = false;
 
     // 提交 RT
+    bool isSwapChainSurface = false;
     if (!(m_stCurrentOutputViews == outputViews))
     {
         Diligent::ITextureView* renderTargetView = nullptr;
@@ -924,6 +979,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
 #else
             renderTargetView = swapChain->GetCurrentBackBufferRTV();
 #endif
+            isSwapChainSurface = true;
         }
         if (outputViews.DepthStencilView)
         {
@@ -942,20 +998,18 @@ Result<void> RenderSystem::CommitCamera() noexcept
         // 同时调整 Viewport
         forceUpdateViewport = true;
     }
+    else
+    {
+        if (m_stCurrentOutputViews.ColorView == nullptr)
+            isSwapChainSurface = true;
+    }
 
     // Viewport 归一化
     auto sz = GetCurrentOutputViewSize();
     if (viewport.IsAutoViewport())  // 恢复 AutoViewport
         viewport = {0.f, 0.f, static_cast<float>(std::get<0>(sz)), static_cast<float>(std::get<1>(sz))};
-    if (m_iLastRenderOutputPreTransform == Render::SurfaceTransform::Rotate90 ||
-        m_iLastRenderOutputPreTransform == Render::SurfaceTransform::Rotate270)  // 施加 Surface 上的变换
-    {
-        auto x = std::get<0>(sz) - (viewport.Height + viewport.Top);
-        auto y = viewport.Left;
-        viewport.Left = x;
-        viewport.Top = y;
-        std::swap(viewport.Width, viewport.Height);
-    }
+    if (isSwapChainSurface && m_iLastRenderOutputPreTransform != Render::SurfaceTransform::Identity)
+        TransformViewport(viewport, m_iLastRenderOutputPreTransform, sz);
 
     // 提交 Viewport
     if (!(m_stCurrentViewport == viewport) || forceUpdateViewport)
@@ -999,29 +1053,31 @@ Result<void> RenderSystem::CommitCamera() noexcept
         };
 
         // 我们需要根据 Surface 的旋转矩阵对 Project 矩阵进行调整
-        optional<float> rotationAngle;
-        switch (m_iLastRenderOutputPreTransform)
+        if (isSwapChainSurface && m_iLastRenderOutputPreTransform != Render::SurfaceTransform::Identity)
         {
-            case Render::SurfaceTransform::Rotate90:
-                rotationAngle = -glm::pi<float>() / 2.f;
-                break;
-            case Render::SurfaceTransform::Rotate180:
-                rotationAngle = -glm::pi<float>();
-                break;
-            case Render::SurfaceTransform::Rotate270:
-                rotationAngle = -glm::pi<float>() * 3.f / 2.f;
-                break;
-            case Render::SurfaceTransform::Identity:
-            default:
-                break;
-        }
-        if (rotationAngle)
-        {
+            float rotationAngle = 0.f;
+            switch (m_iLastRenderOutputPreTransform)
+            {
+                case Render::SurfaceTransform::Rotate90:
+                    rotationAngle = -glm::pi<float>() * 0.5f;
+                    break;
+                case Render::SurfaceTransform::Rotate180:
+                    rotationAngle = -glm::pi<float>();
+                    break;
+                case Render::SurfaceTransform::Rotate270:
+                    rotationAngle = -glm::pi<float>() * 1.5f;
+                    break;
+                case Render::SurfaceTransform::Identity:
+                default:
+                    assert(false);
+                    break;
+            }
+
             static const glm::vec3 kRotationAxis = {0, 0, 1};
 
             // FIXME: 设置为常量
             auto rotationTransformer = glm::identity<glm::mat4>();
-            rotationTransformer = glm::rotate(rotationTransformer, *rotationAngle, kRotationAxis);
+            rotationTransformer = glm::rotate(rotationTransformer, rotationAngle, kRotationAxis);
 
             state.ProjectMatrix = rotationTransformer * state.ProjectMatrix;
             state.ProjectViewMatrix = rotationTransformer * state.ProjectViewMatrix;

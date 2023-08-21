@@ -476,6 +476,11 @@ void DebugGUISystem::AdjustViewSize(ImGuiIO& io) noexcept
     auto windowSize = m_pWindowSystem->GetSize();
     auto renderSizeWidth = deviceBridge->GetRenderOutputWidth();
     auto renderSizeHeight = deviceBridge->GetRenderOutputHeight();
+    if (deviceBridge->GetRenderOutputPreTransform() == Render::SurfaceTransform::Rotate90 ||
+        deviceBridge->GetRenderOutputPreTransform() == Render::SurfaceTransform::Rotate270)
+    {
+        std::swap(renderSizeWidth, renderSizeHeight);
+    }
     if (m_pWindowSystem->IsMinimized())
         windowSize = {0, 0};
 
