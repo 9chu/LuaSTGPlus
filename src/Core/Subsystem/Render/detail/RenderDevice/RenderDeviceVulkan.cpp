@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <SDL_syswm.h>
+#include <SDL_system.h>
 
 #if VULKAN_SUPPORTED == 1
 #include <EngineFactoryVk.h>
@@ -17,12 +18,17 @@
 #include <X11/Xlib-xcb.h>
 #endif
 
+#include <lstg/Core/AppBase.hpp>
+#include <lstg/Core/Logging.hpp>
+
 using namespace std;
 using namespace lstg;
 using namespace lstg::Subsystem::Render::detail::RenderDevice;
 using namespace Diligent;
 
 #if VULKAN_SUPPORTED == 1
+
+LSTG_DEF_LOG_CATEGORY(RenderDeviceVulkan);
 
 RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
 {
@@ -54,6 +60,8 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
 #else
     LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
+#elif defined(LSTG_PLATFORM_ANDROID)
+    nativeWindow = AndroidNativeWindow {systemWindowInfo.info.android.window};
 #else
     LSTG_THROW(RenderDeviceInitializeFailedException, "Unsupported platform");
 #endif
@@ -61,6 +69,15 @@ RenderDeviceVulkan::RenderDeviceVulkan(WindowSystem* window)
     // 获取 Factory
     auto* factory = GetEngineFactoryVk();
     assert(factory);
+
+#if defined(LSTG_PLATFORM_ANDROID)
+    // Diligent 依赖安卓文件系统初始化用于 ShaderFactory，虽然对我们来说没有作用，但是还是让他初始化吧
+    auto assetManager = AppBase::GetInstance().GetAndroidAssetManager();
+    if (!assetManager)
+        LSTG_LOG_ERROR_CAT(RenderDeviceVulkan, "AssetManager is null, cannot initialize AndroidFileSystem");
+    else
+        factory->InitAndroidFileSystem(nullptr, nullptr, assetManager);
+#endif
 
     // 创建引擎
     SwapChainDesc swapChainDesc;

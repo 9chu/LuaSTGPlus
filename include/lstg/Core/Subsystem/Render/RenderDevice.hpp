@@ -19,6 +19,17 @@ namespace lstg::Subsystem::Render
     LSTG_DEFINE_EXCEPTION(RenderDeviceInitializeFailedException);
 
     /**
+     * 定义渲染表面的变换
+     */
+    enum class SurfaceTransform
+    {
+        Identity,
+        Rotate90,  ///< @brief 顺时针90度
+        Rotate180,  ///< @brief 顺时针180度
+        Rotate270,  ///< @brief 顺时针270度
+    };
+
+    /**
      * 渲染设备
      * 由 DiligentEngine 完成抽象，不对应用暴露 DiligentEngine。
      */
@@ -57,14 +68,26 @@ namespace lstg::Subsystem::Render
         /**
          * 获取渲染画面宽度
          * 转发到 SwapChain.GetDesc().Width
+         *
+         * 返回渲染画面的实际宽度。
          */
         [[nodiscard]] uint32_t GetRenderOutputWidth() const noexcept;
 
         /**
          * 获取渲染画面高度
          * 转发到 SwapChain.GetDesc().Height
+         *
+         * 返回渲染画面的实际高度。
          */
         [[nodiscard]] uint32_t GetRenderOutputHeight() const noexcept;
+
+        /**
+         * 获取渲染表面预变换类型
+         * 转发到 SwapChain.GetDesc().PreTransform
+         *
+         * 移动设备上，渲染表面大小和旋转方向不一定一致，此方法用于返回渲染结果应当旋转多少度来适配屏幕方向。
+         */
+        [[nodiscard]] SurfaceTransform GetRenderOutputPreTransform() const noexcept;
 
         /**
          * 获取已渲染的画面数量

@@ -8,12 +8,18 @@
 
 #include <shared_mutex>
 #include <spdlog/spdlog.h>
+#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/details/fmt_helper.h>
 #include <SDL_log.h>
 
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/AppBase.hpp>
+
+#ifdef LSTG_PLATFORM_ANDROID
+#include <android/log.h>
+#endif
 
 using namespace std;
 using namespace lstg;
@@ -42,6 +48,70 @@ namespace lstg::detail
         return lastSeenSep;
     }
 
+#ifdef LSTG_PLATFORM_ANDROID
+    class AndroidLogSink : public spdlog::sinks::sink
+    {
+    public:
+        AndroidLogSink()
+            : m_pFormatter(make_unique<spdlog::pattern_formatter>())
+        {
+        }
+
+    public:
+        void log(const spdlog::details::log_msg& msg) override
+        {
+            unique_lock<mutex> guard(m_stMutex);
+
+            spdlog::memory_buf_t formatted;
+            m_pFormatter->format(msg, formatted);
+            spdlog::details::fmt_helper::append_string_view({"\0", 1}, formatted);  // append '\0'
+
+            switch (msg.level)
+            {
+                case SPDLOG_LEVEL_TRACE:
+                    __android_log_print(ANDROID_LOG_VERBOSE, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+                case SPDLOG_LEVEL_DEBUG:
+                    __android_log_print(ANDROID_LOG_DEBUG, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+                case SPDLOG_LEVEL_WARN:
+                    __android_log_print(ANDROID_LOG_WARN, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+                case SPDLOG_LEVEL_ERROR:
+                    __android_log_print(ANDROID_LOG_ERROR, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+                case SPDLOG_LEVEL_CRITICAL:
+                    __android_log_print(ANDROID_LOG_FATAL, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+                case SPDLOG_LEVEL_INFO:
+                default:
+                    __android_log_print(ANDROID_LOG_INFO, msg.logger_name.data(), "%s", formatted.data());
+                    break;
+            }
+        }
+
+        void flush() override {}
+
+        void set_pattern(const std::string& pattern) override
+        {
+            unique_lock<mutex> guard(m_stMutex);
+            m_pFormatter = std::make_unique<spdlog::pattern_formatter>(pattern);
+        }
+
+        void set_formatter(std::unique_ptr<spdlog::formatter> formatter) override
+        {
+            assert(formatter.get());
+
+            unique_lock<mutex> guard(m_stMutex);
+            m_pFormatter = std::move(formatter);
+        }
+
+    private:
+        std::mutex m_stMutex;
+        std::unique_ptr<spdlog::formatter> m_pFormatter;
+    };
+#endif
+
     class LogBackend
     {
     public:
@@ -50,6 +120,22 @@ namespace lstg::detail
             // 格式：[MM/DD/YY HH:MM:SS.MS][ThreadID][CategoryName][File:Line#Function][Level] What
             static const char* kLogPattern = "[%D %H:%M:%S.%e][%t][%n][%@#%!][%l] %v";
 
+#ifdef LSTG_PLATFORM_ANDROID
+            // 格式：[ThreadID][File:Line#Function] What
+            static const char* kLogPatternAndroid = "[%t][%@#%!] %v";  // 去掉 logcat 重复内容
+
+            try
+            {
+                auto logcatSink = std::make_shared<AndroidLogSink>();
+                logcatSink->set_level(spdlog::level::trace);
+                logcatSink->set_pattern(kLogPatternAndroid);
+                m_pConsoleSink = logcatSink;
+            }
+            catch (...)
+            {
+                assert(false);
+            }
+#else
             try
             {
                 auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -61,6 +147,7 @@ namespace lstg::detail
             {
                 assert(false);
             }
+#endif
 
 #ifndef LSTG_PLATFORM_EMSCRIPTEN
             try

@@ -13,13 +13,18 @@ union SDL_Event;
 
 namespace lstg::Subsystem
 {
+    namespace Render
+    {
+        struct RenderEvent;
+    }
+
     /**
      * 子系统事件
      */
     class SubsystemEvent
     {
     public:
-        using Event = std::variant<const SDL_Event*>;
+        using Event = std::variant<const SDL_Event*, const Render::RenderEvent*>;
 
     public:
         /**

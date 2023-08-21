@@ -8,11 +8,13 @@
 
 #include <vector>
 #include <SDL2/SDL.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <lstg/Core/Pal.hpp>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Subsystem/SubsystemContainer.hpp>
 #include <lstg/Core/Subsystem/Render/GraphicsDefinitionCache.hpp>
 #include <lstg/Core/AppBase.hpp>  // for Cmdline
+#include <lstg/Core/Subsystem/Render/RenderEvent.hpp>
 #include "Render/detail/Texture2DDataImpl.hpp"
 #include "Render/GraphDef/detail/ToDiligent.hpp"
 #include "Render/detail/ClearHelper.hpp"
@@ -201,6 +203,18 @@ namespace
         auto ret = self->CreateTexture2D(data);
         return ret.ThrowIfError();
     }
+
+    std::tuple<uint32_t, uint32_t> TransformRenderOutputSize(std::tuple<uint32_t, uint32_t> size, Render::SurfaceTransform t) noexcept
+    {
+        switch (t)
+        {
+            case Render::SurfaceTransform::Rotate90:
+            case Render::SurfaceTransform::Rotate270:
+                return {std::get<1>(size), std::get<0>(size)};
+            default:
+                return size;
+        }
+    }
 }
 
 glm::vec<2, uint32_t> RenderSystem::GetDefaultTexture2DSize() noexcept
@@ -209,9 +223,10 @@ glm::vec<2, uint32_t> RenderSystem::GetDefaultTexture2DSize() noexcept
 }
 
 RenderSystem::RenderSystem(SubsystemContainer& container)
-    : m_pWindowSystem(container.Get<WindowSystem>()), m_pVirtualFileSystem(container.Get<VirtualFileSystem>())
+    : m_pWindowSystem(container.Get<WindowSystem>()), m_pVirtualFileSystem(container.Get<VirtualFileSystem>()),
+    m_pEventBusSystem(container.Get<EventBusSystem>())
 {
-    assert(m_pWindowSystem);
+    assert(m_pWindowSystem && m_pVirtualFileSystem && m_pEventBusSystem);
 
     // 设置 Debug Output
     Diligent::SetDebugMessageCallback(DiligentDebugOutput);
@@ -263,6 +278,11 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
 
     // 创建截图工具
     m_pScreenCaptureHelper = make_shared<Render::detail::ScreenCaptureHelper>(m_pRenderDevice.get());
+
+    // 记录初始 SwapChain 状态
+    m_stLastRenderOutputSize = {m_pRenderDevice->GetRenderOutputWidth(), m_pRenderDevice->GetRenderOutputHeight()};
+    m_iLastRenderOutputPreTransform = m_pRenderDevice->GetRenderOutputPreTransform();
+    m_stLastRenderOutputTransformed = TransformRenderOutputSize(m_stLastRenderOutputSize, m_iLastRenderOutputPreTransform);
 }
 
 // <editor-fold desc="资源分配">
@@ -592,6 +612,9 @@ void RenderSystem::EndFrame() noexcept
 
     // 执行 Present
     m_pRenderDevice->Present();
+
+    // 检查 SwapChain 大小，必要时触发事件
+    SyncSwapChainSize();
 }
 
 Result<void> RenderSystem::CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)> callback, bool clearAlpha) noexcept
@@ -654,6 +677,16 @@ void RenderSystem::SetEffectGroupSelectCallback(EffectGroupSelectCallback select
 {
     m_stCurrentEffectGroupSelector = std::move(selector);
     m_pCurrentPassGroup = nullptr;
+}
+
+uint32_t RenderSystem::GetTransformedRenderWidth() const noexcept
+{
+    return std::get<0>(m_stLastRenderOutputTransformed);
+}
+
+uint32_t RenderSystem::GetTransformedRenderHeight() const noexcept
+{
+    return std::get<1>(m_stLastRenderOutputTransformed);
 }
 
 Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, std::optional<float> clearZDepth,
@@ -799,6 +832,36 @@ Result<void> RenderSystem::Draw(Render::Mesh* mesh, size_t indexCount, size_t ve
     return {};
 }
 
+void RenderSystem::SyncSwapChainSize() noexcept
+{
+    auto renderOutputSize = tuple<uint32_t, uint32_t>(m_pRenderDevice->GetRenderOutputWidth(), m_pRenderDevice->GetRenderOutputHeight());
+    auto renderOutputPreTransform = m_pRenderDevice->GetRenderOutputPreTransform();
+
+    // 检查变化
+    if (std::get<0>(renderOutputSize) != std::get<0>(m_stLastRenderOutputSize) ||
+        std::get<1>(renderOutputSize) != std::get<1>(m_stLastRenderOutputSize) ||
+        renderOutputPreTransform != m_iLastRenderOutputPreTransform)
+    {
+        m_stLastRenderOutputSize = renderOutputSize;
+        m_iLastRenderOutputPreTransform = renderOutputPreTransform;
+
+        auto renderOutputSizeTransformed = TransformRenderOutputSize(renderOutputSize, renderOutputPreTransform);
+        if (std::get<0>(renderOutputSizeTransformed) != std::get<0>(m_stLastRenderOutputTransformed) ||
+            std::get<1>(renderOutputSizeTransformed) != std::get<1>(m_stLastRenderOutputTransformed))
+        {
+            m_stLastRenderOutputTransformed = renderOutputSizeTransformed;
+
+            // 产生大小变化事件
+            Render::RenderEvent event;
+            event.Type = Render::RenderEventTypes::SwapBufferResized;
+            event.SwapBufferResize.Width = std::get<0>(renderOutputSizeTransformed);
+            event.SwapBufferResize.Height = std::get<1>(renderOutputSizeTransformed);
+            SubsystemEvent packedEvent {event};
+            m_pEventBusSystem->EmitEvent(std::move(packedEvent));
+        }
+    }
+}
+
 std::tuple<uint32_t, uint32_t> RenderSystem::GetCurrentOutputViewSize() noexcept
 {
     if (m_stCurrentOutputViews.ColorView == nullptr)
@@ -840,7 +903,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
     auto context = m_pRenderDevice->GetImmediateContext();
 
     const auto& outputViews = m_pCurrentCamera->GetOutputViews();
-    const auto& viewport = m_pCurrentCamera->GetViewport();
+    auto viewport = m_pCurrentCamera->GetViewport();
     bool forceUpdateViewport = false;
     bool viewportChanged = false;
 
@@ -880,40 +943,35 @@ Result<void> RenderSystem::CommitCamera() noexcept
         forceUpdateViewport = true;
     }
 
-    // 提交 Viewport
+    // Viewport 归一化
     auto sz = GetCurrentOutputViewSize();
+    if (viewport.IsAutoViewport())  // 恢复 AutoViewport
+        viewport = {0.f, 0.f, static_cast<float>(std::get<0>(sz)), static_cast<float>(std::get<1>(sz))};
+    if (m_iLastRenderOutputPreTransform == Render::SurfaceTransform::Rotate90 ||
+        m_iLastRenderOutputPreTransform == Render::SurfaceTransform::Rotate270)  // 施加 Surface 上的变换
+    {
+        auto x = std::get<0>(sz) - (viewport.Height + viewport.Top);
+        auto y = viewport.Left;
+        viewport.Left = x;
+        viewport.Top = y;
+        std::swap(viewport.Width, viewport.Height);
+    }
+
+    // 提交 Viewport
     if (!(m_stCurrentViewport == viewport) || forceUpdateViewport)
     {
-        if (!viewport.IsAutoViewport())
-        {
-            Diligent::Viewport vp;
-            vp.MinDepth = 0.0f;
-            vp.MaxDepth = 1.0f;
-            vp.Width = ::floor(viewport.Width);  // 需要整数，glViewportIndexedf 可能不支持
-            vp.Height = ::floor(viewport.Height);
-            vp.TopLeftX = ::floor(viewport.Left);
-            vp.TopLeftY = ::floor(viewport.Top);
-            m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
-            m_stCurrentViewport = viewport;
-            viewportChanged = true;
-        }
-        else
-        {
-            Render::Camera::Viewport targetViewport = {0.f, 0.f, static_cast<float>(std::get<0>(sz)), static_cast<float>(std::get<1>(sz))};
-            if (!(targetViewport == m_stCurrentViewport))
-            {
-                Diligent::Viewport vp;
-                vp.MinDepth = 0.0f;
-                vp.MaxDepth = 1.0f;
-                vp.Width = ::floor(targetViewport.Width);  // 需要整数，glViewportIndexedf 可能不支持
-                vp.Height = ::floor(targetViewport.Height);
-                vp.TopLeftX = ::floor(targetViewport.Left);
-                vp.TopLeftY = ::floor(targetViewport.Top);
-                m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
-                m_stCurrentViewport = viewport;
-                viewportChanged = true;
-            }
-        }
+        assert(!viewport.IsAutoViewport());
+
+        Diligent::Viewport vp;
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        vp.Width = ::floor(viewport.Width);  // 需要整数，glViewportIndexedf 可能不支持
+        vp.Height = ::floor(viewport.Height);
+        vp.TopLeftX = ::floor(viewport.Left);
+        vp.TopLeftY = ::floor(viewport.Top);
+        m_pRenderDevice->GetImmediateContext()->SetViewports(1, &vp, 0, 0);
+        m_stCurrentViewport = viewport;
+        viewportChanged = true;
     }
 
     // 提交裁剪状态
@@ -939,6 +997,35 @@ Result<void> RenderSystem::CommitCamera() noexcept
             m_stCurrentViewport.Width,
             m_stCurrentViewport.Height,
         };
+
+        // 我们需要根据 Surface 的旋转矩阵对 Project 矩阵进行调整
+        optional<float> rotationAngle;
+        switch (m_iLastRenderOutputPreTransform)
+        {
+            case Render::SurfaceTransform::Rotate90:
+                rotationAngle = -glm::pi<float>() / 2.f;
+                break;
+            case Render::SurfaceTransform::Rotate180:
+                rotationAngle = -glm::pi<float>();
+                break;
+            case Render::SurfaceTransform::Rotate270:
+                rotationAngle = -glm::pi<float>() * 3.f / 2.f;
+                break;
+            case Render::SurfaceTransform::Identity:
+            default:
+                break;
+        }
+        if (rotationAngle)
+        {
+            static const glm::vec3 kRotationAxis = {0, 0, 1};
+
+            // FIXME: 设置为常量
+            auto rotationTransformer = glm::identity<glm::mat4>();
+            rotationTransformer = glm::rotate(rotationTransformer, *rotationAngle, kRotationAxis);
+
+            state.ProjectMatrix = rotationTransformer * state.ProjectMatrix;
+            state.ProjectViewMatrix = rotationTransformer * state.ProjectViewMatrix;
+        }
 
         // 直接整个刷新
         m_pCameraStateCBuffer->CopyFrom(&state, sizeof(state), 0);
@@ -1082,6 +1169,9 @@ void RenderSystem::OnEvent(SubsystemEvent& event) noexcept
 
     const SDL_Event* platformEvent = std::get<0>(underlay);
 
+#ifdef LSTG_PLATFORM_ANDROID
+    // 安卓环境下由 Diligent 自行维护 Resize，以适配旋转情况
+#else
     if (platformEvent->window.event == SDL_WINDOWEVENT_RESIZED)
     {
         auto renderSize = m_pWindowSystem->GetRenderSize();
@@ -1098,7 +1188,10 @@ void RenderSystem::OnEvent(SubsystemEvent& event) noexcept
 #ifdef LSTG_PLATFORM_EMSCRIPTEN
                 m_pGammaCorrectHelper->ResizeFrameBuffer();
 #endif
+
+                SyncSwapChainSize();
             }
         }
     }
+#endif
 }
