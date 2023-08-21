@@ -6,6 +6,7 @@ add_custom_target(LuaSTGPlus2Version
     -D DST=${CMAKE_CURRENT_BINARY_DIR}/Version.hpp
     -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/GenerateVersionHeader.cmake)
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/Version.hpp" PROPERTIES GENERATED TRUE)
 
 ### 目标
 # Lua 自动封装代码
@@ -25,16 +26,25 @@ lstg_gen_perfect_hasher(
 
 # 跨平台源码
 file(GLOB_RECURSE LSTG_V2_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/v2/*.hpp)
-list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp")
-list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+
+set(LSTG_V2_SOURCES_GEN)
+list(APPEND LSTG_V2_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/Version.hpp")
+list(APPEND LSTG_V2_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/BuiltInModules.gen.cpp")
+list(APPEND LSTG_V2_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.hpp")
+list(APPEND LSTG_V2_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/ScriptObjectAttributes.gen.cpp")
+
+# 平台定制代码
+if(LSTG_PLATFORM_WIN32)
+    list(APPEND LSTG_V2_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
+endif()
 
 # 目标
 if(LSTG_PLATFORM_WIN32)
-    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/LuaSTGPlus2.rc")
+    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 elseif(LSTG_PLATFORM_ANDROID)
-    add_library(LuaSTGPlus2 SHARED ${LSTG_V2_SOURCES})
+    add_library(LuaSTGPlus2 SHARED ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 else()
-    add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES})
+    add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 endif()
 target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main SDL2-static cjson imgui implot)
@@ -64,3 +74,8 @@ if(LSTG_PLATFORM_EMSCRIPTEN)
     message(STATUS "[LSTG] Emscripten link options: ${LSTG_EMSCRIPTEN_LINK_OPTIONS}")
     target_link_options(LuaSTGPlus2 PRIVATE ${LSTG_EMSCRIPTEN_LINK_OPTIONS})
 endif()
+
+# 优化 IDE 展示
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_V2_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_BINARY_DIR} PREFIX generated FILES ${LSTG_V2_SOURCES_GEN})
+

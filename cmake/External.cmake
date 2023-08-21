@@ -450,3 +450,91 @@ if(${sdl_sound_ADDED})
     target_include_directories(SDL2_sound-static PUBLIC ${sdl_sound_SOURCE_DIR}/src)
     target_link_libraries(SDL2_sound-static SDL2-static)
 endif()
+
+### 优化 IDE 展示
+
+# 将第三方依赖合并到指定文件夹，优化 IDE 中展示
+function(lstg_group_deps_into_ide_folder)
+    set(ONE_VALUE_ARGS FOLDER)
+    set(MULTI_VALUE_ARGS TARGETS)
+    cmake_parse_arguments(GROUP_DEPS "" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
+
+    foreach(GROUP_DEPS_TARGET ${GROUP_DEPS_TARGETS})
+        if(TARGET ${GROUP_DEPS_TARGET})
+            set_target_properties(${GROUP_DEPS_TARGET} PROPERTIES FOLDER ${GROUP_DEPS_FOLDER})
+        endif()
+    endforeach()
+endfunction()
+
+# FIXME: 优化下列三方依赖分类
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/SDL2"
+    TARGETS
+        sdl_headers_copy
+        SDL2
+        SDL2main
+        SDL2-static
+        mojoal
+        SDL2_sound-static
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/imgui"
+    TARGETS
+        imgui
+        implot
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
+    TARGETS
+        minilua
+        buildvm
+        liblua-shared
+        liblua-static
+        lua
+        lua-static
+        luabitop
+        cjson
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/compose"
+    TARGETS
+        freetype
+        harfbuzz
+        harfbuzz-icu
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/misc"
+    TARGETS
+        fmt
+        ryu
+        spdlog
+        stb
+        zlib-ng
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/icu"
+    TARGETS
+        icuuc
+        icuin
+        icuio
+        icutu
+        IcuData
+        gencnval
+        gencfu
+        makeconv
+        genbrk
+        gensprep
+        gendict
+        icupkg
+        genrb
+        pkgdata
+        PrepareTool_gencnval
+        PrepareTool_gencfu
+        PrepareTool_makeconv
+        PrepareTool_genbrk
+        PrepareTool_gensprep
+        PrepareTool_gendict
+        PrepareTool_icupkg
+        PrepareTool_genrb
+        PrepareTool_pkgdata
+)

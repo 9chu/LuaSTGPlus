@@ -55,7 +55,9 @@ lstg_gen_auto_bridge_cpp(
 
 # 跨平台源码
 file(GLOB_RECURSE LSTG_CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../include/lstg/Core/*.hpp)
-list(APPEND LSTG_CORE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp")
+
+set(LSTG_CORE_SOURCES_GEN)
+list(APPEND LSTG_CORE_SOURCES_GEN "${CMAKE_CURRENT_BINARY_DIR}/LuaEffectBuilder.gen.cpp")
 
 # 平台定制代码
 if(LSTG_PLATFORM_MACOS)
@@ -64,7 +66,7 @@ if(LSTG_PLATFORM_MACOS)
 endif()
 
 # 目标
-add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES})
+add_library(LuaSTGPlusCore STATIC ${LSTG_CORE_SOURCES} ${LSTG_CORE_SOURCES_GEN})
 target_include_directories(LuaSTGPlusCore
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../../include
@@ -109,3 +111,8 @@ endif()
 message("[LSTG] Public compiler definitions: ${LSTG_CORE_DEFS_PUBLIC}")
 target_compile_definitions(LuaSTGPlusCore PUBLIC ${LSTG_CORE_DEFS_PUBLIC})
 target_compile_definitions(LuaSTGPlusCore PRIVATE ${LSTG_CORE_DEFS_PRIVATE})
+
+# 优化 IDE 展示
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${LSTG_CORE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_BINARY_DIR} PREFIX generated FILES ${LSTG_CORE_SOURCES_GEN})
+
