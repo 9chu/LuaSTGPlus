@@ -13,6 +13,10 @@
 #include <EngineFactoryOpenGL.h>
 #endif
 
+#ifdef Status
+#undef Status
+#endif
+
 #include <lstg/Core/AppBase.hpp>
 #include <lstg/Core/Logging.hpp>
 
