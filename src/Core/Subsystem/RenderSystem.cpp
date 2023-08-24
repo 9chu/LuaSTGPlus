@@ -204,6 +204,7 @@ namespace
         return ret.ThrowIfError();
     }
 
+#ifdef LSTG_ROTATABLE_SCREEN
     /**
      * 根据 Surface 旋转方向调整渲染输出大小
      * @param size 渲染输出大小
@@ -269,6 +270,7 @@ namespace
         }
         vp = {f.x, f.y, f.z - f.x, f.w - f.y};
     }
+#endif
 }
 
 glm::vec<2, uint32_t> RenderSystem::GetDefaultTexture2DSize() noexcept
@@ -333,10 +335,12 @@ RenderSystem::RenderSystem(SubsystemContainer& container)
     // 创建截图工具
     m_pScreenCaptureHelper = make_shared<Render::detail::ScreenCaptureHelper>(m_pRenderDevice.get());
 
+#ifdef LSTG_ROTATABLE_SCREEN
     // 记录初始 SwapChain 状态
     m_stLastRenderOutputSize = {m_pRenderDevice->GetRenderOutputWidth(), m_pRenderDevice->GetRenderOutputHeight()};
     m_iLastRenderOutputPreTransform = m_pRenderDevice->GetRenderOutputPreTransform();
     m_stLastRenderOutputTransformed = TransformRenderOutputSize(m_stLastRenderOutputSize, m_iLastRenderOutputPreTransform);
+#endif
 }
 
 // <editor-fold desc="资源分配">
@@ -667,8 +671,10 @@ void RenderSystem::EndFrame() noexcept
     // 执行 Present
     m_pRenderDevice->Present();
 
+#ifdef LSTG_ROTATABLE_SCREEN
     // 检查 SwapChain 大小，必要时触发事件
     SyncSwapChainSize();
+#endif
 }
 
 Result<void> RenderSystem::CaptureScreen(std::function<void(Result<const Render::Texture2DData*>)> callback, bool clearAlpha) noexcept
@@ -735,12 +741,20 @@ void RenderSystem::SetEffectGroupSelectCallback(EffectGroupSelectCallback select
 
 uint32_t RenderSystem::GetTransformedRenderWidth() const noexcept
 {
+#ifdef LSTG_ROTATABLE_SCREEN
     return std::get<0>(m_stLastRenderOutputTransformed);
+#else
+    return m_pRenderDevice->GetRenderOutputWidth();
+#endif
 }
 
 uint32_t RenderSystem::GetTransformedRenderHeight() const noexcept
 {
+#ifdef LSTG_ROTATABLE_SCREEN
     return std::get<1>(m_stLastRenderOutputTransformed);
+#else
+    return m_pRenderDevice->GetRenderOutputHeight();
+#endif
 }
 
 Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, std::optional<float> clearZDepth,
@@ -797,8 +811,9 @@ Result<void> RenderSystem::Clear(std::optional<Render::ColorRGBA32> clearColor, 
         }
         if (clearZDepth || clearStencil)
         {
-            auto flag = static_cast<Diligent::CLEAR_DEPTH_STENCIL_FLAGS>((clearZDepth ? Diligent::CLEAR_DEPTH_FLAG : 0) |
-                                                                         (clearStencil ? Diligent::CLEAR_STENCIL_FLAG : 0));
+            auto flag = static_cast<Diligent::CLEAR_DEPTH_STENCIL_FLAGS>(
+                (clearZDepth ? Diligent::CLEAR_DEPTH_FLAG : Diligent::CLEAR_DEPTH_FLAG_NONE) |
+                (clearStencil ? Diligent::CLEAR_STENCIL_FLAG : Diligent::CLEAR_DEPTH_FLAG_NONE));
             auto depth = clearZDepth ? *clearZDepth : 1.0f;
             auto stencil = clearStencil ? *clearStencil : 0;
             context->ClearDepthStencil(depthStencilView, flag, depth, stencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -886,6 +901,7 @@ Result<void> RenderSystem::Draw(Render::Mesh* mesh, size_t indexCount, size_t ve
     return {};
 }
 
+#ifdef LSTG_ROTATABLE_SCREEN
 void RenderSystem::SyncSwapChainSize() noexcept
 {
     auto renderOutputSize = tuple<uint32_t, uint32_t>(m_pRenderDevice->GetRenderOutputWidth(), m_pRenderDevice->GetRenderOutputHeight());
@@ -915,6 +931,7 @@ void RenderSystem::SyncSwapChainSize() noexcept
         }
     }
 }
+#endif
 
 std::tuple<uint32_t, uint32_t> RenderSystem::GetCurrentOutputViewSize() noexcept
 {
@@ -1008,8 +1025,12 @@ Result<void> RenderSystem::CommitCamera() noexcept
     auto sz = GetCurrentOutputViewSize();
     if (viewport.IsAutoViewport())  // 恢复 AutoViewport
         viewport = {0.f, 0.f, static_cast<float>(std::get<0>(sz)), static_cast<float>(std::get<1>(sz))};
+#ifdef LSTG_ROTATABLE_SCREEN
     if (isSwapChainSurface && m_iLastRenderOutputPreTransform != Render::SurfaceTransform::Identity)
         TransformViewport(viewport, m_iLastRenderOutputPreTransform, sz);
+#else
+    static_cast<void>(isSwapChainSurface);  // LSTG_UNUSED(isSwapChainSurface)
+#endif
 
     // 提交 Viewport
     if (!(m_stCurrentViewport == viewport) || forceUpdateViewport)
@@ -1052,6 +1073,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
             m_stCurrentViewport.Height,
         };
 
+#ifdef LSTG_ROTATABLE_SCREEN
         // 我们需要根据 Surface 的旋转矩阵对 Project 矩阵进行调整
         if (isSwapChainSurface && m_iLastRenderOutputPreTransform != Render::SurfaceTransform::Identity)
         {
@@ -1082,6 +1104,7 @@ Result<void> RenderSystem::CommitCamera() noexcept
             state.ProjectMatrix = rotationTransformer * state.ProjectMatrix;
             state.ProjectViewMatrix = rotationTransformer * state.ProjectViewMatrix;
         }
+#endif
 
         // 直接整个刷新
         m_pCameraStateCBuffer->CopyFrom(&state, sizeof(state), 0);
@@ -1245,7 +1268,13 @@ void RenderSystem::OnEvent(SubsystemEvent& event) noexcept
                 m_pGammaCorrectHelper->ResizeFrameBuffer();
 #endif
 
-                SyncSwapChainSize();
+                // 产生大小变化事件
+                Render::RenderEvent emitEvent;
+                emitEvent.Type = Render::RenderEventTypes::SwapBufferResized;
+                emitEvent.SwapBufferResize.Width = m_pRenderDevice->GetRenderOutputWidth();
+                emitEvent.SwapBufferResize.Height = m_pRenderDevice->GetRenderOutputHeight();
+                SubsystemEvent packedEvent {emitEvent};
+                m_pEventBusSystem->EmitEvent(std::move(packedEvent));
             }
         }
     }

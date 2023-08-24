@@ -115,8 +115,18 @@ if(LSTG_ENABLE_ASSERTIONS)
     endif()
 endif()
 
+### 构建工具
+add_subdirectory(tool/BinaryToCode)
+add_subdirectory(tool/LuaAutoBridgeTool)
+add_subdirectory(tool/PerfectHashTool)
+
 ### 第三方依赖
 include(cmake/External.cmake)
+
+if(LSTG_EARLY_BUILD)
+    # Early build 阶段仅执行到工具生成为止
+    return()
+endif()
 
 ### 工程配置
 
@@ -128,15 +138,6 @@ if(MSVC)
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-noexcept-type")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Wextra -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-noexcept-type")
-endif()
-
-# 工具
-add_subdirectory(tool/LuaAutoBridgeTool)
-add_subdirectory(tool/PerfectHashTool)
-
-if(LSTG_EARLY_BUILD)
-    # Early build 阶段仅执行到工具生成为止
-    return()
 endif()
 
 # 库 & 主程序

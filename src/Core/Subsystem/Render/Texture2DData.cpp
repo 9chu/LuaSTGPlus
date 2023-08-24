@@ -8,6 +8,7 @@
 
 #include <stb_image_write.h>
 #include <lstg/Core/Logging.hpp>
+#include <lstg/Core/Subsystem/VFS/BufferViewStream.hpp>
 #include "detail/Texture2DDataImpl.hpp"
 
 using namespace std;
@@ -18,6 +19,11 @@ LSTG_DEF_LOG_CATEGORY(Texture2DData);
 
 Texture2DData::Texture2DData(VFS::StreamPtr stream)
     : m_pImpl(make_shared<detail::Texture2DDataImpl>(std::move(stream)))
+{
+}
+
+Texture2DData::Texture2DData(Span<const uint8_t> buffer)
+    : m_pImpl(make_shared<detail::Texture2DDataImpl>(std::make_shared<VFS::BufferViewStream<const uint8_t>>(buffer)))
 {
 }
 

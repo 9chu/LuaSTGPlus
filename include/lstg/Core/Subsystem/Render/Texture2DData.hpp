@@ -53,6 +53,13 @@ namespace lstg::Subsystem::Render
         Texture2DData(VFS::StreamPtr stream);
 
         /**
+         * 从缓冲区加载纹理
+         * 支持 stb_image 所兼容格式
+         * @param buffer 缓冲区
+         */
+        Texture2DData(Span<const uint8_t> buffer);
+
+        /**
          * 创建空白纹理
          * @param width 宽度
          * @param height 高度

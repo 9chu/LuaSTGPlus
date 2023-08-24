@@ -29,7 +29,9 @@ def main():
 
     with open(args.output, "w", encoding="utf-8") as fout:
         fout.write("#include <cstdint>\n")
+        fout.write("#include <cstdlib>\n")
         fout.write("\n")
+        fout.write("extern const size_t %sSize = %d;\n\n" % (args.name, len(data)))
         fout.write("alignas(16) extern const uint8_t %s[%d] = {\n" % (args.name, len(data)))
         line = []
         for byte in data:

@@ -6,7 +6,7 @@
  */
 #include "ZipFile.hpp"
 
-#include <lstg/Core/Subsystem/VFS/ContainerStream.hpp>
+#include <lstg/Core/Subsystem/VFS/BufferViewStream.hpp>
 #include <lstg/Core/Subsystem/VFS/WindowedStream.hpp>
 #include <lstg/Core/Subsystem/VFS/InflateStream.hpp>
 #include "ZipPkDecryptStream.hpp"

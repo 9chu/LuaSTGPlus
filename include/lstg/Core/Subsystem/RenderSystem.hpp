@@ -21,6 +21,10 @@
 #include "Render/Texture2DData.hpp"
 #include "Render/ColorRGBA32.hpp"
 
+#ifdef LSTG_PLATFORM_ANDROID
+#define LSTG_ROTATABLE_SCREEN
+#endif
+
 namespace lstg::Subsystem::Render::detail
 {
     class ClearHelper;
@@ -253,7 +257,10 @@ namespace lstg::Subsystem
         Result<void> Draw(Render::Mesh* mesh, size_t indexCount, size_t indexOffset, size_t vertexOffset = 0) noexcept;
 
     private:
+#ifdef LSTG_ROTATABLE_SCREEN
         void SyncSwapChainSize() noexcept;
+#endif
+
         std::tuple<uint32_t, uint32_t> GetCurrentOutputViewSize() noexcept;
         const Render::GraphDef::EffectPassGroupDefinition* SelectPassGroup() noexcept;
         Result<void> CommitCamera() noexcept;
@@ -287,10 +294,12 @@ namespace lstg::Subsystem
 #endif
         std::shared_ptr<Render::detail::ScreenCaptureHelper> m_pScreenCaptureHelper;
 
+#ifdef LSTG_ROTATABLE_SCREEN
         // SwapChain 状态
         std::tuple<uint32_t, uint32_t> m_stLastRenderOutputSize = {0, 0};
         std::tuple<uint32_t, uint32_t> m_stLastRenderOutputTransformed = {0, 0};
         Render::SurfaceTransform m_iLastRenderOutputPreTransform = Render::SurfaceTransform::Identity;
+#endif
 
         // 渲染状态
         Render::CameraPtr m_pCurrentCamera;

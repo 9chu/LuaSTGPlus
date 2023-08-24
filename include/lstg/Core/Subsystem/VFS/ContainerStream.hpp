@@ -6,6 +6,7 @@
  */
 #pragma once
 #include <cassert>
+#include <vector>
 #include "IStream.hpp"
 #include "../../Span.hpp"
 
@@ -296,11 +297,4 @@ namespace lstg::Subsystem::VFS
     using MemoryStream = ContainerStream<std::vector<uint8_t>>;
 
     using MemoryStreamPtr = std::shared_ptr<MemoryStream>;
-
-    /**
-     * 缓冲区视图流
-     */
-    using BufferViewStream = ContainerStream<Span<uint8_t>>;
-
-    using BufferViewStreamPtr = ContainerStream<Span<uint8_t>>;
-}
+}  // namespace lstg::Subsystem::VFS
