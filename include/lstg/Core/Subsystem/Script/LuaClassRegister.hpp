@@ -89,7 +89,7 @@ namespace lstg::Subsystem::Script
         }
 
         template <typename P>
-        LuaClassRegister& Getter(const char* name, P(T::*reader)()const, void(T::*writer)(P))
+        LuaClassRegister& GetterSetter(const char* name, P(T::*reader)()const, void(T::*writer)(P))
         {
             Getter(name, reader);
             Setter(name, writer);

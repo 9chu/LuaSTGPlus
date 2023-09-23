@@ -781,7 +781,7 @@ namespace lstg::Subsystem::Script
     template <typename TClass, typename TRet, typename... TArgs>
     inline int LuaPush(LuaStack& stack, TRet(TClass::*v)(TArgs...)volatile)
     {
-        using StackIndices = typename detail::MakeStackIndexSequence<2, TArgs...>::Sequence;
+        using StackIndices = typename detail::MakeStackIndexSequence<1, TArgs...>::Sequence;
         using Wrapper = detail::MemberFunctionCallHelper<StackIndices, 2, TClass, TRet, TArgs...>;
         using TStorage = typename Wrapper::Storage;
 
@@ -810,7 +810,7 @@ namespace lstg::Subsystem::Script
     template <typename TClass, typename TRet, typename... TArgs>
     inline int LuaPush(LuaStack& stack, TRet(TClass::*v)(TArgs...)const volatile)
     {
-        using StackIndices = typename detail::MakeStackIndexSequence<3, TArgs...>::Sequence;
+        using StackIndices = typename detail::MakeStackIndexSequence<1, TArgs...>::Sequence;
         using Wrapper = detail::MemberFunctionCallHelper<StackIndices, 3, TClass, TRet, TArgs...>;
         using TStorage = typename Wrapper::Storage;
 

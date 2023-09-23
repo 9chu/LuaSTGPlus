@@ -484,17 +484,25 @@ lstg_group_deps_into_ide_folder(FOLDER "deps/imgui"
         implot
 )
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
-    TARGETS
-        minilua
-        buildvm
-        liblua-shared
-        liblua-static
-        lua
-        lua-static
-        luabitop
-        cjson
-)
+if(LSTG_PLATFORM_EMSCRIPTEN)
+    lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
+        TARGETS
+            liblua_static
+            luabitop
+            cjson
+    )
+else()
+    lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
+        TARGETS
+            minilua
+            buildvm
+            liblua-shared
+            liblua-static
+            lua
+            lua-static
+            cjson
+    )
+endif()
 
 lstg_group_deps_into_ide_folder(FOLDER "deps/compose"
     TARGETS
