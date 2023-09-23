@@ -10,6 +10,7 @@
 #define LSTG_METHOD(...)
 #define LSTG_GETTER(...)
 #define LSTG_SETTER(...)
+#define LSTG_PROPERTY(...)
 
 #define LSTG_MODULE(...)
 

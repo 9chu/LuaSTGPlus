@@ -14,6 +14,7 @@ class ClassDecl:
         self._methods = {}
         self._getters = {}
         self._setters = {}
+        self._properties = {}
 
     def get_name(self):
         return self._name
@@ -27,6 +28,9 @@ class ClassDecl:
     def get_setters(self):
         return self._setters
 
+    def get_properties(self):
+        return self._properties
+
     def add_method(self, name, native_func):
         if name in self._methods:
             raise RuntimeError(f'Method {name} already defined')
@@ -34,6 +38,8 @@ class ClassDecl:
             raise RuntimeError(f'Identifier {name} already defined in getters')
         if name in self._setters:
             raise RuntimeError(f'Identifier {name} already defined in setters')
+        if name in self._properties:
+            raise RuntimeError(f"Identifier {name} already defined in properties")
         self._methods[name] = (name, native_func)
 
     def add_getter(self, name, native_func):
@@ -41,6 +47,8 @@ class ClassDecl:
             raise RuntimeError(f'Method {name} already defined')
         if name in self._getters:
             raise RuntimeError(f'Identifier {name} already defined in getters')
+        if name in self._properties:
+            raise RuntimeError(f"Identifier {name} already defined in properties")
         self._getters[name] = (name, native_func)
 
     def add_setter(self, name, native_func):
@@ -48,7 +56,20 @@ class ClassDecl:
             raise RuntimeError(f'Method {name} already defined')
         if name in self._setters:
             raise RuntimeError(f'Identifier {name} already defined in setters')
+        if name in self._properties:
+            raise RuntimeError(f"Identifier {name} already defined in properties")
         self._setters[name] = (name, native_func)
+
+    def add_properties(self, name, native_field, readonly):
+        if name in self._methods:
+            raise RuntimeError(f'Method {name} already defined')
+        if name in self._getters:  # 我们不允许重叠使用 getter/setter 和 property 标记
+            raise RuntimeError(f'Identifier {name} already defined in getters')
+        if name in self._setters:
+            raise RuntimeError(f'Identifier {name} already defined in setters')
+        if name in self._properties:
+            raise RuntimeError(f"Identifier {name} already defined in properties")
+        self._properties[name] = (name, native_field, readonly)
 
 
 class EnumDecl:
@@ -117,12 +138,17 @@ def _parse_native_method_name(line):
     # 方法名左侧的括号一定是配对的（简化处理，不考虑比较运算符和'->'的情况）
     for i in range(0, len(line) + 1):
         ch = '\0' if i >= len(line) else line[i]
-        if ch == '(' or ch == '<':
-            if ch == '(' and len(stack) == 0:
-                maybe.append(i)
+
+        if ch == '(' and len(stack) == 0:
+            # 找到左侧括号都匹配，且右边又是括号的位置，这里可能分割一个函数名
+            # e.g.  vector<void(*)(string)> foo();
+            #                                  ^
+            maybe.append(i)
+
+        if ch == '(' or ch == '<' or ch == '[' or ch == '{':
             stack.append(ch)
-        elif ch == ')' or ch == '>':
-            expected = '(' if ch == ')' else '<'
+        elif ch == ')' or ch == '>' or ch == ']' or ch == '}':
+            expected = '(' if ch == ')' else ('<' if ch == '>' else ('[' if ch == ']' else '{'))
             if len(stack) > 0 and stack[len(stack) - 1] == expected:
                 stack.pop(len(stack) - 1)
             else:
@@ -131,10 +157,11 @@ def _parse_native_method_name(line):
     # 逐个检查可能的点
     state = 0
     for index in maybe:
+        # 倒找 identifier，词法规则倒序
         for i in range(index - 1, -2, -1):
             ch = '\0' if i < 0 else line[i]
             if state == 0:
-                if ch == '\t' or ch == ' ':
+                if ch == '\t' or ch == ' ':  # 跳过空白符
                     continue
                 elif ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
                     state = 1
@@ -161,12 +188,70 @@ def _parse_native_method_name(line):
     raise RuntimeError('Cannot parse native method name')
 
 
+def _parse_native_member_name(line):
+    stack = []
+    maybe = []
+
+    # 成员名左侧的括号一定是配对的（简化处理，不考虑比较运算符和'->'的情况）
+    for i in range(0, len(line) + 1):
+        ch = '\0' if i >= len(line) else line[i]
+
+        if (ch == '=' or ch == ';') and len(stack) == 0:
+            # 找到左侧括号都匹配，且右边是 =、; 等终止字符，这里可能分割一个成员名
+            # e.g.  vector<void(*)(string)> foo={};
+            #                                  ^
+            maybe.append(i)
+
+        if ch == '(' or ch == '<' or ch == '[' or ch == '{':
+            stack.append(ch)
+        elif ch == ')' or ch == '>' or ch == ']' or ch == '}':
+            expected = '(' if ch == ')' else ('<' if ch == '>' else ('[' if ch == ']' else '{'))
+            if len(stack) > 0 and stack[len(stack) - 1] == expected:
+                stack.pop(len(stack) - 1)
+            else:
+                raise RuntimeError(f'Unexpected symbol "{ch}"')
+
+    # 逐个检查可能的点
+    state = 0
+    for index in maybe:
+        # 倒找 identifier，词法规则倒序
+        for i in range(index - 1, -2, -1):
+            ch = '\0' if i < 0 else line[i]
+            if state == 0:
+                if ch == '\t' or ch == ' ':  # 跳过空白符
+                    continue
+                elif ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
+                    state = 1
+                elif '0' <= ch <= '9':
+                    state = 2
+                else:
+                    state = -1
+            elif state == 1:
+                if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
+                    continue
+                elif '0' <= ch <= '9':
+                    state = 2
+                else:
+                    return line[i + 1 : index]
+            elif state == 2:
+                if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
+                    state = 1
+                elif '0' <= ch <= '9':
+                    continue
+                else:
+                    state = -1
+            if state == -1:
+                break
+    raise RuntimeError('Cannot parse native member name')
+
+
 PARSE_STATE_DEFAULT = 0
 PARSE_STATE_CLASS_LOOK_FOR_CLASS_NAME = 10
 PARSE_STATE_CLASS_LOOK_FOR_METHOD = 11
 PARSE_STATE_CLASS_PARSE_METHOD_NAME = 12
 PARSE_STATE_CLASS_PARSE_GETTER_NAME = 13
 PARSE_STATE_CLASS_PARSE_SETTER_NAME = 14
+PARSE_STATE_CLASS_PARSE_PROPERTY_NAME = 15
 PARSE_STATE_MODULE_LOOK_FOR_CLASS_NAME = 20
 PARSE_STATE_MODULE_LOOK_FOR_METHOD = 21
 PARSE_STATE_MODULE_PARSE_METHOD_NAME = 22
@@ -183,6 +268,7 @@ class HeaderParser:
     REGEX_CLASS_METHOD_HINT = re.compile(r'LSTG_METHOD(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
     REGEX_CLASS_GETTER_HINT = re.compile(r'LSTG_GETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
     REGEX_CLASS_SETTER_HINT = re.compile(r'LSTG_SETTER(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
+    REGEX_CLASS_PROPERTY_HINT = re.compile(r'LSTG_PROPERTY(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*(,\s*([a-zA-Z0-9_]+))?\))?$')
     REGEX_MODULE_HINT = re.compile(r'LSTG_MODULE(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*(,\s*([a-zA-Z0-9_]+))?\))?$')
     REGEX_MODULE_ENUM_HINT = re.compile(r'LSTG_ENUM(\(\s*([a-zA-Z_][a-zA-Z0-9_]*)?\s*\))?$')
     REGEX_ENUM_NAME_MATCH = re.compile(r'^(enum\s+class)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*')
@@ -220,7 +306,8 @@ class HeaderParser:
         if self._state == PARSE_STATE_CLASS_LOOK_FOR_CLASS_NAME or self._state == PARSE_STATE_MODULE_LOOK_FOR_CLASS_NAME:
             raise RuntimeError('Class declaration expected, but found EOF')
         elif self._state == PARSE_STATE_CLASS_PARSE_METHOD_NAME or self._state == PARSE_STATE_CLASS_PARSE_GETTER_NAME or \
-                self._state == PARSE_STATE_CLASS_PARSE_SETTER_NAME or self._state == PARSE_STATE_MODULE_PARSE_METHOD_NAME:
+                self._state == PARSE_STATE_CLASS_PARSE_SETTER_NAME or self._state == PARSE_STATE_CLASS_PARSE_PROPERTY_NAME or \
+                self._state == PARSE_STATE_MODULE_PARSE_METHOD_NAME:
             raise RuntimeError('Member function declaration expected, but found EOF')
         self._state = PARSE_STATE_DEFAULT
         self._current_class = None
@@ -274,11 +361,31 @@ class HeaderParser:
     def _on_class_setter_decl(self, line):
         self._parse_hint_name(line, HeaderParser.REGEX_CLASS_SETTER_HINT, 2, PARSE_STATE_CLASS_PARSE_SETTER_NAME)
 
+    def _on_class_property_decl(self, line):
+        groups = self._parse_hint_name(line, HeaderParser.REGEX_CLASS_PROPERTY_HINT, 2, PARSE_STATE_CLASS_PARSE_PROPERTY_NAME)
+        if groups.group(4):
+            self._current_flag = groups.group(4)
+        else:
+            self._current_flag = None
+
     def _on_parse_class_setter_name(self, line):
         native_name = _parse_native_method_name(line)
         if self._current_hint_name is None:
             self._current_hint_name = native_name[3:] if native_name.startswith('Set') else native_name
         self._current_class.add_setter(self._current_hint_name, native_name)
+        self._state = PARSE_STATE_CLASS_LOOK_FOR_METHOD
+
+    def _on_parse_class_property_name(self, line):
+        native_name = _parse_native_member_name(line)
+        if self._current_hint_name is None:
+            self._current_hint_name = native_name
+        is_readonly = False
+        if self._current_flag is not None:
+            if self._current_flag == 'READONLY':
+                is_readonly = True
+            else:
+                raise RuntimeError(f'Unknown flag {self._current_flag}')
+        self._current_class.add_properties(self._current_hint_name, native_name, is_readonly)
         self._state = PARSE_STATE_CLASS_LOOK_FOR_METHOD
 
     def _on_module_decl(self, line):
@@ -376,6 +483,8 @@ class HeaderParser:
                         self._on_class_getter_decl(line)
                     elif line.startswith('LSTG_SETTER'):
                         self._on_class_setter_decl(line)
+                    elif line.startswith('LSTG_PROPERTY'):
+                        self._on_class_property_decl(line)
                 elif self._state == PARSE_STATE_MODULE_LOOK_FOR_METHOD or self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_FIELD:
                     if line.startswith('LSTG_METHOD'):
                         self._on_module_method_decl(line)
@@ -393,6 +502,8 @@ class HeaderParser:
             self._on_parse_class_getter_name(line)
         elif self._state == PARSE_STATE_CLASS_PARSE_SETTER_NAME:
             self._on_parse_class_setter_name(line)
+        elif self._state == PARSE_STATE_CLASS_PARSE_PROPERTY_NAME:
+            self._on_parse_class_property_name(line)
         elif self._state == PARSE_STATE_MODULE_PARSE_METHOD_NAME:
             self._on_parse_module_method_name(line)
         elif self._state == PARSE_STATE_MODULE_LOOK_FOR_ENUM_NAME:
@@ -462,6 +573,7 @@ def main():
             methods = cls.get_methods()
             getters = cls.get_getters()
             setters = cls.get_setters()
+            properties = cls.get_properties()
             f.write(f'void LuaRegister(LuaClassRegister<{name}>& register_)\n')
             f.write('{\n')
             if len(methods) == 0 and len(getters) == 0 and len(setters) == 0:
@@ -480,6 +592,12 @@ def main():
                 for setter_name in setters:
                     setter = setters[setter_name]
                     f.write(f'        .Setter("{setter[0]}", &{name}::{setter[1]})\n')
+                for property_name in properties:
+                    property = properties[property_name]
+                    if property[2]:  # is readonly
+                        f.write(f'        .Property("{property[0]}", &{name}::{property[1]}, true)\n')
+                    else:
+                        f.write(f'        .Property("{property[0]}", &{name}::{property[1]})\n')
                 f.write(f'    ;\n')
             f.write('}\n')
         f.write('}\n')
