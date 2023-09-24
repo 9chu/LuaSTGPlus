@@ -31,31 +31,38 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build Shipping
+      - name: Prepare
         run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32"
-
-      - name: Package Shipping Binary
-        run: |
-          cd build
+          mkdir cmake-build-x86
+          mkdir cmake-build-x64
           mkdir dist
-          copy src/v2/LuaSTGPlus2.exe dist/LuaSTGPlus2.exe
 
-      - name: Build Development
+      - name: Build x86 Shipping
         run: |
-          cd build
+          cd cmake-build-x86
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32"
+          copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x86.exe
+
+      - name: Build x86 Development
+        run: |
+          cd cmake-build-x86
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32" -DLSTG_SHIPPING=OFF
+          copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x86.dev.exe
 
-      - name: Package Development Binary
+      - name: Build x64 Shipping
         run: |
-          cd build
-          copy src/v2/LuaSTGPlus2.exe dist/LuaSTGPlus2.dev.exe
+          cd cmake-build-x64
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "x64"
+          copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x64.exe
+
+      - name: Build x64 Development
+        run: |
+          cd cmake-build-x64
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "x64" -DLSTG_SHIPPING=OFF
+          copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x64.dev.exe
 
       - uses: actions/upload-artifact@v3
         with:
           name: LuaSTGPlus2-${{ github.sha }}
           path: |
-            build/dist/LuaSTGPlus2.exe
-            build/dist/LuaSTGPlus2.dev.exe
+            build/dist/*.exe
