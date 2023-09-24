@@ -41,24 +41,28 @@ jobs:
         run: |
           cd cmake-build-x86
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32"
+          cmake -–build . -j
           copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x86.exe
 
       - name: Build x86 Development
         run: |
           cd cmake-build-x86
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32" -DLSTG_SHIPPING=OFF
+          cmake -–build . -j
           copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x86.dev.exe
 
       - name: Build x64 Shipping
         run: |
           cd cmake-build-x64
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "x64"
+          cmake -–build . -j
           copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x64.exe
 
       - name: Build x64 Development
         run: |
           cd cmake-build-x64
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "x64" -DLSTG_SHIPPING=OFF
+          cmake -–build . -j
           copy src/v2/RelWithDebInfo/LuaSTGPlus2.exe ../dist/LuaSTGPlus2_x64.dev.exe
 
       - uses: actions/upload-artifact@v3
