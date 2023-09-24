@@ -1,0 +1,60 @@
+name: Build Windows main executable
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - "**.c"
+      - "**.h"
+      - "**.hpp"
+      - "**.cpp"
+      - "**.cmake"
+      - "**.patch"
+      - "**.ico"
+      - "**.rc"
+      - "**.json"
+      - "**.hpp.in"
+      - "**.py"
+      - "**/CMakeLists.txt"
+  repository_dispatch:
+    types: [ update ]
+
+jobs:
+  build_windows_x86:
+    runs-on: windows-2022
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Check out
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build Shipping
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32"
+
+      - name: Package Shipping Binary
+        run: |
+          cd build
+          mkdir dist
+          copy src/v2/LuaSTGPlus2.exe dist/LuaSTGPlus2.exe
+
+      - name: Build Development
+        run: |
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Visual Studio 17 2022" -A "Win32" -DLSTG_SHIPPING=OFF
+
+      - name: Package Development Binary
+        run: |
+          cd build
+          copy src/v2/LuaSTGPlus2.exe dist/LuaSTGPlus2.dev.exe
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: LuaSTGPlus2-${{ github.sha }}
+          path: |
+            build/dist/LuaSTGPlus2.exe
+            build/dist/LuaSTGPlus2.dev.exe

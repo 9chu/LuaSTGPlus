@@ -3,16 +3,22 @@ name: Build Documentation Pages
 on:
   push:
     branches: [ master ]
+    paths:
+      - "doc/**.md"
+      - "doc/**.svg"
+      - "doc/**.png"
+      - "doc/package.json"
   repository_dispatch:
     types: [ update ]
 
 jobs:
-  build:
+  build_doc:
     runs-on: ubuntu-latest
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - name: Check out
+        uses: actions/checkout@v2
         with:
           submodules: recursive
           
