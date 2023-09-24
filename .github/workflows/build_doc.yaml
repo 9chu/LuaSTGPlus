@@ -1,4 +1,4 @@
-name: Build Documentation Pages
+name: Build Documents
 
 on:
   push:

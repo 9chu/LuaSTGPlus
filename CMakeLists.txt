@@ -84,6 +84,9 @@ endif()
 
 ### 全局编译选项（影响包含第三方库）
 set(CMAKE_CXX_STANDARD 17)
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+endif()
 if(LSTG_PLATFORM_EMSCRIPTEN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -s USE_SDL=0")

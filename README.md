@@ -8,6 +8,8 @@
 ![Stars](https://img.shields.io/github/stars/9chu/luastgplus?style=social)
 ![Forks](https://img.shields.io/github/forks/9chu/luastgplus?style=social)
 
+![Build Windows](https://github.com/9chu/LuaSTGPlus/actions/workflows/build_windows.yaml/badge.svg)
+
 **Working in progress**
 
 See **[documentation](https://luastg.github.io)** for more details.
