@@ -4,6 +4,7 @@ on:
   push:
     branches: [ master ]
     paths:
+      - ".github/workflows/build_doc.yaml"
       - "doc/**.md"
       - "doc/**.svg"
       - "doc/**.png"

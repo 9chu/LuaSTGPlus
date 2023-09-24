@@ -4,6 +4,7 @@ on:
   push:
     branches: [ master ]
     paths:
+      - ".github/workflows/build_windows.yaml"
       - "**.c"
       - "**.h"
       - "**.hpp"
