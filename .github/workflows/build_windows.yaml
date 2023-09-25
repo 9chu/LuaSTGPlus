@@ -45,7 +45,7 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Ninja"
           ninja -j 3
 
-      - name: Copy build output
+      - name: Copy shipping build output
         run: |
           copy cmake-build-x64\src\v2\LuaSTGPlus2.exe dist\LuaSTGPlus2.exe
 
@@ -57,12 +57,15 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Ninja" -DLSTG_SHIPPING=OFF
           ninja -j 3
 
-      - name: Copy build output
-        shell: pwsh
+      - name: Copy development build output
         run: |
           copy cmake-build-x64\src\v2\LuaSTGPlus2.exe dist\LuaSTGPlus2.dev.exe
+          
+      - name: Collect environment
+        shell: pwsh
+        run: |
           $PROJECT_TAG=git describe --tags --dirty --match "v*"
-          echo "PROJECT_TAG=$PROJECT_TAG" >> $GITHUB_ENV
+          Add-Content -Path $env:GITHUB_ENV -Value "PROJECT_TAG=$PROJECT_TAG"
           
       - uses: actions/upload-artifact@v3
         with:
