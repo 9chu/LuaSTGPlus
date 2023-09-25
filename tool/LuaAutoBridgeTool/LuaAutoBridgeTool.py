@@ -175,7 +175,7 @@ def _parse_native_method_name(line):
                 elif '0' <= ch <= '9':
                     state = 2
                 else:
-                    return line[i + 1 : index]
+                    return line[i + 1 : index].strip()
             elif state == 2:
                 if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
                     state = 1
@@ -232,7 +232,7 @@ def _parse_native_member_name(line):
                 elif '0' <= ch <= '9':
                     state = 2
                 else:
-                    return line[i + 1 : index]
+                    return line[i + 1 : index].strip()
             elif state == 2:
                 if ('a' <= ch <= 'z') or ('A' <= ch <= 'Z') or ch == '_':
                     state = 1
@@ -576,7 +576,7 @@ def main():
             properties = cls.get_properties()
             f.write(f'void LuaRegister(LuaClassRegister<{name}>& register_)\n')
             f.write('{\n')
-            if len(methods) == 0 and len(getters) == 0 and len(setters) == 0:
+            if len(methods) == 0 and len(getters) == 0 and len(setters) == 0 and len(properties) == 0:
                 f.write(f'    static_cast<void>(register_);\n')
             else:
                 f.write(f'    register_\n')
