@@ -58,11 +58,14 @@ jobs:
           ninja -j 3
 
       - name: Copy build output
+        shell: pwsh
         run: |
           copy cmake-build-x64\src\v2\LuaSTGPlus2.exe dist\LuaSTGPlus2.dev.exe
-
+          $PROJECT_TAG=git describe --tags --dirty --match "v*"
+          echo "PROJECT_TAG=$PROJECT_TAG" >> $GITHUB_ENV
+          
       - uses: actions/upload-artifact@v3
         with:
-          name: LuaSTGPlus2-${{ github.sha }}
+          name: LuaSTGPlus2-${{ env.PROJECT_TAG }}
           path: |
-            build/dist/*.exe
+             dist/*.exe
