@@ -22,7 +22,8 @@ on:
 
 jobs:
   build_windows:
-    runs-on: windows-2022
+    #runs-on: windows-2022
+    runs-on: self-hosted
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
