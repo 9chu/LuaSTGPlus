@@ -33,17 +33,29 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare
+        shell: pwsh
         run: |
+          # Set git tag
+          $PROJECT_TAG=git describe --tags --dirty --match "v*"
+          echo "PROJECT_TAG=$PROJECT_TAG" >> $GITHUB_ENV
+          # Find compiler
+          $VCVAR_PATH=vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "VC\**\vcvars64.bat"
+          if (-Not (Test-Path -Path "$VCVAR_PATH")) { Write-Error "VC++ compiler not found" -ErrorAction Stop }
+          echo "VCVAR_PATH=$VCVAR_PATH" >> $GITHUB_ENV
+          # Create CPM cache folder
+          mkdir /cpm_cache -ErrorAction SilentlyContinue
+          echo "CPM_SOURCE_CACHE=/cpm_cache" >> $GITHUB_ENV
+          # Create intermediate folders
           mkdir cmake-build-x64
           mkdir dist
 
       - name: Build x64 Shipping
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" x64
+          call "%VCVAR_PATH%" x64
           cd cmake-build-x64
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Ninja"
-          ninja -j 3
+          ninja -j %NUMBER_OF_PROCESSORS%
 
       - name: Copy build output
         run: |
@@ -52,17 +64,15 @@ jobs:
       - name: Build x64 Development
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" x64
+          call "%VCVAR_PATH%" x64
           cd cmake-build-x64
           cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "Ninja" -DLSTG_SHIPPING=OFF
-          ninja -j 3
+          ninja -j %NUMBER_OF_PROCESSORS%
 
       - name: Copy build output
         shell: pwsh
         run: |
           copy cmake-build-x64\src\v2\LuaSTGPlus2.exe dist\LuaSTGPlus2.dev.exe
-          $PROJECT_TAG=git describe --tags --dirty --match "v*"
-          echo "PROJECT_TAG=$PROJECT_TAG" >> $GITHUB_ENV
           
       - uses: actions/upload-artifact@v3
         with:
