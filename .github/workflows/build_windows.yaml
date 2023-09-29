@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare
-        shell: pwsh
+        shell: powershell
         run: |
           # Set git tag
           $PROJECT_TAG=git describe --tags --dirty --match "v*"
