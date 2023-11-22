@@ -11,7 +11,7 @@ if(LSTG_PLATFORM_LINUX)
 endif()
 
 set(LSTG_CORE_DEPS_PUBLIC fmt liblua-static glm::glm nlohmann_json)
-set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb freetype icuuc harfbuzz-icu freetype IcuData ryu SDL2_sound-static)
+set(LSTG_CORE_DEPS_PRIVATE spdlog SDL2-static imgui implot zlib-ng stb freetype icu_libsicuuc harfbuzz-icu freetype IcuData ryu SDL2_sound-static)
 if(LSTG_X11_ENABLE)
     list(APPEND LSTG_CORE_DEPS_PRIVATE X11::xcb X11::X11_xcb)
 endif()
