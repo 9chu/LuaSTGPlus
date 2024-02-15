@@ -411,8 +411,8 @@ void DebugGUISystem::OnEvent(SubsystemEvent& event) noexcept
         case SDL_KEYUP:
             UpdateKeyModifiers(io, static_cast<SDL_Keymod>(platformEvent->key.keysym.mod));
             t = static_cast<int>(SDLKeyCodeToImGui(platformEvent->key.keysym.sym));
-            io.AddKeyEvent(t, (platformEvent->type == SDL_KEYDOWN));
-            io.SetKeyEventNativeData(t, platformEvent->key.keysym.sym, platformEvent->key.keysym.scancode,
+            io.AddKeyEvent(static_cast<ImGuiKey>(t), (platformEvent->type == SDL_KEYDOWN));
+            io.SetKeyEventNativeData(static_cast<ImGuiKey>(t), platformEvent->key.keysym.sym, platformEvent->key.keysym.scancode,
                 platformEvent->key.keysym.scancode);
             break;
         case SDL_WINDOWEVENT:

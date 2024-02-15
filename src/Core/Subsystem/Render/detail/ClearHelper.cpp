@@ -66,10 +66,10 @@ ClearHelper::ClearHelper(RenderDevice* device)
     RefCntAutoPtr<IShader> vertexShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_VERTEX;
         shaderCreateInfo.Desc.Name = "Viewport Clear VS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         shaderCreateInfo.Source = kViewportClearVertexShaderHLSL;
         renderDevice->CreateShader(shaderCreateInfo, &vertexShader);
         if (!vertexShader)
@@ -79,10 +79,10 @@ ClearHelper::ClearHelper(RenderDevice* device)
     RefCntAutoPtr<IShader> pixelShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_PIXEL;
         shaderCreateInfo.Desc.Name = "Viewport Clear PS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         shaderCreateInfo.Source = kViewportClearPixelShaderHLSL;
         renderDevice->CreateShader(shaderCreateInfo, &pixelShader);
         if (!pixelShader)

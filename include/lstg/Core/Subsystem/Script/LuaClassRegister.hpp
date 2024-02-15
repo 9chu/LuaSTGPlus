@@ -36,8 +36,8 @@ namespace lstg::Subsystem::Script
             static int GetterWrapper(lua_State* L)
             {
                 // 获得成员偏移量
+                assert(!lua_isnoneornil(L, lua_upvalueindex(1)));
                 auto memberOffset = static_cast<ptrdiff_t>(lua_tointeger(L, lua_upvalueindex(1)));
-                assert(memberOffset);
 
                 // 获取对象指针
                 auto p = static_cast<detail::NativeObjectStorage<UqClass>*>(
@@ -60,8 +60,8 @@ namespace lstg::Subsystem::Script
             static int SetterWrapper(lua_State* L)
             {
                 // 获得成员偏移量
+                assert(!lua_isnoneornil(L, lua_upvalueindex(1)));
                 auto memberOffset = static_cast<ptrdiff_t>(lua_tointeger(L, lua_upvalueindex(1)));
-                assert(memberOffset);
 
                 // 获取对象指针
                 auto p = static_cast<detail::NativeObjectStorage<UqClass>*>(

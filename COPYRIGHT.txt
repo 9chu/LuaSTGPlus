@@ -173,12 +173,10 @@ Comment: https://github.com/nlohmann/json
 Copyright: 2013-2022, Niels Lohmann.
 License: Expat
 
-Files: ./*/_deps/ryu-src/
-Comment: https://github.com/ulfjack/ryu
-Copyright: Ulf Adams.
- Stephan T. Lavavej.
- Alexander Bolz.
-License: Boost-1
+Files: ./*/_deps/double-conversion-src/
+Comment: https://github.com/google/double-conversion
+Copyright: Copyright 2012 the V8 project authors.
+License: BSD-3-clause
 
 Files: ./*/_deps/sdl2-src/
 Comment: https://github.com/libsdl-org/SDL

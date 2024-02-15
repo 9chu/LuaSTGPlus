@@ -42,7 +42,7 @@ Result<void> SoundAssetLoader::PreLoad() noexcept
     auto stream = AssetSystem::GetInstance().OpenAssetStream(asset->GetPath());
     if (!stream)
     {
-        LSTG_LOG_ERROR_CAT(SoundAssetLoader, "Open asset stream from \"{}\" fail: {}", asset->GetPath(), stream.GetError());
+        LSTG_LOG_ERROR_CAT(SoundAssetLoader, "Open asset stream from \"{}\" fail: {}", asset->GetPath(), stream.GetError().value());
         SetState(AssetLoadingStates::Error);
         return stream.GetError();
     }
@@ -68,7 +68,7 @@ Result<void> SoundAssetLoader::AsyncLoad() noexcept
     auto ret = Audio::CreateMemorySoundData(std::move(m_pSourceStream));  // Stream 在使用后自动关闭
     if (!ret)
     {
-        LSTG_LOG_ERROR_CAT(SoundAssetLoader, "Load sound data from \"{}\" fail: {}", asset->GetPath(), ret);
+        LSTG_LOG_ERROR_CAT(SoundAssetLoader, "Load sound data from \"{}\" fail: {}", asset->GetPath(), ret.GetError().value());
         SetState(AssetLoadingStates::Error);
         return ret.GetError();
     }

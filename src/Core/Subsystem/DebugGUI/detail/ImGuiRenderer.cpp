@@ -398,10 +398,10 @@ void ImGuiRenderer::CreateDeviceObjects()
     RefCntAutoPtr<IShader> vertexShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_VERTEX;
         shaderCreateInfo.Desc.Name = "ImGui VS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         switch (deviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
@@ -422,7 +422,7 @@ void ImGuiRenderer::CreateDeviceObjects()
                 break;
             default:
                 assert(false);
-                LSTG_THROW(ImGuiRendererInitializeFailedException, "Unknown device {}", deviceType);
+                LSTG_THROW(ImGuiRendererInitializeFailedException, "Unknown device {}", static_cast<int>(deviceType));
         }
         renderDevice->CreateShader(shaderCreateInfo, &vertexShader);
         if (!vertexShader)
@@ -432,10 +432,10 @@ void ImGuiRenderer::CreateDeviceObjects()
     RefCntAutoPtr<IShader> pixelShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_PIXEL;
         shaderCreateInfo.Desc.Name = "ImGui PS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         switch (deviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
@@ -456,7 +456,7 @@ void ImGuiRenderer::CreateDeviceObjects()
                 break;
             default:
                 assert(false);
-                LSTG_THROW(ImGuiRendererInitializeFailedException, "Unknown device {}", deviceType);
+                LSTG_THROW(ImGuiRendererInitializeFailedException, "Unknown device {}", static_cast<int>(deviceType));
         }
         renderDevice->CreateShader(shaderCreateInfo, &pixelShader);
         if (!pixelShader)

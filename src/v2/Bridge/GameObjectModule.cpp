@@ -6,7 +6,9 @@
  */
 #include <lstg/v2/Bridge/GameObjectModule.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
+
 #include <lstg/Core/Logging.hpp>
 #include <lstg/v2/GamePlay/GameWorld.hpp>
 #include <lstg/v2/GamePlay/Components/Transform.hpp>

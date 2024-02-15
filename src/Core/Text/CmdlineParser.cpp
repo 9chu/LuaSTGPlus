@@ -7,7 +7,7 @@
 #include <lstg/Core/Text/CmdlineParser.hpp>
 
 #include <cstring>
-#include <ryu/ryu_parse.h>
+#include <double-conversion/string-to-double.h>
 
 using namespace std;
 using namespace lstg;
@@ -18,11 +18,22 @@ Result<float> Text::detail::CmdlineArgumentConverter<float>::operator()(const Ar
     if (argument.Type != ArgumentTypes::OptionWithValue)
         return make_error_code(std::errc::invalid_argument);
 
-    float ret = 0.f;
-    auto ec = s2f_n(argument.Value.c_str(), static_cast<int>(argument.Value.size()), &ret);
-    if (ec == SUCCESS)
-        return ret;
-    return make_error_code(std::errc::invalid_argument);
+    double_conversion::StringToDoubleConverter converter {
+        double_conversion::StringToDoubleConverter::ALLOW_LEADING_SPACES |
+        double_conversion::StringToDoubleConverter::ALLOW_TRAILING_SPACES |
+        double_conversion::StringToDoubleConverter::ALLOW_SPACES_AFTER_SIGN |
+        double_conversion::StringToDoubleConverter::ALLOW_CASE_INSENSITIVITY,
+        0,
+        numeric_limits<double>::quiet_NaN(),
+        "infinity",
+        "nan"
+    };
+
+    int processedCount = 0;
+    float ret = converter.StringToFloat(argument.Value.c_str(), static_cast<int>(argument.Value.size()), &processedCount);
+    if (processedCount == 0)
+        return make_error_code(std::errc::invalid_argument);
+    return ret;
 }
 
 Result<double> Text::detail::CmdlineArgumentConverter<double>::operator()(const Argument& argument) noexcept
@@ -30,11 +41,22 @@ Result<double> Text::detail::CmdlineArgumentConverter<double>::operator()(const 
     if (argument.Type != ArgumentTypes::OptionWithValue)
         return make_error_code(std::errc::invalid_argument);
 
-    double ret = 0.;
-    auto ec = s2d_n(argument.Value.c_str(), static_cast<int>(argument.Value.size()), &ret);
-    if (ec == SUCCESS)
-        return ret;
-    return make_error_code(std::errc::invalid_argument);
+    double_conversion::StringToDoubleConverter converter {
+        double_conversion::StringToDoubleConverter::ALLOW_LEADING_SPACES |
+        double_conversion::StringToDoubleConverter::ALLOW_TRAILING_SPACES |
+        double_conversion::StringToDoubleConverter::ALLOW_SPACES_AFTER_SIGN |
+        double_conversion::StringToDoubleConverter::ALLOW_CASE_INSENSITIVITY,
+        0,
+        numeric_limits<double>::quiet_NaN(),
+        "infinity",
+        "nan"
+    };
+
+    int processedCount = 0;
+    double ret = converter.StringToDouble(argument.Value.c_str(), static_cast<int>(argument.Value.size()), &processedCount);
+    if (processedCount == 0)
+        return make_error_code(std::errc::invalid_argument);
+    return ret;
 }
 
 const Text::detail::Argument& CmdlineParser::operator[](size_t index) const noexcept
