@@ -1,303 +1,6 @@
-### 第三方依赖定义
-
-## CPM 包管理器
-
-set(CPM_DOWNLOAD_VERSION 0.34.3)
-set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-
-if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
-    message(STATUS "Downloading CPM.cmake")
-    file(DOWNLOAD
-        https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-        ${CPM_DOWNLOAD_LOCATION})
-endif()
-
-include(${CPM_DOWNLOAD_LOCATION})
-
-## 第三方依赖
-
-# icu4c
-CPMAddPackage(
-    NAME icu
-    GITHUB_REPOSITORY GameDevDeps/icu4c
-    GIT_TAG icu-release_73_2
-)
-if(${icu_ADDED})
-    find_package(Python3 COMPONENTS Interpreter)
-    if(NOT Python3_Interpreter_FOUND)
-        message(FATAL_ERROR "Python3 is required to build data")
-    endif()
-
-    icu_generate_data(TARGET icu_data
-        WORKING_DIR "${CMAKE_CURRENT_BINARY_DIR}/icudata/tmp"
-        OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/icudata"
-        FILENAME_OUT ICU_DATA_FILENAME
-        FILTER "brkitr/*")
-
-    add_custom_command(
-        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/icudata/"
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/BinaryToCode/BinaryToCode.py
-            -i "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}"
-            -n "kIcuDataContent"
-            -o "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp"
-        DEPENDS icu_data
-        COMMENT "Converting icu data"
-        VERBATIM)
-    add_library(IcuData STATIC "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp")
-endif()
-
-# libfmt
-CPMAddPackage(
-    NAME fmt
-    GITHUB_REPOSITORY fmtlib/fmt
-    GIT_TAG 8.1.1
-)
-
-# spdlog
-CPMAddPackage(
-    NAME spdlog
-    GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.9.2
-    OPTIONS
-        "SPDLOG_FMT_EXTERNAL ON"
-        "SPDLOG_WCHAR_FILENAMES ON"
-)
-
-# zlib-ng
-if(LSTG_PLATFORM_EMSCRIPTEN)
-    CPMAddPackage(
-        NAME zlib-ng
-        GITHUB_REPOSITORY 9chu/zlib-ng
-        GIT_TAG patch_name_merge_wasm32
-        OPTIONS
-            "ZLIB_ENABLE_TESTS OFF"
-            "BUILD_SHARED_LIBS OFF"
-            "CMAKE_C_COMPILER_TARGET wasm32"
-            "ZLIB_COMPAT OFF"
-    )
-else()
-    CPMAddPackage(
-        NAME zlib-ng
-        GITHUB_REPOSITORY 9chu/zlib-ng
-        GIT_TAG patch_name_merge_wasm32
-        OPTIONS
-            "ZLIB_ENABLE_TESTS OFF"
-            "BUILD_SHARED_LIBS OFF"
-            "ZLIB_COMPAT OFF"
-    )
-endif()
-
-# SDL
-CPMAddPackage(
-    NAME sdl2
-    GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG release-2.28.2
-    # GIT_TAG main
-    PATCH_COMMAND git restore cmake/sdlchecks.cmake src/core/android/SDL_android.c
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl2-sdlchecks-patch.patch
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl_android-patch.patch
-    OPTIONS
-        "SDL2_DISABLE_UNINSTALL ON"
-        "SDL_ATOMIC OFF"
-        "SDL_RENDER OFF"
-        "SDL_POWER OFF"
-        "SDL_SENSOR OFF"
-        "SDL_LOCALE OFF"
-        "SDL_MISC OFF"
-        "SDL_TEST OFF"
-)
-
-# lua or luajit
-if(LSTG_PLATFORM_EMSCRIPTEN)
-    CPMAddPackage(
-        NAME lua
-        GITHUB_REPOSITORY 9chu/lua
-        GIT_TAG lua-5.1-emscripten
-    )
-    if(${lua_ADDED})
-        add_library(liblua-static ALIAS liblua_static)  # 与 luajit 保持相同
-    endif()
-
-    CPMAddPackage(
-        NAME luabitop
-        GITHUB_REPOSITORY LuaDist/luabitop
-        GIT_TAG master
-        DOWNLOAD_ONLY ON
-    )
-    if(${luabitop_ADDED})
-        add_library(luabitop STATIC ${luabitop_SOURCE_DIR}/bit.c)
-        target_link_libraries(luabitop PUBLIC liblua-static)
-    endif()
-else()
-    CPMAddPackage(
-        NAME luajit
-        GITHUB_REPOSITORY 9chu/LuaJIT-cmake
-        GIT_TAG master
-        OPTIONS
-            "LUAJIT_DISABLE_FFI ON"
-            "LUAJIT_DISABLE_BUFFER ON"
-    )
-endif()
-get_target_property(LUA_INCLUDE_DIR liblua-static INCLUDE_DIRECTORIES)
-get_target_property(LUA_INCLUDE_DIR_INTERFACE liblua-static INTERFACE_INCLUDE_DIRECTORIES)
-list(APPEND LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_INTERFACE})
-get_target_property(LUA_BUILD_DIR liblua-static BINARY_DIR)
-list(JOIN LUA_INCLUDE_DIR "\\\\;" LUA_INCLUDE_DIR_ESCAPED)
-
-# imgui
-CPMAddPackage(
-    NAME imgui
-    GITHUB_REPOSITORY ocornut/imgui
-    VERSION 1.87
-    DOWNLOAD_ONLY ON
-)
-if(${imgui_ADDED})
-    file(GLOB imgui_SOURCES ${imgui_SOURCE_DIR}/*.cpp)
-    add_library(imgui STATIC ${imgui_SOURCES})
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-endif()
-
-CPMAddPackage(
-    NAME implot
-    GITHUB_REPOSITORY epezent/implot
-    VERSION 0.13
-    DOWNLOAD_ONLY ON
-)
-if(${implot_ADDED})
-    file(GLOB implot_SOURCES ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp)
-    add_library(implot STATIC ${implot_SOURCES})
-    target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
-    target_link_libraries(implot PUBLIC imgui)
-endif()
-
-# DiligentCore
-CPMAddPackage(
-    NAME DiligentCore
-    GITHUB_REPOSITORY DiligentGraphics/DiligentCore
-    VERSION 2.5.2
-    PATCH_COMMAND git restore Graphics/HLSL2GLSLConverterLib/src/HLSL2GLSLConverterImpl.cpp
-    COMMAND git restore Graphics/GraphicsEngineVulkan/src/VulkanUtilities/VulkanInstance.cpp
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-std-move-patch.patch
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/diligent-vk-device-select-patch.patch
-)
-
-# glm
-CPMAddPackage(
-    NAME glm
-    GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 0.9.9.8
-)
-if(${glm_ADDED})
-    # 我们使用 DX 左手系，深度范围 [0, 1]，这里需要额外给 glm 设置编译选项
-    target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=1 GLM_FORCE_LEFT_HANDED=1)
-endif()
-
-# stb
-CPMAddPackage(
-    NAME stb
-    GITHUB_REPOSITORY nothings/stb
-    GIT_TAG master
-    DOWNLOAD_ONLY ON
-)
-if(${stb_ADDED})
-    file(GLOB stb_SOURCES ${stb_SOURCE_DIR}/*.c)
-    add_library(stb STATIC ${stb_SOURCES})
-    target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
-endif()
-
-# lua-cjson
-CPMAddPackage(
-    NAME lua-cjson
-    GITHUB_REPOSITORY 9chu/lua-cjson
-    GIT_TAG patch-static-link
-    OPTIONS
-        "STATIC_LINK ON"
-        "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR_ESCAPED}"
-        "LUA_LIBRARY ${LUA_BUILD_DIR}"
-        "ENABLE_CJSON_GLOBAL ON"
-)
-
-# nlohmann/json
-CPMAddPackage(
-    NAME nlohmann_json
-    GITHUB_REPOSITORY nlohmann/json
-    VERSION 3.10.5
-)
-
-# freetype
-CPMAddPackage(
-    NAME freetype
-    GITHUB_REPOSITORY freetype/freetype
-    GIT_TAG VER-2-12-1
-    OPTIONS
-        "CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz TRUE"
-)
-
-# harfbuzz
-CPMAddPackage(
-    NAME harfbuzz
-    GITHUB_REPOSITORY 9chu/harfbuzz
-    GIT_TAG patch-cmake  # 4.3.0
-    OPTIONS
-        "SKIP_INSTALL_ALL ON"
-        "HB_BUILD_SUBSET OFF"
-)
-if(${harfbuzz_ADDED})
-    # 手动增加 harfbuzz-icu 目标
-    add_library(harfbuzz-icu ${harfbuzz_SOURCE_DIR}/src/hb-icu.cc ${harfbuzz_SOURCE_DIR}/src/hb-icu.h)
-    add_dependencies(harfbuzz-icu harfbuzz)
-    target_link_libraries(harfbuzz-icu harfbuzz icu_libsicuuc)
-    target_compile_definitions(harfbuzz-icu PUBLIC -DHAVE_ICU -DHAVE_ICU_BUILTIN -DHB_NO_UCD -DHB_NO_DRAW)
-endif()
-
-# ryu
-CPMAddPackage(
-    NAME ryu
-    GITHUB_REPOSITORY ulfjack/ryu
-    GIT_TAG master
-    DOWNLOAD_ONLY ON
-)
-if(${ryu_ADDED})
-    # file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
-    add_library(ryu STATIC ${ryu_SOURCE_DIR}/ryu/d2fixed.c ${ryu_SOURCE_DIR}/ryu/d2s.c ${ryu_SOURCE_DIR}/ryu/f2s.c
-        ${ryu_SOURCE_DIR}/ryu/s2d.c ${ryu_SOURCE_DIR}/ryu/s2f.c)
-    target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
-endif()
-
-# mojoAL
-if(NOT LSTG_PLATFORM_EMSCRIPTEN)
-    CPMAddPackage(
-        NAME mojoal
-        GITHUB_REPOSITORY icculus/mojoAL
-        GIT_TAG main
-        DOWNLOAD_ONLY ON
-    )
-    if(${mojoal_ADDED})
-        add_library(mojoal STATIC ${mojoal_SOURCE_DIR}/mojoal.c)
-        target_include_directories(mojoal PUBLIC ${mojoal_SOURCE_DIR}/AL)
-        target_link_libraries(mojoal PRIVATE SDL2-static)
-        target_compile_definitions(mojoal PUBLIC AL_LIBTYPE_STATIC)
-    endif()
-endif()
-
-# SDL_sound
-CPMAddPackage(
-    NAME sdl_sound
-    GITHUB_REPOSITORY icculus/SDL_sound
-    VERSION 2.0.1
-    PATCH_COMMAND git restore CMakeLists.txt src/SDL_sound.c
-    COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patch/sdl_sound-patch.patch
-    OPTIONS
-        "SDLSOUND_BUILD_TEST OFF"
-        "SDLSOUND_BUILD_SHARED OFF"
-)
-if(${sdl_sound_ADDED})
-    target_include_directories(SDL2_sound-static PUBLIC ${sdl_sound_SOURCE_DIR}/src)
-    target_link_libraries(SDL2_sound-static SDL2-static)
-endif()
-
-### 优化 IDE 展示
+################################################################################
+# External dependencies
+################################################################################
 
 # 将第三方依赖合并到指定文件夹，优化 IDE 中展示
 function(lstg_group_deps_into_ide_folder)
@@ -312,83 +15,330 @@ function(lstg_group_deps_into_ide_folder)
     endforeach()
 endfunction()
 
-# FIXME: 优化下列三方依赖分类
+################################################################################
+# CPM Package manager
+################################################################################
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/SDL2"
-    TARGETS
-        sdl_headers_copy
-        SDL2
-        SDL2main
-        SDL2-static
-        mojoal
-        SDL2_sound-static
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM.cmake")
+if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.38.3/CPM.cmake ${CPM_DOWNLOAD_LOCATION}
+        EXPECTED_HASH SHA256=cc155ce02e7945e7b8967ddfaff0b050e958a723ef7aad3766d368940cb15494)
+endif()
+include(${CPM_DOWNLOAD_LOCATION})
+
+################################################################################
+# Core dependencies
+################################################################################
+
+# icu4c
+CPMAddPackage(
+    NAME icu
+    GITHUB_REPOSITORY GameDevDeps/icu4c
+    GIT_TAG icu/release-73-2
+)
+if(${icu_ADDED})
+    find_package(Python3 COMPONENTS Interpreter)
+    if(NOT Python3_Interpreter_FOUND)
+        message(FATAL_ERROR "Python3 is required to build ICU data")
+    endif()
+
+    icu_generate_data(TARGET lstg.IcuDataBuild
+        WORKING_DIR "${CMAKE_CURRENT_BINARY_DIR}/icudata/tmp"
+        OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/icudata"
+        FILENAME_OUT ICU_DATA_FILENAME
+        FILTER "brkitr/*")
+
+    add_custom_command(
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/icudata/"
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tool/BinaryToCode/BinaryToCode.py
+            -i "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}"
+            -n "kIcuDataContent"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp"
+        DEPENDS lstg.IcuDataBuild
+        COMMENT "Converting icu data"
+        VERBATIM)
+    add_library(lstg.IcuData STATIC "${CMAKE_CURRENT_BINARY_DIR}/icudata/${ICU_DATA_FILENAME}.cpp")
+    add_library(lstg::IcuData ALIAS lstg.IcuData)
+endif()
+
+# libfmt
+CPMAddPackage(
+    NAME fmt
+    GITHUB_REPOSITORY GameDevDeps/fmt
+    GIT_TAG fmt/10.2.1
 )
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/imgui"
-    TARGETS
-        imgui
-        implot
+# spdlog
+CPMAddPackage(
+    NAME spdlog
+    GITHUB_REPOSITORY GameDevDeps/spdlog
+    GIT_TAG spdlog/v1.13.0
 )
 
-if(LSTG_PLATFORM_EMSCRIPTEN)
-    lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
-        TARGETS
-            liblua_static
-            luabitop
-            cjson
-    )
-else()
-    lstg_group_deps_into_ide_folder(FOLDER "deps/lua"
-        TARGETS
-            minilua
-            buildvm
-            liblua-shared
-            liblua-static
-            lua
-            lua-static
-            cjson
+# zlib-ng
+CPMAddPackage(
+    NAME zlib
+    GITHUB_REPOSITORY GameDevDeps/zlib-ng
+    GIT_TAG zlib-ng/2.1.5
+)
+
+# glm
+# TODO: enable GLM_ENABLE_SIMD_SSE3 as default when targeting x86/64
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY GameDevDeps/glm
+    GIT_TAG glm/1.0.0
+    OPTIONS
+        "GLM_DISABLE_AUTO_DETECTION ON"
+        "GLM_FORCE_DEPTH_ZERO_TO_ONE ON"
+        "GLM_FORCE_LEFT_HANDED ON"
+)
+
+# nlohmann/json
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY GameDevDeps/nlohmann_json
+    GIT_TAG json/v3.11.3
+)
+
+# ryu
+# TODO: switch to Google/double-conversion
+CPMAddPackage(
+    NAME ryu
+    GITHUB_REPOSITORY ulfjack/ryu
+    GIT_TAG master
+    DOWNLOAD_ONLY ON
+)
+if(${ryu_ADDED})
+    # file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
+    add_library(ryu STATIC ${ryu_SOURCE_DIR}/ryu/d2fixed.c ${ryu_SOURCE_DIR}/ryu/d2s.c ${ryu_SOURCE_DIR}/ryu/f2s.c
+            ${ryu_SOURCE_DIR}/ryu/s2d.c ${ryu_SOURCE_DIR}/ryu/s2f.c)
+    target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
+endif()
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/Core"
+    TARGETS
+        icu.prepare_genbrk
+        icu.prepare_gencfu
+        icu.prepare_gencnval
+        icu.prepare_gendict
+        icu.prepare_genrb
+        icu.prepare_gensprep
+        icu.prepare_icupkg
+        icu.prepare_makeconv
+        icu.prepare_pkgdata
+        icu.libsicuuc
+        icu.libsicuin
+        icu.libsicuio
+        icu.libsicutu
+        icu.libsicudata
+        icu.genbrk
+        icu.gencfu
+        icu.gencnval
+        icu.gendict
+        icu.genrb
+        icu.gensprep
+        icu.icupkg
+        icu.makeconv
+        icu.pkgdata
+        fmt.fmt
+        spdlog.spdlog
+        zlibng.zlib
+        glm.glm
+        nlohmann_json.nlohmann_json
+        brotli.brotli
+        brotli.brotlicommon
+        brotli.brotlidec
+        brotli.brotlienc
+        bzip2.bz2
+        bzip2.bzip2
+        bzip2.bzip2recover
+        ryu
+)
+
+################################################################################
+# Platform dependencies
+################################################################################
+
+# SDL
+CPMAddPackage(
+    NAME sdl
+    GITHUB_REPOSITORY GameDevDeps/SDL
+    GIT_TAG SDL/release-2.30.0
+    OPTIONS
+        "SDL_ATOMIC OFF"
+        "SDL_RENDER OFF"
+        "SDL_POWER OFF"
+        "SDL_SENSOR OFF"
+        "SDL_LOCALE OFF"
+        "SDL_MISC OFF"
+        "SDL_TEST OFF"
+)
+
+# DiligentCore
+CPMAddPackage(
+    NAME DiligentCore
+    GITHUB_REPOSITORY DiligentGraphics/DiligentCore
+    VERSION 2.5.4
+    OPTIONS
+        "DILIGENT_CLANG_COMPILE_OPTIONS "
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/Platform"
+    TARGETS
+        sdl2.SDL2-static
+        sdl2.SDL2main
+        sdl2.sdl_headers_copy
+)
+
+################################################################################
+# Graphics dependencies
+################################################################################
+
+# imgui
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY GameDevDeps/imgui
+    GIT_TAG imgui/v1.90.2
+)
+
+# implot
+CPMAddPackage(
+    NAME implot
+    GITHUB_REPOSITORY GameDevDeps/implot
+    GIT_TAG implot/v0.16
+)
+
+# stb
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY GameDevDeps/stb
+    GIT_TAG stb/b7cf124
+)
+
+# freetype
+CPMAddPackage(
+    NAME freetype
+    GITHUB_REPOSITORY GameDevDeps/freetype
+    GIT_TAG freetype/v2.13.2
+)
+
+# harfbuzz
+CPMAddPackage(
+    NAME harfbuzz
+    GITHUB_REPOSITORY GameDevDeps/harfbuzz
+    GIT_TAG harfbuzz/8.3.0
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/Graphics"
+    TARGETS
+        imgui.imgui
+        implot.implot
+        stb.stb
+        freetype.freetype
+        harfbuzz.harfbuzz
+        harfbuzz.harfbuzz-icu
+        harfbuzz.harfbuzz-subset
+        libpng.png_genfiles
+        libpng.png_genprebuilt
+        libpng.png_gensym
+        libpng.png_genvers
+        libpng.png_scripts_intprefix_out
+        libpng.png_scripts_pnglibconf_c
+        libpng.png_scripts_prefix_out
+        libpng.png_scripts_sym_out
+        libpng.png_scripts_symbols_chk
+        libpng.png_scripts_symbols_out
+        libpng.png_scripts_vers_out
+        libpng.png_static
+        libpng.pnglibconf_c
+        libpng.pnglibconf_h
+        libpng.pnglibconf_out
+        libpng.pngprefix_h
+)
+
+################################################################################
+# Audio dependencies
+################################################################################
+
+# mojoAL
+if(NOT LSTG_PLATFORM_EMSCRIPTEN)
+    CPMAddPackage(
+        NAME mojoal
+        GITHUB_REPOSITORY GameDevDeps/mojoAL
+        GIT_TAG mojoAL/1adfdf5
     )
 endif()
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/compose"
-    TARGETS
-        freetype
-        harfbuzz
-        harfbuzz-icu
+# SDL_sound
+CPMAddPackage(
+    NAME sdl_sound
+    GITHUB_REPOSITORY GameDevDeps/SDL_sound
+    GIT_TAG SDL_sound/v2.0.2
 )
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/misc"
+lstg_group_deps_into_ide_folder(FOLDER "deps/Audio"
     TARGETS
-        fmt
-        ryu
-        spdlog
-        stb
-        zlib-ng
+        mojoal.mojoal
+        sdl_sound.SDL2_sound-static
 )
 
-lstg_group_deps_into_ide_folder(FOLDER "deps/icu"
+################################################################################
+# Scripting dependencies
+################################################################################
+
+# lua or luajit
+if(LSTG_PLATFORM_EMSCRIPTEN)
+    CPMAddPackage(
+        NAME lua51
+        GITHUB_REPOSITORY GameDevDeps/lua51
+        GIT_TAG lua/5.1.5
+    )
+
+    CPMAddPackage(
+        NAME luabitop
+        GITHUB_REPOSITORY GameDevDeps/luabitop
+        GIT_TAG luabitop/1.0.2
+    )
+
+    add_library(lstg::liblua-static ALIAS lua51.liblua-static)
+else()
+    CPMAddPackage(
+        NAME luajit
+        GITHUB_REPOSITORY GameDevDeps/luajit
+        GIT_TAG luajit2/v2.1-20231117
+        OPTIONS
+            "LUAJIT_DISABLE_FFI ON"
+            "LUAJIT_DISABLE_BUFFER ON"
+    )
+
+    add_library(lstg::liblua-static ALIAS luajit.liblua-static)
+endif()
+
+# lua-cjson
+CPMAddPackage(
+    NAME lua-cjson
+    GITHUB_REPOSITORY GameDevDeps/lua-cjson
+    GIT_TAG lua-cjson/2.1.0.13
+    OPTIONS
+        "LUA_LIBRARY_TARGET lstg::liblua-static"
+        "ENABLE_CJSON_GLOBAL ON"
+)
+
+lstg_group_deps_into_ide_folder(FOLDER "deps/Scripting"
     TARGETS
-        icu_libsicuuc
-        icu_libsicuin
-        icu_libsicuio
-        icu_libsicutu
-        IcuData
-        icu_gencnval
-        icu_gencfu
-        icu_makeconv
-        icu_genbrk
-        icu_gensprep
-        icu_gendict
-        icu_icupkg
-        icu_genrb
-        icu_pkgdata
-        icu_prepare_gencnval
-        icu_prepare_gencfu
-        icu_prepare_makeconv
-        icu_prepare_genbrk
-        icu_prepare_gensprep
-        icu_prepare_gendict
-        icu_prepare_icupkg
-        icu_prepare_genrb
-        icu_prepare_pkgdata
+        lua51.liblua
+        lua51.liblua-static
+        lua51.lua
+        lua51.wlua
+        lua51.luac
+        luabitop.luabitop-static
+        luajit.liblua
+        luajit.liblua-static
+        luajit.lua
+        luajit.lua-static
+        luajit.buildvm
+        luajit.minilua
+        luacjson.cjson
 )

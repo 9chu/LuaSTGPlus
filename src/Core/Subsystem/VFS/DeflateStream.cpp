@@ -113,7 +113,7 @@ Result<void> DeflateStream::Write(const uint8_t* buffer, size_t length) noexcept
     {
         z->avail_out = sizeof(m_stChunk);
         z->next_out = m_stChunk;
-        auto ret = ::zng_deflate(z, Z_NO_FLUSH);
+        auto ret = ::deflate(z, Z_NO_FLUSH);
         static_cast<void>(ret);
         assert(ret != Z_STREAM_ERROR);
 
@@ -161,7 +161,7 @@ Result<void> DeflateStream::Finish() noexcept
     {
         z->avail_out = sizeof(m_stChunk);
         z->next_out = m_stChunk;
-        auto ret = ::zng_deflate(z, Z_FINISH);
+        auto ret = ::deflate(z, Z_FINISH);
 
         // 写出
         auto have = sizeof(m_stChunk) - z->avail_out;

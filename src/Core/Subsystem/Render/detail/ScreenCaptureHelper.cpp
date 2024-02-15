@@ -226,7 +226,7 @@ Result<void> ScreenCaptureHelper::CopyFromTexture(const Diligent::TextureDesc& d
             outputFormat = Texture2DFormats::R16G16B16A16;
             break;
         default:
-            LSTG_LOG_ERROR_CAT(ScreenCaptureHelper, "Unknown back buffer format {}", desc.Format);
+            LSTG_LOG_ERROR_CAT(ScreenCaptureHelper, "Unknown back buffer format {}", static_cast<int>(desc.Format));
             return make_error_code(errc::invalid_argument);
     }
 

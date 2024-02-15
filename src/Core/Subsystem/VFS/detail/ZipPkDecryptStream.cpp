@@ -6,7 +6,7 @@
  */
 #include "ZipPkDecryptStream.hpp"
 
-#include <zlib-ng.h>
+#include <zlib.h>
 #include "ZipFileReadError.hpp"
 
 using namespace std;
@@ -151,14 +151,14 @@ Result<StreamPtr> ZipPkDecryptStream::Clone() const noexcept
 void ZipPkDecryptStream::PkCryptUpdateKeys(uint8_t c) noexcept
 {
     uint8_t buf = c;
-    m_uKeys[0] = static_cast<uint32_t>(~::zng_crc32(static_cast<uint32_t>(~m_uKeys[0]), &buf, 1));
+    m_uKeys[0] = static_cast<uint32_t>(~::crc32(static_cast<uint32_t>(~m_uKeys[0]), &buf, 1));
 
     m_uKeys[1] += m_uKeys[0] & 0xFF;
     m_uKeys[1] *= 134775813u;
     m_uKeys[1] += 1;
 
     buf = static_cast<uint8_t>(m_uKeys[1] >> 24u);
-    m_uKeys[2] = static_cast<uint32_t>(~::zng_crc32(static_cast<uint32_t>(~m_uKeys[2]), &buf, 1));
+    m_uKeys[2] = static_cast<uint32_t>(~::crc32(static_cast<uint32_t>(~m_uKeys[2]), &buf, 1));
 }
 
 uint8_t ZipPkDecryptStream::DecodeByte(uint8_t c) noexcept

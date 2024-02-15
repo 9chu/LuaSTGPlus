@@ -75,10 +75,10 @@ GammaCorrectHelper::GammaCorrectHelper(RenderDevice* device)
     RefCntAutoPtr<IShader> vertexShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_VERTEX;
         shaderCreateInfo.Desc.Name = "Gamma Correct VS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         shaderCreateInfo.Source = kGammaCorrectPostEffectVertexShaderHLSL;
         renderDevice->CreateShader(shaderCreateInfo, &vertexShader);
         if (!vertexShader)
@@ -88,10 +88,10 @@ GammaCorrectHelper::GammaCorrectHelper(RenderDevice* device)
     RefCntAutoPtr<IShader> pixelShader;
     {
         ShaderCreateInfo shaderCreateInfo;
-        shaderCreateInfo.UseCombinedTextureSamplers = true;
         shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
         shaderCreateInfo.Desc.ShaderType = SHADER_TYPE_PIXEL;
         shaderCreateInfo.Desc.Name = "Gamma Correct PS";
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         shaderCreateInfo.Source = kGammaCorrectPostEffectPixelShaderHLSL;
         renderDevice->CreateShader(shaderCreateInfo, &pixelShader);
         if (!pixelShader)

@@ -225,14 +225,13 @@ Result<GraphDef::ImmutableShaderDefinitionPtr> EffectFactory::CompileShader(cons
             ci.Source = source.c_str();
             ci.SourceLength = source.length();
             ci.EntryPoint = ret->GetEntry().c_str();
-            ci.UseCombinedTextureSamplers = true;
-            ci.CombinedSamplerSuffix = "Sampler";
+            ci.Desc.UseCombinedTextureSamplers = true;
+            ci.Desc.CombinedSamplerSuffix = "Sampler";
             ci.Desc.Name = ret->GetName().c_str();
             ci.Desc.ShaderType = (ret->GetType() == GraphDef::ShaderDefinition::ShaderTypes::VertexShader ?
                 Diligent::SHADER_TYPE_VERTEX : Diligent::SHADER_TYPE_PIXEL);
             ci.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
-            ci.ppCompilerOutput = &compilerOutputBlob;
-            device->CreateShader(ci, &shaderOutput);
+            device->CreateShader(ci, &shaderOutput, &compilerOutputBlob);
 
             string_view compilerOutput = compilerOutputBlob ? reinterpret_cast<const char*>(compilerOutputBlob->GetConstDataPtr()) : "";
             string_view generatedSource = compilerOutputBlob ?

@@ -1,7 +1,7 @@
 ### 生成版本号信息
 
 find_package(Git)
-add_custom_target(LuaSTGPlus2Version
+add_custom_target(lstg.PlusV2Version
     ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_SOURCE_DIR}/Version.hpp.in
     -D DST=${CMAKE_CURRENT_BINARY_DIR}/Version.hpp
     -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
@@ -40,19 +40,26 @@ endif()
 
 # 目标
 if(LSTG_PLATFORM_WIN32)
-    add_executable(LuaSTGPlus2 WIN32 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
+    add_executable(lstg.PlusV2 WIN32 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 elseif(LSTG_PLATFORM_ANDROID)
-    add_library(LuaSTGPlus2 SHARED ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
+    add_library(lstg.PlusV2 SHARED ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 else()
-    add_executable(LuaSTGPlus2 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
+    add_executable(lstg.PlusV2 ${LSTG_V2_SOURCES} ${LSTG_V2_SOURCES_GEN})
 endif()
-target_include_directories(LuaSTGPlus2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(LuaSTGPlus2 PUBLIC LuaSTGPlusCore SDL2main SDL2-static cjson imgui implot)
-add_dependencies(LuaSTGPlus2 LuaSTGPlus2Version)
+target_include_directories(lstg.PlusV2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(lstg.PlusV2 PUBLIC
+    lstg::Core
+    sdl2::SDL2main
+    sdl2::SDL2-static
+    luacjson::cjson
+    imgui::imgui
+    implot::implot)
+add_dependencies(lstg.PlusV2 lstg.PlusV2Version)
+set_target_properties(lstg.PlusV2 PROPERTIES EXPORT_NAME PlusV2 OUTPUT_NAME LuaSTGPlus2)
 
 #set(LSTG_V2_DEFS_PRIVATE)
 #message("[LSTG-v2] Private compiler definitions: ${LSTG_V2_DEFS_PRIVATE}")
-#target_compile_definitions(LuaSTGPlus2 PRIVATE ${LSTG_V2_DEFS_PRIVATE})
+#target_compile_definitions(lstg.PlusV2 PRIVATE ${LSTG_V2_DEFS_PRIVATE})
 
 # 平台特定链接选项
 if(LSTG_PLATFORM_EMSCRIPTEN)
@@ -61,6 +68,7 @@ if(LSTG_PLATFORM_EMSCRIPTEN)
         "SHELL:-s FETCH_SUPPORT_INDEXEDDB=0"
         "SHELL:-s MIN_WEBGL_VERSION=2"
         "SHELL:-s MAX_WEBGL_VERSION=3"
+        "SHELL:-s GL_ENABLE_GET_PROC_ADDRESS=1"
         "SHELL:-s FULL_ES3=1"
         "SHELL:-s ENVIRONMENT=web"
         "SHELL:-s ALLOW_MEMORY_GROWTH=1"
@@ -72,7 +80,7 @@ if(LSTG_PLATFORM_EMSCRIPTEN)
             "SHELL:-s DEMANGLE_SUPPORT=1")
     endif()
     message(STATUS "[LSTG] Emscripten link options: ${LSTG_EMSCRIPTEN_LINK_OPTIONS}")
-    target_link_options(LuaSTGPlus2 PRIVATE ${LSTG_EMSCRIPTEN_LINK_OPTIONS})
+    target_link_options(lstg.PlusV2 PRIVATE ${LSTG_EMSCRIPTEN_LINK_OPTIONS})
 endif()
 
 # 优化 IDE 展示
