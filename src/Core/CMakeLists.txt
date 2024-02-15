@@ -26,7 +26,7 @@ set(LSTG_CORE_DEPS_PRIVATE
     icu.libsicuuc
     harfbuzz::harfbuzz-icu
     lstg::IcuData
-    ryu
+    double-conversion::double-conversion
     sdl2_sound::SDL2_sound-static)
 if(LSTG_X11_ENABLE)
     list(APPEND LSTG_CORE_DEPS_PRIVATE X11::xcb X11::X11_xcb)

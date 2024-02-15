@@ -6,9 +6,7 @@
  */
 #include "HgeFontFactory.hpp"
 
-extern "C" {
-#include <ryu/ryu_parse.h>
-}
+#include <double-conversion/string-to-double.h>
 #include <lstg/Core/Logging.hpp>
 #include <lstg/Core/Encoding/Unicode.hpp>
 #include <lstg/Core/Text/IniSaxParser.hpp>
@@ -227,12 +225,12 @@ namespace
                     auto ch = (i >= value.length() ? '\0' : value[i]);
                     if (ch == ',' || ch == '\0')
                     {
-                        float v = 0;
-                        string_view floatText = { value.data() + floatStart, i - floatStart };
-                        auto err = ::s2f_n(floatText.data(), static_cast<int>(floatText.length()), &v);
-                        if (err != SUCCESS)
+                        int processedCount = 0;
+                        float v = m_stStodConverter.StringToFloat(value.data() + floatStart, i - floatStart, &processedCount);
+                        if (processedCount == 0)
                         {
-                            LSTG_LOG_ERROR_CAT(HgeFontFactory, "Parse value \"{}\" fail", floatText);
+                            LSTG_LOG_ERROR_CAT(HgeFontFactory, "Parse value \"{}\" fail",
+                                string_view {value.data() + floatStart, i - floatStart});
                             return make_error_code(HgeFontLoadError::InvalidValue);
                         }
                         values[valueCnt++] = v;
@@ -262,6 +260,16 @@ namespace
         IFontDependencyLoader* m_pDependencyLoader = nullptr;
         int32_t m_iState = STATE_LOOKFOR_SECTION;
         bool m_bBitmapRead = false;
+        double_conversion::StringToDoubleConverter m_stStodConverter {
+            double_conversion::StringToDoubleConverter::ALLOW_LEADING_SPACES |
+            double_conversion::StringToDoubleConverter::ALLOW_TRAILING_SPACES |
+            double_conversion::StringToDoubleConverter::ALLOW_SPACES_AFTER_SIGN |
+            double_conversion::StringToDoubleConverter::ALLOW_CASE_INSENSITIVITY,
+            0,
+            numeric_limits<double>::quiet_NaN(),
+            "infinity",
+            "nan"
+        };
     };
 }
 

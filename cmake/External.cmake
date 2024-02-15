@@ -102,20 +102,12 @@ CPMAddPackage(
     GIT_TAG json/v3.11.3
 )
 
-# ryu
-# TODO: switch to Google/double-conversion
+# double-conversion
 CPMAddPackage(
-    NAME ryu
-    GITHUB_REPOSITORY ulfjack/ryu
-    GIT_TAG master
-    DOWNLOAD_ONLY ON
+    NAME double-conversion
+    GITHUB_REPOSITORY GameDevDeps/double-conversion
+    GIT_TAG double-conversion/v3.3.0
 )
-if(${ryu_ADDED})
-    # file(GLOB ryu_SOURCES ${ryu_SOURCE_DIR}/ryu/*.c)
-    add_library(ryu STATIC ${ryu_SOURCE_DIR}/ryu/d2fixed.c ${ryu_SOURCE_DIR}/ryu/d2s.c ${ryu_SOURCE_DIR}/ryu/f2s.c
-            ${ryu_SOURCE_DIR}/ryu/s2d.c ${ryu_SOURCE_DIR}/ryu/s2f.c)
-    target_include_directories(ryu PUBLIC ${ryu_SOURCE_DIR})
-endif()
 
 lstg_group_deps_into_ide_folder(FOLDER "deps/Core"
     TARGETS
@@ -154,7 +146,7 @@ lstg_group_deps_into_ide_folder(FOLDER "deps/Core"
         bzip2.bz2
         bzip2.bzip2
         bzip2.bzip2recover
-        ryu
+        double-conversion.double-conversion
 )
 
 ################################################################################
