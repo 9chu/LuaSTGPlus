@@ -11,3 +11,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 #undef STB_IMAGE_WRITE_IMPLEMENTATION
+
+#define STB_C_LEXER_IMPLEMENTATION
+#include <stb_c_lexer.h>
+#undef STB_C_LEXER_IMPLEMENTATION
